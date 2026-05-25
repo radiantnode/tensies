@@ -271,7 +271,7 @@ function renderMyArea(state, isRollResult = false) {
     const rect    = unmatchedZone.getBoundingClientRect();
     const sz      = window.innerWidth <= 480 ? 50 : 56;
     const pad     = 8;
-    const gap     = sz + 6; // min centre-to-centre distance
+    const gap     = sz + 20; // min centre-to-centre distance (extra for rotation)
     const placed  = [];
 
     diceToPlace.forEach(v => {
@@ -281,7 +281,7 @@ function renderMyArea(state, isRollResult = false) {
         y = pad + Math.random() * (rect.height - sz - pad * 2);
         tries++;
       } while (tries < 200 && placed.some(p =>
-        Math.abs(p.x - x) < gap && Math.abs(p.y - y) < gap
+        Math.hypot(p.x - x, p.y - y) < gap
       ));
 
       placed.push({ x, y });
@@ -406,7 +406,7 @@ function updateDiceInPlace(state) {
   const zone    = document.querySelector('.zone-unmatched');
   const sz      = window.innerWidth <= 480 ? 50 : 56;
   const pad     = 8;
-  const gap     = sz + 6;
+  const gap     = sz + 20;
   const scatterMs = 320;
   const finalPositions = [];
 
@@ -420,7 +420,7 @@ function updateDiceInPlace(state) {
         y = pad + Math.random() * (rect.height - sz - pad * 2);
         tries++;
       } while (tries < 200 && placed.some(p =>
-        Math.abs(p.x - x) < gap && Math.abs(p.y - y) < gap
+        Math.hypot(p.x - x, p.y - y) < gap
       ));
       placed.push({ x, y });
       finalPositions.push({ x, y, rot: (Math.random() - 0.5) * 24 });
