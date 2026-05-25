@@ -93,7 +93,6 @@
     .btn:disabled { opacity: 0.45; cursor: not-allowed; }
     .btn-primary { background: var(--accent); color: #fff; }
     .btn-secondary { background: var(--card2); color: var(--text); }
-    .btn-ghost { background: transparent; color: var(--muted); font-size: 0.9rem; }
 
     .divider { color: var(--muted); font-size: 0.85rem; }
 
@@ -117,7 +116,7 @@
     }
 
     .lobby-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
-    .lobby-hint { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+    .lobby-hint  { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
 
     .code-display {
       font-size: clamp(2.5rem, 10vw, 4rem);
@@ -166,11 +165,7 @@
       margin-left: auto;
     }
 
-    .you-badge {
-      font-size: 0.7rem;
-      color: var(--muted);
-      margin-left: auto;
-    }
+    .you-badge { font-size: 0.7rem; color: var(--muted); margin-left: auto; }
 
     #waiting-msg { color: var(--muted); font-size: 0.95rem; }
 
@@ -183,129 +178,181 @@
       overflow: hidden;
     }
 
-    /* Score bar */
-    .score-bar {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.6rem 1rem;
-      background: var(--card);
-      border-bottom: 2px solid #0a0a14;
+    /* ── Round header (centered in play area) ── */
+    .round-header {
+      text-align: center;
       flex-shrink: 0;
+      padding-bottom: 0.85rem;
     }
 
-    .score-round {
+    .round-label {
+      font-size: 0.68rem;
       color: var(--muted);
-      font-size: 0.72rem;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.15em;
       text-transform: uppercase;
-      white-space: nowrap;
+      margin-bottom: 0.5rem;
     }
 
-    .score-die {
-      --sz: 28px;
+    .round-target-die {
+      --sz: 56px;
       width: var(--sz);
       height: var(--sz);
       background: var(--accent);
-      border-radius: 5px;
+      border-radius: 11px;
       display: grid;
       grid-template: repeat(3, 1fr) / repeat(3, 1fr);
-      padding: 3px;
-      gap: 2px;
-      flex-shrink: 0;
-      box-shadow: 0 0 10px rgba(255,77,109,0.45);
+      padding: 8px;
+      gap: 3px;
+      margin: 0 auto;
+      box-shadow: 0 0 24px rgba(255,77,109,0.45);
     }
-    .score-die .dot { border-radius: 50%; }
-    .score-die .dot.active { background: #fff; }
+    .round-target-die .dot { border-radius: 50%; }
+    .round-target-die .dot.active { background: #fff; }
 
-    .score-sep { width: 1px; height: 20px; background: #2a2b40; flex-shrink: 0; }
+    /* ── Game top bar ── */
+    .game-topbar {
+      background: #0d0e1c;
+      border-bottom: 3px solid #0a0a14;
+      flex-shrink: 0;
+    }
 
-    .score-players {
+    .game-title {
+      font-size: 1rem;
+      font-weight: 900;
+      letter-spacing: 0.2em;
+      color: var(--accent);
+      text-transform: uppercase;
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid #2a2b40;
+    }
+
+    /* ── Players bar (horizontal) ── */
+    .players-bar {
       display: flex;
-      gap: 0.4rem;
+      flex-direction: row;
+      gap: 0.75rem;
       overflow-x: auto;
       scrollbar-width: none;
+      padding: 0.7rem 1rem;
     }
-    .score-players::-webkit-scrollbar { display: none; }
+    .players-bar::-webkit-scrollbar { display: none; }
 
-    .score-chip {
+    .player-mini {
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      gap: 5px;
+      flex: 1;
+      min-width: 72px;
+      max-width: 160px;
+    }
+
+    .player-mini-top {
+      display: flex;
+      align-items: baseline;
       gap: 0.35rem;
-      background: var(--card2);
-      padding: 0.25rem 0.6rem;
-      border-radius: 20px;
-      font-size: 0.78rem;
-      font-weight: 600;
+    }
+
+    .player-mini-name {
+      font-size: 0.82rem;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
-      border: 2px solid transparent;
+      flex: 1;
+    }
+
+    .player-mini-you {
+      font-size: 0.6rem;
+      color: var(--accent);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
       flex-shrink: 0;
     }
-    .score-chip.me { border-color: var(--accent); }
-    .score-chip.leading { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .score-chip .chip-wins { opacity: 0.75; font-size: 0.7rem; }
 
-    /* Game halves */
-    .game-halves {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
+    .player-mini-wins {
+      font-size: 0.65rem;
+      background: var(--card2);
+      padding: 0.12rem 0.4rem;
+      border-radius: 8px;
+      font-weight: 700;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .player-mini-wins.leading { background: var(--card2); color: var(--text); }
+
+    .player-mini-progress {
+      height: 6px;
+      background: #2a2b40;
+      border-radius: 3px;
+      overflow: hidden;
     }
 
-    .game-half {
+    .player-mini-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--green);
+      transition: width 0.3s ease;
+    }
+    .player-mini-fill.me  { background: #5b8dee; }
+    .player-mini-fill.hot { background: var(--accent); }
+
+    .player-mini-count {
+      font-size: 0.66rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .player-mini-count.hot { color: var(--accent); font-weight: 700; }
+
+    /* ── My area ── */
+    .my-area {
       flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 0.9rem 1rem 0.75rem;
+      padding: 1rem 1rem 0.75rem;
       min-height: 0;
       overflow: hidden;
     }
 
-    .opponent-half { background: var(--card); }
-    .my-half { background: var(--bg); border-top: 3px solid #0a0a14; }
-
-    .half-header {
+    .my-header {
       display: flex;
       align-items: baseline;
       gap: 0.5rem;
-      margin-bottom: 0.65rem;
+      margin-bottom: 0.75rem;
       flex-shrink: 0;
     }
 
-    .half-name { font-weight: 700; font-size: 0.95rem; }
-
-    .half-you {
-      font-size: 0.68rem;
-      color: var(--accent);
-      font-weight: 700;
+    .my-label {
+      font-size: 0.72rem;
+      color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.1em;
     }
 
-    .half-progress {
+    .my-locked {
       margin-left: auto;
-      font-size: 0.78rem;
+      font-size: 0.8rem;
       color: var(--muted);
       font-variant-numeric: tabular-nums;
     }
-    .half-progress .prog-count { color: var(--green); font-weight: 700; }
+    .my-locked .locked-count { color: var(--green); font-weight: 700; }
 
-    /* Dice zones */
+    /* ── Dice zones ── */
     .dice-zones {
       flex: 1;
       display: flex;
-      align-items: center;
-      gap: 0.65rem;
+      gap: 0.75rem;
+      align-items: flex-start;
       min-height: 0;
+      padding: 1rem 0;
     }
 
     .zone-unmatched {
       flex: 1;
       display: flex;
       flex-wrap: wrap;
-      gap: 5px;
-      align-content: center;
+      gap: 8px;
+      align-content: flex-start;
     }
 
     .zone-divider {
@@ -319,28 +366,28 @@
     .zone-matched {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
+      gap: 6px;
       align-content: center;
       justify-content: flex-end;
     }
 
-    /* Scattered tilt on unmatched */
+    /* Scattered tilt on unmatched dice */
     .zone-unmatched .die:nth-child(3n)   { transform: rotate(-4deg); }
     .zone-unmatched .die:nth-child(3n+1) { transform: rotate(3deg); }
     .zone-unmatched .die:nth-child(3n+2) { transform: rotate(-1.5deg); }
 
-    /* Die base */
+    /* ── Die ── */
     .die {
-      --die-sz: 52px;
+      --die-sz: 56px;
       width: var(--die-sz);
       height: var(--die-sz);
       background: #fff;
-      border-radius: 9px;
+      border-radius: 10px;
       display: grid;
       grid-template: repeat(3, 1fr) / repeat(3, 1fr);
       padding: 7px;
       gap: 2px;
-      box-shadow: 1px 3px 8px rgba(0,0,0,0.5);
+      box-shadow: 1px 3px 10px rgba(0,0,0,0.55);
       transition: transform 0.15s;
     }
     .die .dot { border-radius: 50%; }
@@ -348,14 +395,10 @@
 
     .die.match {
       background: #d4f8d4;
-      box-shadow: 0 0 10px rgba(46,204,113,0.6);
+      box-shadow: 0 0 12px rgba(46,204,113,0.65);
     }
     .die.match .dot.active { background: #1a5c1a; }
     .die.unrolled { background: #ccc; }
-
-    /* Sizing per half */
-    .opponent-half .die { --die-sz: 40px; padding: 5px; gap: 2px; border-radius: 7px; }
-    .my-half .die       { --die-sz: 48px; padding: 6px; gap: 2px; border-radius: 9px; }
 
     @keyframes tumble {
       0%   { transform: rotate(-8deg) scale(0.92); }
@@ -364,16 +407,16 @@
     }
     .die.rolling { animation: tumble 0.25s ease-in-out infinite !important; }
 
-    /* Roll button */
+    /* ── Roll button ── */
     .roll-area {
       text-align: center;
-      padding-top: 0.65rem;
+      padding-top: 0.85rem;
       flex-shrink: 0;
     }
 
     .btn-roll {
-      font-size: 1.2rem;
-      padding: 0.8rem 3rem;
+      font-size: 1.25rem;
+      padding: 0.85rem 3.5rem;
       background: var(--green);
       color: #fff;
       border: none;
@@ -420,8 +463,7 @@
     .confetti { font-size: 3rem; }
 
     @media (max-width: 480px) {
-      .opponent-half .die { --die-sz: 36px !important; padding: 4px !important; }
-      .my-half .die       { --die-sz: 42px !important; padding: 5px !important; }
+      .die { --die-sz: 50px !important; padding: 6px !important; }
       .winner-box { padding: 2rem; }
     }
   </style>
@@ -432,21 +474,15 @@
 <div id="landing" class="screen active">
   <div class="logo">TENSIES</div>
   <div class="tagline">Roll all ten to win the round</div>
-
   <div class="form-stack">
     <input id="name-input" type="text" placeholder="Your name" maxlength="20" autocomplete="off">
-
     <button class="btn btn-primary" onclick="createGame()">Create Game</button>
-
     <div class="divider">— or —</div>
-
     <button class="btn btn-secondary" onclick="toggleJoin()">Join Game</button>
-
     <div id="join-form">
       <input id="code-input" class="code-input" type="text" placeholder="ABCDE" maxlength="5" autocomplete="off">
       <button class="btn btn-primary" onclick="joinGame()">Join</button>
     </div>
-
     <div class="error-msg" id="landing-error"></div>
   </div>
 </div>
@@ -455,30 +491,26 @@
 <div id="lobby" class="screen">
   <div class="lobby-title">Waiting for players…</div>
   <div class="lobby-hint">Share this code with friends</div>
-
   <div class="code-display" id="lobby-code" onclick="copyCode()">——</div>
   <div class="copy-hint" id="copy-hint">click to copy</div>
-
   <div class="player-list" id="lobby-players"></div>
-
   <button id="start-btn" class="btn btn-primary" style="width:100%;max-width:400px;display:none" onclick="startGame()">
     Start Game 🎲
   </button>
-  <div id="waiting-msg" class="waiting-msg"></div>
+  <div id="waiting-msg"></div>
 </div>
 
 <!-- Game -->
 <div id="game" class="screen">
-  <div class="score-bar">
-    <div class="score-round">Round <span id="round-num">1</span></div>
-    <div class="score-die" id="score-target-die"></div>
-    <div class="score-sep"></div>
-    <div class="score-players" id="score-players"></div>
+  <!-- Top bar: round + target -->
+  <!-- Top bar: title + players -->
+  <div class="game-topbar">
+    <div class="game-title">Tensies</div>
+    <div class="players-bar" id="players-bar"></div>
   </div>
-  <div class="game-halves">
-    <div class="game-half opponent-half" id="opponent-section"></div>
-    <div class="game-half my-half" id="my-section"></div>
-  </div>
+
+  <!-- My dice -->
+  <div class="my-area" id="my-area"></div>
 </div>
 
 <!-- Winner overlay -->
@@ -528,7 +560,6 @@
   let rolling = false;
   let currentState = null;
 
-  // ── Screens ──
   function showScreen(id) {
     document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
     document.getElementById(id).classList.add("active");
@@ -585,7 +616,6 @@
   function renderLobby(state) {
     gameCode = state.code;
     document.getElementById("lobby-code").textContent = state.code;
-
     const list = document.getElementById("lobby-players");
     list.innerHTML = "";
     Object.entries(state.players).forEach(([pid, p]) => {
@@ -593,17 +623,14 @@
       li.className = "player-list-item";
       li.innerHTML = `🎲 ${esc(p.name)}`;
       if (pid === state.host) {
-        const b = document.createElement("span");
-        b.className = "host-badge"; b.textContent = "HOST";
+        const b = document.createElement("span"); b.className = "host-badge"; b.textContent = "HOST";
         li.appendChild(b);
       } else if (pid === myId) {
-        const b = document.createElement("span");
-        b.className = "you-badge"; b.textContent = "you";
+        const b = document.createElement("span"); b.className = "you-badge"; b.textContent = "you";
         li.appendChild(b);
       }
       list.appendChild(li);
     });
-
     const startBtn = document.getElementById("start-btn");
     const waitMsg  = document.getElementById("waiting-msg");
     if (state.host === myId) {
@@ -620,49 +647,110 @@
     return Math.max(0, ...Object.values(state.players).map(p => p.wins));
   }
 
-  function renderScoreBar(state) {
-    document.getElementById("round-num").textContent = state.round_num;
-
-    const el = document.getElementById("score-target-die");
-    el.innerHTML = "";
+  function makeTargetDie(target, className) {
+    const el = document.createElement("div");
+    el.className = className;
     for (let i = 0; i < 9; i++) {
       const dot = document.createElement("span");
-      dot.className = "dot" + (DOTS[state.target].includes(i) ? " active" : "");
+      dot.className = "dot" + (DOTS[target].includes(i) ? " active" : "");
       el.appendChild(dot);
     }
+    return el;
+  }
 
+  function renderPlayersBar(state) {
     const top = maxWins(state);
-    const playersEl = document.getElementById("score-players");
-    playersEl.innerHTML = "";
-    Object.entries(state.players).forEach(([pid, p]) => {
-      const isMe      = pid === myId;
-      const isLeading = p.wins > 0 && p.wins === top;
-      const chip = document.createElement("div");
-      chip.className = "score-chip" + (isMe ? " me" : "") + (isLeading ? " leading" : "");
-      chip.innerHTML = `${esc(p.name)} <span class="chip-wins">${p.wins}W</span>`;
-      playersEl.appendChild(chip);
+    const bar = document.getElementById("players-bar");
+    bar.innerHTML = "";
+
+    // Sort: me first, then others by wins desc
+    const sorted = Object.entries(state.players).sort(([aId, a], [bId, b]) => {
+      if (aId === myId) return -1;
+      if (bId === myId) return  1;
+      return b.wins - a.wins;
+    });
+
+    sorted.forEach(([pid, p]) => {
+      const isMe    = pid === myId;
+      const matched = p.dice.filter(d => d === state.target).length;
+      const hot     = !isMe && matched >= 7;
+
+      const card = document.createElement("div");
+      card.className = "player-mini";
+
+      // Top row: name + YOU tag + wins badge
+      const topRow = document.createElement("div");
+      topRow.className = "player-mini-top";
+
+      const name = document.createElement("div");
+      name.className = "player-mini-name";
+      name.textContent = p.name;
+      topRow.appendChild(name);
+
+      if (isMe) {
+        const you = document.createElement("span");
+        you.className = "player-mini-you";
+        you.textContent = "you";
+        topRow.appendChild(you);
+      }
+
+      const wins = document.createElement("div");
+      wins.className = "player-mini-wins" + (p.wins > 0 && p.wins === top ? " leading" : "");
+      wins.textContent = `${p.wins}W`;
+      topRow.appendChild(wins);
+
+      card.appendChild(topRow);
+
+      // Progress bar
+      const prog = document.createElement("div");
+      prog.className = "player-mini-progress";
+      const fill = document.createElement("div");
+      fill.className = "player-mini-fill" + (isMe ? " me" : hot ? " hot" : "");
+      fill.style.width = `${(matched / 10) * 100}%`;
+      prog.appendChild(fill);
+      card.appendChild(prog);
+
+      // Count
+      const count = document.createElement("div");
+      count.className = "player-mini-count" + (hot ? " hot" : "");
+      count.textContent = `${matched}/10`;
+      card.appendChild(count);
+
+      bar.appendChild(card);
     });
   }
 
-  function renderPlayerHalf(container, player, target, isMe) {
-    const matched   = player.dice.filter(d => d === target);
-    const unmatched = player.dice.filter(d => d !== target);
+  function renderMyArea(state) {
+    const player  = state.players[myId];
+    if (!player) return;
 
-    container.innerHTML = "";
+    const matched   = player.dice.filter(d => d === state.target);
+    const unmatched = player.dice.filter(d => d !== state.target);
 
-    // Header
+    const area = document.getElementById("my-area");
+    area.innerHTML = "";
+
+    // Round + target die header
+    const roundHeader = document.createElement("div");
+    roundHeader.className = "round-header";
+    const roundLbl = document.createElement("div");
+    roundLbl.className = "round-label";
+    roundLbl.textContent = `Round ${state.round_num}`;
+    roundHeader.appendChild(roundLbl);
+    roundHeader.appendChild(makeTargetDie(state.target, "round-target-die"));
+    area.appendChild(roundHeader);
+
+    // Dice header
     const header = document.createElement("div");
-    header.className = "half-header";
-    header.innerHTML = `<div class="half-name">${esc(player.name)}</div>`;
-    if (isMe) header.innerHTML += `<span class="half-you">You</span>`;
-
-    const prog = document.createElement("div");
-    prog.className = "half-progress";
-    prog.innerHTML = matched.length > 0
-      ? `<span class="prog-count">${matched.length}</span>/${player.dice.length} locked`
+    header.className = "my-header";
+    header.innerHTML = `<div class="my-label">Your dice</div>`;
+    const lockedEl = document.createElement("div");
+    lockedEl.className = "my-locked";
+    lockedEl.innerHTML = matched.length > 0
+      ? `<span class="locked-count">${matched.length}</span>/${player.dice.length} locked`
       : `0/${player.dice.length}`;
-    header.appendChild(prog);
-    container.appendChild(header);
+    header.appendChild(lockedEl);
+    area.appendChild(header);
 
     // Dice zones
     const zones = document.createElement("div");
@@ -670,63 +758,36 @@
 
     const unmatchedZone = document.createElement("div");
     unmatchedZone.className = "zone-unmatched";
-    unmatched.forEach(v => unmatchedZone.appendChild(makeDie(v, target)));
+    unmatched.forEach(v => unmatchedZone.appendChild(makeDie(v, state.target)));
     zones.appendChild(unmatchedZone);
 
     if (matched.length > 0) {
-      const divider = document.createElement("div");
-      divider.className = "zone-divider";
-      zones.appendChild(divider);
-
+      zones.appendChild(Object.assign(document.createElement("div"), { className: "zone-divider" }));
       const matchedZone = document.createElement("div");
       matchedZone.className = "zone-matched";
-      matched.forEach(v => matchedZone.appendChild(makeDie(v, target)));
+      matched.forEach(v => matchedZone.appendChild(makeDie(v, state.target)));
       zones.appendChild(matchedZone);
     }
 
-    container.appendChild(zones);
+    area.appendChild(zones);
 
-    // Roll button (me only)
-    if (isMe) {
-      const area = document.createElement("div");
-      area.className = "roll-area";
-      const btn = document.createElement("button");
-      btn.className = "btn-roll";
-      btn.id = "roll-btn";
-      btn.textContent = unmatched.length === 10 ? "🎲  Roll!" : `🎲  Roll ${unmatched.length}!`;
-      btn.onclick = roll;
-      area.appendChild(btn);
-      container.appendChild(area);
-    }
+    // Roll button
+    const rollArea = document.createElement("div");
+    rollArea.className = "roll-area";
+    const btn = document.createElement("button");
+    btn.className = "btn-roll";
+    btn.id = "roll-btn";
+    btn.textContent = "Roll";
+    btn.onclick = roll;
+    rollArea.appendChild(btn);
+    area.appendChild(rollArea);
   }
 
   function renderGame(state) {
     currentState = state;
     rolling = false;
-
-    renderScoreBar(state);
-
-    // Show the opponent with most matched dice (most threatening)
-    const opponents = Object.entries(state.players).filter(([pid]) => pid !== myId);
-    const featured  = opponents.length > 0
-      ? opponents.reduce((best, curr) => {
-          const bm = best[1].dice.filter(d => d === state.target).length;
-          const cm = curr[1].dice.filter(d => d === state.target).length;
-          return cm > bm ? curr : best;
-        })
-      : null;
-
-    const oppSection = document.getElementById("opponent-section");
-    if (featured) {
-      renderPlayerHalf(oppSection, featured[1], state.target, false);
-    } else {
-      oppSection.innerHTML = `<div class="half-header"><span class="half-name" style="color:var(--muted)">No opponents yet</span></div>`;
-    }
-
-    const myPlayer = state.players[myId];
-    if (myPlayer) {
-      renderPlayerHalf(document.getElementById("my-section"), myPlayer, state.target, true);
-    }
+    renderPlayersBar(state);
+    renderMyArea(state);
   }
 
   function roll() {
@@ -734,7 +795,7 @@
     rolling = true;
     const btn = document.getElementById("roll-btn");
     if (btn) btn.disabled = true;
-    document.querySelectorAll("#my-section .zone-unmatched .die").forEach(d => d.classList.add("rolling"));
+    document.querySelectorAll(".zone-unmatched .die").forEach(d => d.classList.add("rolling"));
     ws.send(JSON.stringify({ action: "roll" }));
   }
 
@@ -749,9 +810,7 @@
     document.getElementById("winner-overlay").classList.remove("visible");
   }
 
-  function nextTarget(t) {
-    return ((t - 2 + 6) % 6) + 1;
-  }
+  function nextTarget(t) { return ((t - 2 + 6) % 6) + 1; }
 
   // ── Message handler ──
   function handleMessage(msg) {
@@ -759,31 +818,23 @@
       case "welcome":
         myId = msg.player_id;
         break;
-
       case "state":
         hideWinner();
-        if (!msg.started) {
-          showScreen("lobby");
-          renderLobby(msg);
-        } else {
-          showScreen("game");
-          renderGame(msg);
-        }
+        if (!msg.started) { showScreen("lobby"); renderLobby(msg); }
+        else              { showScreen("game");  renderGame(msg);  }
         break;
-
       case "round_won":
-        if (!currentState || !currentState.started) showScreen("game");
+        if (!currentState?.started) showScreen("game");
         renderGame(msg);
         showWinner(msg.winner_name, msg.target);
         break;
-
       case "error":
         setError(msg.msg);
         break;
     }
   }
 
-  // ── Keyboard shortcuts ──
+  // ── Keyboard ──
   document.getElementById("name-input").addEventListener("keydown", e => { if (e.key === "Enter") createGame(); });
   document.getElementById("code-input").addEventListener("keydown", e => { if (e.key === "Enter") joinGame(); });
   document.getElementById("code-input").addEventListener("input",   e => { e.target.value = e.target.value.toUpperCase(); });
