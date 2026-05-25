@@ -13,7 +13,7 @@
 
 body {
   font-family: system-ui, -apple-system, sans-serif;
-  background: var(--bg);
+  background: #1a0e08 url('/static/bar-top.png') center top / cover no-repeat;
   color: var(--text);
   min-height: 100vh;
 }
@@ -30,6 +30,7 @@ body {
   justify-content: center;
   padding: 2rem;
   text-align: center;
+  background: rgba(6, 3, 1, 0.72);
 }
 
 .logo {
@@ -57,9 +58,9 @@ body {
 
 input {
   padding: 0.85rem 1rem;
-  border: 2px solid #2a2b40;
+  border: 1px solid rgba(180, 100, 20, 0.3);
   border-radius: var(--radius);
-  background: var(--card);
+  background: rgba(20, 10, 5, 0.7);
   color: var(--text);
   font-size: 1rem;
   outline: none;
@@ -106,6 +107,7 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   flex-direction: column;
   align-items: center;
   padding: 3rem 1.5rem;
+  background: rgba(6, 3, 1, 0.72);
 }
 
 .lobby-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
@@ -116,7 +118,8 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   font-weight: 900;
   letter-spacing: 0.3em;
   color: var(--accent);
-  background: var(--card);
+  background: rgba(20, 10, 5, 0.75);
+  border: 1px solid rgba(180, 100, 20, 0.25);
   padding: 1rem 2rem;
   border-radius: var(--radius);
   cursor: pointer;
@@ -124,7 +127,7 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   margin-bottom: 0.5rem;
   transition: background 0.2s;
 }
-.code-display:hover { background: var(--card2); }
+.code-display:hover { background: rgba(30, 15, 5, 0.85); }
 
 .copy-hint { color: var(--muted); font-size: 0.8rem; margin-bottom: 2rem; }
 .copied { color: var(--green) !important; }
@@ -142,7 +145,8 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: var(--card);
+  background: rgba(20, 10, 5, 0.75);
+  border: 1px solid rgba(180, 100, 20, 0.2);
   padding: 0.75rem 1rem;
   border-radius: var(--radius);
   font-weight: 600;
@@ -180,10 +184,11 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
 
 .round-label {
   font-size: 0.68rem;
-  color: var(--muted);
+  color: rgba(220, 200, 180, 0.7);
   letter-spacing: 0.15em;
   text-transform: uppercase;
   margin-bottom: 0.5rem;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.95);
 }
 
 .round-target-die {
@@ -197,15 +202,18 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   padding: 8px;
   gap: 3px;
   margin: 0 auto;
-  box-shadow: 0 0 24px rgba(255,77,109,0.45);
+  transform: rotate(-8deg);
+  box-shadow: 0 0 24px rgba(255,77,109,0.45), 2px 6px 20px rgba(0,0,0,0.95), 0 2px 5px rgba(0,0,0,0.8);
 }
 .round-target-die .dot { border-radius: 50%; }
 .round-target-die .dot.active { background: #fff; }
 
 /* ── Game top bar ── */
 .game-topbar {
-  background: #0d0e1c;
-  border-bottom: 3px solid #0a0a14;
+  background: rgba(8, 4, 1, 0.58);
+  border-bottom: 1px solid rgba(180, 100, 20, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   flex-shrink: 0;
 }
 
@@ -216,7 +224,7 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   color: var(--accent);
   text-transform: uppercase;
   padding: 0.6rem 1rem;
-  border-bottom: 1px solid #2a2b40;
+  border-bottom: 1px solid rgba(180, 100, 20, 0.2);
 }
 
 /* ── Players bar (horizontal) ── */
@@ -265,18 +273,18 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
 
 .player-mini-wins {
   font-size: 0.65rem;
-  background: var(--card2);
+  background: rgba(255,255,255,0.1);
   padding: 0.12rem 0.4rem;
   border-radius: 8px;
   font-weight: 700;
   flex-shrink: 0;
   white-space: nowrap;
 }
-.player-mini-wins.leading { background: var(--card2); color: var(--text); }
+.player-mini-wins.leading { background: rgba(255,255,255,0.1); color: var(--text); }
 
 .player-mini-progress {
   height: 6px;
-  background: #2a2b40;
+  background: rgba(255,255,255,0.12);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -317,16 +325,18 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
 
 .my-label {
   font-size: 0.72rem;
-  color: var(--muted);
+  color: rgba(220, 200, 180, 0.75);
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
 }
 
 .my-locked {
   margin-left: auto;
   font-size: 0.8rem;
-  color: var(--muted);
+  color: rgba(220, 200, 180, 0.75);
   font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
 }
 .my-locked .locked-count { color: var(--green); font-weight: 700; }
 
@@ -390,7 +400,7 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   padding: 7px;
   gap: 2px;
-  box-shadow: 1px 3px 10px rgba(0,0,0,0.55);
+  box-shadow: 1px 4px 14px rgba(0,0,0,0.8), 0 1px 3px rgba(0,0,0,0.6);
   backface-visibility: hidden;
 }
 .face .dot { border-radius: 50%; }
@@ -502,7 +512,7 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
 #winner-overlay.visible { display: flex; }
 
 .winner-box {
-  background: var(--card);
+  background: rgba(15, 7, 3, 0.95);
   border: 3px solid var(--accent);
   border-radius: 20px;
   padding: 3rem 4rem;

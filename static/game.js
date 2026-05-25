@@ -250,7 +250,6 @@ function renderMyArea(state, isRollResult = false) {
   // Dice header
   const header = document.createElement("div");
   header.className = "my-header";
-  header.innerHTML = `<div class="my-label">Your dice</div>`;
   const lockedEl = document.createElement("div");
   lockedEl.className = "my-locked";
   lockedEl.innerHTML = matched.length > 0
