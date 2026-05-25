@@ -15,13 +15,21 @@
   <div class="form-stack">
     <input id="name-input" type="text" placeholder="Your name" maxlength="20" autocomplete="off">
     <button class="btn btn-primary" onclick="createGame()">Create Game</button>
-    <div class="divider">— or —</div>
-    <button class="btn btn-secondary" onclick="toggleJoin()">Join Game</button>
-    <div id="join-form">
-      <input id="code-input" class="code-input" type="text" placeholder="ABCDE" maxlength="5" autocomplete="off">
-      <button class="btn btn-primary" onclick="joinGame()">Join</button>
-    </div>
+    <button class="btn btn-secondary" onclick="showJoin()">Join Game</button>
     <div class="error-msg" id="landing-error"></div>
+  </div>
+</div>
+
+<!-- Join -->
+<div id="join" class="screen">
+  <div class="join-back" onclick="showLanding()">← Back</div>
+  <div class="logo">JOIN</div>
+  <div class="tagline">Enter your name and game code</div>
+  <div class="form-stack">
+    <input id="join-name-input" type="text" placeholder="Your name" maxlength="20" autocomplete="off">
+    <input id="code-input" class="code-input" type="text" placeholder="ABCDE" maxlength="5" autocomplete="off">
+    <button class="btn btn-primary" onclick="joinGame()">Join Game</button>
+    <div class="error-msg" id="join-error"></div>
   </div>
 </div>
 

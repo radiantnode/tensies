@@ -101,18 +101,31 @@ function showScreen(id) {
 }
 
 // ── Landing ──
-function toggleJoin() {
-  const f = document.getElementById("join-form");
-  f.classList.toggle("visible");
-  if (f.classList.contains("visible")) document.getElementById("code-input").focus();
+function showJoin() {
+  const name = document.getElementById("name-input").value.trim();
+  document.getElementById("join-name-input").value = name;
+  showScreen("join");
+  document.getElementById(name ? "code-input" : "join-name-input").focus();
+}
+
+function showLanding() {
+  showScreen("landing");
 }
 
 function getName() {
+  const active = document.querySelector(".screen.active");
+  if (active && active.id === "join") {
+    return document.getElementById("join-name-input").value.trim() || "Player";
+  }
   return document.getElementById("name-input").value.trim() || "Player";
 }
 
 function setError(msg) {
   document.getElementById("landing-error").textContent = msg;
+}
+
+function setJoinError(msg) {
+  document.getElementById("join-error").textContent = msg;
 }
 
 function connectWS(afterConnect) {
@@ -129,7 +142,7 @@ function createGame() {
 
 function joinGame() {
   const code = document.getElementById("code-input").value.trim();
-  if (!code) { setError("Enter a game code"); return; }
+  if (!code) { setJoinError("Enter a game code"); return; }
   connectWS(() => ws.send(JSON.stringify({ action: "join", name: getName(), code })));
 }
 
@@ -659,6 +672,7 @@ function handleMessage(msg) {
 
 // ── Keyboard ──
 document.getElementById("name-input").addEventListener("keydown", e => { if (e.key === "Enter") createGame(); });
+document.getElementById("join-name-input").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("code-input").focus(); });
 document.getElementById("code-input").addEventListener("keydown", e => { if (e.key === "Enter") joinGame(); });
 document.getElementById("code-input").addEventListener("input",   e => { e.target.value = e.target.value.toUpperCase(); });
 
