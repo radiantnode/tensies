@@ -205,7 +205,7 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   margin: 0 auto;
   transform: rotate(-8deg);
   box-shadow: 0 0 24px rgba(255,77,109,0.45);
-  filter: drop-shadow(0 8px 14px rgba(0,0,0,0.95)) drop-shadow(0 3px 5px rgba(0,0,0,0.85));
+  filter: drop-shadow(4px 7px 12px rgba(0,0,0,0.95)) drop-shadow(2px 3px 4px rgba(0,0,0,0.8));
 }
 .round-target-die .dot { border-radius: 50%; }
 .round-target-die .dot.active { background: #fff; }
@@ -357,7 +357,10 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
 }
 
 /* wrapper handles position + tilt; die handles rolling animation */
-.die-wrapper { position: absolute; }
+.die-wrapper {
+  position: absolute;
+  filter: drop-shadow(3px 4px 6px rgba(0,0,0,0.14));
+}
 
 .zone-matched {
   display: flex;
@@ -402,7 +405,7 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   padding: 7px;
   gap: 2px;
-  box-shadow: 1px 4px 14px rgba(0,0,0,0.8), 0 1px 3px rgba(0,0,0,0.6);
+  box-shadow: 4px 6px 14px rgba(0,0,0,0.75), 1px 2px 4px rgba(0,0,0,0.55);
   backface-visibility: hidden;
 }
 .face .dot { border-radius: 50%; }
