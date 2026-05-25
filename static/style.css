@@ -9,13 +9,27 @@
   --radius: 12px;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
+
+html {
+  /* Prevent document-level scroll on iOS Safari */
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
 
 body {
   font-family: system-ui, -apple-system, sans-serif;
   background: #1a0e08 url('/static/bar-top.png') center top / cover no-repeat;
   color: var(--text);
-  min-height: 100vh;
+  /* Pin body to exact viewport — prevents iOS rubber-band scroll and vh bugs */
+  position: fixed;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ── Screens ── */
@@ -23,14 +37,17 @@ body {
 
 /* ── Landing ── */
 #landing {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  /* Safe area: push content away from notch and home bar */
+  padding: calc(2rem + env(safe-area-inset-top)) 2rem calc(2rem + env(safe-area-inset-bottom));
   text-align: center;
   background: rgba(6, 3, 1, 0.72);
+  overflow: hidden;
 }
 
 .logo {
@@ -81,6 +98,7 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
   letter-spacing: 0.05em;
+  touch-action: manipulation; /* no double-tap zoom delay */
 }
 .btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
 .btn:active:not(:disabled) { transform: translateY(0); }
@@ -102,12 +120,14 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
 
 /* ── Lobby ── */
 #lobby {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 3rem 1.5rem;
+  padding: calc(3rem + env(safe-area-inset-top)) 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
   background: rgba(6, 3, 1, 0.72);
+  overflow: hidden;
 }
 
 .lobby-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
@@ -139,7 +159,12 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   flex-direction: column;
   gap: 0.5rem;
   margin-bottom: 2rem;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
+.player-list::-webkit-scrollbar { display: none; }
 
 .player-list-item {
   display: flex;
@@ -171,7 +196,9 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   max-height: 100vh;
+  max-height: 100dvh;
   overflow: hidden;
 }
 
@@ -217,6 +244,8 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   flex-shrink: 0;
+  /* Notch / status bar clearance */
+  padding-top: env(safe-area-inset-top);
 }
 
 .game-title {
@@ -349,6 +378,8 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   gap: 0.75rem;
   align-items: stretch;
   min-height: 0;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .zone-unmatched {
@@ -483,7 +514,8 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
 .roll-area {
   text-align: center;
   padding-top: 0.85rem;
-  padding-bottom: 1.5rem;
+  /* Home indicator clearance */
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
   flex-shrink: 0;
 }
 
@@ -492,6 +524,7 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   padding: 0.85rem 3.5rem;
   background: rgba(30, 15, 5, 0.45);
   color: rgba(240, 210, 160, 0.92);
+  touch-action: manipulation;
   border-top: 1px solid rgba(220, 160, 60, 0.35);
   border-left: 1px solid rgba(200, 140, 50, 0.25);
   border-right: 1px solid rgba(160, 100, 30, 0.3);
@@ -568,4 +601,28 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
 
 @media (max-width: 480px) {
   .winner-box { padding: 2rem; }
+}
+
+/* ── Small-height screens (iPhone SE, older iPhones in portrait) ── */
+@media (max-height: 700px) {
+  .round-header { padding: 1rem 0; }
+  .roll-area {
+    padding-top: 0.5rem;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+  .my-header { margin-bottom: 0.4rem; }
+  .tagline { margin-bottom: 1.5rem; }
+}
+
+@media (max-height: 600px) {
+  .round-header { padding: 0.5rem 0; }
+  .die-scene { width: 46px; height: 46px; }
+  .face-1 { transform: translateZ(23px); }
+  .face-6 { transform: rotateY(180deg)  translateZ(23px); }
+  .face-2 { transform: rotateY(90deg)   translateZ(23px); }
+  .face-5 { transform: rotateY(-90deg)  translateZ(23px); }
+  .face-3 { transform: rotateX(-90deg)  translateZ(23px); }
+  .face-4 { transform: rotateX(90deg)   translateZ(23px); }
+  .zone-matched { width: calc(2 * 46px + 14px); }
+  .round-target-die { --sz: 46px; }
 }
