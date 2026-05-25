@@ -160,14 +160,26 @@ function joinGame() {
 }
 
 // ── Lobby ──
+function joinLink() {
+  return `${location.origin}/?join=${gameCode}`;
+}
+
 function copyCode() {
   if (!gameCode) return;
-  navigator.clipboard.writeText(gameCode).then(() => {
+  navigator.clipboard.writeText(joinLink()).then(() => {
     const hint = document.getElementById("copy-hint");
-    hint.textContent = "copied!";
+    hint.textContent = "link copied!";
     hint.classList.add("copied");
-    setTimeout(() => { hint.textContent = "click to copy"; hint.classList.remove("copied"); }, 2000);
+    setTimeout(() => { hint.textContent = "click to copy link"; hint.classList.remove("copied"); }, 2000);
   });
+}
+
+function smsTap() {
+  if (!gameCode) return false;
+  const body = encodeURIComponent(`🎲 Come play Tensies! ${joinLink()}`);
+  // & works on iOS; ? works on Android — the combined form is broadly supported
+  location.href = `sms:?&body=${body}`;
+  return false;
 }
 
 function startGame() {
@@ -699,3 +711,13 @@ document.addEventListener("keydown", e => {
 
 // ── Init ──
 loadRandomName();
+
+// Deep-link: /?join=ABCDE → go straight to join screen with code pre-filled
+(function () {
+  const code = new URLSearchParams(location.search).get("join");
+  if (code) {
+    history.replaceState(null, "", "/"); // clean URL
+    document.getElementById("code-input").value = code.toUpperCase();
+    showJoin();
+  }
+})();

@@ -36,9 +36,10 @@
 <!-- Lobby -->
 <div id="lobby" class="screen">
   <div class="lobby-title">Waiting for players…</div>
-  <div class="lobby-hint">Share this code with friends</div>
+  <div class="lobby-hint">Share this link to invite friends</div>
   <div class="code-display" id="lobby-code" onclick="copyCode()">——</div>
-  <div class="copy-hint" id="copy-hint">click to copy</div>
+  <div class="copy-hint" id="copy-hint">click to copy link</div>
+  <a id="sms-btn" class="btn btn-sms" href="#" onclick="return smsTap()">💬 Send Text Invite</a>
   <div class="player-list" id="lobby-players"></div>
   <button id="start-btn" class="btn btn-primary" style="width:100%;max-width:400px;display:none" onclick="startGame()">
     Start Game 🎲

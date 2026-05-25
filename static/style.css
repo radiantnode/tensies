@@ -99,6 +99,8 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   transition: opacity 0.15s, transform 0.1s;
   letter-spacing: 0.05em;
   touch-action: manipulation; /* no double-tap zoom delay */
+  text-decoration: none; /* for <a> used as btn */
+  color: inherit;         /* for <a> used as btn */
 }
 .btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
 .btn:active:not(:disabled) { transform: translateY(0); }
@@ -169,8 +171,20 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
 }
 .code-display:hover { background: rgba(30, 15, 5, 0.85); }
 
-.copy-hint { color: var(--muted); font-size: 0.8rem; margin-bottom: 2rem; }
+.copy-hint { color: var(--muted); font-size: 0.8rem; margin-bottom: 1rem; }
 .copied { color: var(--green) !important; }
+
+.btn-sms {
+  display: inline-block;
+  text-decoration: none;
+  background: rgba(30, 180, 100, 0.18);
+  color: var(--text);
+  border: 1px solid rgba(30, 180, 100, 0.35);
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
 
 .player-list {
   width: 100%;
