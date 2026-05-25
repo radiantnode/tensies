@@ -365,12 +365,12 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
 .zone-matched {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 14px;
   align-content: flex-start;
   justify-content: flex-end;
   padding-top: 1rem;
   /* fixed width = 2 dice + gap — never reflows */
-  width: calc(2 * 56px + 6px);
+  width: calc(2 * 56px + 14px);
   flex-shrink: 0;
 }
 
@@ -476,7 +476,7 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   .face-5 { transform: rotateY(-90deg)  translateZ(25px); }
   .face-3 { transform: rotateX(-90deg)  translateZ(25px); }
   .face-4 { transform: rotateX(90deg)   translateZ(25px); }
-  .zone-matched { width: calc(2 * 50px + 6px); }
+  .zone-matched { width: calc(2 * 50px + 14px); }
 }
 
 /* ── Roll button ── */
