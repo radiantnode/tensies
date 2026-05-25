@@ -416,12 +416,11 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
 .face-3 { transform: rotateX(-90deg)  translateZ(28px); }
 .face-4 { transform: rotateX(90deg)   translateZ(28px); }
 
-/* Match highlight — styles all faces; only the visible one matters */
+/* Match — same look as regular dice */
 .die-3d.match .face {
-  background: #d4f8d4;
-  box-shadow: 0 0 12px rgba(46,204,113,0.65);
+  background: #fff;
 }
-.die-3d.match .face .dot.active { background: #1a5c1a; }
+.die-3d.match .face .dot.active { background: #1a1a2e; }
 
 /* 3-D tumble animations — three variants so dice look unsynchronised */
 @keyframes tumble3d-a {
