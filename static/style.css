@@ -482,13 +482,16 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
 }
 .die-wrapper.landing { animation: dieBounceLand 0.38s ease-out forwards; }
 
-/* Newly-matched dice lift off from where they landed before moving to the side */
+/* Newly-matched dice lift off from where they landed before moving to the side.
+   Animation is on the child .die-scene, NOT the wrapper — the wrapper holds
+   transform: translate() rotate() for position, so animating scale on the same
+   element would compose incorrectly through the transform-origin chain. */
 @keyframes dieLiftOff {
-  0%   { scale: 1;   opacity: 1; }
-  40%  { scale: 1.2; opacity: 1; }
-  100% { scale: 0;   opacity: 0; }
+  0%   { transform: scale(1);   opacity: 1; }
+  40%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0);   opacity: 0; }
 }
-.die-wrapper.lifting { animation: dieLiftOff 0.28s ease-in forwards; }
+.die-wrapper.lifting > .die-scene { animation: dieLiftOff 0.28s ease-in forwards; }
 
 /* New matched dice pop into the matched zone */
 @keyframes matchPop {
