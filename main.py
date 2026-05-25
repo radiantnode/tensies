@@ -24,6 +24,11 @@ def make_code() -> str:
             return code
 
 
+def fresh_dice() -> list[int]:
+    """10 random dice — used for round start (no locking yet)."""
+    return [random.randint(1, 6) for _ in range(10)]
+
+
 def new_game(host_id: str, host_name: str) -> tuple[str, dict]:
     code = make_code()
     games[code] = {
@@ -33,7 +38,7 @@ def new_game(host_id: str, host_name: str) -> tuple[str, dict]:
         "round_over": False,
         "host": host_id,
         "players": {
-            host_id: {"name": host_name, "dice": [], "wins": 0}
+            host_id: {"name": host_name, "dice": [], "wins": 0, "has_rolled": False}
         },
     }
     connections[code] = {}
@@ -54,7 +59,12 @@ def state_msg(game: dict, code: str, msg_type: str = "state", **extra) -> dict:
         "started": game["started"],
         "host": game["host"],
         "players": {
-            pid: {"name": p["name"], "dice": p["dice"], "wins": p["wins"]}
+            pid: {
+                "name": p["name"],
+                "dice": p["dice"],
+                "wins": p["wins"],
+                "has_rolled": p.get("has_rolled", False),
+            }
             for pid, p in game["players"].items()
         },
         **extra,
@@ -109,7 +119,7 @@ async def websocket_endpoint(ws: WebSocket):
                     await ws.send_text(json.dumps({"type": "error", "msg": "Game already in progress"}))
                     continue
                 code = join_code
-                game["players"][pid] = {"name": name, "dice": [], "wins": 0}
+                game["players"][pid] = {"name": name, "dice": [], "wins": 0, "has_rolled": False}
                 connections[code][pid] = ws
                 await broadcast(code, state_msg(game, code))
 
@@ -121,7 +131,8 @@ async def websocket_endpoint(ws: WebSocket):
                     continue
                 game["started"] = True
                 for p in game["players"].values():
-                    p["dice"] = [0] * 10
+                    p["dice"] = fresh_dice()
+                    p["has_rolled"] = False
                 await broadcast(code, state_msg(game, code))
 
             elif action == "roll":
@@ -135,10 +146,18 @@ async def websocket_endpoint(ws: WebSocket):
                     continue
 
                 target = game["target"]
-                player["dice"] = [
-                    d if d == target else random.randint(1, 6)
-                    for d in player["dice"]
-                ]
+                first_roll = not player.get("has_rolled", False)
+                player["has_rolled"] = True
+
+                if first_roll:
+                    # First roll of the round: roll all 10, no free matches
+                    player["dice"] = [random.randint(1, 6) for _ in range(10)]
+                else:
+                    # Keep locked dice, re-roll the rest
+                    player["dice"] = [
+                        d if d == target else random.randint(1, 6)
+                        for d in player["dice"]
+                    ]
 
                 if all(d == target for d in player["dice"]):
                     game["round_over"] = True
@@ -152,7 +171,8 @@ async def websocket_endpoint(ws: WebSocket):
                     game["round_num"] += 1
                     game["round_over"] = False
                     for p in game["players"].values():
-                        p["dice"] = [0] * 10
+                        p["dice"] = fresh_dice()
+                        p["has_rolled"] = False
                     await broadcast(code, state_msg(game, code))
                 else:
                     await broadcast(code, state_msg(game, code))

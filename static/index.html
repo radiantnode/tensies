@@ -182,7 +182,7 @@
     .round-header {
       text-align: center;
       flex-shrink: 0;
-      padding-bottom: 0.85rem;
+      padding: 2.25rem 0;
     }
 
     .round-label {
@@ -309,7 +309,7 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 1rem 1rem 0.75rem;
+      padding: 0 1rem 0.75rem;
       min-height: 0;
       overflow: hidden;
     }
@@ -342,39 +342,49 @@
       flex: 1;
       display: flex;
       gap: 0.75rem;
-      align-items: flex-start;
+      align-items: stretch;
       min-height: 0;
-      padding: 1rem 0;
     }
 
     .zone-unmatched {
       flex: 1;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-content: flex-start;
+      position: relative; /* absolute-positioned dice children */
     }
+
+    /* wrapper handles position + tilt; die handles rolling animation */
+    .die-wrapper { position: absolute; }
 
     .zone-divider {
       width: 1px;
-      align-self: stretch;
       background: #2a2b40;
       flex-shrink: 0;
-      margin: 4px 0;
     }
 
     .zone-matched {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      align-content: center;
+      align-content: flex-start;
       justify-content: flex-end;
+      padding-top: 1rem;
+      /* fixed width = 2 dice + gap — never reflows */
+      width: calc(2 * 56px + 6px);
+      flex-shrink: 0;
     }
 
-    /* Scattered tilt on unmatched dice */
-    .zone-unmatched .die:nth-child(3n)   { transform: rotate(-4deg); }
-    .zone-unmatched .die:nth-child(3n+1) { transform: rotate(3deg); }
-    .zone-unmatched .die:nth-child(3n+2) { transform: rotate(-1.5deg); }
+    @media (max-width: 480px) {
+      .zone-matched { width: calc(2 * 50px + 6px); }
+    }
+
+    /* Slight skew on matched dice */
+    .zone-matched .die:nth-child(3n)   { transform: rotate(3.5deg); }
+    .zone-matched .die:nth-child(3n+1) { transform: rotate(-2.5deg); }
+    .zone-matched .die:nth-child(3n+2) { transform: rotate(1.5deg); }
+
+    /* Slight skew on matched dice */
+    .zone-matched .die:nth-child(3n)   { transform: rotate(3.5deg); }
+    .zone-matched .die:nth-child(3n+1) { transform: rotate(-2.5deg); }
+    .zone-matched .die:nth-child(3n+2) { transform: rotate(1.5deg); }
 
     /* ── Die ── */
     .die {
@@ -398,7 +408,7 @@
       box-shadow: 0 0 12px rgba(46,204,113,0.65);
     }
     .die.match .dot.active { background: #1a5c1a; }
-    .die.unrolled { background: #ccc; }
+    .die.unrolled { background: #e0e0e0; } /* fallback, shouldn't appear */
 
     @keyframes tumble {
       0%   { transform: rotate(-8deg) scale(0.92); }
@@ -559,6 +569,14 @@
   let gameCode = null;
   let rolling = false;
   let currentState = null;
+  let lastMyDiceKey = null;
+  let myRollPending = false;
+
+  function myDiceKey(state) {
+    const p = state.players[myId];
+    if (!p) return null;
+    return JSON.stringify({ dice: p.dice, has_rolled: p.has_rolled, target: state.target, round_num: state.round_num });
+  }
 
   function showScreen(id) {
     document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
@@ -672,7 +690,7 @@
 
     sorted.forEach(([pid, p]) => {
       const isMe    = pid === myId;
-      const matched = p.dice.filter(d => d === state.target).length;
+      const matched = p.has_rolled ? p.dice.filter(d => d === state.target).length : 0;
       const hot     = !isMe && matched >= 7;
 
       const card = document.createElement("div");
@@ -724,8 +742,9 @@
     const player  = state.players[myId];
     if (!player) return;
 
-    const matched   = player.dice.filter(d => d === state.target);
-    const unmatched = player.dice.filter(d => d !== state.target);
+    const effectiveTarget = player.has_rolled ? state.target : -1;
+    const matched   = player.dice.filter(d => d === effectiveTarget);
+    const unmatched = player.dice.filter(d => d !== effectiveTarget);
 
     const area = document.getElementById("my-area");
     area.innerHTML = "";
@@ -758,16 +777,44 @@
 
     const unmatchedZone = document.createElement("div");
     unmatchedZone.className = "zone-unmatched";
-    unmatched.forEach(v => unmatchedZone.appendChild(makeDie(v, state.target)));
+
+    // Place dice after layout so we can measure the zone's real dimensions
+    const diceToPlace = [...unmatched];
+    requestAnimationFrame(() => {
+      const rect    = unmatchedZone.getBoundingClientRect();
+      const sz      = window.innerWidth <= 480 ? 50 : 56;
+      const pad     = 8;
+      const gap     = sz + 6; // min centre-to-centre distance
+      const placed  = [];
+
+      diceToPlace.forEach(v => {
+        let x, y, tries = 0;
+        do {
+          x = pad + Math.random() * (rect.width  - sz - pad * 2);
+          y = pad + Math.random() * (rect.height - sz - pad * 2);
+          tries++;
+        } while (tries < 200 && placed.some(p =>
+          Math.abs(p.x - x) < gap && Math.abs(p.y - y) < gap
+        ));
+
+        placed.push({ x, y });
+        const rot     = (Math.random() - 0.5) * 24; // ±12°
+        const wrapper = document.createElement("div");
+        wrapper.className = "die-wrapper";
+        wrapper.style.left      = x + "px";
+        wrapper.style.top       = y + "px";
+        wrapper.style.transform = `rotate(${rot}deg)`;
+        wrapper.appendChild(makeDie(v, effectiveTarget));
+        unmatchedZone.appendChild(wrapper);
+      });
+    });
     zones.appendChild(unmatchedZone);
 
-    if (matched.length > 0) {
-      zones.appendChild(Object.assign(document.createElement("div"), { className: "zone-divider" }));
-      const matchedZone = document.createElement("div");
-      matchedZone.className = "zone-matched";
-      matched.forEach(v => matchedZone.appendChild(makeDie(v, state.target)));
-      zones.appendChild(matchedZone);
-    }
+    zones.appendChild(Object.assign(document.createElement("div"), { className: "zone-divider" }));
+    const matchedZone = document.createElement("div");
+    matchedZone.className = "zone-matched";
+    matched.forEach(v => matchedZone.appendChild(makeDie(v, effectiveTarget)));
+    zones.appendChild(matchedZone);
 
     area.appendChild(zones);
 
@@ -785,17 +832,23 @@
 
   function renderGame(state) {
     currentState = state;
-    rolling = false;
     renderPlayersBar(state);
-    renderMyArea(state);
+    const key = myDiceKey(state);
+    if (myRollPending || key !== lastMyDiceKey) {
+      myRollPending = false;
+      lastMyDiceKey = key;
+      rolling = false;
+      renderMyArea(state);
+    }
   }
 
   function roll() {
     if (rolling) return;
     rolling = true;
+    myRollPending = true;
     const btn = document.getElementById("roll-btn");
     if (btn) btn.disabled = true;
-    document.querySelectorAll(".zone-unmatched .die").forEach(d => d.classList.add("rolling"));
+    document.querySelectorAll(".zone-unmatched .die-wrapper .die").forEach(d => d.classList.add("rolling"));
     ws.send(JSON.stringify({ action: "roll" }));
   }
 
@@ -825,6 +878,7 @@
         break;
       case "round_won":
         if (!currentState?.started) showScreen("game");
+        lastMyDiceKey = null; // force re-render after round transition
         renderGame(msg);
         showWinner(msg.winner_name, msg.target);
         break;
