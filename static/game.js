@@ -86,6 +86,8 @@ let rollShakeEnd = 0;
 let prevMyDiceKey = null;
 let prevMatchedCount = 0;
 let pendingRollTimeouts = [];
+// pid → { card, wins, fill, count } — persists across rounds for in-place updates
+const barCards = {};
 
 function myDiceKey(state) {
   const p = state.players[myId];
@@ -194,12 +196,11 @@ function makeTargetDie(target, className) {
 function renderPlayersBar(state) {
   const top = maxWins(state);
   const bar = document.getElementById("players-bar");
-  bar.innerHTML = "";
 
-  const sorted = Object.entries(state.players).sort(([aId, a], [bId, b]) => {
+  const sorted = Object.entries(state.players).sort(([aId], [bId]) => {
     if (aId === myId) return -1;
     if (bId === myId) return  1;
-    return b.wins - a.wins;
+    return state.players[bId].wins - state.players[aId].wins;
   });
 
   sorted.forEach(([pid, p]) => {
@@ -207,46 +208,62 @@ function renderPlayersBar(state) {
     const matched = p.has_rolled ? p.dice.filter(d => d === state.target).length : 0;
     const hot     = !isMe && matched >= 7;
 
-    const card = document.createElement("div");
-    card.className = "player-mini";
+    if (!barCards[pid]) {
+      // First appearance — build the card DOM once
+      const card   = document.createElement("div");
+      card.className = "player-mini";
 
-    const topRow = document.createElement("div");
-    topRow.className = "player-mini-top";
+      const topRow = document.createElement("div");
+      topRow.className = "player-mini-top";
 
-    const name = document.createElement("div");
-    name.className = "player-mini-name";
-    name.textContent = p.name;
-    topRow.appendChild(name);
+      const name = document.createElement("div");
+      name.className = "player-mini-name";
+      name.textContent = p.name;
+      topRow.appendChild(name);
 
-    if (isMe) {
-      const you = document.createElement("span");
-      you.className = "player-mini-you";
-      you.textContent = "you";
-      topRow.appendChild(you);
+      if (isMe) {
+        const you = document.createElement("span");
+        you.className = "player-mini-you";
+        you.textContent = "you";
+        topRow.appendChild(you);
+      }
+
+      const wins = document.createElement("div");
+      topRow.appendChild(wins);
+      card.appendChild(topRow);
+
+      const prog = document.createElement("div");
+      prog.className = "player-mini-progress";
+      const fill = document.createElement("div");
+      prog.appendChild(fill);
+      card.appendChild(prog);
+
+      const count = document.createElement("div");
+      card.appendChild(count);
+
+      barCards[pid] = { card, wins, fill, count };
     }
 
-    const wins = document.createElement("div");
-    wins.className = "player-mini-wins" + (p.wins > 0 && p.wins === top ? " leading" : "");
+    // Update only the values that change — fill width animates via CSS transition
+    const { card, wins, fill, count } = barCards[pid];
+    wins.className  = "player-mini-wins" + (p.wins > 0 && p.wins === top ? " leading" : "");
     wins.textContent = `${p.wins}W`;
-    topRow.appendChild(wins);
-
-    card.appendChild(topRow);
-
-    const prog = document.createElement("div");
-    prog.className = "player-mini-progress";
-    const fill = document.createElement("div");
-    fill.className = "player-mini-fill" + (isMe ? " me" : hot ? " hot" : "");
+    fill.className  = "player-mini-fill" + (isMe ? " me" : hot ? " hot" : "");
     fill.style.width = `${(matched / 10) * 100}%`;
-    prog.appendChild(fill);
-    card.appendChild(prog);
-
-    const count = document.createElement("div");
-    count.className = "player-mini-count" + (hot ? " hot" : "");
+    count.className  = "player-mini-count" + (hot ? " hot" : "");
     count.textContent = `${matched}/10`;
-    card.appendChild(count);
 
+    // appendChild moves existing elements — keeps sorted order without extra DOM ops
     bar.appendChild(card);
   });
+
+  // Remove cards for players who have left the game
+  for (const pid of Object.keys(barCards)) {
+    if (!state.players[pid]) {
+      barCards[pid].card.remove();
+      delete barCards[pid];
+    }
+  }
 }
 
 function renderMyArea(state) {
