@@ -146,18 +146,28 @@ async def websocket_endpoint(ws: WebSocket):
                     continue
 
                 target = game["target"]
-                first_roll = not player.get("has_rolled", False)
-                player["has_rolled"] = True
+                client_dice = msg.get("dice")
 
-                if first_roll:
-                    # First roll of the round: roll all 10, no free matches
-                    player["dice"] = [random.randint(1, 6) for _ in range(10)]
-                else:
-                    # Keep locked dice, re-roll the rest
-                    player["dice"] = [
-                        d if d == target else random.randint(1, 6)
-                        for d in player["dice"]
-                    ]
+                # Validate: must be exactly 10 ints in range 1–6
+                if (
+                    not isinstance(client_dice, list)
+                    or len(client_dice) != 10
+                    or not all(isinstance(d, int) and 1 <= d <= 6 for d in client_dice)
+                ):
+                    await ws.send_text(json.dumps({"type": "error", "msg": "Invalid dice"}))
+                    continue
+
+                # On a re-roll, locked dice (those matching target) must stay locked
+                if player.get("has_rolled"):
+                    if any(
+                        old == target and new != target
+                        for old, new in zip(player["dice"], client_dice)
+                    ):
+                        await ws.send_text(json.dumps({"type": "error", "msg": "Cannot unlock matched dice"}))
+                        continue
+
+                player["dice"] = client_dice
+                player["has_rolled"] = True
 
                 if all(d == target for d in player["dice"]):
                     game["round_over"] = True
