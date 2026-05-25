@@ -310,9 +310,8 @@ function renderMyArea(state) {
       const rot     = (Math.random() - 0.5) * 24;
       const wrapper = document.createElement("div");
       wrapper.className = "die-wrapper";
-      wrapper.style.left      = x + "px";
-      wrapper.style.top       = y + "px";
-      wrapper.style.transform = `rotate(${rot}deg)`;
+      // translate handles position — GPU-composited, no layout cost
+      wrapper.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg)`;
       wrapper.appendChild(makeDie(v, effectiveTarget));
       unmatchedZone.appendChild(wrapper);
     });
@@ -365,10 +364,8 @@ function startShake() {
       const ox  = (Math.random() - 0.5) * 44;
       const oy  = (Math.random() - 0.5) * 44;
       const rot = (Math.random() - 0.5) * 30;
-      wrapper.style.transition = `left ${gatherMs}ms ease-in, top ${gatherMs}ms ease-in`;
-      wrapper.style.left      = (cx + ox) + 'px';
-      wrapper.style.top       = (cy + oy) + 'px';
-      wrapper.style.transform = `rotate(${rot}deg)`;
+      wrapper.style.transition = `transform ${gatherMs}ms ease-in`;
+      wrapper.style.transform  = `translate(${cx + ox}px, ${cy + oy}px) rotate(${rot}deg)`;
     });
   }
 
@@ -434,19 +431,16 @@ function updateDiceInPlace(state, onComplete) {
 
     wrappers.forEach((wrapper, i) => {
       const p = finalPositions[i];
-      wrapper.style.transition = `left ${scatterMs}ms ease-out, top ${scatterMs}ms ease-out`;
-      wrapper.style.left       = p.x + 'px';
-      wrapper.style.top        = p.y + 'px';
+      wrapper.style.transition = `transform ${scatterMs}ms ease-out`;
+      wrapper.style.transform  = `translate(${p.x}px, ${p.y}px) rotate(${p.rot}deg)`;
     });
   }
 
   // ── Phase 2: reveal faces ──
   const revealT = setTimeout(() => {
-    wrappers.forEach((wrapper, i) => {
+    wrappers.forEach(wrapper => {
       wrapper.style.transition = '';
-      if (finalPositions[i]) {
-        wrapper.style.transform = `rotate(${finalPositions[i].rot}deg)`;
-      }
+      // transform already has final translate + rotate from scatter — nothing to set
     });
 
     // Update locked-count label
@@ -457,38 +451,40 @@ function updateDiceInPlace(state, onComplete) {
         : `0/${player.dice.length}`;
     }
 
-    // Unmatched dice: reveal face + landing bounce
+    // Unmatched dice: ease from mid-tumble into face value (no snap, no bounce)
     newUnmatched.forEach((v, i) => {
       const wrapper = wrappers[i];
       if (!wrapper) return;
       const cube = wrapper.querySelector('.die-3d');
       if (!cube) return;
+      // Capture live animated position so we can transition FROM it, not snap from it
+      const liveTransform = getComputedStyle(cube).transform;
       cube.classList.remove('tumbling-a', 'tumbling-b', 'tumbling-c');
       cube.style.animationDelay = '';
       cube.className = 'die-3d';
-      cube.style.transform = FACE_ROTATIONS[v] || 'rotateY(0deg)';
-      wrapper.classList.remove('landing');
-      void wrapper.offsetWidth;
-      wrapper.classList.add('landing');
+      cube.style.transform = liveTransform;                        // hold mid-tumble
+      cube.style.transition = 'transform 0.3s ease-out';
+      cube.style.transform  = FACE_ROTATIONS[v] || 'rotateY(0deg)'; // ease to face
+      cube.addEventListener('transitionend', () => { cube.style.transition = ''; }, { once: true });
     });
 
-    // Newly-matched: reveal, bounce, then lift off to matched zone
+    // Newly-matched: ease into face value, then lift off to matched zone
     for (let i = 0; i < newlyMatchedCount; i++) {
       const wrapper = wrappers[newUnmatched.length + i];
       if (!wrapper) continue;
       const cube = wrapper.querySelector('.die-3d');
       const v    = newMatched[prevMatchedCount + i];
       if (cube) {
+        const liveTransform = getComputedStyle(cube).transform;
         cube.classList.remove('tumbling-a', 'tumbling-b', 'tumbling-c');
         cube.style.animationDelay = '';
         cube.className = 'die-3d match';
-        cube.style.transform = FACE_ROTATIONS[v] || 'rotateY(0deg)';
-        wrapper.classList.remove('landing');
-        void wrapper.offsetWidth;
-        wrapper.classList.add('landing');
+        cube.style.transform = liveTransform;
+        cube.style.transition = 'transform 0.3s ease-out';
+        cube.style.transform  = FACE_ROTATIONS[v] || 'rotateY(0deg)';
+        cube.addEventListener('transitionend', () => { cube.style.transition = ''; }, { once: true });
       }
       const liftT = setTimeout(() => {
-        wrapper.classList.remove('landing');
         wrapper.classList.add('lifting');
         const removeT = setTimeout(() => wrapper.remove(), 280);
         pendingRollTimeouts.push(removeT);
