@@ -354,12 +354,6 @@
     /* wrapper handles position + tilt; die handles rolling animation */
     .die-wrapper { position: absolute; }
 
-    .zone-divider {
-      width: 1px;
-      background: #2a2b40;
-      flex-shrink: 0;
-    }
-
     .zone-matched {
       display: flex;
       flex-wrap: wrap;
@@ -894,7 +888,6 @@
     });
     zones.appendChild(unmatchedZone);
 
-    zones.appendChild(Object.assign(document.createElement("div"), { className: "zone-divider" }));
     const matchedZone = document.createElement("div");
     matchedZone.className = "zone-matched";
     if (isRollResult) {
