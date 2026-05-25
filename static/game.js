@@ -54,6 +54,7 @@ let awaitingAck = false;
 let currentState = null;
 let lastMyDiceKey = null;
 let rollShakeEnd = 0;
+let prevMyDiceKey = null;
 let prevMatchedCount = 0;
 let pendingRollTimeouts = [];
 
@@ -502,11 +503,18 @@ function renderGame(state) {
     if (btn) btn.disabled = false;
     renderPlayersBar(state);
   } else if (key !== lastMyDiceKey) {
-    // My dice changed — round transition or game start
-    lastMyDiceKey = key;
-    renderPlayersBar(state);
-    rolling = false;
-    renderMyArea(state);
+    if (rolling && key === prevMyDiceKey) {
+      // Another player's broadcast arrived while we're mid-roll — our dice
+      // look "changed" because the server still has our pre-roll state.
+      // Just update the bar; don't touch our animation.
+      renderPlayersBar(state);
+    } else {
+      // Real state change — round transition or game start
+      lastMyDiceKey = key;
+      renderPlayersBar(state);
+      rolling = false;
+      renderMyArea(state);
+    }
   } else {
     // Another player rolled — update immediately (broadcast arrives after their animation)
     renderPlayersBar(state);
@@ -534,6 +542,7 @@ function roll() {
       [myId]: { ...p, dice: newDice, has_rolled: true },
     },
   };
+  prevMyDiceKey = lastMyDiceKey;
   lastMyDiceKey = myDiceKey(syntheticState);
 
   const btn = document.getElementById("roll-btn");
