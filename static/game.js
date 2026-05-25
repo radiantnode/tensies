@@ -290,27 +290,14 @@ function renderMyArea(state) {
 
   const diceToPlace = [...unmatched];
   requestAnimationFrame(() => {
-    const rect   = unmatchedZone.getBoundingClientRect();
-    const sz     = window.innerWidth <= 480 ? 50 : 56;
-    const pad    = 8;
-    const gap    = sz + 20;
-    const placed = [];
+    const rect = unmatchedZone.getBoundingClientRect();
+    const sz   = window.innerWidth <= 480 ? 50 : 56;
+    const positions = placeGrid(rect, diceToPlace.length, sz);
 
-    diceToPlace.forEach(v => {
-      let x, y, tries = 0;
-      do {
-        x = pad + Math.random() * (rect.width  - sz - pad * 2);
-        y = pad + Math.random() * (rect.height - sz - pad * 2);
-        tries++;
-      } while (tries < 200 && placed.some(p =>
-        Math.hypot(p.x - x, p.y - y) < gap
-      ));
-
-      placed.push({ x, y });
-      const rot     = (Math.random() - 0.5) * 24;
+    diceToPlace.forEach((v, i) => {
+      const { x, y, rot } = positions[i] || { x: 8, y: 8, rot: 0 };
       const wrapper = document.createElement("div");
       wrapper.className = "die-wrapper";
-      // translate handles position — GPU-composited, no layout cost
       wrapper.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg)`;
       wrapper.appendChild(makeDie(v, effectiveTarget));
       unmatchedZone.appendChild(wrapper);
@@ -384,6 +371,40 @@ function startShake() {
   pendingRollTimeouts.push(gatherT);
 }
 
+// Divide the zone into a grid sized for `count` dice, add jitter within each
+// cell, then shuffle — guaranteed no overlap, still looks scattered.
+function placeGrid(zoneRect, count, sz) {
+  if (count === 0) return [];
+  const pad = 8;
+  const w = zoneRect.width  - pad * 2;
+  const h = zoneRect.height - pad * 2;
+  const cols = Math.max(2, Math.round(Math.sqrt(count * w / h)));
+  const rows = Math.ceil(count / cols);
+  const cellW = w / cols;
+  const cellH = h / rows;
+  const jx = Math.max(0, (cellW - sz) / 2 * 0.6);
+  const jy = Math.max(0, (cellH - sz) / 2 * 0.6);
+
+  const positions = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const bx = pad + c * cellW + cellW / 2 - sz / 2;
+      const by = pad + r * cellH + cellH / 2 - sz / 2;
+      positions.push({
+        x:   Math.max(pad, Math.min(pad + w - sz, bx + (Math.random() - 0.5) * jx * 2)),
+        y:   Math.max(pad, Math.min(pad + h - sz, by + (Math.random() - 0.5) * jy * 2)),
+        rot: (Math.random() - 0.5) * 24,
+      });
+    }
+  }
+  // Fisher-Yates shuffle so dice get random grid slots
+  for (let i = positions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [positions[i], positions[j]] = [positions[j], positions[i]];
+  }
+  return positions.slice(0, count);
+}
+
 // onComplete is called when the place animation finishes (matched dice land in zone)
 function updateDiceInPlace(state, onComplete) {
   pendingRollTimeouts.forEach(clearTimeout);
@@ -408,26 +429,13 @@ function updateDiceInPlace(state, onComplete) {
   // ── Phase 1: scatter ──
   const zone      = document.querySelector('.zone-unmatched');
   const sz        = window.innerWidth <= 480 ? 50 : 56;
-  const pad       = 8;
-  const gap       = sz + 20;
   const scatterMs = 320;
   const finalPositions = [];
 
   if (zone) {
-    const rect   = zone.getBoundingClientRect();
-    const placed = [];
-    wrappers.forEach(() => {
-      let x, y, tries = 0;
-      do {
-        x = pad + Math.random() * (rect.width  - sz - pad * 2);
-        y = pad + Math.random() * (rect.height - sz - pad * 2);
-        tries++;
-      } while (tries < 200 && placed.some(p =>
-        Math.hypot(p.x - x, p.y - y) < gap
-      ));
-      placed.push({ x, y });
-      finalPositions.push({ x, y, rot: (Math.random() - 0.5) * 24 });
-    });
+    const rect = zone.getBoundingClientRect();
+    const grid = placeGrid(rect, wrappers.length, sz);
+    grid.forEach(p => finalPositions.push(p));
 
     wrappers.forEach((wrapper, i) => {
       const p = finalPositions[i];
