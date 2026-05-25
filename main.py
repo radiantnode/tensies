@@ -1,8 +1,16 @@
 import asyncio
 import json
+import logging
 import random
 import string
 import uuid
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger("tensies")
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, HTMLResponse
@@ -141,6 +149,9 @@ async def websocket_endpoint(ws: WebSocket):
     pid = str(uuid.uuid4())
     await ws.send_text(json.dumps({"type": "welcome", "player_id": pid}))
     code: str | None = None
+    player_name: str = "?"
+
+    log.info("connect  pid=%s", pid[:8])
 
     try:
         while True:
@@ -149,23 +160,29 @@ async def websocket_endpoint(ws: WebSocket):
 
             if action == "create":
                 name = (msg.get("name") or "Player")[:20].strip() or "Player"
+                player_name = name
                 code, game = new_game(pid, name)
                 connections[code][pid] = ws
+                log.info("create   game=%s  host=%s", code, name)
                 await broadcast(code, state_msg(game, code))
 
             elif action == "join":
                 join_code = (msg.get("code") or "").upper().strip()
                 name = (msg.get("name") or "Player")[:20].strip() or "Player"
+                player_name = name
                 if join_code not in games:
+                    log.info("join     game=%s  player=%s  GAME NOT FOUND", join_code, name)
                     await ws.send_text(json.dumps({"type": "error", "msg": "Game not found"}))
                     continue
                 game = games[join_code]
                 if game["started"]:
+                    log.info("join     game=%s  player=%s  ALREADY STARTED", join_code, name)
                     await ws.send_text(json.dumps({"type": "error", "msg": "Game already in progress"}))
                     continue
                 code = join_code
                 game["players"][pid] = {"name": name, "dice": [], "wins": 0, "has_rolled": False}
                 connections[code][pid] = ws
+                log.info("join     game=%s  player=%s  players=%d", code, name, len(game["players"]))
                 await broadcast(code, state_msg(game, code))
 
             elif action == "start":
@@ -178,6 +195,7 @@ async def websocket_endpoint(ws: WebSocket):
                 for p in game["players"].values():
                     p["dice"] = fresh_dice()
                     p["has_rolled"] = False
+                log.info("start    game=%s  players=%d  target=%d", code, len(game["players"]), game["target"])
                 await broadcast(code, state_msg(game, code))
 
             elif action == "roll":
@@ -199,6 +217,7 @@ async def websocket_endpoint(ws: WebSocket):
                     or len(client_dice) != 10
                     or not all(isinstance(d, int) and 1 <= d <= 6 for d in client_dice)
                 ):
+                    log.warning("roll     game=%s  player=%s  INVALID DICE", code, player_name)
                     await ws.send_text(json.dumps({"type": "error", "msg": "Invalid dice"}))
                     continue
 
@@ -208,15 +227,19 @@ async def websocket_endpoint(ws: WebSocket):
                         old == target and new != target
                         for old, new in zip(player["dice"], client_dice)
                     ):
+                        log.warning("roll     game=%s  player=%s  UNLOCK ATTEMPT", code, player_name)
                         await ws.send_text(json.dumps({"type": "error", "msg": "Cannot unlock matched dice"}))
                         continue
 
                 player["dice"] = client_dice
                 player["has_rolled"] = True
 
+                matched = sum(1 for d in client_dice if d == target)
                 if all(d == target for d in player["dice"]):
                     game["round_over"] = True
                     player["wins"] += 1
+                    log.info("win      game=%s  player=%s  round=%d  wins=%d",
+                             code, player_name, game["round_num"], player["wins"])
                     await broadcast(
                         code,
                         state_msg(game, code, "round_won", winner_name=player["name"]),
@@ -230,14 +253,18 @@ async def websocket_endpoint(ws: WebSocket):
                         p["has_rolled"] = False
                     await broadcast(code, state_msg(game, code))
                 else:
+                    log.info("roll     game=%s  player=%s  matched=%d/10  target=%d",
+                             code, player_name, matched, target)
                     await broadcast(code, state_msg(game, code))
 
     except WebSocketDisconnect:
+        log.info("disconnect  pid=%s  player=%s  game=%s", pid[:8], player_name, code or "none")
         if code and code in games:
             connections[code].pop(pid, None)
             game = games[code]
             game["players"].pop(pid, None)
             if not game["players"]:
+                log.info("close    game=%s  (empty)", code)
                 del games[code]
                 connections.pop(code, None)
             else:
