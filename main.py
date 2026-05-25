@@ -5,11 +5,28 @@ import string
 import uuid
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# ── Cache-busting version string (hash of static assets) ──
+import hashlib as _hashlib
+
+def _asset_hash() -> str:
+    h = _hashlib.sha1()
+    for path in ("static/style.css", "static/game.js"):
+        with open(path, "rb") as f:
+            h.update(f.read())
+    return h.hexdigest()[:8]
+
+_version = _asset_hash()
+
+with open("static/index.html") as _f:
+    _index_html = _f.read() \
+        .replace("/static/style.css", f"/static/style.css?v={_version}") \
+        .replace("/static/game.js",   f"/static/game.js?v={_version}")
 
 # ── Random name generation ──
 ADJECTIVES = [
@@ -110,7 +127,7 @@ async def broadcast(code: str, message: dict) -> None:
 
 @app.get("/")
 async def root():
-    return FileResponse("static/index.html")
+    return HTMLResponse(_index_html)
 
 
 @app.get("/random-name")
