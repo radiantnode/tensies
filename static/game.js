@@ -100,6 +100,19 @@ function showScreen(id) {
   document.getElementById(id).classList.add("active");
 }
 
+// ── Random name placeholder ──
+let randomNamePlaceholder = "Player";
+
+async function loadRandomName() {
+  try {
+    const res = await fetch("/random-name");
+    const data = await res.json();
+    randomNamePlaceholder = data.name;
+    document.getElementById("name-input").placeholder = data.name;
+    document.getElementById("join-name-input").placeholder = data.name;
+  } catch (_) {}
+}
+
 // ── Landing ──
 function showJoin() {
   const name = document.getElementById("name-input").value.trim();
@@ -114,10 +127,10 @@ function showLanding() {
 
 function getName() {
   const active = document.querySelector(".screen.active");
-  if (active && active.id === "join") {
-    return document.getElementById("join-name-input").value.trim() || "Player";
-  }
-  return document.getElementById("name-input").value.trim() || "Player";
+  const val = active && active.id === "join"
+    ? document.getElementById("join-name-input").value.trim()
+    : document.getElementById("name-input").value.trim();
+  return val || randomNamePlaceholder;
 }
 
 function setError(msg) {
@@ -683,3 +696,6 @@ document.addEventListener("keydown", e => {
     if (btn && !btn.disabled) roll();
   }
 });
+
+// ── Init ──
+loadRandomName();
