@@ -654,6 +654,7 @@
   let rollPendingState = null;
   let shakeCycleInterval = null;
   let prevMatchedCount = 0;
+  let pendingRollTimeouts = [];
 
   function myDiceKey(state) {
     const p = state.players[myId];
@@ -929,17 +930,47 @@
   }
 
   function startShake() {
-    const duration = 600 + Math.random() * 600; // 600–1200 ms
-    rollShakeEnd = Date.now() + duration;
-    const anims = ['tumbling-a', 'tumbling-b', 'tumbling-c'];
-    document.querySelectorAll('.zone-unmatched .die-wrapper .die-3d').forEach(cube => {
-      cube.classList.add(anims[Math.floor(Math.random() * 3)]);
-      cube.style.animationDelay = `-${Math.floor(Math.random() * 500)}ms`;
-    });
+    const gatherMs = 200;
+    const shakeMs  = 300 + Math.random() * 400; // 300–700 ms in-hand
+    rollShakeEnd   = Date.now() + gatherMs + shakeMs;
+
+    const wrappers = [...document.querySelectorAll('.zone-unmatched .die-wrapper')];
+    const zone     = document.querySelector('.zone-unmatched');
+    const sz       = window.innerWidth <= 480 ? 50 : 56;
+
+    if (zone && wrappers.length) {
+      const rect = zone.getBoundingClientRect();
+      const cx   = (rect.width  - sz) / 2;
+      const cy   = (rect.height - sz) / 2;
+      // Gather all dice to a tight bunch at the centre (like cupped in hand)
+      wrappers.forEach(wrapper => {
+        const ox  = (Math.random() - 0.5) * 44;
+        const oy  = (Math.random() - 0.5) * 44;
+        const rot = (Math.random() - 0.5) * 30;
+        wrapper.style.transition = `left ${gatherMs}ms ease-in, top ${gatherMs}ms ease-in`;
+        wrapper.style.left      = (cx + ox) + 'px';
+        wrapper.style.top       = (cy + oy) + 'px';
+        wrapper.style.transform = `rotate(${rot}deg)`;
+      });
+    }
+
+    // After gather completes, start 3-D tumble in place
+    const gatherT = setTimeout(() => {
+      const anims = ['tumbling-a', 'tumbling-b', 'tumbling-c'];
+      wrappers.forEach(wrapper => {
+        wrapper.style.transition = '';
+        const cube = wrapper.querySelector('.die-3d');
+        if (cube) {
+          cube.classList.add(anims[Math.floor(Math.random() * 3)]);
+          cube.style.animationDelay = `-${Math.floor(Math.random() * 500)}ms`;
+        }
+      });
+    }, gatherMs);
+    pendingRollTimeouts.push(gatherT);
   }
 
   function stopShake() {
-    // Dice are rebuilt from scratch in renderMyArea — no cleanup needed
+    // Wrappers are kept in place; face/animation updates handled by updateDiceInPlace
   }
 
   function applyRollResult(state) {
@@ -949,87 +980,141 @@
   }
 
   function updateDiceInPlace(state) {
-    const player = state.players[myId];
-    // Fallback: if DOM isn't set up yet, do a full re-render
+    // Cancel any pending animations from a previous roll
+    pendingRollTimeouts.forEach(clearTimeout);
+    pendingRollTimeouts = [];
+    document.querySelectorAll('.zone-unmatched .die-wrapper.lifting').forEach(w => w.remove());
+
+    const player   = state.players[myId];
     const wrappers = [...document.querySelectorAll('.zone-unmatched .die-wrapper')];
     if (!player || wrappers.length === 0) {
       rolling = false;
       renderMyArea(state, false);
+      const btn = document.getElementById('roll-btn');
+      if (btn) btn.disabled = false;
       return;
     }
 
-    const effectiveTarget = player.has_rolled ? state.target : -1;
-    const newMatched   = player.dice.filter(d => d === effectiveTarget);
-    const newUnmatched = player.dice.filter(d => d !== effectiveTarget);
+    const effectiveTarget  = player.has_rolled ? state.target : -1;
+    const newMatched       = player.dice.filter(d => d === effectiveTarget);
+    const newUnmatched     = player.dice.filter(d => d !== effectiveTarget);
     const newlyMatchedCount = Math.max(0, newMatched.length - prevMatchedCount);
 
-    // Update locked-count label
-    const lockedEl = document.querySelector('.my-locked');
-    if (lockedEl) {
-      lockedEl.innerHTML = newMatched.length > 0
-        ? `<span class="locked-count">${newMatched.length}</span>/${player.dice.length} locked`
-        : `0/${player.dice.length}`;
+    // ── Phase 1: scatter dice from the bunch to final resting positions ──
+    const zone    = document.querySelector('.zone-unmatched');
+    const sz      = window.innerWidth <= 480 ? 50 : 56;
+    const pad     = 8;
+    const gap     = sz + 6;
+    const scatterMs = 320;
+    const finalPositions = [];
+
+    if (zone) {
+      const rect   = zone.getBoundingClientRect();
+      const placed = [];
+      wrappers.forEach(() => {
+        let x, y, tries = 0;
+        do {
+          x = pad + Math.random() * (rect.width  - sz - pad * 2);
+          y = pad + Math.random() * (rect.height - sz - pad * 2);
+          tries++;
+        } while (tries < 200 && placed.some(p =>
+          Math.abs(p.x - x) < gap && Math.abs(p.y - y) < gap
+        ));
+        placed.push({ x, y });
+        finalPositions.push({ x, y, rot: (Math.random() - 0.5) * 24 });
+      });
+
+      // Dice keep tumbling while they travel — remove transition block on cube
+      wrappers.forEach((wrapper, i) => {
+        const p = finalPositions[i];
+        wrapper.style.transition = `left ${scatterMs}ms ease-out, top ${scatterMs}ms ease-out`;
+        wrapper.style.left       = p.x + 'px';
+        wrapper.style.top        = p.y + 'px';
+        // Don't override transform here so the 3-D rotation keeps playing
+      });
     }
 
-    // First newUnmatched.length wrappers stay on the table with their new face values
-    newUnmatched.forEach((v, i) => {
-      const wrapper = wrappers[i];
-      if (!wrapper) return;
-      const cube = wrapper.querySelector('.die-3d');
-      if (!cube) return;
-      cube.classList.remove('tumbling-a', 'tumbling-b', 'tumbling-c');
-      cube.style.animationDelay = '';
-      cube.className = 'die-3d';
-      cube.style.transform = FACE_ROTATIONS[v] || 'rotateY(0deg)';
-      wrapper.classList.remove('landing');
-      void wrapper.offsetWidth; // force reflow to restart animation
-      wrapper.classList.add('landing');
-    });
+    // ── Phase 2: after scatter, stop tumbling and reveal face values ──
+    const revealT = setTimeout(() => {
+      // Clear transitions so landing bounce isn't throttled
+      wrappers.forEach((wrapper, i) => {
+        wrapper.style.transition = '';
+        if (finalPositions[i]) {
+          wrapper.style.transform = `rotate(${finalPositions[i].rot}deg)`;
+        }
+      });
 
-    // Remaining wrappers are newly matched — show correct face, then lift off
-    for (let i = 0; i < newlyMatchedCount; i++) {
-      const wrapper = wrappers[newUnmatched.length + i];
-      if (!wrapper) continue;
-      const cube = wrapper.querySelector('.die-3d');
-      const v = newMatched[prevMatchedCount + i];
-      if (cube) {
+      // Update locked-count label
+      const lockedEl = document.querySelector('.my-locked');
+      if (lockedEl) {
+        lockedEl.innerHTML = newMatched.length > 0
+          ? `<span class="locked-count">${newMatched.length}</span>/${player.dice.length} locked`
+          : `0/${player.dice.length}`;
+      }
+
+      // Unmatched dice: reveal face + landing bounce in place
+      newUnmatched.forEach((v, i) => {
+        const wrapper = wrappers[i];
+        if (!wrapper) return;
+        const cube = wrapper.querySelector('.die-3d');
+        if (!cube) return;
         cube.classList.remove('tumbling-a', 'tumbling-b', 'tumbling-c');
         cube.style.animationDelay = '';
-        cube.className = 'die-3d match';
+        cube.className = 'die-3d';
         cube.style.transform = FACE_ROTATIONS[v] || 'rotateY(0deg)';
         wrapper.classList.remove('landing');
         void wrapper.offsetWidth;
         wrapper.classList.add('landing');
-      }
-      // Land first, then lift and remove
-      setTimeout(() => {
-        wrapper.classList.remove('landing');
-        wrapper.classList.add('lifting');
-        setTimeout(() => wrapper.remove(), 280);
-      }, 420);
-    }
+      });
 
-    // Pop newly matched dice into the matched zone after the lift starts
-    const matchedZone = document.querySelector('.zone-matched');
-    if (matchedZone && newlyMatchedCount > 0) {
-      setTimeout(() => {
-        for (let i = prevMatchedCount; i < newMatched.length; i++) {
-          const scene = makeDie(newMatched[i], effectiveTarget);
-          scene.classList.add('popping');
-          matchedZone.appendChild(scene);
+      // Newly-matched dice: reveal as matched, bounce, then lift off
+      for (let i = 0; i < newlyMatchedCount; i++) {
+        const wrapper = wrappers[newUnmatched.length + i];
+        if (!wrapper) continue;
+        const cube = wrapper.querySelector('.die-3d');
+        const v    = newMatched[prevMatchedCount + i];
+        if (cube) {
+          cube.classList.remove('tumbling-a', 'tumbling-b', 'tumbling-c');
+          cube.style.animationDelay = '';
+          cube.className = 'die-3d match';
+          cube.style.transform = FACE_ROTATIONS[v] || 'rotateY(0deg)';
+          wrapper.classList.remove('landing');
+          void wrapper.offsetWidth;
+          wrapper.classList.add('landing');
         }
-      }, 520);
-    }
+        const liftT = setTimeout(() => {
+          wrapper.classList.remove('landing');
+          wrapper.classList.add('lifting');
+          const removeT = setTimeout(() => wrapper.remove(), 280);
+          pendingRollTimeouts.push(removeT);
+        }, 400);
+        pendingRollTimeouts.push(liftT);
+      }
 
-    rolling = false;
-    const btn = document.getElementById('roll-btn');
-    // Wait for lift + pop animations to finish before allowing next roll.
-    // If nothing matched this roll there's no delay.
-    if (newlyMatchedCount > 0) {
-      setTimeout(() => { if (btn) btn.disabled = false; }, 700);
-    } else {
-      if (btn) btn.disabled = false;
-    }
+      // Pop newly matched dice into the side zone
+      const matchedZone = document.querySelector('.zone-matched');
+      if (matchedZone && newlyMatchedCount > 0) {
+        const popT = setTimeout(() => {
+          for (let i = prevMatchedCount; i < newMatched.length; i++) {
+            const scene = makeDie(newMatched[i], effectiveTarget);
+            scene.classList.add('popping');
+            matchedZone.appendChild(scene);
+          }
+        }, 500);
+        pendingRollTimeouts.push(popT);
+      }
+
+      rolling = false;
+      const btn = document.getElementById('roll-btn');
+      if (newlyMatchedCount > 0) {
+        const reenableT = setTimeout(() => { if (btn) btn.disabled = false; }, 680);
+        pendingRollTimeouts.push(reenableT);
+      } else {
+        if (btn) btn.disabled = false;
+      }
+    }, scatterMs);
+
+    pendingRollTimeouts.push(revealT);
   }
 
   function renderGame(state) {
@@ -1059,6 +1144,8 @@
     if (rolling) return;
     rolling = true;
     myRollPending = true;
+    pendingRollTimeouts.forEach(clearTimeout);
+    pendingRollTimeouts = [];
     // Snapshot matched count so we know which are "new" when the result lands
     const p = currentState?.players[myId];
     prevMatchedCount = (p && p.has_rolled)
