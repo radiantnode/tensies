@@ -3,6 +3,7 @@ import json
 import logging
 import random
 import string
+import time
 import uuid
 
 logging.basicConfig(
@@ -77,6 +78,20 @@ def fresh_dice() -> list[int]:
     return [random.randint(1, 6) for _ in range(10)]
 
 
+MIN_ROLL_INTERVAL = 0.25  # seconds between rolls per player
+
+
+def fresh_player(name: str) -> dict:
+    return {
+        "name": name,
+        "dice": [],
+        "locked": [False] * 10,
+        "wins": 0,
+        "has_rolled": False,
+        "last_roll": 0.0,
+    }
+
+
 def new_game(host_id: str, host_name: str) -> tuple[str, dict]:
     code = make_code()
     games[code] = {
@@ -85,9 +100,7 @@ def new_game(host_id: str, host_name: str) -> tuple[str, dict]:
         "started": False,
         "round_over": False,
         "host": host_id,
-        "players": {
-            host_id: {"name": host_name, "dice": [], "wins": 0, "has_rolled": False}
-        },
+        "players": {host_id: fresh_player(host_name)},
     }
     connections[code] = {}
     return code, games[code]
@@ -180,7 +193,7 @@ async def websocket_endpoint(ws: WebSocket):
                     await ws.send_text(json.dumps({"type": "error", "msg": "Game already in progress"}))
                     continue
                 code = join_code
-                game["players"][pid] = {"name": name, "dice": [], "wins": 0, "has_rolled": False}
+                game["players"][pid] = fresh_player(name)
                 connections[code][pid] = ws
                 log.info("join     game=%s  player=%s  players=%d", code, name, len(game["players"]))
                 await broadcast(code, state_msg(game, code))
@@ -194,7 +207,9 @@ async def websocket_endpoint(ws: WebSocket):
                 game["started"] = True
                 for p in game["players"].values():
                     p["dice"] = fresh_dice()
+                    p["locked"] = [False] * 10
                     p["has_rolled"] = False
+                    p["last_roll"] = 0.0
                 log.info("start    game=%s  players=%d  target=%d", code, len(game["players"]), game["target"])
                 await broadcast(code, state_msg(game, code))
 
@@ -208,34 +223,28 @@ async def websocket_endpoint(ws: WebSocket):
                 if not player:
                     continue
 
-                target = game["target"]
-                client_dice = msg.get("dice")
-
-                # Validate: must be exactly 10 ints in range 1–6
-                if (
-                    not isinstance(client_dice, list)
-                    or len(client_dice) != 10
-                    or not all(isinstance(d, int) and 1 <= d <= 6 for d in client_dice)
-                ):
-                    log.warning("roll     game=%s  player=%s  INVALID DICE", code, player_name)
-                    await ws.send_text(json.dumps({"type": "error", "msg": "Invalid dice"}))
+                now = time.monotonic()
+                if now - player["last_roll"] < MIN_ROLL_INTERVAL:
+                    log.warning("roll     game=%s  player=%s  RATE LIMIT", code, player_name)
+                    await ws.send_text(json.dumps({"type": "error", "msg": "Slow down"}))
                     continue
+                player["last_roll"] = now
 
-                # On a re-roll, locked dice (those matching target) must stay locked
-                if player.get("has_rolled"):
-                    if any(
-                        old == target and new != target
-                        for old, new in zip(player["dice"], client_dice)
-                    ):
-                        log.warning("roll     game=%s  player=%s  UNLOCK ATTEMPT", code, player_name)
-                        await ws.send_text(json.dumps({"type": "error", "msg": "Cannot unlock matched dice"}))
-                        continue
+                target = game["target"]
+                dice = player["dice"]
+                locked = player["locked"]
 
-                player["dice"] = client_dice
+                for i in range(10):
+                    if not locked[i]:
+                        dice[i] = random.randint(1, 6)
+                for i in range(10):
+                    if dice[i] == target:
+                        locked[i] = True
+
                 player["has_rolled"] = True
+                matched = sum(locked)
 
-                matched = sum(1 for d in client_dice if d == target)
-                if all(d == target for d in player["dice"]):
+                if matched == 10:
                     game["round_over"] = True
                     player["wins"] += 1
                     log.info("win      game=%s  player=%s  round=%d  wins=%d",
@@ -250,7 +259,9 @@ async def websocket_endpoint(ws: WebSocket):
                     game["round_over"] = False
                     for p in game["players"].values():
                         p["dice"] = fresh_dice()
+                        p["locked"] = [False] * 10
                         p["has_rolled"] = False
+                        p["last_roll"] = 0.0
                     await broadcast(code, state_msg(game, code))
                 else:
                     log.info("roll     game=%s  player=%s  matched=%d/10  target=%d",

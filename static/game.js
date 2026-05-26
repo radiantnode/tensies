@@ -83,9 +83,13 @@ let awaitingAck = false;
 let currentState = null;
 let lastMyDiceKey = null;
 let rollShakeEnd = 0;
-let prevMyDiceKey = null;
 let prevMatchedCount = 0;
 let pendingRollTimeouts = [];
+// Server's response to my in-flight roll — held until the shake animation ends
+let pendingRollState = null;
+// If my roll won the round, the winner overlay info is held until the reveal completes
+let pendingWinName = null;
+let pendingWinTarget = null;
 // pid → { card, wins, fill, count } — persists across rounds for in-place updates
 const barCards = {};
 
@@ -380,15 +384,6 @@ function renderMyArea(state) {
 }
 
 // ── Dice rolling ──
-function computeNewDice(currentDice, target, hasRolled) {
-  if (!hasRolled) {
-    // First roll of the round — all 10 fresh
-    return Array.from({ length: 10 }, () => Math.floor(Math.random() * 6) + 1);
-  }
-  // Re-roll: keep locked (matching target), re-roll others
-  return currentDice.map(d => d === target ? d : Math.floor(Math.random() * 6) + 1);
-}
-
 function startShake() {
   const gatherMs = 200;
   const shakeMs  = 300 + Math.random() * 400; // 300–700 ms in-hand
@@ -583,55 +578,31 @@ function renderGame(state) {
   currentState = state;
   const key = myDiceKey(state);
 
-  if (awaitingAck && key === lastMyDiceKey) {
-    // Server confirmed my roll — re-enable and update bar
-    awaitingAck = false;
+  if (key !== lastMyDiceKey) {
+    // Real state change for me — round transition or game start
+    lastMyDiceKey = key;
     rolling = false;
-    const btn = document.getElementById('roll-btn');
-    if (btn) btn.disabled = false;
     renderPlayersBar(state);
-  } else if (key !== lastMyDiceKey) {
-    if (rolling && key === prevMyDiceKey) {
-      // Another player's broadcast arrived while we're mid-roll — our dice
-      // look "changed" because the server still has our pre-roll state.
-      // Just update the bar; don't touch our animation.
-      renderPlayersBar(state);
-    } else {
-      // Real state change — round transition or game start
-      lastMyDiceKey = key;
-      renderPlayersBar(state);
-      rolling = false;
-      renderMyArea(state);
-    }
+    renderMyArea(state);
   } else {
-    // Another player rolled — update immediately (broadcast arrives after their animation)
+    // Another player rolled — update bar only; my dice area is untouched
     renderPlayersBar(state);
   }
 }
 
 function roll() {
-  if (rolling) return;
+  if (rolling || !ws || ws.readyState !== WebSocket.OPEN) return;
   rolling = true;
+  awaitingAck = true;
+  pendingRollState = null;
+  pendingWinName = null;
+  pendingWinTarget = null;
 
   const p = currentState?.players[myId];
-  if (!p) { rolling = false; return; }
+  if (!p) { rolling = false; awaitingAck = false; return; }
 
   // Snapshot matched count so we know which are "new" this roll
   prevMatchedCount = p.has_rolled ? p.dice.filter(d => d === currentState.target).length : 0;
-
-  // Compute dice locally
-  const newDice = computeNewDice(p.dice, currentState.target, p.has_rolled);
-
-  // Build synthetic state for animation — server will validate & confirm
-  const syntheticState = {
-    ...currentState,
-    players: {
-      ...currentState.players,
-      [myId]: { ...p, dice: newDice, has_rolled: true },
-    },
-  };
-  prevMyDiceKey = lastMyDiceKey;
-  lastMyDiceKey = myDiceKey(syntheticState);
 
   const btn = document.getElementById("roll-btn");
   if (btn) btn.disabled = true;
@@ -639,17 +610,40 @@ function roll() {
   pendingRollTimeouts.forEach(clearTimeout);
   pendingRollTimeouts = [];
 
+  // Server owns the RNG — we just declare intent
+  ws.send(JSON.stringify({ action: "roll" }));
   startShake();
 
-  // After shake ends, animate with known dice then send to server
+  // After shake ends, run the reveal with whatever the server sent back
   const remaining = Math.max(0, rollShakeEnd - Date.now());
-  const shakeT = setTimeout(() => {
-    updateDiceInPlace(syntheticState, () => {
-      awaitingAck = true;
-      ws.send(JSON.stringify({ action: "roll", dice: newDice }));
-    });
-  }, remaining);
+  const shakeT = setTimeout(tryReveal, remaining);
   pendingRollTimeouts.push(shakeT);
+}
+
+// Wait for the server's roll response, then animate the reveal.
+// Polls briefly because the response almost always arrives during the shake.
+function tryReveal() {
+  if (!pendingRollState) {
+    const t = setTimeout(tryReveal, 50);
+    pendingRollTimeouts.push(t);
+    return;
+  }
+  const state = pendingRollState;
+  pendingRollState = null;
+  awaitingAck = false;
+  currentState = state;
+  lastMyDiceKey = myDiceKey(state);
+  updateDiceInPlace(state, () => {
+    rolling = false;
+    const btn = document.getElementById('roll-btn');
+    if (btn) btn.disabled = false;
+    if (pendingWinName) {
+      const name = pendingWinName, target = pendingWinTarget;
+      pendingWinName = null;
+      pendingWinTarget = null;
+      showWinner(name, target);
+    }
+  });
 }
 
 // ── Winner overlay ──
@@ -672,25 +666,55 @@ function handleMessage(msg) {
       myId = msg.player_id;
       break;
     case "state":
-      hideWinner();
-      if (!msg.started) { showScreen("lobby"); renderLobby(msg); }
-      else              { showScreen("game");  renderGame(msg);  }
+      if (!msg.started) {
+        hideWinner();
+        showScreen("lobby");
+        renderLobby(msg);
+        break;
+      }
+      if (awaitingAck && myDiceKey(msg) !== lastMyDiceKey) {
+        // This is the response to my in-flight roll — let tryReveal drive the animation
+        pendingRollState = msg;
+      } else {
+        hideWinner();
+        showScreen("game");
+        renderGame(msg);
+      }
       break;
     case "round_won":
-      // Broadcast arrives after the winner's animation — show immediately for everyone
-      pendingRollTimeouts.forEach(clearTimeout);
-      pendingRollTimeouts = [];
-      awaitingAck = false;
-      rolling = false;
-      currentState = msg;
-      lastMyDiceKey = myDiceKey(msg);
-      showScreen("game");
-      renderPlayersBar(msg);
-      renderMyArea(msg);
-      showWinner(msg.winner_name, msg.target);
+      if (awaitingAck && myDiceKey(msg) !== lastMyDiceKey) {
+        // I just won with my roll — animate the reveal first, then show the overlay
+        pendingRollState = msg;
+        pendingWinName = msg.winner_name;
+        pendingWinTarget = msg.target;
+      } else {
+        pendingRollTimeouts.forEach(clearTimeout);
+        pendingRollTimeouts = [];
+        awaitingAck = false;
+        rolling = false;
+        pendingRollState = null;
+        currentState = msg;
+        lastMyDiceKey = myDiceKey(msg);
+        showScreen("game");
+        renderPlayersBar(msg);
+        renderMyArea(msg);
+        showWinner(msg.winner_name, msg.target);
+      }
       break;
     case "error":
-      setError(msg.msg);
+      if (currentState && currentState.started) {
+        // In-game error (e.g. rate limit) — clear roll state so the button comes back
+        pendingRollTimeouts.forEach(clearTimeout);
+        pendingRollTimeouts = [];
+        awaitingAck = false;
+        rolling = false;
+        pendingRollState = null;
+        const btn = document.getElementById('roll-btn');
+        if (btn) btn.disabled = false;
+        renderMyArea(currentState);
+      } else {
+        setError(msg.msg);
+      }
       break;
   }
 }
