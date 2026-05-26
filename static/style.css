@@ -50,6 +50,21 @@ body {
   overflow: hidden;
 }
 
+.logo-mark {
+  width: clamp(110px, 32vw, 160px);
+  height: auto;
+  display: block;
+  margin-bottom: 0.9rem;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.75))
+          drop-shadow(0 0 32px rgba(255, 77, 109, 0.35));
+  animation: logoFloat 4.5s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0) rotate(-0.5deg); }
+  50%      { transform: translateY(-6px) rotate(0.5deg); }
+}
+
 .logo {
   font-size: clamp(3rem, 12vw, 6rem);
   font-weight: 900;
