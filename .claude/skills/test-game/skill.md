@@ -14,6 +14,8 @@ You are about to run a full integration test of the Tensies multiplayer dice gam
 
 **Do not ask for confirmation. Run everything and report results.**
 
+**All screenshots must be saved to the `.playwright-mcp/` directory** (e.g. `.playwright-mcp/01-landing.png`). Never save them to the project root.
+
 ---
 
 ## Step 0 — Self-update preflight
