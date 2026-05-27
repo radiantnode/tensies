@@ -47,7 +47,26 @@ If any commits appear in that output:
    - Update the checkpoint count and summary table at the bottom
 4. After saving the updated skill, **continue running the tests** with the new version — do not stop.
 
-If there are no new commits, skip straight to Step 1 (Prep).
+If there are no new commits, skip straight to Step 0b (Prior run review).
+
+---
+
+## Step 0b — Prior run review
+
+Read the most recent test log(s) from `test-logs/` (project root) before starting:
+
+```bash
+ls -t test-logs/*.md 2>/dev/null | head -3
+```
+
+Read each file returned (up to the 3 most recent). Extract:
+- Any **FAILs** from prior runs — these are the first things to watch during this run
+- Any **notes or observations** flagged as worth watching
+- Any **known flaky** steps or timing-sensitive checks that failed spuriously before
+
+Keep these in mind as you run the suite. If a prior-run FAIL now passes, note it as **fixed/regression-cleared**. If a new FAIL appears that wasn't in prior logs, note it as **newly introduced**.
+
+If no logs exist yet, skip this step.
 
 ---
 
@@ -356,3 +375,31 @@ TENSIES TEST RESULTS
 Replace `PASS` with `FAIL` and append a one-line description for any failure. If any test FAILs, describe exactly what went wrong and where to look.
 
 Embed the most interesting screenshot inline at the end of the report (the winner overlay screenshot or the shake animation, whichever is more visually compelling).
+
+---
+
+## Log writing
+
+After reporting, write a log file to `test-logs/` in the project root. Create the directory if it doesn't exist. Name the file using the current date and time: `test-logs/YYYY-MM-DDTHH-MM-SS.md`.
+
+The log must include:
+
+```markdown
+# Test run — <date and time>
+
+## Results
+<pass/fail table, same format as the report>
+
+## Findings
+<one bullet per FAIL or notable issue — describe what broke, where to look, and whether it's newly introduced or a known recurrence>
+
+## Notes
+<anything interesting observed during the run: timing measurements, edge cases that nearly failed, behaviour that differs from prior runs, observations about animation or sync that might inform future testing>
+
+## Watch next run
+<explicit list of things to double-check next time — e.g. steps that were borderline, flaky timing checks, FAILs that got fixed, anything the tester should keep an eye on>
+```
+
+If all 20 tests passed and nothing notable was observed, the Findings section should say "None." and Notes should say "Clean run."
+
+After writing the log, output the file path so it's visible in the report.
