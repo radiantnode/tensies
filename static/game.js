@@ -516,12 +516,12 @@ function updateDiceInPlace(state, onComplete) {
       if (!wrapper) return;
       const cube = wrapper.querySelector('.die-3d');
       if (!cube) return;
-      // Capture live animated position so we can transition FROM it, not snap from it
       const liveTransform = getComputedStyle(cube).transform;
+      cube.style.transform = liveTransform;                        // freeze BEFORE clearing animation
+      void cube.getBoundingClientRect();                           // commit to compositor
       cube.classList.remove('tumbling-a', 'tumbling-b', 'tumbling-c');
       cube.style.animationDelay = '';
       cube.className = 'die-3d';
-      cube.style.transform = liveTransform;                        // hold mid-tumble
       cube.style.transition = 'transform 0.3s ease-out';
       cube.style.transform  = FACE_ROTATIONS[v] || 'rotateY(0deg)'; // ease to face
       cube.addEventListener('transitionend', () => { cube.style.transition = ''; }, { once: true });
@@ -535,10 +535,11 @@ function updateDiceInPlace(state, onComplete) {
       const v    = newMatched[prevMatchedCount + i];
       if (cube) {
         const liveTransform = getComputedStyle(cube).transform;
+        cube.style.transform = liveTransform;                      // freeze BEFORE clearing animation
+        void cube.getBoundingClientRect();                         // commit to compositor
         cube.classList.remove('tumbling-a', 'tumbling-b', 'tumbling-c');
         cube.style.animationDelay = '';
         cube.className = 'die-3d match';
-        cube.style.transform = liveTransform;
         cube.style.transition = 'transform 0.3s ease-out';
         cube.style.transform  = FACE_ROTATIONS[v] || 'rotateY(0deg)';
         cube.addEventListener('transitionend', () => { cube.style.transition = ''; }, { once: true });
