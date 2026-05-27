@@ -638,6 +638,10 @@ function tryReveal() {
     rolling = false;
     const btn = document.getElementById('roll-btn');
     if (btn) btn.disabled = false;
+    // Tell the server we've finished animating so it can publish to the rest of the room
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ action: "roll_done" }));
+    }
     if (pendingWinName) {
       const name = pendingWinName, target = pendingWinTarget;
       pendingWinName = null;
