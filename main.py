@@ -3,6 +3,7 @@ import json
 import logging
 import random
 import string
+import time
 import uuid
 
 logging.basicConfig(
@@ -77,6 +78,22 @@ def fresh_dice() -> list[int]:
     return [random.randint(1, 6) for _ in range(10)]
 
 
+MIN_ROLL_INTERVAL = 0.25  # seconds between rolls per player
+
+
+def fresh_player(name: str) -> dict:
+    return {
+        "name": name,
+        "dice": [],
+        "locked": [False] * 10,
+        "wins": 0,
+        "has_rolled": False,
+        "last_roll": 0.0,
+        "roll_count": 0,
+        "disconnected": False,
+    }
+
+
 def new_game(host_id: str, host_name: str) -> tuple[str, dict]:
     code = make_code()
     games[code] = {
@@ -85,9 +102,7 @@ def new_game(host_id: str, host_name: str) -> tuple[str, dict]:
         "started": False,
         "round_over": False,
         "host": host_id,
-        "players": {
-            host_id: {"name": host_name, "dice": [], "wins": 0, "has_rolled": False}
-        },
+        "players": {host_id: fresh_player(host_name)},
     }
     connections[code] = {}
     return code, games[code]
@@ -112,6 +127,8 @@ def state_msg(game: dict, code: str, msg_type: str = "state", **extra) -> dict:
                 "dice": p["dice"],
                 "wins": p["wins"],
                 "has_rolled": p.get("has_rolled", False),
+                "roll_count": p.get("roll_count", 0),
+                "disconnected": p.get("disconnected", False),
             }
             for pid, p in game["players"].items()
         },
@@ -119,18 +136,93 @@ def state_msg(game: dict, code: str, msg_type: str = "state", **extra) -> dict:
     }
 
 
-async def broadcast(code: str, message: dict) -> None:
+async def broadcast(code: str, message: dict, *, exclude: str | None = None) -> None:
     if code not in connections:
         return
     data = json.dumps(message)
     dead = []
     for pid, ws in list(connections[code].items()):
+        if pid == exclude:
+            continue
         try:
             await ws.send_text(data)
         except Exception:
             dead.append(pid)
     for pid in dead:
         connections[code].pop(pid, None)
+
+
+# Holds each player's roll broadcast until they've finished animating it (or 2s passes).
+# This way other players see the roll at the same time the roller sees their own reveal.
+ROLL_ACK_TIMEOUT = 2.0
+
+
+async def delayed_broadcast(code: str, pid: str, is_win: bool, winner_name: str | None) -> None:
+    if code not in games:
+        return
+    player = games[code]["players"].get(pid)
+
+    if player is not None:
+        ev: asyncio.Event = asyncio.Event()
+        player["ack_event"] = ev
+        try:
+            await asyncio.wait_for(ev.wait(), timeout=ROLL_ACK_TIMEOUT)
+        except asyncio.TimeoutError:
+            log.info("ack_timeout  game=%s  pid=%s", code, pid[:8])
+        finally:
+            if player.get("ack_event") is ev:
+                player.pop("ack_event", None)
+
+    if code not in games:
+        return
+    game = games[code]
+
+    # Re-snapshot at broadcast time so other concurrent updates are reflected
+    if is_win:
+        msg = state_msg(game, code, "round_won", winner_name=winner_name or "?")
+    else:
+        msg = state_msg(game, code)
+    await broadcast(code, msg, exclude=pid)
+
+    if is_win:
+        await asyncio.sleep(3)
+        if code not in games:
+            return
+        game = games[code]
+        target = game["target"]
+        game["target"] = next_target(target)
+        game["round_num"] += 1
+        game["round_over"] = False
+        for p in game["players"].values():
+            p["dice"] = fresh_dice()
+            p["locked"] = [False] * 10
+            p["has_rolled"] = False
+            p["last_roll"] = 0.0
+            p["roll_count"] = 0
+        await broadcast(code, state_msg(game, code))
+
+
+async def drop_player(code: str, pid: str) -> None:
+    """Remove a disconnected player after the 30-second grace period."""
+    await asyncio.sleep(30)
+    if code not in games:
+        return
+    game = games[code]
+    player = game["players"].get(pid)
+    if player is None or not player.get("disconnected"):
+        return  # Already reconnected — nothing to do
+    player_name = player["name"]
+    del game["players"][pid]
+    connections[code].pop(pid, None)
+    log.info("drop     game=%s  player=%s  (30s timeout)", code, player_name)
+    if not game["players"]:
+        log.info("close    game=%s  (all dropped)", code)
+        del games[code]
+        connections.pop(code, None)
+        return
+    if game["host"] == pid:
+        game["host"] = next(iter(game["players"]))
+    await broadcast(code, state_msg(game, code))
 
 
 @app.get("/")
@@ -180,7 +272,7 @@ async def websocket_endpoint(ws: WebSocket):
                     await ws.send_text(json.dumps({"type": "error", "msg": "Game already in progress"}))
                     continue
                 code = join_code
-                game["players"][pid] = {"name": name, "dice": [], "wins": 0, "has_rolled": False}
+                game["players"][pid] = fresh_player(name)
                 connections[code][pid] = ws
                 log.info("join     game=%s  player=%s  players=%d", code, name, len(game["players"]))
                 await broadcast(code, state_msg(game, code))
@@ -194,8 +286,32 @@ async def websocket_endpoint(ws: WebSocket):
                 game["started"] = True
                 for p in game["players"].values():
                     p["dice"] = fresh_dice()
+                    p["locked"] = [False] * 10
                     p["has_rolled"] = False
+                    p["last_roll"] = 0.0
+                    p["roll_count"] = 0
                 log.info("start    game=%s  players=%d  target=%d", code, len(game["players"]), game["target"])
+                await broadcast(code, state_msg(game, code))
+
+            elif action == "reconnect":
+                old_pid = msg.get("player_id", "").strip()
+                join_code = (msg.get("game_code") or "").upper().strip()
+                if (join_code not in games
+                        or old_pid not in games[join_code]["players"]
+                        or not games[join_code]["players"][old_pid].get("disconnected")):
+                    await ws.send_text(json.dumps({"type": "error", "msg": "Game not found"}))
+                    continue
+                game = games[join_code]
+                player = game["players"][old_pid]
+                task = player.pop("disconnect_task", None)
+                if task:
+                    task.cancel()
+                pid = old_pid
+                code = join_code
+                player_name = player["name"]
+                player["disconnected"] = False
+                connections[code][pid] = ws
+                log.info("reconnect  game=%s  player=%s", code, player_name)
                 await broadcast(code, state_msg(game, code))
 
             elif action == "roll":
@@ -208,66 +324,67 @@ async def websocket_endpoint(ws: WebSocket):
                 if not player:
                     continue
 
-                target = game["target"]
-                client_dice = msg.get("dice")
-
-                # Validate: must be exactly 10 ints in range 1–6
-                if (
-                    not isinstance(client_dice, list)
-                    or len(client_dice) != 10
-                    or not all(isinstance(d, int) and 1 <= d <= 6 for d in client_dice)
-                ):
-                    log.warning("roll     game=%s  player=%s  INVALID DICE", code, player_name)
-                    await ws.send_text(json.dumps({"type": "error", "msg": "Invalid dice"}))
+                now = time.monotonic()
+                if now - player["last_roll"] < MIN_ROLL_INTERVAL:
+                    log.warning("roll     game=%s  player=%s  RATE LIMIT", code, player_name)
+                    await ws.send_text(json.dumps({"type": "error", "msg": "Slow down"}))
                     continue
+                player["last_roll"] = now
 
-                # On a re-roll, locked dice (those matching target) must stay locked
-                if player.get("has_rolled"):
-                    if any(
-                        old == target and new != target
-                        for old, new in zip(player["dice"], client_dice)
-                    ):
-                        log.warning("roll     game=%s  player=%s  UNLOCK ATTEMPT", code, player_name)
-                        await ws.send_text(json.dumps({"type": "error", "msg": "Cannot unlock matched dice"}))
-                        continue
+                target = game["target"]
+                dice = player["dice"]
+                locked = player["locked"]
 
-                player["dice"] = client_dice
+                for i in range(10):
+                    if not locked[i]:
+                        dice[i] = random.randint(1, 6)
+                for i in range(10):
+                    if dice[i] == target:
+                        locked[i] = True
+
                 player["has_rolled"] = True
+                player["roll_count"] += 1
+                matched = sum(locked)
 
-                matched = sum(1 for d in client_dice if d == target)
-                if all(d == target for d in player["dice"]):
+                # Send the result to the roller immediately so their reveal can run;
+                # delayed_broadcast then publishes to the rest of the room once the
+                # roller's animation completes (or a 2s timeout fires).
+                if matched == 10:
                     game["round_over"] = True
                     player["wins"] += 1
                     log.info("win      game=%s  player=%s  round=%d  wins=%d",
                              code, player_name, game["round_num"], player["wins"])
-                    await broadcast(
-                        code,
-                        state_msg(game, code, "round_won", winner_name=player["name"]),
+                    priv = state_msg(game, code, "round_won", winner_name=player["name"])
+                    await ws.send_text(json.dumps(priv))
+                    asyncio.create_task(
+                        delayed_broadcast(code, pid, True, winner_name=player["name"])
                     )
-                    await asyncio.sleep(3)
-                    game["target"] = next_target(target)
-                    game["round_num"] += 1
-                    game["round_over"] = False
-                    for p in game["players"].values():
-                        p["dice"] = fresh_dice()
-                        p["has_rolled"] = False
-                    await broadcast(code, state_msg(game, code))
                 else:
                     log.info("roll     game=%s  player=%s  matched=%d/10  target=%d",
                              code, player_name, matched, target)
-                    await broadcast(code, state_msg(game, code))
+                    priv = state_msg(game, code)
+                    await ws.send_text(json.dumps(priv))
+                    asyncio.create_task(delayed_broadcast(code, pid, False, None))
+
+            elif action == "roll_done":
+                if not code or code not in games:
+                    continue
+                player = games[code]["players"].get(pid)
+                if player is None:
+                    continue
+                ev = player.get("ack_event")
+                if ev is not None:
+                    ev.set()
 
     except WebSocketDisconnect:
         log.info("disconnect  pid=%s  player=%s  game=%s", pid[:8], player_name, code or "none")
         if code and code in games:
             connections[code].pop(pid, None)
             game = games[code]
-            game["players"].pop(pid, None)
-            if not game["players"]:
-                log.info("close    game=%s  (empty)", code)
-                del games[code]
-                connections.pop(code, None)
-            else:
-                if game["host"] == pid:
-                    game["host"] = next(iter(game["players"]))
-                await broadcast(code, state_msg(game, code))
+            player = game["players"].get(pid)
+            if player:
+                player["disconnected"] = True
+                task = asyncio.create_task(drop_player(code, pid))
+                player["disconnect_task"] = task
+                if connections.get(code):
+                    await broadcast(code, state_msg(game, code))

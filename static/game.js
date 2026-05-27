@@ -83,16 +83,22 @@ let awaitingAck = false;
 let currentState = null;
 let lastMyDiceKey = null;
 let rollShakeEnd = 0;
-let prevMyDiceKey = null;
 let prevMatchedCount = 0;
 let pendingRollTimeouts = [];
+// Server's response to my in-flight roll — held until the shake animation ends
+let pendingRollState = null;
+// If my roll won the round, the winner overlay info is held until the reveal completes
+let pendingWinName = null;
+let pendingWinTarget = null;
 // pid → { card, wins, fill, count } — persists across rounds for in-place updates
 const barCards = {};
+let reconnecting = false;
 
 function myDiceKey(state) {
   const p = state.players[myId];
   if (!p) return null;
-  return JSON.stringify({ dice: p.dice, has_rolled: p.has_rolled, target: state.target, round_num: state.round_num });
+  // roll_count distinguishes a re-roll that landed on the same values as before
+  return JSON.stringify({ dice: p.dice, has_rolled: p.has_rolled, target: state.target, round_num: state.round_num, roll_count: p.roll_count || 0 });
 }
 
 function showScreen(id) {
@@ -141,12 +147,98 @@ function setJoinError(msg) {
   document.getElementById("join-error").textContent = msg;
 }
 
+function handleWsClose() {
+  if (reconnecting) return;
+  if (localStorage.getItem('tensies_pid') && localStorage.getItem('tensies_code')) {
+    maybeReconnect();
+  } else if (currentState) {
+    alert("Connection lost. Refresh to reconnect.");
+  }
+}
+
 function connectWS(afterConnect) {
   const proto = location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${proto}://${location.host}/ws`);
   ws.onopen = () => afterConnect();
   ws.onmessage = evt => handleMessage(JSON.parse(evt.data));
-  ws.onclose = () => { if (currentState) alert("Connection lost. Refresh to reconnect."); };
+  ws.onclose = handleWsClose;
+}
+
+function maybeReconnect() {
+  if (reconnecting) return;
+  const pid = localStorage.getItem('tensies_pid');
+  const code = localStorage.getItem('tensies_code');
+  if (!pid || !code) return;
+  myId = pid;
+  reconnecting = true;
+  showReconnectingModal();
+  attemptReconnect(pid, code, Date.now() + 30000);
+}
+
+function attemptReconnect(pid, code, deadline) {
+  if (Date.now() > deadline) {
+    reconnecting = false;
+    hideReconnectingModal();
+    localStorage.removeItem('tensies_pid');
+    localStorage.removeItem('tensies_code');
+    currentState = null;
+    setError('Your session expired');
+    showScreen('landing');
+    return;
+  }
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+  ws.onopen = () => ws.send(JSON.stringify({ action: 'reconnect', player_id: pid, game_code: code }));
+  ws.onerror = () => {};
+  ws.onmessage = evt => {
+    const msg = JSON.parse(evt.data);
+    if (msg.type === 'welcome') return;
+    if (msg.type === 'error') {
+      ws.close();
+      reconnecting = false;
+      hideReconnectingModal();
+      localStorage.removeItem('tensies_pid');
+      localStorage.removeItem('tensies_code');
+      currentState = null;
+      setError('Your session expired');
+      showScreen('landing');
+      return;
+    }
+    reconnecting = false;
+    hideReconnectingModal();
+    resetRollState();
+    ws.onmessage = evt => handleMessage(JSON.parse(evt.data));
+    ws.onclose = handleWsClose;
+    handleMessage(msg);
+  };
+  ws.onclose = () => { if (reconnecting) setTimeout(() => attemptReconnect(pid, code, deadline), 2000); };
+}
+
+function resetRollState() {
+  pendingRollTimeouts.forEach(clearTimeout);
+  pendingRollTimeouts = [];
+  rolling = false;
+  awaitingAck = false;
+  pendingRollState = null;
+  pendingWinName = null;
+  pendingWinTarget = null;
+}
+
+function showReconnectingModal() { document.getElementById('reconnecting-modal').classList.add('visible'); }
+function hideReconnectingModal() { document.getElementById('reconnecting-modal').classList.remove('visible'); }
+
+function renderDisconnectOverlay(state) {
+  const overlay = document.getElementById('disconnect-overlay');
+  const msgEl = document.getElementById('disconnect-msg');
+  const names = Object.values(state.players).filter(p => p.disconnected).map(p => p.name);
+  if (names.length === 0) {
+    overlay.classList.remove('visible');
+  } else {
+    msgEl.textContent = names.length === 1
+      ? `Waiting for ${names[0]} to reconnect…`
+      : `Waiting for ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} to reconnect…`;
+    overlay.classList.add('visible');
+  }
 }
 
 function createGame() {
@@ -213,6 +305,7 @@ function renderLobby(state) {
     startBtn.style.display = "none";
     waitMsg.textContent = "Waiting for the host to start…";
   }
+  renderDisconnectOverlay(state);
 }
 
 // ── Game ──
@@ -284,6 +377,7 @@ function renderPlayersBar(state) {
 
     // Update only the values that change — fill width animates via CSS transition
     const { card, wins, fill, count } = barCards[pid];
+    card.className = "player-mini" + (p.disconnected ? " disconnected" : "");
     wins.className  = "player-mini-wins" + (p.wins > 0 && p.wins === top ? " leading" : "");
     wins.textContent = `${p.wins}W`;
     fill.className  = "player-mini-fill" + (isMe ? " me" : hot ? " hot" : "");
@@ -380,15 +474,6 @@ function renderMyArea(state) {
 }
 
 // ── Dice rolling ──
-function computeNewDice(currentDice, target, hasRolled) {
-  if (!hasRolled) {
-    // First roll of the round — all 10 fresh
-    return Array.from({ length: 10 }, () => Math.floor(Math.random() * 6) + 1);
-  }
-  // Re-roll: keep locked (matching target), re-roll others
-  return currentDice.map(d => d === target ? d : Math.floor(Math.random() * 6) + 1);
-}
-
 function startShake() {
   const gatherMs = 200;
   const shakeMs  = 300 + Math.random() * 400; // 300–700 ms in-hand
@@ -520,12 +605,12 @@ function updateDiceInPlace(state, onComplete) {
       if (!wrapper) return;
       const cube = wrapper.querySelector('.die-3d');
       if (!cube) return;
-      // Capture live animated position so we can transition FROM it, not snap from it
       const liveTransform = getComputedStyle(cube).transform;
+      cube.style.transform = liveTransform;                        // freeze BEFORE clearing animation
+      void cube.getBoundingClientRect();                           // commit to compositor
       cube.classList.remove('tumbling-a', 'tumbling-b', 'tumbling-c');
       cube.style.animationDelay = '';
       cube.className = 'die-3d';
-      cube.style.transform = liveTransform;                        // hold mid-tumble
       cube.style.transition = 'transform 0.3s ease-out';
       cube.style.transform  = FACE_ROTATIONS[v] || 'rotateY(0deg)'; // ease to face
       cube.addEventListener('transitionend', () => { cube.style.transition = ''; }, { once: true });
@@ -539,10 +624,11 @@ function updateDiceInPlace(state, onComplete) {
       const v    = newMatched[prevMatchedCount + i];
       if (cube) {
         const liveTransform = getComputedStyle(cube).transform;
+        cube.style.transform = liveTransform;                      // freeze BEFORE clearing animation
+        void cube.getBoundingClientRect();                         // commit to compositor
         cube.classList.remove('tumbling-a', 'tumbling-b', 'tumbling-c');
         cube.style.animationDelay = '';
         cube.className = 'die-3d match';
-        cube.style.transform = liveTransform;
         cube.style.transition = 'transform 0.3s ease-out';
         cube.style.transform  = FACE_ROTATIONS[v] || 'rotateY(0deg)';
         cube.addEventListener('transitionend', () => { cube.style.transition = ''; }, { once: true });
@@ -583,55 +669,32 @@ function renderGame(state) {
   currentState = state;
   const key = myDiceKey(state);
 
-  if (awaitingAck && key === lastMyDiceKey) {
-    // Server confirmed my roll — re-enable and update bar
-    awaitingAck = false;
+  if (key !== lastMyDiceKey) {
+    // Real state change for me — round transition or game start
+    lastMyDiceKey = key;
     rolling = false;
-    const btn = document.getElementById('roll-btn');
-    if (btn) btn.disabled = false;
     renderPlayersBar(state);
-  } else if (key !== lastMyDiceKey) {
-    if (rolling && key === prevMyDiceKey) {
-      // Another player's broadcast arrived while we're mid-roll — our dice
-      // look "changed" because the server still has our pre-roll state.
-      // Just update the bar; don't touch our animation.
-      renderPlayersBar(state);
-    } else {
-      // Real state change — round transition or game start
-      lastMyDiceKey = key;
-      renderPlayersBar(state);
-      rolling = false;
-      renderMyArea(state);
-    }
+    renderMyArea(state);
   } else {
-    // Another player rolled — update immediately (broadcast arrives after their animation)
+    // Another player rolled — update bar only; my dice area is untouched
     renderPlayersBar(state);
   }
+  renderDisconnectOverlay(state);
 }
 
 function roll() {
-  if (rolling) return;
+  if (rolling || !ws || ws.readyState !== WebSocket.OPEN) return;
   rolling = true;
+  awaitingAck = true;
+  pendingRollState = null;
+  pendingWinName = null;
+  pendingWinTarget = null;
 
   const p = currentState?.players[myId];
-  if (!p) { rolling = false; return; }
+  if (!p) { rolling = false; awaitingAck = false; return; }
 
   // Snapshot matched count so we know which are "new" this roll
   prevMatchedCount = p.has_rolled ? p.dice.filter(d => d === currentState.target).length : 0;
-
-  // Compute dice locally
-  const newDice = computeNewDice(p.dice, currentState.target, p.has_rolled);
-
-  // Build synthetic state for animation — server will validate & confirm
-  const syntheticState = {
-    ...currentState,
-    players: {
-      ...currentState.players,
-      [myId]: { ...p, dice: newDice, has_rolled: true },
-    },
-  };
-  prevMyDiceKey = lastMyDiceKey;
-  lastMyDiceKey = myDiceKey(syntheticState);
 
   const btn = document.getElementById("roll-btn");
   if (btn) btn.disabled = true;
@@ -639,17 +702,44 @@ function roll() {
   pendingRollTimeouts.forEach(clearTimeout);
   pendingRollTimeouts = [];
 
+  // Server owns the RNG — we just declare intent
+  ws.send(JSON.stringify({ action: "roll" }));
   startShake();
 
-  // After shake ends, animate with known dice then send to server
+  // After shake ends, run the reveal with whatever the server sent back
   const remaining = Math.max(0, rollShakeEnd - Date.now());
-  const shakeT = setTimeout(() => {
-    updateDiceInPlace(syntheticState, () => {
-      awaitingAck = true;
-      ws.send(JSON.stringify({ action: "roll", dice: newDice }));
-    });
-  }, remaining);
+  const shakeT = setTimeout(tryReveal, remaining);
   pendingRollTimeouts.push(shakeT);
+}
+
+// Wait for the server's roll response, then animate the reveal.
+// Polls briefly because the response almost always arrives during the shake.
+function tryReveal() {
+  if (!pendingRollState) {
+    const t = setTimeout(tryReveal, 50);
+    pendingRollTimeouts.push(t);
+    return;
+  }
+  const state = pendingRollState;
+  pendingRollState = null;
+  awaitingAck = false;
+  currentState = state;
+  lastMyDiceKey = myDiceKey(state);
+  updateDiceInPlace(state, () => {
+    rolling = false;
+    const btn = document.getElementById('roll-btn');
+    if (btn) btn.disabled = false;
+    // Tell the server we've finished animating so it can publish to the rest of the room
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ action: "roll_done" }));
+    }
+    if (pendingWinName) {
+      const name = pendingWinName, target = pendingWinTarget;
+      pendingWinName = null;
+      pendingWinTarget = null;
+      showWinner(name, target);
+    }
+  });
 }
 
 // ── Winner overlay ──
@@ -670,27 +760,61 @@ function handleMessage(msg) {
   switch (msg.type) {
     case "welcome":
       myId = msg.player_id;
+      localStorage.setItem('tensies_pid', myId);
       break;
     case "state":
-      hideWinner();
-      if (!msg.started) { showScreen("lobby"); renderLobby(msg); }
-      else              { showScreen("game");  renderGame(msg);  }
+      if (msg.code) localStorage.setItem('tensies_code', msg.code);
+      if (!msg.started) {
+        hideWinner();
+        showScreen("lobby");
+        renderLobby(msg);
+        break;
+      }
+      if (awaitingAck && myDiceKey(msg) !== lastMyDiceKey) {
+        // This is the response to my in-flight roll — let tryReveal drive the animation
+        pendingRollState = msg;
+      } else {
+        hideWinner();
+        showScreen("game");
+        renderGame(msg);
+      }
       break;
     case "round_won":
-      // Broadcast arrives after the winner's animation — show immediately for everyone
-      pendingRollTimeouts.forEach(clearTimeout);
-      pendingRollTimeouts = [];
-      awaitingAck = false;
-      rolling = false;
-      currentState = msg;
-      lastMyDiceKey = myDiceKey(msg);
-      showScreen("game");
-      renderPlayersBar(msg);
-      renderMyArea(msg);
-      showWinner(msg.winner_name, msg.target);
+      if (awaitingAck && myDiceKey(msg) !== lastMyDiceKey) {
+        // I just won with my roll — animate the reveal first, then show the overlay
+        pendingRollState = msg;
+        pendingWinName = msg.winner_name;
+        pendingWinTarget = msg.target;
+      } else {
+        pendingRollTimeouts.forEach(clearTimeout);
+        pendingRollTimeouts = [];
+        awaitingAck = false;
+        rolling = false;
+        pendingRollState = null;
+        currentState = msg;
+        lastMyDiceKey = myDiceKey(msg);
+        showScreen("game");
+        renderPlayersBar(msg);
+        renderMyArea(msg);
+        showWinner(msg.winner_name, msg.target);
+      }
       break;
     case "error":
-      setError(msg.msg);
+      if (currentState && currentState.started) {
+        // In-game error (e.g. rate limit) — clear roll state so the button comes back
+        pendingRollTimeouts.forEach(clearTimeout);
+        pendingRollTimeouts = [];
+        awaitingAck = false;
+        rolling = false;
+        pendingRollState = null;
+        const btn = document.getElementById('roll-btn');
+        if (btn) btn.disabled = false;
+        renderMyArea(currentState);
+      } else if (document.getElementById("join").classList.contains("active")) {
+        setJoinError(msg.msg);
+      } else {
+        setError(msg.msg);
+      }
       break;
   }
 }
@@ -712,12 +836,27 @@ document.addEventListener("keydown", e => {
 // ── Init ──
 loadRandomName();
 
+// Capture deep-link param before replaceState wipes it
+const _deepLinkCode = new URLSearchParams(location.search).get("join");
+
 // Deep-link: /?join=ABCDE → go straight to join screen with code pre-filled
 (function () {
-  const code = new URLSearchParams(location.search).get("join");
-  if (code) {
-    history.replaceState(null, "", "/"); // clean URL
-    document.getElementById("code-input").value = code.toUpperCase();
+  if (_deepLinkCode) {
+    history.replaceState(null, "", "/");
+    document.getElementById("code-input").value = _deepLinkCode.toUpperCase();
     showJoin();
+  }
+})();
+
+// Auto-reconnect on page load if a prior session was saved (and no deep-link)
+(function () {
+  if (_deepLinkCode) return;
+  const pid = localStorage.getItem('tensies_pid');
+  const code = localStorage.getItem('tensies_code');
+  if (pid && code) {
+    myId = pid;
+    reconnecting = true;
+    showReconnectingModal();
+    attemptReconnect(pid, code, Date.now() + 30000);
   }
 })();
