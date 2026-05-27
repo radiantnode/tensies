@@ -89,6 +89,7 @@ def fresh_player(name: str) -> dict:
         "wins": 0,
         "has_rolled": False,
         "last_roll": 0.0,
+        "roll_count": 0,
     }
 
 
@@ -125,6 +126,7 @@ def state_msg(game: dict, code: str, msg_type: str = "state", **extra) -> dict:
                 "dice": p["dice"],
                 "wins": p["wins"],
                 "has_rolled": p.get("has_rolled", False),
+                "roll_count": p.get("roll_count", 0),
             }
             for pid, p in game["players"].items()
         },
@@ -210,6 +212,7 @@ async def websocket_endpoint(ws: WebSocket):
                     p["locked"] = [False] * 10
                     p["has_rolled"] = False
                     p["last_roll"] = 0.0
+                    p["roll_count"] = 0
                 log.info("start    game=%s  players=%d  target=%d", code, len(game["players"]), game["target"])
                 await broadcast(code, state_msg(game, code))
 
@@ -242,6 +245,7 @@ async def websocket_endpoint(ws: WebSocket):
                         locked[i] = True
 
                 player["has_rolled"] = True
+                player["roll_count"] += 1
                 matched = sum(locked)
 
                 if matched == 10:

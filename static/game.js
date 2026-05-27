@@ -96,7 +96,8 @@ const barCards = {};
 function myDiceKey(state) {
   const p = state.players[myId];
   if (!p) return null;
-  return JSON.stringify({ dice: p.dice, has_rolled: p.has_rolled, target: state.target, round_num: state.round_num });
+  // roll_count distinguishes a re-roll that landed on the same values as before
+  return JSON.stringify({ dice: p.dice, has_rolled: p.has_rolled, target: state.target, round_num: state.round_num, roll_count: p.roll_count || 0 });
 }
 
 function showScreen(id) {
