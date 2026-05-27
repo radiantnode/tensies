@@ -718,6 +718,8 @@ function handleMessage(msg) {
         const btn = document.getElementById('roll-btn');
         if (btn) btn.disabled = false;
         renderMyArea(currentState);
+      } else if (document.getElementById("join").classList.contains("active")) {
+        setJoinError(msg.msg);
       } else {
         setError(msg.msg);
       }
