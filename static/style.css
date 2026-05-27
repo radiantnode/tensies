@@ -50,6 +50,17 @@ body {
   overflow: hidden;
 }
 
+.logo-mark {
+  width: clamp(110px, 32vw, 160px);
+  height: auto;
+  display: block;
+  margin-bottom: -2.5rem;
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.75))
+          drop-shadow(0 0 32px rgba(255, 77, 109, 0.35));
+}
+
 .logo {
   font-size: clamp(3rem, 12vw, 6rem);
   font-weight: 900;
@@ -283,13 +294,27 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
 }
 
 .game-title {
-  font-size: 1rem;
+  font-size: 1.2rem;
   font-weight: 900;
   letter-spacing: 0.2em;
   color: var(--accent);
   text-transform: uppercase;
-  padding: 0.6rem 1rem;
+  padding: 0.5rem 0.75rem 0.5rem 0.4rem;
   border-bottom: 1px solid rgba(180, 100, 20, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.game-title-mark {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  margin-right: -10px;
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7))
+          drop-shadow(0 0 10px rgba(255, 77, 109, 0.4));
 }
 
 /* ── Players bar (horizontal) ── */
