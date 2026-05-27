@@ -1,4 +1,5 @@
 ---
+name: test-game
 description: Full integration test of Tensies — spins up the server, runs a two-player game end-to-end with Playwright, checks every known bug class and gameplay edge case, and reports a pass/fail summary.
 user_invocable: true
 ---
@@ -112,7 +113,7 @@ Check console messages — flag any JS errors.
 
 In Tab 1:
 1. Type `Alpha` into `#name-input`
-2. Click `button.btn-primary` ("Create Game")
+2. Click `button[onclick='createGame()']` ("Create Game") — do **not** use `button.btn-primary`, that selector matches multiple elements
 
 Wait for `#lobby` screen to become `.active`. Then:
 - Read the game code from `#lobby-code` — store it as `GAME_CODE`
@@ -137,7 +138,7 @@ Verify:
 - `#code-input` is pre-filled with `GAME_CODE` (deep-link works)
 - The URL has been cleaned to `/` (no `?join=` in the address bar)
 
-Type `Beta` into `#join-name-input`, then click "Join Game".
+Type `Beta` into `#join-name-input`, then click `button[onclick='joinGame()']`.
 
 Wait for `#lobby` to become active. Verify:
 - Both "Alpha" and "Beta" appear in `#lobby-players`
@@ -154,7 +155,11 @@ Take screenshot **"03-lobby-both"**.
 
 ## Step 5 — Attempt to join a started game (edge case)
 
-Before starting, open a **third tab** and navigate to the root. Type `Gamma` and click "Join Game" with an **invalid code** (`ZZZZZ`). Verify the error message contains "Game not found". Close or reuse Tab 3.
+Before starting, open a **third tab** and navigate to the root. The join flow is two steps:
+1. Type `Gamma` into `#name-input` on the landing screen, then click `button[onclick='showJoin()']` to reach the join screen.
+2. On the join screen, fill `#code-input` with `ZZZZZ`, then click `button[onclick='joinGame()']`.
+
+Verify `#join-error` (not `#landing-error`) contains "Game not found". Close or reuse Tab 3.
 
 ---
 
@@ -168,7 +173,7 @@ Verify:
 - The round header shows "Round 1"
 - A target die is visible (`.round-target-die`)
 - Roll button (`#roll-btn`) is present and **enabled**
-- Locked count shows `0/10`
+- Players-bar text for Alpha contains `0/10` (no separate `#locked-count` element exists — it is embedded in the bar)
 
 Take screenshot **"05-game-start"**.
 
@@ -178,7 +183,11 @@ Also verify Tab 2 is now on `#game` as well. Check the players bar on Tab 2 mirr
 
 ## Step 7 — Join-after-start rejection (edge case)
 
-Open a new tab to `http://localhost:8000/`. Type `Latebird` and click "Join Game" with `GAME_CODE`. Verify the error says "Game already in progress". Close this tab.
+Open a new tab to `http://localhost:8000/`. Use the two-step join flow:
+1. Type `Latebird` into `#name-input`, then click `button[onclick='showJoin()']`.
+2. Fill `#code-input` with `GAME_CODE`, then click `button[onclick='joinGame()']`.
+
+Verify `#join-error` (not `#landing-error`) contains "Game already in progress". Close this tab.
 
 ---
 
@@ -233,30 +242,83 @@ Check console messages — the server should have logged a rate limit warning. V
 
 This checks that other players don't see a roll before the roller's reveal animation completes (the delayed-broadcast fix).
 
-1. In Tab 1, note the current `roll_count` for Alpha.
-2. In Tab 2, get the current `roll_count` for Alpha.
-3. Click roll in Tab 1.
-4. Immediately (within 200 ms) read `roll_count` for Alpha in Tab 2.
-   - **It must still match the pre-roll value.** If it has already advanced, the broadcast went out before the roller's animation finished — regression.
-5. Wait 3 seconds, then read again — now it must have advanced. If it hasn't, the ack/broadcast pipeline is broken.
+**Do not use the naive tab-switch approach** — each Playwright tool call adds ~500ms overhead, making a "within 200ms" check impossible. Use a page-side timestamp watcher instead:
+
+1. In Tab 2 (Beta), install a polling watcher **before** the roll happens:
+   ```js
+   () => {
+     const alphaId = Object.keys(currentState.players).find(id => currentState.players[id].name === 'Alpha');
+     const preRollCount = currentState.players[alphaId].roll_count;
+     window._broadcastWatch = { alphaId, preRollCount, detectedAt: null, startedAt: Date.now() };
+     const iv = setInterval(() => {
+       const rc = currentState?.players[alphaId]?.roll_count ?? -1;
+       if (rc > preRollCount && !window._broadcastWatch.detectedAt) {
+         window._broadcastWatch.detectedAt = Date.now();
+         clearInterval(iv);
+       }
+     }, 20);
+     return { alphaId, preRollCount };
+   }
+   ```
+2. Switch to Tab 1. Record the click timestamp and roll:
+   ```js
+   () => { window._rollClickedAt = Date.now(); document.getElementById('roll-btn').click(); return window._rollClickedAt; }
+   ```
+3. Wait 3 seconds (for animation to complete and broadcast to arrive).
+4. Switch back to Tab 2 and read results:
+   ```js
+   () => {
+     const w = window._broadcastWatch;
+     const rollClickedAt = /* absolute timestamp from step 2 */;
+     return {
+       detectedAt: w.detectedAt,
+       msAfterRollClick: w.detectedAt ? w.detectedAt - rollClickedAt : null,
+       stateAdvanced: (currentState?.players[w.alphaId]?.roll_count ?? -1) > w.preRollCount
+     };
+   }
+   ```
+
+   Note: `rollClickedAt` was captured on Tab 1; `w.startedAt` is Tab 2's clock. Use absolute timestamps for the delta.
+
+**Pass criteria:**
+- `detectedAt` is set (broadcast arrived) — if null after 3s, the pipeline is broken
+- `msAfterRollClick` is **between 1000ms and 2000ms** — this is the expected animation window (gather + shake + reveal). The broadcast timing has measured 1491ms and 1589ms across runs.
+- If `msAfterRollClick` < 200ms, the broadcast went out before the roller's animation finished — **regression**.
 
 ---
 
 ## Step 12 — Roll to win
 
-Roll Tab 1's dice until all 10 are locked (matched). Roll in a loop:
-- After each roll, read `matched = state.players[myId].dice.filter(d => d === state.target).length`
-- If matched < 10, click roll again (wait for button to re-enable first, max 3s wait each time)
-- Time out and fail this step after 120 seconds total — something is stuck
+**Note:** Alpha will often have already won round 1 during the roll-heavy steps 9–12 (8+ rolls total). If so, this step runs in round 2 or later — that is expected and fine. Check `currentState.round_num` to confirm which round you're in.
 
-When matched === 10:
-- Verify `#winner-overlay` has class `visible`
-- Verify `#winner-name` contains "Alpha"
-- Verify `#winner-sub` mentions the next target number (should be one step down from current)
+**Winner overlay capture:** The overlay auto-dismisses after ~4 seconds. A post-loop screenshot will always miss it. Install a `MutationObserver` before the roll loop and capture content when the overlay gains `visible`:
 
-Take screenshot **"11-winner"**.
+```js
+window._winnerCapture = null;
+const overlay = document.getElementById('winner-overlay');
+new MutationObserver(() => {
+  if (overlay.classList.contains('visible') && !window._winnerCapture) {
+    window._winnerCapture = {
+      winnerName: document.getElementById('winner-name')?.textContent.trim(),
+      winnerSub: document.getElementById('winner-sub')?.textContent.trim(),
+      capturedAt: Date.now()
+    };
+  }
+}).observe(overlay, { attributes: true, attributeFilter: ['class'] });
+```
 
-Check Tab 2 also shows the winner overlay with the same winner name. **Check that Tab 2 saw the overlay at roughly the same time as Tab 1** (within 3 seconds — it should arrive via the delayed broadcast after roll_done).
+Then roll in a loop:
+- After each roll, read `matched = currentState.players[myId].dice.filter(d => d === currentState.target).length`
+- If matched < 10, wait for roll button to re-enable (max 3s), then roll again
+- Time out and fail after 120 seconds total
+
+When the loop exits, read `window._winnerCapture`. Verify:
+- `winnerName` contains "Alpha"
+- `winnerSub` mentions the next target number (one step down from current)
+
+Take screenshot **"11-winner"** (will show post-advance state; the MutationObserver data is the authoritative overlay check).
+
+Check Tab 2 also advanced to the next round with the same state (same `round_num`, same `target`, same `winnerName` in the overlay element).
 
 ---
 
@@ -271,7 +333,7 @@ Verify on both tabs:
 - All dice are unlocked (new fresh dice dealt)
 - `has_rolled` is `false` for all players
 - Roll button is enabled on Tab 1
-- Locked count shows `0/10`
+- Players-bar text for each player contains `0/10` (matched count reset)
 
 Take screenshot **"12-round2"**.
 
