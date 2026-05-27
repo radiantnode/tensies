@@ -92,6 +92,7 @@ let pendingWinName = null;
 let pendingWinTarget = null;
 // pid → { card, wins, fill, count } — persists across rounds for in-place updates
 const barCards = {};
+let reconnecting = false;
 
 function myDiceKey(state) {
   const p = state.players[myId];
@@ -146,12 +147,98 @@ function setJoinError(msg) {
   document.getElementById("join-error").textContent = msg;
 }
 
+function handleWsClose() {
+  if (reconnecting) return;
+  if (localStorage.getItem('tensies_pid') && localStorage.getItem('tensies_code')) {
+    maybeReconnect();
+  } else if (currentState) {
+    alert("Connection lost. Refresh to reconnect.");
+  }
+}
+
 function connectWS(afterConnect) {
   const proto = location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${proto}://${location.host}/ws`);
   ws.onopen = () => afterConnect();
   ws.onmessage = evt => handleMessage(JSON.parse(evt.data));
-  ws.onclose = () => { if (currentState) alert("Connection lost. Refresh to reconnect."); };
+  ws.onclose = handleWsClose;
+}
+
+function maybeReconnect() {
+  if (reconnecting) return;
+  const pid = localStorage.getItem('tensies_pid');
+  const code = localStorage.getItem('tensies_code');
+  if (!pid || !code) return;
+  myId = pid;
+  reconnecting = true;
+  showReconnectingModal();
+  attemptReconnect(pid, code, Date.now() + 30000);
+}
+
+function attemptReconnect(pid, code, deadline) {
+  if (Date.now() > deadline) {
+    reconnecting = false;
+    hideReconnectingModal();
+    localStorage.removeItem('tensies_pid');
+    localStorage.removeItem('tensies_code');
+    currentState = null;
+    setError('Your session expired');
+    showScreen('landing');
+    return;
+  }
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+  ws.onopen = () => ws.send(JSON.stringify({ action: 'reconnect', player_id: pid, game_code: code }));
+  ws.onerror = () => {};
+  ws.onmessage = evt => {
+    const msg = JSON.parse(evt.data);
+    if (msg.type === 'welcome') return;
+    if (msg.type === 'error') {
+      ws.close();
+      reconnecting = false;
+      hideReconnectingModal();
+      localStorage.removeItem('tensies_pid');
+      localStorage.removeItem('tensies_code');
+      currentState = null;
+      setError('Your session expired');
+      showScreen('landing');
+      return;
+    }
+    reconnecting = false;
+    hideReconnectingModal();
+    resetRollState();
+    ws.onmessage = evt => handleMessage(JSON.parse(evt.data));
+    ws.onclose = handleWsClose;
+    handleMessage(msg);
+  };
+  ws.onclose = () => { if (reconnecting) setTimeout(() => attemptReconnect(pid, code, deadline), 2000); };
+}
+
+function resetRollState() {
+  pendingRollTimeouts.forEach(clearTimeout);
+  pendingRollTimeouts = [];
+  rolling = false;
+  awaitingAck = false;
+  pendingRollState = null;
+  pendingWinName = null;
+  pendingWinTarget = null;
+}
+
+function showReconnectingModal() { document.getElementById('reconnecting-modal').classList.add('visible'); }
+function hideReconnectingModal() { document.getElementById('reconnecting-modal').classList.remove('visible'); }
+
+function renderDisconnectOverlay(state) {
+  const overlay = document.getElementById('disconnect-overlay');
+  const msgEl = document.getElementById('disconnect-msg');
+  const names = Object.values(state.players).filter(p => p.disconnected).map(p => p.name);
+  if (names.length === 0) {
+    overlay.classList.remove('visible');
+  } else {
+    msgEl.textContent = names.length === 1
+      ? `Waiting for ${names[0]} to reconnect…`
+      : `Waiting for ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} to reconnect…`;
+    overlay.classList.add('visible');
+  }
 }
 
 function createGame() {
@@ -218,6 +305,7 @@ function renderLobby(state) {
     startBtn.style.display = "none";
     waitMsg.textContent = "Waiting for the host to start…";
   }
+  renderDisconnectOverlay(state);
 }
 
 // ── Game ──
@@ -289,6 +377,7 @@ function renderPlayersBar(state) {
 
     // Update only the values that change — fill width animates via CSS transition
     const { card, wins, fill, count } = barCards[pid];
+    card.className = "player-mini" + (p.disconnected ? " disconnected" : "");
     wins.className  = "player-mini-wins" + (p.wins > 0 && p.wins === top ? " leading" : "");
     wins.textContent = `${p.wins}W`;
     fill.className  = "player-mini-fill" + (isMe ? " me" : hot ? " hot" : "");
@@ -590,6 +679,7 @@ function renderGame(state) {
     // Another player rolled — update bar only; my dice area is untouched
     renderPlayersBar(state);
   }
+  renderDisconnectOverlay(state);
 }
 
 function roll() {
@@ -670,8 +760,10 @@ function handleMessage(msg) {
   switch (msg.type) {
     case "welcome":
       myId = msg.player_id;
+      localStorage.setItem('tensies_pid', myId);
       break;
     case "state":
+      if (msg.code) localStorage.setItem('tensies_code', msg.code);
       if (!msg.started) {
         hideWinner();
         showScreen("lobby");
@@ -744,12 +836,27 @@ document.addEventListener("keydown", e => {
 // ── Init ──
 loadRandomName();
 
+// Capture deep-link param before replaceState wipes it
+const _deepLinkCode = new URLSearchParams(location.search).get("join");
+
 // Deep-link: /?join=ABCDE → go straight to join screen with code pre-filled
 (function () {
-  const code = new URLSearchParams(location.search).get("join");
-  if (code) {
-    history.replaceState(null, "", "/"); // clean URL
-    document.getElementById("code-input").value = code.toUpperCase();
+  if (_deepLinkCode) {
+    history.replaceState(null, "", "/");
+    document.getElementById("code-input").value = _deepLinkCode.toUpperCase();
     showJoin();
+  }
+})();
+
+// Auto-reconnect on page load if a prior session was saved (and no deep-link)
+(function () {
+  if (_deepLinkCode) return;
+  const pid = localStorage.getItem('tensies_pid');
+  const code = localStorage.getItem('tensies_code');
+  if (pid && code) {
+    myId = pid;
+    reconnecting = true;
+    showReconnectingModal();
+    attemptReconnect(pid, code, Date.now() + 30000);
   }
 })();

@@ -663,3 +663,80 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
   .zone-matched { width: calc(2 * 46px + 14px); }
   .round-target-die { --sz: 46px; }
 }
+
+/* ── Disconnect overlay (shown to other players while someone reconnects) ── */
+#disconnect-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  z-index: 210;
+  align-items: center;
+  justify-content: center;
+}
+#disconnect-overlay.visible { display: flex; }
+
+.disconnect-box {
+  background: rgba(15, 7, 3, 0.95);
+  border: 2px solid rgba(180, 100, 20, 0.5);
+  border-radius: 20px;
+  padding: 2.5rem 3rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#disconnect-msg {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  max-width: 240px;
+  line-height: 1.5;
+}
+
+/* ── Reconnecting modal (shown to the local player while reconnecting) ── */
+#reconnecting-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  z-index: 300;
+  align-items: center;
+  justify-content: center;
+}
+#reconnecting-modal.visible { display: flex; }
+
+.reconnecting-box {
+  background: rgba(15, 7, 3, 0.95);
+  border: 2px solid rgba(180, 100, 20, 0.5);
+  border-radius: 20px;
+  padding: 2.5rem 3rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Shared spinner */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.disconnect-spinner,
+.reconnecting-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(180, 100, 20, 0.25);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Dimmed card for a disconnected player in the players bar */
+.player-mini.disconnected { opacity: 0.35; }

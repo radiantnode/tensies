@@ -90,6 +90,7 @@ def fresh_player(name: str) -> dict:
         "has_rolled": False,
         "last_roll": 0.0,
         "roll_count": 0,
+        "disconnected": False,
     }
 
 
@@ -127,6 +128,7 @@ def state_msg(game: dict, code: str, msg_type: str = "state", **extra) -> dict:
                 "wins": p["wins"],
                 "has_rolled": p.get("has_rolled", False),
                 "roll_count": p.get("roll_count", 0),
+                "disconnected": p.get("disconnected", False),
             }
             for pid, p in game["players"].items()
         },
@@ -200,6 +202,29 @@ async def delayed_broadcast(code: str, pid: str, is_win: bool, winner_name: str 
         await broadcast(code, state_msg(game, code))
 
 
+async def drop_player(code: str, pid: str) -> None:
+    """Remove a disconnected player after the 30-second grace period."""
+    await asyncio.sleep(30)
+    if code not in games:
+        return
+    game = games[code]
+    player = game["players"].get(pid)
+    if player is None or not player.get("disconnected"):
+        return  # Already reconnected — nothing to do
+    player_name = player["name"]
+    del game["players"][pid]
+    connections[code].pop(pid, None)
+    log.info("drop     game=%s  player=%s  (30s timeout)", code, player_name)
+    if not game["players"]:
+        log.info("close    game=%s  (all dropped)", code)
+        del games[code]
+        connections.pop(code, None)
+        return
+    if game["host"] == pid:
+        game["host"] = next(iter(game["players"]))
+    await broadcast(code, state_msg(game, code))
+
+
 @app.get("/")
 async def root():
     return HTMLResponse(_index_html)
@@ -266,6 +291,27 @@ async def websocket_endpoint(ws: WebSocket):
                     p["last_roll"] = 0.0
                     p["roll_count"] = 0
                 log.info("start    game=%s  players=%d  target=%d", code, len(game["players"]), game["target"])
+                await broadcast(code, state_msg(game, code))
+
+            elif action == "reconnect":
+                old_pid = msg.get("player_id", "").strip()
+                join_code = (msg.get("game_code") or "").upper().strip()
+                if (join_code not in games
+                        or old_pid not in games[join_code]["players"]
+                        or not games[join_code]["players"][old_pid].get("disconnected")):
+                    await ws.send_text(json.dumps({"type": "error", "msg": "Game not found"}))
+                    continue
+                game = games[join_code]
+                player = game["players"][old_pid]
+                task = player.pop("disconnect_task", None)
+                if task:
+                    task.cancel()
+                pid = old_pid
+                code = join_code
+                player_name = player["name"]
+                player["disconnected"] = False
+                connections[code][pid] = ws
+                log.info("reconnect  game=%s  player=%s", code, player_name)
                 await broadcast(code, state_msg(game, code))
 
             elif action == "roll":
@@ -335,12 +381,10 @@ async def websocket_endpoint(ws: WebSocket):
         if code and code in games:
             connections[code].pop(pid, None)
             game = games[code]
-            game["players"].pop(pid, None)
-            if not game["players"]:
-                log.info("close    game=%s  (empty)", code)
-                del games[code]
-                connections.pop(code, None)
-            else:
-                if game["host"] == pid:
-                    game["host"] = next(iter(game["players"]))
-                await broadcast(code, state_msg(game, code))
+            player = game["players"].get(pid)
+            if player:
+                player["disconnected"] = True
+                task = asyncio.create_task(drop_player(code, pid))
+                player["disconnect_task"] = task
+                if connections.get(code):
+                    await broadcast(code, state_msg(game, code))

@@ -29,9 +29,13 @@ SKILL_MTIME=$(stat -f %m .claude/skills/test-game/skill.md 2>/dev/null || stat -
 
 # Find commits to game-relevant files that are newer than the skill
 git log --since="@${SKILL_MTIME}" --oneline -- main.py static/game.js static/index.html static/style.css
+
+# Also check for unstaged / staged changes — uncommitted work is worth testing too
+git diff --name-only -- main.py static/game.js static/index.html static/style.css
+git diff --cached --name-only -- main.py static/game.js static/index.html static/style.css
 ```
 
-If any commits appear in that output:
+If any commits appear **or** any files are listed in the `git diff` output (staged or unstaged changes):
 
 1. Read `main.py`, `static/game.js`, and `static/index.html` in full.
 2. Compare what changed against what this skill currently tests. Look for:
@@ -48,7 +52,7 @@ If any commits appear in that output:
    - Update the checkpoint count and summary table at the bottom
 4. After saving the updated skill, **continue running the tests** with the new version — do not stop.
 
-If there are no new commits, skip straight to Step 0b (Prior run review).
+If there are no new commits **and** no unstaged/staged changes, skip straight to Step 0b (Prior run review).
 
 ---
 
@@ -355,8 +359,9 @@ Expected: `[[1,6],[2,1],[3,2],[4,3],[5,4],[6,5]]`
 
 ## Step 15 — Player disconnect mid-game
 
-Close Tab 2 (Beta disconnects). Switch to Tab 1. Verify:
-- Beta's card disappears from `#players-bar`
+Close Tab 2 (Beta disconnects). Switch to Tab 1. Verify (within ~2 seconds):
+- Beta's card is **still visible** in `#players-bar` but is dimmed — it should have class `player-mini disconnected` (not removed)
+- `#disconnect-overlay` gains class `visible` and `#disconnect-msg` reads "Waiting for Beta to reconnect…"
 - Alpha can still roll (button enabled, no crash)
 - Alpha's locked count is still correct
 
@@ -364,14 +369,38 @@ Take screenshot **"14-post-disconnect"**.
 
 ---
 
+## Step 15b — Player reconnect
+
+Continuing from Step 15 (Beta's tab is closed, disconnect overlay is showing on Tab 1).
+
+Open a **new tab** (Tab 2b) and navigate to `http://localhost:8000/`. Because localStorage still holds `tensies_pid` and `tensies_code` from Beta's prior session, the page should auto-trigger reconnect.
+
+Verify on Tab 2b:
+- `#reconnecting-modal` has class `visible` within the first second (reconnecting spinner is showing)
+- Within ~3 seconds: modal disappears, `#game` screen becomes active, Beta's dice area is rendered
+
+Then switch back to Tab 1 (Alpha) and verify:
+- `#disconnect-overlay` no longer has class `visible` (overlay dismissed)
+- Beta's card is no longer dimmed (`player-mini disconnected` class removed)
+- Alpha can still roll (game playable with two players again)
+
+Take screenshot **"14b-reconnected"**.
+
+If the reconnect fails (modal stays indefinitely or landing screen shows "Your session expired"), mark this step FAIL and note whether it's because the server already dropped Beta (30s elapsed) or a client-side bug.
+
+---
+
 ## Step 16 — Host disconnect / host transfer
 
 This test requires a fresh game. Start a new two-player game (Tabs 3 and 4, or reuse). Start the game. Then close the **host's tab** (Tab 3).
 
-In Tab 4 (the non-host):
-- Verify the game does not crash
-- Verify it's possible to keep rolling (game is playable as a solo session)
-- If the `host` field is surfaced in state, verify it changed to the remaining player's ID
+In Tab 4 (the non-host), verify the **immediate** post-disconnect state (within ~2 seconds):
+- The host's card in `#players-bar` is **dimmed** (`player-mini disconnected`) — not removed yet (30s grace period)
+- `#disconnect-overlay` is visible with text "Waiting for [host name] to reconnect…"
+- The game does not crash
+- Tab 4 can still roll (game playable solo during the grace period)
+
+**Note:** Host transfer (`host` field updating to the remaining player's ID) only happens after the 30-second drop timer fires. Do **not** wait 30s — verify the immediate disconnected-but-not-dropped state instead. Test that `currentState.host` still shows the old host ID at this point (transfer has not yet occurred).
 
 Take screenshot **"15-host-transfer"**.
 
@@ -427,11 +456,12 @@ TENSIES TEST RESULTS
  PASS  15  Round transition + target cycle
  PASS  16  Target cycling math
  PASS  17  Player disconnect mid-game
- PASS  18  Host disconnect / host transfer
- PASS  19  Animation integrity (no tearing)
- PASS  20  Console clean (no JS errors)
+ PASS  18  Player reconnect flow
+ PASS  19  Host disconnect / host transfer
+ PASS  20  Animation integrity (no tearing)
+ PASS  21  Console clean (no JS errors)
 ====================
-20/20 passed
+21/21 passed
 ```
 
 Replace `PASS` with `FAIL` and append a one-line description for any failure. If any test FAILs, describe exactly what went wrong and where to look.
