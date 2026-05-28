@@ -192,6 +192,10 @@ function attemptReconnect(pid, code, deadline) {
   ws.onerror = () => {};
   ws.onmessage = evt => {
     const msg = JSON.parse(evt.data);
+    if (msg.type === 'ping') {
+      ws.send(JSON.stringify({ action: 'pong', t: msg.t }));
+      return;
+    }
     if (msg.type === 'welcome') return;
     if (msg.type === 'error') {
       ws.close();
@@ -758,6 +762,9 @@ function nextTarget(t) { return ((t - 2 + 6) % 6) + 1; }
 // ── Message handler ──
 function handleMessage(msg) {
   switch (msg.type) {
+    case "ping":
+      ws.send(JSON.stringify({ action: "pong", t: msg.t }));
+      return;
     case "welcome":
       myId = msg.player_id;
       localStorage.setItem('tensies_pid', myId);

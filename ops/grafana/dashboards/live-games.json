@@ -1,0 +1,170 @@
+{
+  "uid": "tensies-live",
+  "title": "Tensies — Live Games",
+  "tags": ["tensies", "live"],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "time": { "from": "now-15m", "to": "now" },
+  "refresh": "1s",
+  "timepicker": { "refresh_intervals": ["1s", "5s", "10s", "30s"] },
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Concurrent games",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "tensies_games_active", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "blue" }, { "color": "green", "value": 1 }] } } },
+      "options": { "graphMode": "area", "colorMode": "background", "textMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 2, "type": "stat", "title": "Players online",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "tensies_ws_connections_active", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "blue" }, { "color": "purple", "value": 2 }] } } },
+      "options": { "graphMode": "area", "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 3, "type": "stat", "title": "Rolls / sec (10s avg)",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "rate(tensies_rolls_total[10s])", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "blue" }, { "color": "yellow", "value": 1 }, { "color": "orange", "value": 5 }, { "color": "red", "value": 20 }] }, "unit": "ops" } },
+      "options": { "graphMode": "area", "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 4, "type": "stat", "title": "Wins last 1h",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "increase(tensies_rounds_completed_total[1h])", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "blue" }, { "color": "green", "value": 1 }] } } },
+      "options": { "graphMode": "none", "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 5, "type": "stat", "title": "Telemetry queue",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "max(tensies_telemetry_queue_depth)", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green" }, { "color": "yellow", "value": 1000 }, { "color": "red", "value": 10000 }] } } },
+      "options": { "graphMode": "area", "colorMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 6, "type": "stat", "title": "Dropped events",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "increase(tensies_telemetry_dropped_total[5m])", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green" }, { "color": "red", "value": 1 }] } } },
+      "options": { "graphMode": "none", "colorMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+
+    {
+      "id": 10, "type": "table", "title": "Active games",
+      "gridPos": { "h": 10, "w": 14, "x": 0, "y": 4 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{
+        "refId": "A",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT game_code AS \"Code\", status AS \"Status\", target AS \"Target\", round_num AS \"Round\", player_count AS \"Players\", leader_name AS \"Leader\", leader_matched AS \"Locked\", rolls_this_round AS \"Rolls/round\", total_rolls AS \"Total rolls\", extract(epoch from (now() - last_roll_ts))::int AS \"Idle (s)\", started_ts AS \"Started\" FROM live_games ORDER BY updated_ts DESC LIMIT 50"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "left" }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Locked" }, "properties": [
+              { "id": "custom.cellOptions", "value": { "type": "gauge", "mode": "gradient" } },
+              { "id": "max", "value": 10 }, { "id": "min", "value": 0 },
+              { "id": "color", "value": { "mode": "thresholds" } },
+              { "id": "thresholds", "value": { "steps": [{ "color": "blue" }, { "color": "green", "value": 5 }, { "color": "yellow", "value": 8 }, { "color": "red", "value": 10 }] } }
+          ]},
+          { "matcher": { "id": "byName", "options": "Idle (s)" }, "properties": [
+              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "gradient" } },
+              { "id": "thresholds", "value": { "steps": [{ "color": "green" }, { "color": "yellow", "value": 5 }, { "color": "orange", "value": 15 }, { "color": "red", "value": 60 }] } }
+          ]},
+          { "matcher": { "id": "byName", "options": "Status" }, "properties": [
+              { "id": "mappings", "value": [
+                { "type": "value", "options": { "lobby": { "color": "blue", "index": 0, "text": "lobby" }, "playing": { "color": "green", "index": 1, "text": "playing" } } }
+              ]},
+              { "id": "custom.cellOptions", "value": { "type": "color-text" } }
+          ]}
+        ]
+      },
+      "options": { "showHeader": true, "cellHeight": "sm" }
+    },
+
+    {
+      "id": 11, "type": "bargauge", "title": "Round progress per player",
+      "gridPos": { "h": 10, "w": 10, "x": 14, "y": 4 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{
+        "refId": "A",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT lp.game_code || ' · ' || coalesce(lp.name, lp.user_id) AS metric, lp.matched AS value FROM live_players lp JOIN live_games lg ON lg.game_code = lp.game_code WHERE lg.status = 'playing' ORDER BY lp.game_code, lp.matched DESC LIMIT 30"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "max": 10, "min": 0, "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue" }, { "color": "green", "value": 5 }, { "color": "yellow", "value": 8 }, { "color": "red", "value": 10 }] }
+        }
+      },
+      "options": { "displayMode": "gradient", "orientation": "horizontal", "valueMode": "color", "showUnfilled": true }
+    },
+
+    {
+      "id": 20, "type": "logs", "title": "Roll firehose (Grafana Live)",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 14 },
+      "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+      "targets": [{
+        "refId": "A",
+        "queryType": "measurements",
+        "channel": "stream/tensies/rolls",
+        "filter": { "fields": ["matched", "target", "dt_ms"] }
+      }],
+      "options": { "showTime": true, "wrapLogMessage": true, "enableLogDetails": true, "dedupStrategy": "none", "sortOrder": "Descending" }
+    },
+
+    {
+      "id": 21, "type": "logs", "title": "Winners ticker",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 14 },
+      "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+      "targets": [{
+        "refId": "A",
+        "queryType": "measurements",
+        "channel": "stream/tensies/wins"
+      }],
+      "options": { "showTime": true, "wrapLogMessage": true, "enableLogDetails": true, "sortOrder": "Descending" }
+    },
+
+    {
+      "id": 30, "type": "timeseries", "title": "Roll rate (per game)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{
+        "refId": "A",
+        "format": "time_series",
+        "rawQuery": true,
+        "rawSql": "SELECT bucket AS time, game_code AS metric, rolls AS value FROM v_recent_rolls WHERE bucket > now() - interval '5 minutes' ORDER BY 1"
+      }],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 70, "lineWidth": 1, "stacking": { "mode": "normal" } }, "unit": "ops" } }
+    },
+
+    {
+      "id": 31, "type": "barchart", "title": "Dice value distribution (1h)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{
+        "refId": "A",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT face::text AS face, rolls AS count FROM v_dice_roll_distribution ORDER BY face"
+      }],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 80 } } },
+      "options": { "xField": "face", "orientation": "auto", "showValue": "auto", "legend": { "showLegend": false } }
+    }
+  ]
+}
