@@ -20,7 +20,7 @@ html {
 
 body {
   font-family: system-ui, -apple-system, sans-serif;
-  background: #1a0e08 url('/static/bar-top.png') center 33% / cover no-repeat;
+  background: #1a0e08 url('/static/bar-top.png') center 10% / cover no-repeat;
   color: var(--text);
   /* Pin body to exact viewport — prevents iOS rubber-band scroll and vh bugs */
   position: fixed;
