@@ -546,7 +546,9 @@ function placeGrid(zoneRect, count, sz) {
 }
 
 // onComplete is called when the place animation finishes (matched dice land in zone)
-function updateDiceInPlace(state, onComplete) {
+// skipLift: on a winning roll, don't fly the last matched dice off to the locked
+// stack — leave them revealed in place so the winner overlay can show immediately.
+function updateDiceInPlace(state, onComplete, skipLift = false) {
   pendingRollTimeouts.forEach(clearTimeout);
   pendingRollTimeouts = [];
   document.querySelectorAll('.zone-unmatched .die-wrapper.lifting').forEach(w => w.remove());
@@ -633,17 +635,19 @@ function updateDiceInPlace(state, onComplete) {
         cube.style.transform  = FACE_ROTATIONS[v] || 'rotateY(0deg)';
         cube.addEventListener('transitionend', () => { cube.style.transition = ''; }, { once: true });
       }
-      const liftT = setTimeout(() => {
-        wrapper.classList.add('lifting');
-        const removeT = setTimeout(() => wrapper.remove(), 280);
-        pendingRollTimeouts.push(removeT);
-      }, 400);
-      pendingRollTimeouts.push(liftT);
+      if (!skipLift) {
+        const liftT = setTimeout(() => {
+          wrapper.classList.add('lifting');
+          const removeT = setTimeout(() => wrapper.remove(), 280);
+          pendingRollTimeouts.push(removeT);
+        }, 400);
+        pendingRollTimeouts.push(liftT);
+      }
     }
 
     // Pop matched dice into side zone, then signal complete
     const matchedZone = document.querySelector('.zone-matched');
-    if (newlyMatchedCount > 0) {
+    if (newlyMatchedCount > 0 && !skipLift) {
       const popT = setTimeout(() => {
         if (matchedZone) {
           for (let i = prevMatchedCount; i < newMatched.length; i++) {
@@ -656,6 +660,13 @@ function updateDiceInPlace(state, onComplete) {
         if (onComplete) onComplete();
       }, 500);
       pendingRollTimeouts.push(popT);
+    } else if (newlyMatchedCount > 0 && skipLift) {
+      // Winning roll: let the face reveal land, then fire the overlay
+      const winT = setTimeout(() => {
+        renderPlayersBar(state);
+        if (onComplete) onComplete();
+      }, 500);
+      pendingRollTimeouts.push(winT);
     } else {
       renderPlayersBar(state);
       if (onComplete) onComplete();
@@ -725,6 +736,7 @@ function tryReveal() {
   awaitingAck = false;
   currentState = state;
   lastMyDiceKey = myDiceKey(state);
+  const isWinningRoll = pendingWinName !== null;
   updateDiceInPlace(state, () => {
     rolling = false;
     const btn = document.getElementById('roll-btn');
@@ -739,7 +751,7 @@ function tryReveal() {
       pendingWinTarget = null;
       showWinner(name, target);
     }
-  });
+  }, isWinningRoll);
 }
 
 // ── Winner overlay ──
