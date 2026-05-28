@@ -135,7 +135,7 @@ When the host disconnects, `drop_player()` (in `server/broadcast.py`) promotes t
 
 Every meaningful game event flows through `server.telemetry.emit()` to a Postgres event log + rollup tables, a Prometheus `/metrics` surface, and Grafana Live channels for sub-second dashboards. `emit()` is sync and non-blocking — the roll handler never awaits I/O. Full reference: [`docs/TELEMETRY.md`](docs/TELEMETRY.md).
 
-Compose adds four services beside `web`: `postgres`, `prometheus`, `grafana` (anonymous viewer on **port 3001** to avoid colliding with other local Grafanas), and `postgres_exporter`.
+Compose adds four services beside `web`: `postgres`, `prometheus`, `grafana` (anonymous viewer on **port 8889** to avoid colliding with other local Grafanas), and `postgres_exporter`. The web app itself is on **port 8888**.
 
 Key invariants when touching the server modules:
 

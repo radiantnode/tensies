@@ -15,9 +15,9 @@ docker compose logs -f web  # follow app logs
 
 | URL | What |
 |---|---|
-| http://localhost:8000 | The game itself |
-| http://localhost:8000/metrics | Prometheus scrape target (also the easiest sanity check) |
-| http://localhost:3001 | Grafana — anonymous, lands on the **Tensies — Live Games** dashboard |
+| http://localhost:8888 | The game itself |
+| http://localhost:8888/metrics | Prometheus scrape target (also the easiest sanity check) |
+| http://localhost:8889 | Grafana — anonymous, lands on the **Tensies — Live Games** dashboard |
 | http://localhost:9090 | Prometheus UI |
 | localhost:5432 | Postgres (`tensies`/`tensies`/`tensies`) |
 
@@ -29,7 +29,7 @@ GET /stats/player/{user_id}
 GET /stats/game/{game_code}
 ```
 
-> Note: Grafana is on port **3001**, not 3000, to coexist with another local project. Override with the `ports` section of `docker-compose.yml` if 3000 is free for you.
+> Note: web and Grafana are on non-default ports (8888 / 8889) to coexist with other local projects. The container-internal ports (8000 / 3000) are unchanged — only the host bindings differ. Override in the `ports` section of `docker-compose.yml`.
 
 ---
 

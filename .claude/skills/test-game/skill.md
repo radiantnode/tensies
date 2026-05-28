@@ -88,7 +88,7 @@ sleep 2
 Confirm the server is responding before touching the browser:
 
 ```bash
-curl -sf http://localhost:8000/ | grep -q "TENSIES" && echo "OK" || echo "FAIL: server not up"
+curl -sf http://localhost:8888/ | grep -q "TENSIES" && echo "OK" || echo "FAIL: server not up"
 ```
 
 If the check fails, stop and report — no point running the browser suite against a dead server. (Name generation is now client-side; there is no `/random-name` endpoint.)
@@ -100,7 +100,7 @@ If the check fails, stop and report — no point running the browser suite again
 Use `mcp__playwright` to navigate **Tab 1** (Player 1 / host):
 
 ```
-navigate → http://localhost:8000/
+navigate → http://localhost:8888/
 ```
 
 Take a screenshot labelled **"01-landing"**. Verify:
@@ -133,7 +133,7 @@ Take screenshot **"02-lobby-p1"**.
 Open a **new tab** in the same browser session. Navigate to:
 
 ```
-http://localhost:8000/?join=<GAME_CODE>
+http://localhost:8888/?join=<GAME_CODE>
 ```
 
 Verify:
@@ -186,7 +186,7 @@ Also verify Tab 2 is now on `#game` as well. Check the players bar on Tab 2 mirr
 
 ## Step 7 — Join-after-start rejection (edge case)
 
-Open a new tab to `http://localhost:8000/`. Use the two-step join flow:
+Open a new tab to `http://localhost:8888/`. Use the two-step join flow:
 1. Type `Latebird` into `#name-input`, then click `#show-join-btn`.
 2. Fill `#code-input` with `GAME_CODE`, then submit the join form (`#join-form button[type="submit"]`).
 
@@ -475,12 +475,12 @@ If the reconnect fails (loading screen stays indefinitely or landing screen show
 ```python
 import asyncio, json, websockets
 async def main():
-    h = await websockets.connect("ws://127.0.0.1:8000/ws")
+    h = await websockets.connect("ws://127.0.0.1:8888/ws")
     json.loads(await h.recv())
     await h.send(json.dumps({"action":"create","name":"X"}))
     st = json.loads(await h.recv()); code = st["code"]; pid = list(st["players"])[0]
     await h.close(); await asyncio.sleep(0.3)
-    h2 = await websockets.connect("ws://127.0.0.1:8000/ws")
+    h2 = await websockets.connect("ws://127.0.0.1:8888/ws")
     json.loads(await h2.recv())
     await h2.send(json.dumps({"action":"reconnect","player_id":pid,"game_code":code}))
     print(json.loads(await h2.recv())["players"][pid]["disconnected"])
