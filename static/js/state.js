@@ -27,3 +27,6 @@ export const state = {
   // Random-name placeholder (loaded from /random-name)
   randomNamePlaceholder: 'Player',
 };
+
+// Exposed for the test-game skill (page.evaluate can't reach module locals).
+if (typeof window !== 'undefined') window._state = state;

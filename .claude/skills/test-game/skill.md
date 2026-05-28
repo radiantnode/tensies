@@ -28,20 +28,20 @@ Before running any tests, check whether the skill is stale relative to the game 
 SKILL_MTIME=$(stat -f %m .claude/skills/test-game/skill.md 2>/dev/null || stat -c %Y .claude/skills/test-game/skill.md)
 
 # Find commits to game-relevant files that are newer than the skill
-git log --since="@${SKILL_MTIME}" --oneline -- main.py static/game.js static/index.html static/style.css
+git log --since="@${SKILL_MTIME}" --oneline -- main.py server/ static/
 
 # Also check for unstaged / staged changes — uncommitted work is worth testing too
-git diff --name-only -- main.py static/game.js static/index.html static/style.css
-git diff --cached --name-only -- main.py static/game.js static/index.html static/style.css
+git diff --name-only -- main.py server/ static/
+git diff --cached --name-only -- main.py server/ static/
 ```
 
 If any commits appear **or** any files are listed in the `git diff` output (staged or unstaged changes):
 
-1. Read `main.py`, `static/game.js`, and `static/index.html` in full.
+1. Read the relevant refactored modules: `main.py`, `server/ws.py`, `server/game.py`, `server/broadcast.py`, `static/index.html`, and any `static/js/*.js` module touched by the diff.
 2. Compare what changed against what this skill currently tests. Look for:
-   - **New server actions or messages** (new `action` types in the WebSocket handler, new `msg.type` values in `handleMessage`)
-   - **New game state fields** (new keys in `fresh_player`, `state_msg`, or `game` dict)
-   - **New client state variables** (new `let` / `const` at the top of `game.js`)
+   - **New server actions or messages** (new entries in `ACTIONS` in `server/ws.py`, new `msg.type` values in `handleMessage` in `static/js/ws.js`)
+   - **New game state fields** (new keys in `fresh_player`, `state_msg`, or `game` dict in `server/game.py`)
+   - **New client state fields** (new keys on the `state` object in `static/js/state.js`)
    - **New UI elements** (new IDs or screens in `index.html`)
    - **Bug fixes** — commit messages that say "Fix …" describe a regression worth testing
    - **Removed or renamed things** — tests referencing them need updating
@@ -117,7 +117,7 @@ Check console messages — flag any JS errors.
 
 In Tab 1:
 1. Type `Alpha` into `#name-input`
-2. Click `button[onclick='createGame()']` ("Create Game") — do **not** use `button.btn-primary`, that selector matches multiple elements
+2. Click `#create-btn` ("Create Game")
 
 Wait for `#lobby` screen to become `.active`. Then:
 - Read the game code from `#lobby-code` — store it as `GAME_CODE`
@@ -142,7 +142,7 @@ Verify:
 - `#code-input` is pre-filled with `GAME_CODE` (deep-link works)
 - The URL has been cleaned to `/` (no `?join=` in the address bar)
 
-Type `Beta` into `#join-name-input`, then click `button[onclick='joinGame()']`.
+Type `Beta` into `#join-name-input`, then click `#join-btn`.
 
 Wait for `#lobby` to become active. Verify:
 - Both "Alpha" and "Beta" appear in `#lobby-players`
@@ -160,8 +160,8 @@ Take screenshot **"03-lobby-both"**.
 ## Step 5 — Attempt to join a started game (edge case)
 
 Before starting, open a **third tab** and navigate to the root. The join flow is two steps:
-1. Type `Gamma` into `#name-input` on the landing screen, then click `button[onclick='showJoin()']` to reach the join screen.
-2. On the join screen, fill `#code-input` with `ZZZZZ`, then click `button[onclick='joinGame()']`.
+1. Type `Gamma` into `#name-input` on the landing screen, then click `#show-join-btn` to reach the join screen.
+2. On the join screen, fill `#code-input` with `ZZZZZ`, then click `#join-btn`.
 
 Verify `#join-error` (not `#landing-error`) contains "Game not found". Close or reuse Tab 3.
 
@@ -188,8 +188,8 @@ Also verify Tab 2 is now on `#game` as well. Check the players bar on Tab 2 mirr
 ## Step 7 — Join-after-start rejection (edge case)
 
 Open a new tab to `http://localhost:8000/`. Use the two-step join flow:
-1. Type `Latebird` into `#name-input`, then click `button[onclick='showJoin()']`.
-2. Fill `#code-input` with `GAME_CODE`, then click `button[onclick='joinGame()']`.
+1. Type `Latebird` into `#name-input`, then click `#show-join-btn`.
+2. Fill `#code-input` with `GAME_CODE`, then click `#join-btn`.
 
 Verify `#join-error` (not `#landing-error`) contains "Game already in progress". Close this tab.
 
@@ -198,9 +198,9 @@ Verify `#join-error` (not `#landing-error`) contains "Game already in progress".
 ## Step 8 — Roll and reveal correctness (single-player roll, Tab 1)
 
 In Tab 1:
-1. Read `roll_count` from the page state via `evaluate`:
+1. Read `roll_count` from the page state via `evaluate` (`_state` is the shared module-state object, exposed for testing in `static/js/state.js`):
    ```js
-   () => currentState?.players[myId]?.roll_count ?? -1
+   () => _state.currentState?.players[_state.myId]?.roll_count ?? -1
    ```
 2. Click `#roll-btn`.
 3. Verify the button becomes disabled immediately.
@@ -223,10 +223,10 @@ This is the bug where a re-roll that lands on the same dice values as before cau
 
 Using Tab 1, roll the dice in a tight loop using `evaluate` to monitor:
 ```js
-() => ({ rc: currentState?.players[myId]?.roll_count, rolling: rolling, awaiting: awaitingAck })
+() => ({ rc: _state.currentState?.players[_state.myId]?.roll_count, rolling: _state.rolling, awaiting: _state.awaitingAck })
 ```
 
-Roll 5 times in sequence, checking after each that `rolling` returns to `false` within 3 seconds. If `rolling` is ever stuck `true` for more than 3 seconds without `pendingRollState` being set, flag it as the **roll-ack hang** regression.
+Roll 5 times in sequence, checking after each that `_state.rolling` returns to `false` within 3 seconds. If it is ever stuck `true` for more than 3 seconds without `_state.pendingRollState` being set, flag it as the **roll-ack hang** regression.
 
 ---
 
@@ -251,11 +251,11 @@ This checks that other players don't see a roll before the roller's reveal anima
 1. In Tab 2 (Beta), install a polling watcher **before** the roll happens:
    ```js
    () => {
-     const alphaId = Object.keys(currentState.players).find(id => currentState.players[id].name === 'Alpha');
-     const preRollCount = currentState.players[alphaId].roll_count;
+     const alphaId = Object.keys(_state.currentState.players).find(id => _state.currentState.players[id].name === 'Alpha');
+     const preRollCount = _state.currentState.players[alphaId].roll_count;
      window._broadcastWatch = { alphaId, preRollCount, detectedAt: null, startedAt: Date.now() };
      const iv = setInterval(() => {
-       const rc = currentState?.players[alphaId]?.roll_count ?? -1;
+       const rc = _state.currentState?.players[alphaId]?.roll_count ?? -1;
        if (rc > preRollCount && !window._broadcastWatch.detectedAt) {
          window._broadcastWatch.detectedAt = Date.now();
          clearInterval(iv);
@@ -277,7 +277,7 @@ This checks that other players don't see a roll before the roller's reveal anima
      return {
        detectedAt: w.detectedAt,
        msAfterRollClick: w.detectedAt ? w.detectedAt - rollClickedAt : null,
-       stateAdvanced: (currentState?.players[w.alphaId]?.roll_count ?? -1) > w.preRollCount
+       stateAdvanced: (_state.currentState?.players[w.alphaId]?.roll_count ?? -1) > w.preRollCount
      };
    }
    ```
@@ -293,7 +293,7 @@ This checks that other players don't see a roll before the roller's reveal anima
 
 ## Step 12 — Roll to win
 
-**Note:** Alpha will often have already won round 1 during the roll-heavy steps 9–12 (8+ rolls total). If so, this step runs in round 2 or later — that is expected and fine. Check `currentState.round_num` to confirm which round you're in.
+**Note:** Alpha will often have already won round 1 during the roll-heavy steps 9–12 (8+ rolls total). If so, this step runs in round 2 or later — that is expected and fine. Check `_state.currentState.round_num` to confirm which round you're in.
 
 **Winner overlay capture:** The overlay auto-dismisses after ~4 seconds. A post-loop screenshot will always miss it. Install a `MutationObserver` before the roll loop and capture content when the overlay gains `visible`:
 
@@ -312,7 +312,7 @@ new MutationObserver(() => {
 ```
 
 Then roll in a loop:
-- After each roll, read `matched = currentState.players[myId].dice.filter(d => d === currentState.target).length`
+- After each roll, read `matched = _state.currentState.players[_state.myId].dice.filter(d => d === _state.currentState.target).length`
 - If matched < 10, wait for roll button to re-enable (max 3s), then roll again
 - Time out and fail after 120 seconds total
 
@@ -400,7 +400,7 @@ In Tab 4 (the non-host), verify the **immediate** post-disconnect state (within 
 - The game does not crash
 - Tab 4 can still roll (game playable solo during the grace period)
 
-**Note:** Host transfer (`host` field updating to the remaining player's ID) only happens after the 30-second drop timer fires. Do **not** wait 30s — verify the immediate disconnected-but-not-dropped state instead. Test that `currentState.host` still shows the old host ID at this point (transfer has not yet occurred).
+**Note:** Host transfer (`host` field updating to the remaining player's ID) only happens after the 30-second drop timer fires. Do **not** wait 30s — verify the immediate disconnected-but-not-dropped state instead. Test that `_state.currentState.host` still shows the old host ID at this point (transfer has not yet occurred).
 
 Take screenshot **"15-host-transfer"**.
 
@@ -415,9 +415,9 @@ Take a screenshot 400ms after roll completes (during reveal) — label **"16b-re
 - Newly-matched dice show the target value face
 - The `.die-3d` elements do not appear mid-tumble (the dice-tearing regression)
 
-Use `evaluate` to check for any pending `rolling === true` with `awaitingAck === true` after all animations settle:
+Use `evaluate` to check for any pending `_state.rolling === true` with `_state.awaitingAck === true` after all animations settle:
 ```js
-() => ({ rolling: rolling, awaitingAck: awaitingAck, pendingRollState: !!pendingRollState })
+() => ({ rolling: _state.rolling, awaitingAck: _state.awaitingAck, pendingRollState: !!_state.pendingRollState })
 ```
 All should be `false` / `null` at rest.
 
