@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { esc } from './util.js';
 import { makeDie, myDiceKey, placeGrid } from './dice.js';
+import { loadDicePositions, saveDicePositions } from './dice-positions.js';
 import { renderDisconnectOverlay } from './overlays.js';
 import './components/player-card.js';
 import './components/round-target.js';
@@ -140,15 +141,23 @@ export function renderMyArea(snap) {
       return;
     }
     const sz = window.innerWidth <= 480 ? 50 : 56;
-    const positions = placeGrid(rect, diceToPlace.length, sz);
+    // Reuse last-known scatter (refresh / reconnect within the same round)
+    // if the count still matches; otherwise compute a fresh grid.
+    const stored = loadDicePositions(snap.code, snap.round_num);
+    const positions = (stored && stored.length === diceToPlace.length)
+      ? stored
+      : placeGrid(rect, diceToPlace.length, sz);
+    const used = [];
     diceToPlace.forEach((v, i) => {
       const { x, y, rot } = positions[i] || { x: 8, y: 8, rot: 0 };
+      used.push({ x, y, rot });
       const wrapper = document.createElement('div');
       wrapper.className = 'die-wrapper';
       wrapper.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg)`;
       wrapper.appendChild(makeDie(v, effectiveTarget));
       unmatchedZone.appendChild(wrapper);
     });
+    saveDicePositions(snap.code, snap.round_num, used);
   };
   requestAnimationFrame(() => place());
   zones.appendChild(unmatchedZone);

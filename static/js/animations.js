@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { FACE_ROTATIONS, makeDie, myDiceKey, placeGrid } from './dice.js';
+import { saveDicePositions } from './dice-positions.js';
 import { renderMyArea, renderPlayersBar } from './screens.js';
 import { showWinner } from './overlays.js';
 
@@ -88,6 +89,11 @@ export function updateDiceInPlace(snap, onComplete) {
       wrapper.style.transform  = `translate(${p.x}px, ${p.y}px) rotate(${p.rot}deg)`;
     });
   }
+
+  // Persist the scatter positions for the wrappers that will remain in the
+  // zone (the lifting ones are at indices ≥ newUnmatched.length). A refresh
+  // after this roll restores the dice in place.
+  saveDicePositions(snap.code, snap.round_num, finalPositions.slice(0, newUnmatched.length));
 
   // ── Phase 2: reveal faces ──
   const revealT = setTimeout(() => {
