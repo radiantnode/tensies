@@ -3,7 +3,7 @@ import { setError, setJoinError, showScreen } from './util.js';
 import { myDiceKey } from './dice.js';
 import { resetRollState } from './animations.js';
 import { renderGame, renderLobby, renderMyArea, renderPlayersBar } from './screens.js';
-import { hideWinner, showLoading, showWinner, waitingText } from './overlays.js';
+import { hideWinner, leaveLoading, showLoading, showWinner, waitingText } from './overlays.js';
 
 const RECONNECT_WINDOW_MS = 30000;
 const RETRY_DELAY_MS = 2000;
@@ -22,8 +22,10 @@ function expireSession() {
   state.reconnecting = false;
   clearSession();
   state.currentState = null;
-  setError('Connection failed');
-  showScreen('landing');
+  leaveLoading(() => {
+    setError('Connection failed');
+    showScreen('landing');
+  });
 }
 
 function handleWsClose() {
@@ -85,20 +87,17 @@ export function attemptReconnect(pid, code, deadline) {
 // is currently disconnected.
 function showFor(msg) {
   if (!msg.started) {
-    hideWinner();
-    showScreen('lobby');
-    renderLobby(msg);
+    leaveLoading(() => { hideWinner(); showScreen('lobby'); renderLobby(msg); });
     return;
   }
   const downNames = Object.values(msg.players).filter(p => p.disconnected).map(p => p.name);
   if (downNames.length > 0) {
+    // Entering loading — no min-duration gate, just show it.
     hideWinner();
     showLoading(waitingText(downNames));
     return;
   }
-  hideWinner();
-  showScreen('game');
-  renderGame(msg);
+  leaveLoading(() => { hideWinner(); showScreen('game'); renderGame(msg); });
 }
 
 export function handleMessage(msg) {

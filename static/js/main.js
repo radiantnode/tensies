@@ -1,6 +1,7 @@
 import './touch.js';
 import { state } from './state.js';
 import { showScreen } from './util.js';
+import { leaveLoading } from './overlays.js';
 import {
   copyCode,
   createGame,
@@ -54,12 +55,13 @@ const deepLinkCode = new URLSearchParams(location.search).get('join');
 if (deepLinkCode) {
   history.replaceState(null, '', '/');
   document.getElementById('code-input').value = deepLinkCode.toUpperCase();
-  // rAF lets the initial paint settle before the View Transition starts —
-  // otherwise Chrome logs "Transition was aborted because of invalid state".
-  requestAnimationFrame(showJoin);
+  // leaveLoading defers the swap until #loading has been shown for its min
+  // duration (and at minimum until the first paint, via rAF), which also
+  // sidesteps the "Transition was aborted because of invalid state" log.
+  leaveLoading(showJoin);
 } else if (localStorage.getItem('tensies_pid') && localStorage.getItem('tensies_code')) {
   // Auto-reconnect — #loading stays on screen, maybeReconnect updates the text.
   maybeReconnect();
 } else {
-  requestAnimationFrame(() => showScreen('landing'));
+  leaveLoading(() => showScreen('landing'));
 }
