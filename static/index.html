@@ -15,6 +15,7 @@
   <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/static/logo.svg">
   <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/loading.css">
   <link rel="stylesheet" href="/static/css/landing.css">
   <link rel="stylesheet" href="/static/css/lobby.css">
   <link rel="stylesheet" href="/static/css/game.css">
@@ -26,7 +27,16 @@
 
 <main>
 
-  <section id="landing" class="screen active" aria-labelledby="landing-title">
+  <section id="loading" class="screen active" aria-labelledby="loading-msg">
+    <img src="/static/logo.svg" class="logo-mark" alt="">
+    <h1 class="logo">TENSIES</h1>
+    <div class="loading-bar" aria-hidden="true">
+      <div class="loading-bar-fill"></div>
+    </div>
+    <p id="loading-msg">Loading…</p>
+  </section>
+
+  <section id="landing" class="screen" aria-labelledby="landing-title">
     <img src="/static/logo.svg" class="logo-mark" alt="">
     <h1 id="landing-title" class="logo">TENSIES</h1>
     <p class="tagline">Roll all ten to win the round</p>
@@ -82,20 +92,6 @@
     <p class="winner-label">Round Winner</p>
     <p class="winner-name" id="winner-name"></p>
     <p class="winner-sub" id="winner-sub"></p>
-  </div>
-</dialog>
-
-<dialog id="disconnect-overlay" class="overlay-dialog">
-  <div class="disconnect-box">
-    <div class="disconnect-spinner" aria-hidden="true"></div>
-    <p id="disconnect-msg"></p>
-  </div>
-</dialog>
-
-<dialog id="reconnecting-modal" class="overlay-dialog">
-  <div class="reconnecting-box">
-    <div class="reconnecting-spinner" aria-hidden="true"></div>
-    <p>Reconnecting…</p>
   </div>
 </dialog>
 

@@ -358,46 +358,72 @@ Expected: `[[1,6],[2,1],[3,2],[4,3],[5,4],[6,5]]`
 
 ## Step 15 — Player disconnect mid-game
 
-Close Tab 2 (Beta disconnects). Switch to Tab 1. Verify (within ~2 seconds):
-- Beta's card is **still visible** in `#players-bar` but is dimmed — it should have class `player-mini disconnected` (not removed)
-- `#disconnect-overlay` gains class `visible` and `#disconnect-msg` reads "Waiting for Beta to reconnect…"
-- Alpha can still roll (button enabled, no crash)
-- Alpha's locked count is still correct
+In Tab 2, run `_state.ws.close()` via `evaluate` to simulate Beta dropping (per prior log: `browser_close` kills the whole session). Switch to Tab 1. Verify (within ~2 seconds):
+- Tab 1 switches off the game screen entirely — `#loading.active` is true, `#game.active` is false
+- `#loading-msg` reads `Waiting for Beta to reconnect…`
+- `_state.currentState` shows Beta with `disconnected: true` (state is preserved underneath; only the screen swapped)
 
-Take screenshot **"14-post-disconnect"**.
+Take screenshot **"14-post-disconnect"** (you'll see the loading bar with "Waiting for Beta to reconnect…").
 
 ---
 
 ## Step 15b — Player reconnect
 
-Continuing from Step 15 (Beta's tab is closed, disconnect overlay is showing on Tab 1).
+Continuing from Step 15 (Beta's WS is closed, Tab 1 is on the loading screen).
 
-Open a **new tab** (Tab 2b) and navigate to `http://localhost:8000/`. Because localStorage still holds `tensies_pid` and `tensies_code` from Beta's prior session, the page should auto-trigger reconnect.
+On Tab 2, seed localStorage with Beta's pid/code and call the reconnect path directly via dynamic import (the per-tab Playwright MCP wipes localStorage across `goto`/`reload`, so the auto-trigger on page load doesn't work):
 
-Verify on Tab 2b:
-- `#reconnecting-modal` has class `visible` within the first second (reconnecting spinner is showing)
-- Within ~3 seconds: modal disappears, `#game` screen becomes active, Beta's dice area is rendered
+```js
+async () => {
+  localStorage.setItem('tensies_pid', _state.myId);
+  localStorage.setItem('tensies_code', _state.gameCode);
+  _state.reconnecting = false;
+  const ws = await import('/static/js/ws.js');
+  ws.maybeReconnect();
+}
+```
+
+Verify on Tab 2:
+- `#loading.active` is true and `#loading-msg.textContent` is `Reconnecting…` within the first ~50 ms.
+- Within ~3 seconds: `#game.active` is true, Beta's dice area is rendered.
 
 Then switch back to Tab 1 (Alpha) and verify:
-- `#disconnect-overlay` no longer has class `visible` (overlay dismissed)
-- Beta's card is no longer dimmed (`player-mini disconnected` class removed)
-- Alpha can still roll (game playable with two players again)
+- `#loading.active` is now false and `#game.active` is true (game restored).
+- `_state.currentState` shows Beta with `disconnected: false`.
+- Alpha can still roll.
 
 Take screenshot **"14b-reconnected"**.
 
-If the reconnect fails (modal stays indefinitely or landing screen shows "Your session expired"), mark this step FAIL and note whether it's because the server already dropped Beta (30s elapsed) or a client-side bug.
+If the reconnect fails (loading screen stays indefinitely or landing screen shows `Connection failed`), mark this step FAIL. Confirm whether it's because the server already dropped Beta (30 s grace elapsed during the test's tab-switch latency) or a client-side bug by running an out-of-band direct-WS reconnect:
+
+```python
+import asyncio, json, websockets
+async def main():
+    h = await websockets.connect("ws://127.0.0.1:8000/ws")
+    json.loads(await h.recv())
+    await h.send(json.dumps({"action":"create","name":"X"}))
+    st = json.loads(await h.recv()); code = st["code"]; pid = list(st["players"])[0]
+    await h.close(); await asyncio.sleep(0.3)
+    h2 = await websockets.connect("ws://127.0.0.1:8000/ws")
+    json.loads(await h2.recv())
+    await h2.send(json.dumps({"action":"reconnect","player_id":pid,"game_code":code}))
+    print(json.loads(await h2.recv())["players"][pid]["disconnected"])
+asyncio.run(main())
+```
+
+Expected `False`. If that passes, the failure was test-tooling latency, not a regression.
 
 ---
 
 ## Step 16 — Host disconnect / host transfer
 
-This test requires a fresh game. Start a new two-player game (Tabs 3 and 4, or reuse). Start the game. Then close the **host's tab** (Tab 3).
+This test requires a fresh game. Start a new two-player game (Tabs 3 and 4, or reuse). Start the game. Then close the **host's WS** via `_state.ws.close()` in `evaluate` (not the tab itself).
 
 In Tab 4 (the non-host), verify the **immediate** post-disconnect state (within ~2 seconds):
-- The host's card in `#players-bar` is **dimmed** (`player-mini disconnected`) — not removed yet (30s grace period)
-- `#disconnect-overlay` is visible with text "Waiting for [host name] to reconnect…"
+- Tab 4 has switched to the loading screen: `#loading.active` is true, `#game.active` is false
+- `#loading-msg` reads `Waiting for <host name> to reconnect…`
+- `_state.currentState.host` still shows the old host ID (host transfer hasn't happened yet — the drop_player task hasn't fired)
 - The game does not crash
-- Tab 4 can still roll (game playable solo during the grace period)
 
 **Note:** Host transfer (`host` field updating to the remaining player's ID) only happens after the 30-second drop timer fires. Do **not** wait 30s — verify the immediate disconnected-but-not-dropped state instead. Test that `_state.currentState.host` still shows the old host ID at this point (transfer has not yet occurred).
 

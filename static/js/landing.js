@@ -2,6 +2,7 @@ import { state } from './state.js';
 import { setJoinError, showScreen } from './util.js';
 import { connectWS } from './ws.js';
 import { makeName } from './names.js';
+import { showLoading } from './overlays.js';
 
 export function loadRandomName() {
   const name = makeName();
@@ -32,12 +33,14 @@ export function getName() {
 }
 
 export function createGame() {
+  showLoading('Loading…');
   connectWS(() => state.ws.send(JSON.stringify({ action: 'create', name: getName() })));
 }
 
 export function joinGame() {
   const code = document.getElementById('code-input').value.trim();
   if (!code) { setJoinError('Enter a game code'); return; }
+  showLoading('Loading…');
   connectWS(() => state.ws.send(JSON.stringify({ action: 'join', name: getName(), code })));
 }
 

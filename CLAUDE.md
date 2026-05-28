@@ -41,15 +41,21 @@ server/
                          handle_<action>() per action, dispatched via ACTIONS dict
 
 static/
-  index.html             screens + overlay markup, loads CSS and main.js
+  index.html             screens + winner-overlay markup, loads CSS and main.js.
+                         First-paint screen is #loading (hardcoded .active);
+                         JS bootstrap decides what to show next so there's no
+                         landing flash before reconnect kicks in.
   css/
     base.css             vars, reset, html/body, .screen, input, .btn, .error-msg
+    loading.css          #loading fullscreen + indeterminate progress bar
+                         (matches .player-mini-progress aesthetic)
     landing.css          landing + join screens, logo, tagline, form-stack
     lobby.css            #lobby, code display, SMS button, player list, badges
     game.css             #game layout, round header, my-area, dice zones, roll button
     players-bar.css      top-bar mini cards (.player-mini-*)
     dice.css             .die-scene / .die-3d / .face / tumble + pop animations
-    overlays.css         winner / disconnect / reconnecting modals, popIn, spinners
+    overlays.css         winner <dialog> only (disconnect/reconnect dialogs
+                         became the #loading screen)
   js/
     main.js              entry: button + keyboard wiring, deep-link, auto-reconnect
     state.js             single mutable bag shared across modules
@@ -57,12 +63,14 @@ static/
                          nextTarget, setError, setJoinError
     names.js             ADJECTIVES (50) × NOUNS (50) → makeName() — client-side
     dice.js              FACE_ROTATIONS, makeDie, placeGrid, myDiceKey
-    overlays.js          winner / disconnect / reconnecting <dialog> logic
+    dice-positions.js    localStorage persistence for the unmatched-zone layout
+    overlays.js          winner <dialog> + showLoading + waitingText helper
     screens.js           renderLobby, renderPlayersBar, renderMyArea, renderGame
     animations.js        startShake, updateDiceInPlace, tryReveal, resetRollState
     roll.js              roll() — send intent, shake, schedule reveal
     landing.js           create/join/lobby actions, random-name placeholder
     ws.js                connect, reconnect loop, handleMessage dispatch
+                         (showFor centralizes lobby / loading / game routing)
     touch.js             iOS double-tap zoom prevention (side-effect import)
     components/
       player-card.js     <player-card> custom element for the players bar

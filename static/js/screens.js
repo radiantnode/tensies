@@ -2,7 +2,6 @@ import { state } from './state.js';
 import { esc } from './util.js';
 import { makeDie, myDiceKey, placeGrid } from './dice.js';
 import { loadDicePositions, saveDicePositions } from './dice-positions.js';
-import { renderDisconnectOverlay } from './overlays.js';
 import './components/player-card.js';
 import './components/round-target.js';
 
@@ -37,7 +36,6 @@ export function renderLobby(snap) {
     startBtn.hidden = true;
     waitMsg.textContent = 'Waiting for the host to start…';
   }
-  renderDisconnectOverlay(snap);
 }
 
 function setAttr(el, name, present, value) {
@@ -193,5 +191,4 @@ export function renderGame(snap) {
   } else {
     renderPlayersBar(snap);
   }
-  renderDisconnectOverlay(snap);
 }

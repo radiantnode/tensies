@@ -1,5 +1,6 @@
 import './touch.js';
 import { state } from './state.js';
+import { showScreen } from './util.js';
 import {
   copyCode,
   createGame,
@@ -46,13 +47,19 @@ document.addEventListener('keydown', e => {
 // ── Init ──
 loadRandomName();
 
-// Capture deep-link param before replaceState wipes it
+// HTML starts with #loading active (so first paint is the loading bar — no
+// landing flash before JS bootstraps). Decide now what to show next.
 const deepLinkCode = new URLSearchParams(location.search).get('join');
 
 if (deepLinkCode) {
   history.replaceState(null, '', '/');
   document.getElementById('code-input').value = deepLinkCode.toUpperCase();
-  showJoin();
-} else {
+  // rAF lets the initial paint settle before the View Transition starts —
+  // otherwise Chrome logs "Transition was aborted because of invalid state".
+  requestAnimationFrame(showJoin);
+} else if (localStorage.getItem('tensies_pid') && localStorage.getItem('tensies_code')) {
+  // Auto-reconnect — #loading stays on screen, maybeReconnect updates the text.
   maybeReconnect();
+} else {
+  requestAnimationFrame(() => showScreen('landing'));
 }

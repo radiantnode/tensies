@@ -3,7 +3,7 @@ import { setError, setJoinError, showScreen } from './util.js';
 import { myDiceKey } from './dice.js';
 import { resetRollState } from './animations.js';
 import { renderGame, renderLobby, renderMyArea, renderPlayersBar } from './screens.js';
-import { hideWinner, hideReconnectingModal, showReconnectingModal, showWinner } from './overlays.js';
+import { hideWinner, showLoading, showWinner, waitingText } from './overlays.js';
 
 const RECONNECT_WINDOW_MS = 30000;
 const RETRY_DELAY_MS = 2000;
@@ -20,10 +20,9 @@ function clearSession() {
 
 function expireSession() {
   state.reconnecting = false;
-  hideReconnectingModal();
   clearSession();
   state.currentState = null;
-  setError('Your session expired');
+  setError('Connection failed');
   showScreen('landing');
 }
 
@@ -50,7 +49,7 @@ export function maybeReconnect() {
   if (!pid || !code) return;
   state.myId = pid;
   state.reconnecting = true;
-  showReconnectingModal();
+  showLoading('Reconnecting…');
   attemptReconnect(pid, code, Date.now() + RECONNECT_WINDOW_MS);
 }
 
@@ -71,7 +70,6 @@ export function attemptReconnect(pid, code, deadline) {
       return;
     }
     state.reconnecting = false;
-    hideReconnectingModal();
     resetRollState();
     state.ws.onmessage = evt2 => handleMessage(JSON.parse(evt2.data));
     state.ws.onclose = handleWsClose;
@@ -80,6 +78,27 @@ export function attemptReconnect(pid, code, deadline) {
   state.ws.onclose = () => {
     if (state.reconnecting) setTimeout(() => attemptReconnect(pid, code, deadline), RETRY_DELAY_MS);
   };
+}
+
+// Single screen-decision for every server state message: lobby / loading /
+// game, depending on whether the game has started and whether any player
+// is currently disconnected.
+function showFor(msg) {
+  if (!msg.started) {
+    hideWinner();
+    showScreen('lobby');
+    renderLobby(msg);
+    return;
+  }
+  const downNames = Object.values(msg.players).filter(p => p.disconnected).map(p => p.name);
+  if (downNames.length > 0) {
+    hideWinner();
+    showLoading(waitingText(downNames));
+    return;
+  }
+  hideWinner();
+  showScreen('game');
+  renderGame(msg);
 }
 
 export function handleMessage(msg) {
@@ -91,19 +110,11 @@ export function handleMessage(msg) {
 
     case 'state':
       if (msg.code) localStorage.setItem('tensies_code', msg.code);
-      if (!msg.started) {
-        hideWinner();
-        showScreen('lobby');
-        renderLobby(msg);
-        break;
-      }
-      if (state.awaitingAck && myDiceKey(msg) !== state.lastMyDiceKey) {
+      if (state.awaitingAck && msg.started && myDiceKey(msg) !== state.lastMyDiceKey) {
         // Response to my in-flight roll — let tryReveal drive the animation
         state.pendingRollState = msg;
       } else {
-        hideWinner();
-        showScreen('game');
-        renderGame(msg);
+        showFor(msg);
       }
       break;
 

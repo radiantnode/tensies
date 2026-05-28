@@ -1,10 +1,8 @@
-/* Shared entrance animation for modal/overlay boxes */
+/* Shared entrance animation for the winner box */
 @keyframes popIn {
   from { transform: scale(0.7); opacity: 0; }
   to   { transform: scale(1);   opacity: 1; }
 }
-
-@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Native <dialog> overlay: the dialog element IS the fullscreen overlay.
    showModal() puts it in the top layer (free ESC handling, focus trap),
@@ -51,57 +49,4 @@
 
 @media (max-width: 480px) {
   .winner-box { padding: 2rem; }
-}
-
-/* ── Disconnect overlay (other players' view while someone reconnects) ── */
-#disconnect-overlay { background: rgba(0, 0, 0, 0.82); }
-
-.disconnect-box {
-  background: rgba(15, 7, 3, 0.95);
-  border: 2px solid rgba(180, 100, 20, 0.5);
-  border-radius: 20px;
-  padding: 2.5rem 3rem;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.25rem;
-  animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-#disconnect-msg {
-  color: var(--text);
-  font-size: 1rem;
-  font-weight: 600;
-  max-width: 240px;
-  line-height: 1.5;
-}
-
-/* ── Reconnecting modal (local player while reconnecting) ── */
-#reconnecting-modal { background: rgba(0, 0, 0, 0.88); }
-
-.reconnecting-box {
-  background: rgba(15, 7, 3, 0.95);
-  border: 2px solid rgba(180, 100, 20, 0.5);
-  border-radius: 20px;
-  padding: 2.5rem 3rem;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.25rem;
-  color: var(--text);
-  font-size: 1rem;
-  font-weight: 600;
-  animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.disconnect-spinner,
-.reconnecting-spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid rgba(180, 100, 20, 0.25);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
 }
