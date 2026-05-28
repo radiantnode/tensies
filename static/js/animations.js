@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { FACE_ROTATIONS, makeDie, myDiceKey, placeGrid } from './dice.js';
 import { saveDicePositions } from './dice-positions.js';
 import { renderMyArea, renderPlayersBar } from './screens.js';
-import { showWinner } from './overlays.js';
+import { hideWinner, showWinner } from './overlays.js';
 
 export function resetRollState() {
   state.pendingRollTimeouts.forEach(clearTimeout);
@@ -202,6 +202,11 @@ export function tryReveal() {
       state.pendingWinName = null;
       state.pendingWinTarget = null;
       showWinner(name, target);
+    } else {
+      // Defensive: if a stale winner overlay is still open here (e.g. a
+      // spurious roll attempt during a round-end trapped the next-round state
+      // in pendingRollState), close it now.
+      hideWinner();
     }
   });
 }
