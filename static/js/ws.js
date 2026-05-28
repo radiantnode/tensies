@@ -86,6 +86,13 @@ export function attemptReconnect(pid, code, deadline) {
 // game, depending on whether the game has started and whether any player
 // is currently disconnected.
 function showFor(msg) {
+  // Track the latest server-side state on every branch — without this, the
+  // disconnect/loading branch leaves state.currentState frozen at the last
+  // game-screen render, which then misreports who's disconnected.
+  state.currentState = msg;
+  // A successful response clears any pending pre-game origin so a later
+  // mid-game error doesn't get bounced to the landing/join screen.
+  state.pendingOrigin = null;
   if (!msg.started) {
     leaveLoading(() => { hideWinner(); showScreen('lobby'); renderLobby(msg); });
     return;
@@ -153,6 +160,15 @@ export function handleMessage(msg) {
         const btn = document.getElementById('roll-btn');
         if (btn) btn.disabled = false;
         renderMyArea(state.currentState);
+      } else if (state.pendingOrigin === 'join') {
+        // Pre-game join attempt failed — swap back to the join screen and
+        // surface the error there. Without this the user is stuck on the
+        // Loading… screen with no visible feedback.
+        state.pendingOrigin = null;
+        leaveLoading(() => { showScreen('join'); setJoinError(msg.msg); });
+      } else if (state.pendingOrigin === 'landing') {
+        state.pendingOrigin = null;
+        leaveLoading(() => { showScreen('landing'); setError(msg.msg); });
       } else if (document.getElementById('join').classList.contains('active')) {
         setJoinError(msg.msg);
       } else {

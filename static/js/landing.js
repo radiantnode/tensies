@@ -33,15 +33,22 @@ export function getName() {
 }
 
 export function createGame() {
+  // Capture the name BEFORE showLoading swaps the active screen — otherwise
+  // getName() (called inside the WS-open callback) sees `loading` as the
+  // active screen and falls through to the empty landing input.
+  const name = getName();
+  state.pendingOrigin = 'landing';
   showLoading('Loading…');
-  connectWS(() => state.ws.send(JSON.stringify({ action: 'create', name: getName() })));
+  connectWS(() => state.ws.send(JSON.stringify({ action: 'create', name })));
 }
 
 export function joinGame() {
   const code = document.getElementById('code-input').value.trim();
   if (!code) { setJoinError('Enter a game code'); return; }
+  const name = getName();
+  state.pendingOrigin = 'join';
   showLoading('Loading…');
-  connectWS(() => state.ws.send(JSON.stringify({ action: 'join', name: getName(), code })));
+  connectWS(() => state.ws.send(JSON.stringify({ action: 'join', name, code })));
 }
 
 function joinLink() {
