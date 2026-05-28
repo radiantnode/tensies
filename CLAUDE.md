@@ -130,3 +130,18 @@ The roll button is rebuilt by `renderMyArea()` on every render, so its click han
 ### Host transfer
 
 When the host disconnects, `drop_player()` (in `server/broadcast.py`) promotes the first remaining player in the `players` dict to host and broadcasts the updated state. No explicit vote or confirmation.
+
+## Telemetry
+
+Every meaningful game event flows through `server.telemetry.emit()` to a Postgres event log + rollup tables, a Prometheus `/metrics` surface, and Grafana Live channels for sub-second dashboards. `emit()` is sync and non-blocking — the roll handler never awaits I/O. Full reference: [`docs/TELEMETRY.md`](docs/TELEMETRY.md).
+
+Compose adds four services beside `web`: `postgres`, `prometheus`, `grafana` (anonymous viewer on **port 3001** to avoid colliding with other local Grafanas), and `postgres_exporter`.
+
+Key invariants when touching the server modules:
+
+- **Never `await` on the telemetry path.** `emit()` and Prometheus `.inc()`/`.observe()` are synchronous and safe to call from any hot path (the roll handler, `apply_roll`, broadcast). Postgres writes happen on a background task draining the queue.
+- **All outbound WS frames go through `server.broadcast.send()`.** It handles JSON encoding, the per-Session `send_lock` (which prevents the Pinger task from interleaving frames with the receive-loop handler), and the outbound metric counters. Never call `ws.send_text` directly.
+- **When you add a new event type or game state transition,** emit it from the relevant handler in `server/ws.py` or `server/broadcast.py` and (optionally) add a rollup handler in `server/telemetry/writer.py` keyed by the event type. Events without a handler still land in the `events` table; they just don't update rollups.
+- **When you add a new metric,** define it in `server/telemetry/metrics.py` so there's one source of truth. Keep label cardinality low — never label by `user_id` or `game_code` (those go to Postgres).
+- **`apply_roll()` returns a result dict** (`matched`, `newly_locked`, `rolled_values`, `dice_before/after`, `locked_before/after`). `server/game.py` stays telemetry-free; `handle_roll` consumes the rest for the `roll` event payload.
+- **Dashboards live in `ops/grafana/dashboards/*.json`** and are provisioned automatically; edits in the UI don't persist across `docker compose down`.

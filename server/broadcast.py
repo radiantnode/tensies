@@ -1,21 +1,52 @@
 import asyncio
 import json
+import time
+
+from fastapi import WebSocket
 
 from .config import DISCONNECT_GRACE, ROLL_ACK_TIMEOUT, ROUND_WIN_DELAY, log
 from .game import deal_round, next_target, state_msg
-from .state import connections, games
+from .state import connections, games, sessions
+from .telemetry import emit, metrics
+
+
+async def send(ws: WebSocket, message: dict) -> None:
+    """Serialise + send a single message; updates Prometheus + per-session counters.
+
+    Single send site for the whole server — anything that writes to a WS goes
+    through here so message-out / bytes-out / send-latency metrics stay
+    coherent. The per-Session send_lock prevents the Pinger task and the
+    receive-loop handler from interleaving frames on the same WS.
+    """
+    data = json.dumps(message)
+    mtype = message.get("type", "?")
+    sess = sessions.get(id(ws))
+    t0 = time.monotonic()
+    try:
+        if sess is not None:
+            async with sess.send_lock:
+                await ws.send_text(data)
+        else:
+            await ws.send_text(data)
+    finally:
+        metrics.ws_send_seconds.labels(type=mtype).observe(time.monotonic() - t0)
+    metrics.ws_messages_out_total.labels(type=mtype).inc()
+    metrics.ws_bytes_out_total.inc(len(data))
+    metrics.ws_message_size_bytes.observe(len(data))
+    if sess is not None:
+        sess.msgs_out += 1
+        sess.bytes_out += len(data)
 
 
 async def broadcast(code: str, message: dict, *, exclude: str | None = None) -> None:
     if code not in connections:
         return
-    data = json.dumps(message)
     dead = []
     for pid, ws in list(connections[code].items()):
         if pid == exclude:
             continue
         try:
-            await ws.send_text(data)
+            await send(ws, message)
         except Exception:
             dead.append(pid)
     for pid in dead:
@@ -35,6 +66,9 @@ async def delayed_broadcast(code: str, pid: str, is_win: bool, winner_name: str 
             await asyncio.wait_for(ev.wait(), timeout=ROLL_ACK_TIMEOUT)
         except asyncio.TimeoutError:
             log.info("ack_timeout  game=%s  pid=%s", code, pid[:8])
+            metrics.ack_timeouts_total.inc()
+            emit("ack_timeout", game_code=code, user_id=pid,
+                 wait_ms=int(ROLL_ACK_TIMEOUT * 1000))
         finally:
             if player.get("ack_event") is ev:
                 player.pop("ack_event", None)
@@ -54,10 +88,19 @@ async def delayed_broadcast(code: str, pid: str, is_win: bool, winner_name: str 
         if code not in games:
             return
         game = games[code]
-        game["target"] = next_target(game["target"])
+        # End the old round
+        old_round = game["round_num"]
+        old_target = game["target"]
+        emit("round_ended", game_code=code, round_num=old_round, target=old_target)
+        # Advance to the next round
+        game["target"] = next_target(old_target)
         game["round_num"] += 1
         game["round_over"] = False
+        game["round_count"] += 1
         deal_round(game)
+        emit("round_started", game_code=code,
+             round_num=game["round_num"], target=game["target"])
+        metrics.rounds_started_total.labels(target=str(game["target"])).inc()
         await broadcast(code, state_msg(game, code))
 
 
@@ -74,11 +117,23 @@ async def drop_player(code: str, pid: str) -> None:
     del game["players"][pid]
     connections[code].pop(pid, None)
     log.info("drop     game=%s  player=%s  (30s timeout)", code, player_name)
+    emit("player_left", game_code=code, user_id=pid, name=player_name,
+         reason="drop", player_count=len(game["players"]))
     if not game["players"]:
         log.info("close    game=%s  (all dropped)", code)
+        duration_ms = int((time.monotonic() - game["created_mono"]) * 1000)
+        emit("game_ended", game_code=code, reason="all_dropped",
+             duration_ms=duration_ms, round_count=game["round_count"],
+             total_rolls=game["total_rolls"])
+        metrics.games_active.dec()
+        metrics.games_ended_total.labels(reason="all_dropped").inc()
+        metrics.game_duration_seconds.observe(duration_ms / 1000.0)
         del games[code]
         connections.pop(code, None)
         return
     if game["host"] == pid:
-        game["host"] = next(iter(game["players"]))
+        old_host = game["host"]
+        new_host = next(iter(game["players"]))
+        game["host"] = new_host
+        emit("host_transferred", game_code=code, **{"from": old_host, "to": new_host})
     await broadcast(code, state_msg(game, code))

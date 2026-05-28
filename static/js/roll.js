@@ -3,6 +3,12 @@ import { startShake, tryReveal } from './animations.js';
 
 export function roll() {
   if (state.rolling || !state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+  // Block rolls while the winner overlay is up — the server has round_over=True
+  // and will silently drop the roll, but the client would have already flipped
+  // awaitingAck=true, which then traps the next state message in
+  // pendingRollState and leaves the winner dialog stuck.
+  const winner = document.getElementById('winner-overlay');
+  if (winner?.open) return;
   state.rolling = true;
   state.awaitingAck = true;
   state.pendingRollState = null;

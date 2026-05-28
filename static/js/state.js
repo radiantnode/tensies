@@ -26,6 +26,12 @@ export const state = {
 
   // Random-name placeholder (generated locally via static/js/names.js)
   randomNamePlaceholder: 'Player',
+
+  // Which screen initiated the in-flight create/join. Set by landing.js so
+  // the error handler can route an error response back to that screen
+  // (instead of letting it land on the currently-active #loading screen
+  // and never being seen).
+  pendingOrigin: null,
 };
 
 // Exposed for the test-game skill (page.evaluate can't reach module locals).

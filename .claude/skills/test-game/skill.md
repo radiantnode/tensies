@@ -325,6 +325,82 @@ Check Tab 2 also advanced to the next round with the same state (same `round_num
 
 ---
 
+## Step 12b — Sticky winner overlay regression
+
+Simulate a player pressing spacebar (or clicking the still-keyboard-focusable roll button) during the winner overlay. The bug being guarded against:
+
+> A spacebar during the overlay used to call `roll()`, which set
+> `state.awaitingAck = true` and sent a roll the server silently
+> dropped (`game.round_over=True`). When the new-round state arrived
+> ~3s later, `awaitingAck` trapped it in `pendingRollState` instead of
+> routing through `showFor() → hideWinner()`, and the dialog never
+> closed.
+
+**Do not run this as a separate evaluate after Step 12.** Step 12's roll-loop usually consumes most of the 3 s `ROUND_WIN_DELAY` window, so by the time a follow-up evaluate is dispatched the overlay has already auto-closed and there's nothing left to hammer.
+
+Instead, run a single self-contained promise that rolls to win **and then immediately** hammers spacebar during the open window. Use a `phase` state-machine + `obs.disconnect()` so the `setTimeout` chain *cannot* keep firing after `resolve()` — orphan ticks were the source of the round-3 contamination that Step 13 used to misread:
+
+```js
+() => new Promise(resolve => {
+  const dlg = document.getElementById('winner-overlay');
+  const TIMEOUT_MS = 90000;
+  const start = Date.now();
+  let phase = 'rolling';   // 'rolling' | 'spacebar' | 'done'
+  let rolls = 0, fires = 0, openedAt = null;
+
+  const finish = (result) => {
+    if (phase === 'done') return;
+    phase = 'done';                 // ← cancellation gate read by tick()
+    obs.disconnect();
+    resolve(result);
+  };
+
+  const obs = new MutationObserver(() => {
+    if (dlg.open && phase === 'rolling') {
+      openedAt = Date.now();
+      phase = 'spacebar';
+    } else if (!dlg.open && openedAt) {
+      finish({ rolls, openWindow: Date.now() - openedAt, fires, stillOpen: false });
+    }
+  });
+  obs.observe(dlg, { attributes: true });
+
+  const tick = () => {
+    if (phase === 'done') return;   // ← prevents orphan ticks from firing
+    if (Date.now() - start > TIMEOUT_MS) { finish({ timeout: true, rolls, fires }); return; }
+    if (phase === 'spacebar') {
+      document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true }));
+      fires++;
+      if (Date.now() - openedAt >= 5500) {
+        finish({ rolls, openWindow: Date.now() - openedAt, fires, stillOpen: dlg.open });
+        return;
+      }
+      setTimeout(tick, 100);
+      return;
+    }
+    // phase === 'rolling'
+    const btn = document.getElementById('roll-btn');
+    if (!btn || btn.disabled) { setTimeout(tick, 100); return; }
+    btn.click();
+    rolls++;
+    setTimeout(tick, 400);
+  };
+  tick();
+})
+```
+
+**Pass criteria:**
+- `stillOpen` is `false`
+- `openWindow` is between **2500 ms and 4000 ms** (matches server `ROUND_WIN_DELAY = 3.0 s` plus a tiny slack)
+- `fires` is `> 10` (we actually fired spacebars)
+- `rolls` is `> 0` (we actually played out a round, which means the test isn't a no-op against an already-closed overlay)
+
+If `stillOpen` is `true`, the sticky-overlay regression is back — check `static/js/roll.js` for the `winner?.open` guard and `static/js/animations.js` for the defensive `hideWinner()` in `tryReveal`'s `onComplete`.
+
+**Note on Step 13 timing:** because this step consumes the 3 s `ROUND_WIN_DELAY` window, Step 13 below should NOT wait an additional 4 seconds — the round has likely already auto-advanced by the time this watcher resolves. Just verify the post-advance state directly.
+
+---
+
 ## Step 13 — Round transition
 
 After the winner overlay appears, wait 4 seconds for the auto-advance.
@@ -478,15 +554,16 @@ TENSIES TEST RESULTS
  PASS  12  Rate limit + recovery
  PASS  13  Multiplayer broadcast timing
  PASS  14  Roll to win + winner overlay
- PASS  15  Round transition + target cycle
- PASS  16  Target cycling math
- PASS  17  Player disconnect mid-game
- PASS  18  Player reconnect flow
- PASS  19  Host disconnect / host transfer
- PASS  20  Animation integrity (no tearing)
- PASS  21  Console clean (no JS errors)
+ PASS  15  Sticky winner overlay regression (spacebar)
+ PASS  16  Round transition + target cycle
+ PASS  17  Target cycling math
+ PASS  18  Player disconnect mid-game
+ PASS  19  Player reconnect flow
+ PASS  20  Host disconnect / host transfer
+ PASS  21  Animation integrity (no tearing)
+ PASS  22  Console clean (no JS errors)
 ====================
-21/21 passed
+22/22 passed
 ```
 
 Replace `PASS` with `FAIL` and append a one-line description for any failure. If any test FAILs, describe exactly what went wrong and where to look.
