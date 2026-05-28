@@ -74,3 +74,14 @@ At startup, `main.py` hashes `style.css` and `game.js`, then injects `?v=<hash>`
 ### Host transfer
 
 When the host disconnects, the server promotes the first remaining player in the `players` dict to host and broadcasts the updated state. No explicit vote or confirmation.
+
+## Telemetry
+
+Every meaningful game event flows through `telemetry.emit()` to a Postgres event log + rollup tables, a Prometheus `/metrics` surface, and Grafana Live channels for sub-second dashboards. `emit()` is sync and non-blocking — the roll handler never awaits I/O. Full reference: [`docs/TELEMETRY.md`](docs/TELEMETRY.md).
+
+Key invariants when touching `main.py`:
+
+- **Never `await` on the telemetry path.** `emit()` and Prometheus `.inc()`/`.observe()` are both synchronous and safe to call from any hot path. The actual writes happen on a background task draining the queue.
+- **When you add a new event type or game state transition,** emit it from `main.py` and (optionally) add a rollup handler in `telemetry/writer.py` keyed by the event type. Events without a handler still land in the `events` table; they just don't update rollups.
+- **When you add a new metric,** define it in `telemetry/metrics.py` so there's one source of truth. Keep label cardinality low — never label by `user_id` or `game_code` (those go to Postgres).
+- **Dashboards live in `ops/grafana/dashboards/*.json`** and are provisioned automatically; edits in the UI don't persist across `docker compose down`.

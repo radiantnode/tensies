@@ -8,20 +8,25 @@ from telemetry.bus import bus
 log = logging.getLogger("tensies.telemetry")
 
 _depth_task: asyncio.Task | None = None
+_partition_task: asyncio.Task | None = None
+
+PARTITION_CHECK_INTERVAL_S = 6 * 60 * 60  # every 6 hours
 
 
 async def start() -> None:
     await store.init()
     await writer.start()
     await live.start()
-    global _depth_task
+    global _depth_task, _partition_task
     _depth_task = asyncio.create_task(_depth_loop(), name="telemetry.depths")
+    _partition_task = asyncio.create_task(_partition_loop(), name="telemetry.partitions")
     log.info("telemetry started")
 
 
 async def stop() -> None:
-    if _depth_task is not None:
-        _depth_task.cancel()
+    for t in (_depth_task, _partition_task):
+        if t is not None:
+            t.cancel()
     await writer.stop()
     await live.stop()
     await store.close()
@@ -40,3 +45,21 @@ async def _depth_loop() -> None:
             await asyncio.sleep(1.0)
     except asyncio.CancelledError:
         return
+
+
+async def _partition_loop() -> None:
+    """Ensure event partitions exist for the current and next month.
+
+    The 001 migration bootstraps both; this task keeps us ahead of the
+    calendar so we never roll into a month with no partition.
+    """
+    try:
+        while True:
+            try:
+                await store.ensure_partitions()
+            except Exception:
+                log.exception("ensure_partitions failed")
+            await asyncio.sleep(PARTITION_CHECK_INTERVAL_S)
+    except asyncio.CancelledError:
+        return
+
