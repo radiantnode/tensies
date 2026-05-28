@@ -24,7 +24,7 @@ export const state = {
   // Reconnection
   reconnecting: false,
 
-  // Random-name placeholder (loaded from /random-name)
+  // Random-name placeholder (generated locally via static/js/names.js)
   randomNamePlaceholder: 'Player',
 };
 

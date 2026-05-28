@@ -1,15 +1,13 @@
 import { state } from './state.js';
 import { setJoinError, showScreen } from './util.js';
 import { connectWS } from './ws.js';
+import { makeName } from './names.js';
 
-export async function loadRandomName() {
-  try {
-    const res = await fetch('/random-name');
-    const data = await res.json();
-    state.randomNamePlaceholder = data.name;
-    document.getElementById('name-input').placeholder = data.name;
-    document.getElementById('join-name-input').placeholder = data.name;
-  } catch (_) {}
+export function loadRandomName() {
+  const name = makeName();
+  state.randomNamePlaceholder = name;
+  document.getElementById('name-input').placeholder = name;
+  document.getElementById('join-name-input').placeholder = name;
 }
 
 export function showJoin() {

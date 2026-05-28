@@ -31,13 +31,12 @@ server/
   config.py              constants (MIN_ROLL_INTERVAL, ROLL_ACK_TIMEOUT,
                          DISCONNECT_GRACE, ROUND_WIN_DELAY) and logging setup
   state.py               module-level games & connections dicts
-  names.py               random name pool (Spicy Squid, etc.)
   assets.py              cache-busting: globs static/css and static/js, appends
                          ?v=<sha1[:8]> to every /static/*.css|js href in index.html
   game.py                pure game logic — new_game, fresh_player, apply_roll,
                          deal_round, next_target, state_msg
   broadcast.py           broadcast, delayed_broadcast, drop_player
-  routes.py              GET / and GET /random-name
+  routes.py              GET /  (the only HTTP route — everything else is /ws)
   ws.py                  @app.websocket("/ws") — Session class plus one
                          handle_<action>() per action, dispatched via ACTIONS dict
 
@@ -54,15 +53,20 @@ static/
   js/
     main.js              entry: button + keyboard wiring, deep-link, auto-reconnect
     state.js             single mutable bag shared across modules
-    util.js              esc, showScreen, nextTarget, setError, setJoinError
-    dice.js              FACE_ROTATIONS, makeDie, makeTargetDie, placeGrid, myDiceKey
-    overlays.js          winner / disconnect / reconnecting modal logic
+    util.js              esc, showScreen (View Transitions wrapper),
+                         nextTarget, setError, setJoinError
+    names.js             ADJECTIVES (50) × NOUNS (50) → makeName() — client-side
+    dice.js              FACE_ROTATIONS, makeDie, placeGrid, myDiceKey
+    overlays.js          winner / disconnect / reconnecting <dialog> logic
     screens.js           renderLobby, renderPlayersBar, renderMyArea, renderGame
     animations.js        startShake, updateDiceInPlace, tryReveal, resetRollState
     roll.js              roll() — send intent, shake, schedule reveal
     landing.js           create/join/lobby actions, random-name placeholder
     ws.js                connect, reconnect loop, handleMessage dispatch
     touch.js             iOS double-tap zoom prevention (side-effect import)
+    components/
+      player-card.js     <player-card> custom element for the players bar
+      round-target.js    <round-target> custom element for the round header die
 ```
 
 ### WebSocket message protocol

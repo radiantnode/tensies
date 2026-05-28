@@ -89,10 +89,9 @@ Confirm the server is responding before touching the browser:
 
 ```bash
 curl -sf http://localhost:8000/ | grep -q "TENSIES" && echo "OK" || echo "FAIL: server not up"
-curl -sf http://localhost:8000/random-name | grep -q "name" && echo "OK" || echo "FAIL: /random-name"
 ```
 
-If either check fails, stop and report — no point running the browser suite against a dead server.
+If the check fails, stop and report — no point running the browser suite against a dead server. (Name generation is now client-side; there is no `/random-name` endpoint.)
 
 ---
 
