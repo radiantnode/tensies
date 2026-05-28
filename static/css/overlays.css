@@ -6,17 +6,34 @@
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Winner overlay ── */
-#winner-overlay {
-  display: none;
+/* Native <dialog> overlay: the dialog element IS the fullscreen overlay.
+   showModal() puts it in the top layer (free ESC handling, focus trap),
+   while the visual layout matches the previous div-as-overlay exactly:
+   the dialog paints its own dim, inner *-box centered via flex. The
+   native ::backdrop is hidden — the dialog itself provides the dimmer. */
+.overlay-dialog {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.88);
-  z-index: 200;
+  width: 100vw;
+  width: 100dvw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  overflow: hidden;
+}
+.overlay-dialog[open] {
+  display: flex;
   align-items: center;
   justify-content: center;
 }
-#winner-overlay.visible { display: flex; }
+.overlay-dialog::backdrop { background: transparent; }
+
+/* ── Winner overlay ── */
+#winner-overlay { background: rgba(0, 0, 0, 0.88); }
 
 .winner-box {
   background: rgba(15, 7, 3, 0.95);
@@ -37,16 +54,7 @@
 }
 
 /* ── Disconnect overlay (other players' view while someone reconnects) ── */
-#disconnect-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.82);
-  z-index: 210;
-  align-items: center;
-  justify-content: center;
-}
-#disconnect-overlay.visible { display: flex; }
+#disconnect-overlay { background: rgba(0, 0, 0, 0.82); }
 
 .disconnect-box {
   background: rgba(15, 7, 3, 0.95);
@@ -70,16 +78,7 @@
 }
 
 /* ── Reconnecting modal (local player while reconnecting) ── */
-#reconnecting-modal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.88);
-  z-index: 300;
-  align-items: center;
-  justify-content: center;
-}
-#reconnecting-modal.visible { display: flex; }
+#reconnecting-modal { background: rgba(0, 0, 0, 0.88); }
 
 .reconnecting-box {
   background: rgba(15, 7, 3, 0.95);

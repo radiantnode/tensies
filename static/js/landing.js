@@ -15,8 +15,10 @@ export async function loadRandomName() {
 export function showJoin() {
   const name = document.getElementById('name-input').value.trim();
   document.getElementById('join-name-input').value = name;
-  showScreen('join');
-  document.getElementById(name ? 'code-input' : 'join-name-input').focus();
+  const focusId = name ? 'code-input' : 'join-name-input';
+  // updateCallbackDone fires right after the DOM swap; focus() during the
+  // view-transition animation (which `finished` would await) is dropped.
+  showScreen('join').updateCallbackDone.then(() => document.getElementById(focusId).focus());
 }
 
 export function showLanding() {

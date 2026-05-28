@@ -1,7 +1,9 @@
 import { state } from './state.js';
 import { esc } from './util.js';
-import { makeDie, makeTargetDie, myDiceKey, placeGrid } from './dice.js';
+import { makeDie, myDiceKey, placeGrid } from './dice.js';
 import { renderDisconnectOverlay } from './overlays.js';
+import './components/player-card.js';
+import './components/round-target.js';
 
 function maxWins(snap) {
   return Math.max(0, ...Object.values(snap.players).map(p => p.wins));
@@ -13,7 +15,7 @@ export function renderLobby(snap) {
   const list = document.getElementById('lobby-players');
   list.innerHTML = '';
   Object.entries(snap.players).forEach(([pid, p]) => {
-    const li = document.createElement('div');
+    const li = document.createElement('li');
     li.className = 'player-list-item';
     li.innerHTML = `🎲 ${esc(p.name)}`;
     if (pid === snap.host) {
@@ -28,13 +30,22 @@ export function renderLobby(snap) {
   const startBtn = document.getElementById('start-btn');
   const waitMsg  = document.getElementById('waiting-msg');
   if (snap.host === state.myId) {
-    startBtn.style.display = 'block';
+    startBtn.hidden = false;
     waitMsg.textContent = Object.keys(snap.players).length < 2 ? 'Invite friends — or start solo!' : '';
   } else {
-    startBtn.style.display = 'none';
+    startBtn.hidden = true;
     waitMsg.textContent = 'Waiting for the host to start…';
   }
   renderDisconnectOverlay(snap);
+}
+
+function setAttr(el, name, present, value) {
+  if (present) {
+    if (value !== undefined && el.getAttribute(name) !== String(value)) el.setAttribute(name, value);
+    else if (value === undefined && !el.hasAttribute(name)) el.setAttribute(name, '');
+  } else if (el.hasAttribute(name)) {
+    el.removeAttribute(name);
+  }
 }
 
 export function renderPlayersBar(snap) {
@@ -52,60 +63,24 @@ export function renderPlayersBar(snap) {
     const matched = p.has_rolled ? p.dice.filter(d => d === snap.target).length : 0;
     const hot     = !isMe && matched >= 7;
 
-    if (!state.barCards[pid]) {
-      // First appearance — build the card DOM once
-      const card = document.createElement('div');
-      card.className = 'player-mini';
-
-      const topRow = document.createElement('div');
-      topRow.className = 'player-mini-top';
-
-      const name = document.createElement('div');
-      name.className = 'player-mini-name';
-      name.textContent = p.name;
-      topRow.appendChild(name);
-
-      if (isMe) {
-        const you = document.createElement('span');
-        you.className = 'player-mini-you';
-        you.textContent = 'you';
-        topRow.appendChild(you);
-      }
-
-      const wins = document.createElement('div');
-      topRow.appendChild(wins);
-      card.appendChild(topRow);
-
-      const prog = document.createElement('div');
-      prog.className = 'player-mini-progress';
-      const fill = document.createElement('div');
-      prog.appendChild(fill);
-      card.appendChild(prog);
-
-      const count = document.createElement('div');
-      card.appendChild(count);
-
-      state.barCards[pid] = { card, wins, fill, count };
+    let card = state.barCards[pid];
+    if (!card) {
+      card = document.createElement('player-card');
+      state.barCards[pid] = card;
     }
-
-    // Update only the values that change — fill width animates via CSS transition
-    const { card, wins, fill, count } = state.barCards[pid];
-    card.className  = 'player-mini' + (p.disconnected ? ' disconnected' : '');
-    wins.className  = 'player-mini-wins' + (p.wins > 0 && p.wins === top ? ' leading' : '');
-    wins.textContent = `${p.wins}W`;
-    fill.className   = 'player-mini-fill' + (isMe ? ' me' : hot ? ' hot' : '');
-    fill.style.width = `${(matched / 10) * 100}%`;
-    count.className  = 'player-mini-count' + (hot ? ' hot' : '');
-    count.textContent = `${matched}/10`;
-
-    // appendChild moves existing elements — keeps sorted order without extra DOM ops
-    bar.appendChild(card);
+    card.setAttribute('name', p.name);
+    card.setAttribute('wins', p.wins);
+    card.setAttribute('matched', matched);
+    setAttr(card, 'is-me', isMe);
+    setAttr(card, 'leading', p.wins > 0 && p.wins === top);
+    setAttr(card, 'hot', hot);
+    setAttr(card, 'disconnected', !!p.disconnected);
+    bar.appendChild(card); // appendChild moves to preserve sort order
   });
 
-  // Remove cards for players who have left the game
   for (const pid of Object.keys(state.barCards)) {
     if (!snap.players[pid]) {
-      state.barCards[pid].card.remove();
+      state.barCards[pid].remove();
       delete state.barCards[pid];
     }
   }
@@ -129,7 +104,9 @@ export function renderMyArea(snap) {
   roundLbl.className = 'round-label';
   roundLbl.textContent = `Round ${snap.round_num}`;
   roundHeader.appendChild(roundLbl);
-  roundHeader.appendChild(makeTargetDie(snap.target, 'round-target-die'));
+  const target = document.createElement('round-target');
+  target.setAttribute('value', snap.target);
+  roundHeader.appendChild(target);
   area.appendChild(roundHeader);
 
   // Locked-count header
@@ -178,6 +155,7 @@ export function renderMyArea(snap) {
   const rollArea = document.createElement('div');
   rollArea.className = 'roll-area';
   const btn = document.createElement('button');
+  btn.type = 'button';
   btn.className = 'btn-roll';
   btn.id = 'roll-btn';
   btn.textContent = 'Roll';
@@ -190,13 +168,11 @@ export function renderGame(snap) {
   const key = myDiceKey(snap);
 
   if (key !== state.lastMyDiceKey) {
-    // Real state change for me — round transition or game start
     state.lastMyDiceKey = key;
     state.rolling = false;
     renderPlayersBar(snap);
     renderMyArea(snap);
   } else {
-    // Another player rolled — update bar only; my dice area is untouched
     renderPlayersBar(snap);
   }
   renderDisconnectOverlay(snap);

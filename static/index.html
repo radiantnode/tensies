@@ -24,83 +24,80 @@
 </head>
 <body>
 
-<!-- Landing -->
-<div id="landing" class="screen active">
-  <img src="/static/logo.svg" class="logo-mark" alt="">
-  <div class="logo">TENSIES</div>
-  <div class="tagline">Roll all ten to win the round</div>
-  <div class="form-stack">
-    <input id="name-input" type="text" placeholder="Your name" maxlength="20" autocomplete="off">
-    <button id="create-btn" class="btn btn-primary">Create Game</button>
-    <button id="show-join-btn" class="btn btn-secondary">Join Game</button>
-    <div class="error-msg" id="landing-error"></div>
-  </div>
-</div>
+<main>
 
-<!-- Join -->
-<div id="join" class="screen">
-  <div class="join-back">← Back</div>
-  <div class="logo">JOIN</div>
-  <div class="tagline">Enter your name and game code</div>
-  <div class="form-stack">
-    <input id="join-name-input" type="text" placeholder="Your name" maxlength="20" autocomplete="off">
-    <input id="code-input" class="code-input" type="text" placeholder="ABCDE" maxlength="5" autocomplete="off">
-    <button id="join-btn" class="btn btn-primary">Join Game</button>
-    <div class="error-msg" id="join-error"></div>
-  </div>
-</div>
+  <section id="landing" class="screen active" aria-labelledby="landing-title">
+    <img src="/static/logo.svg" class="logo-mark" alt="">
+    <h1 id="landing-title" class="logo">TENSIES</h1>
+    <p class="tagline">Roll all ten to win the round</p>
+    <form id="landing-form" class="form-stack" autocomplete="off" novalidate>
+      <input id="name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20">
+      <button type="submit" class="btn btn-primary">Create Game</button>
+      <button id="show-join-btn" type="button" class="btn btn-secondary">Join Game</button>
+      <p class="error-msg" id="landing-error" role="alert" aria-live="polite"></p>
+    </form>
+  </section>
 
-<!-- Lobby -->
-<div id="lobby" class="screen">
-  <div class="lobby-title">Waiting for players…</div>
-  <div class="lobby-hint">Share this link to invite friends</div>
-  <div class="code-display" id="lobby-code">——</div>
-  <div class="copy-hint" id="copy-hint">click to copy link</div>
-  <a id="sms-btn" class="btn btn-sms" href="#">💬 Send Text Invite</a>
-  <div class="player-list" id="lobby-players"></div>
-  <button id="start-btn" class="btn btn-primary" style="width:100%;max-width:400px;display:none">
-    Start Game 🎲
-  </button>
-  <div id="waiting-msg"></div>
-</div>
+  <section id="join" class="screen" aria-labelledby="join-title">
+    <button id="back-btn" type="button" class="join-back">← Back</button>
+    <h1 id="join-title" class="logo">JOIN</h1>
+    <p class="tagline">Enter your name and game code</p>
+    <form id="join-form" class="form-stack" autocomplete="off" novalidate>
+      <input id="join-name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20">
+      <input id="code-input" name="code" class="code-input" type="text" aria-label="Game code" inputmode="latin" placeholder="ABCDE" maxlength="5" autocapitalize="characters">
+      <button type="submit" class="btn btn-primary">Join Game</button>
+      <p class="error-msg" id="join-error" role="alert" aria-live="polite"></p>
+    </form>
+  </section>
 
-<!-- Game -->
-<div id="game" class="screen">
-  <div class="game-topbar">
-    <div class="game-title">
-      <img src="/static/logo.svg" class="game-title-mark" alt="">
-      <span>Tensies</span>
-    </div>
-    <div class="players-bar" id="players-bar"></div>
-  </div>
-  <div class="my-area" id="my-area"></div>
-</div>
+  <section id="lobby" class="screen" aria-labelledby="lobby-title">
+    <h1 id="lobby-title" class="lobby-title">Waiting for players…</h1>
+    <p class="lobby-hint">Share this link to invite friends</p>
+    <button id="lobby-code" type="button" class="code-display" aria-label="Copy invite link">——</button>
+    <p class="copy-hint" id="copy-hint">click to copy link</p>
+    <button id="sms-btn" type="button" class="btn btn-sms">💬 Send Text Invite</button>
+    <ul class="player-list" id="lobby-players" aria-label="Players"></ul>
+    <button id="start-btn" type="button" class="btn btn-primary btn-block" hidden>
+      Start Game 🎲
+    </button>
+    <p id="waiting-msg"></p>
+  </section>
 
-<!-- Winner overlay -->
-<div id="winner-overlay">
+  <section id="game" class="screen" aria-labelledby="game-title">
+    <header class="game-topbar">
+      <h1 id="game-title" class="game-title">
+        <img src="/static/logo.svg" class="game-title-mark" alt="">
+        <span>Tensies</span>
+      </h1>
+      <div class="players-bar" id="players-bar" role="list" aria-label="Players"></div>
+    </header>
+    <div class="my-area" id="my-area"></div>
+  </section>
+
+</main>
+
+<dialog id="winner-overlay" class="overlay-dialog" aria-labelledby="winner-name">
   <div class="winner-box">
-    <div class="confetti">🎉</div>
-    <div class="winner-label">Round Winner</div>
-    <div class="winner-name" id="winner-name"></div>
-    <div class="winner-sub" id="winner-sub"></div>
+    <div class="confetti" aria-hidden="true">🎉</div>
+    <p class="winner-label">Round Winner</p>
+    <p class="winner-name" id="winner-name"></p>
+    <p class="winner-sub" id="winner-sub"></p>
   </div>
-</div>
+</dialog>
 
-<!-- Disconnect overlay — shown to connected players while someone reconnects -->
-<div id="disconnect-overlay">
+<dialog id="disconnect-overlay" class="overlay-dialog">
   <div class="disconnect-box">
-    <div class="disconnect-spinner"></div>
-    <div id="disconnect-msg"></div>
+    <div class="disconnect-spinner" aria-hidden="true"></div>
+    <p id="disconnect-msg"></p>
   </div>
-</div>
+</dialog>
 
-<!-- Reconnecting modal — shown to the local player while attempting to reconnect -->
-<div id="reconnecting-modal">
+<dialog id="reconnecting-modal" class="overlay-dialog">
   <div class="reconnecting-box">
-    <div class="reconnecting-spinner"></div>
-    <div>Reconnecting…</div>
+    <div class="reconnecting-spinner" aria-hidden="true"></div>
+    <p>Reconnecting…</p>
   </div>
-</div>
+</dialog>
 
 <script type="module" src="/static/js/main.js"></script>
 </body>

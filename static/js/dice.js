@@ -43,17 +43,6 @@ export function makeDie(value, target) {
   return scene;
 }
 
-export function makeTargetDie(target, className) {
-  const el = document.createElement('div');
-  el.className = className;
-  for (let i = 0; i < 9; i++) {
-    const dot = document.createElement('span');
-    dot.className = 'dot' + (DOTS[target].includes(i) ? ' active' : '');
-    el.appendChild(dot);
-  }
-  return el;
-}
-
 // Divide the zone into a grid sized for `count` dice, add jitter within each
 // cell, then shuffle — guaranteed no overlap, still looks scattered.
 export function placeGrid(zoneRect, count, sz) {

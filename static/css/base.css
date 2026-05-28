@@ -11,6 +11,28 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
 
+/* Element-level resets so semantic tags can stand in for divs without
+   re-introducing default UA styling. Specific screens style their own
+   typography on top of these. We intentionally leave button font-family
+   alone — letting it inherit shifts text metrics by ~1px on Chromium and
+   breaks visual parity with the original div-as-button layout. */
+button { color: inherit; background: none; border: none; cursor: pointer; }
+ul, ol { list-style: none; }
+h1, h2, h3, p { font-weight: inherit; font-size: inherit; }
+dialog { color: inherit; }
+[hidden] { display: none !important; }
+
+/* Visually-hidden label, still announced by assistive tech. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 html {
   /* Prevent document-level scroll on iOS Safari */
   height: 100%;
@@ -68,6 +90,7 @@ input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-secondary { background: var(--card2); color: var(--text); }
+.btn-block { display: block; width: 100%; max-width: 400px; }
 
 .error-msg {
   color: var(--accent);

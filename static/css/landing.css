@@ -64,10 +64,14 @@
   top: calc(1.25rem + env(safe-area-inset-top));
   left: 1.5rem;
   color: var(--muted);
+  /* As a button it inherits Arial from UA; the prior <div> used system-ui
+     from body — restore that to preserve the "← Back" glyph rendering. */
+  font-family: inherit;
   font-size: 1rem;
-  cursor: pointer;
   letter-spacing: 0.03em;
   transition: color 0.15s;
+  cursor: pointer;
+  padding: 0;
 }
 .join-back:hover { color: var(--text); }
 

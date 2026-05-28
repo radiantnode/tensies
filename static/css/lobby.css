@@ -13,6 +13,10 @@
 .lobby-hint  { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
 
 .code-display {
+  display: block;
+  /* Was a <div>; now a <button>. Restore inherited body font so the code
+     glyphs render with system-ui instead of UA Arial. */
+  font-family: inherit;
   font-size: clamp(2.5rem, 10vw, 4rem);
   font-weight: 900;
   letter-spacing: 0.3em;
@@ -33,6 +37,8 @@
 
 .btn-sms {
   display: inline-block;
+  /* Was an <a>; now a <button>. Restore inherited body font. */
+  font-family: inherit;
   text-decoration: none;
   background: rgba(30, 180, 100, 0.18);
   color: var(--text);
