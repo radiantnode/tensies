@@ -1,0 +1,52 @@
+/* Shared entrance animation for the winner box */
+@keyframes popIn {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* Native <dialog> overlay: the dialog element IS the fullscreen overlay.
+   showModal() puts it in the top layer (free ESC handling, focus trap),
+   while the visual layout matches the previous div-as-overlay exactly:
+   the dialog paints its own dim, inner *-box centered via flex. The
+   native ::backdrop is hidden — the dialog itself provides the dimmer. */
+.overlay-dialog {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  width: 100dvw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  overflow: hidden;
+}
+.overlay-dialog[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.overlay-dialog::backdrop { background: transparent; }
+
+/* ── Winner overlay ── */
+#winner-overlay { background: rgba(0, 0, 0, 0.88); }
+
+.winner-box {
+  background: rgba(15, 7, 3, 0.95);
+  border: 3px solid var(--accent);
+  border-radius: 20px;
+  padding: 3rem 4rem;
+  text-align: center;
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.winner-label { color: var(--muted); font-size: 1rem; text-transform: uppercase; letter-spacing: 0.15em; }
+.winner-name  { font-size: clamp(2rem, 8vw, 3.5rem); font-weight: 900; color: var(--accent); margin: 0.5rem 0; }
+.winner-sub   { color: var(--muted); font-size: 1rem; margin-top: 0.75rem; }
+.confetti { font-size: 3rem; }
+
+@media (max-width: 480px) {
+  .winner-box { padding: 2rem; }
+}

@@ -1,0 +1,89 @@
+#lobby {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(3rem + env(safe-area-inset-top)) 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
+  background: rgba(6, 3, 1, 0.72);
+  overflow: hidden;
+}
+
+.lobby-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+.lobby-hint  { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+
+.code-display {
+  display: block;
+  /* Was a <div>; now a <button>. Restore inherited body font so the code
+     glyphs render with system-ui instead of UA Arial. */
+  font-family: inherit;
+  font-size: clamp(2.5rem, 10vw, 4rem);
+  font-weight: 900;
+  letter-spacing: 0.3em;
+  color: var(--accent);
+  background: rgba(20, 10, 5, 0.75);
+  border: 1px solid rgba(180, 100, 20, 0.25);
+  padding: 1rem 2rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 0.5rem;
+  transition: background 0.2s;
+}
+.code-display:hover { background: rgba(30, 15, 5, 0.85); }
+
+.copy-hint { color: var(--muted); font-size: 0.8rem; margin-bottom: 1rem; }
+.copied { color: var(--green) !important; }
+
+.btn-sms {
+  display: inline-block;
+  /* Was an <a>; now a <button>. Restore inherited body font. */
+  font-family: inherit;
+  text-decoration: none;
+  background: rgba(30, 180, 100, 0.18);
+  color: var(--text);
+  border: 1px solid rgba(30, 180, 100, 0.35);
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.player-list {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+.player-list::-webkit-scrollbar { display: none; }
+
+.player-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(20, 10, 5, 0.75);
+  border: 1px solid rgba(180, 100, 20, 0.2);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+}
+
+.host-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  margin-left: auto;
+}
+
+.you-badge { font-size: 0.7rem; color: var(--muted); margin-left: auto; }
+
+#waiting-msg { color: var(--muted); font-size: 0.95rem; }
