@@ -1,0 +1,68 @@
+import { state } from './state.js';
+import { setJoinError, showScreen } from './util.js';
+import { connectWS } from './ws.js';
+
+export async function loadRandomName() {
+  try {
+    const res = await fetch('/random-name');
+    const data = await res.json();
+    state.randomNamePlaceholder = data.name;
+    document.getElementById('name-input').placeholder = data.name;
+    document.getElementById('join-name-input').placeholder = data.name;
+  } catch (_) {}
+}
+
+export function showJoin() {
+  const name = document.getElementById('name-input').value.trim();
+  document.getElementById('join-name-input').value = name;
+  showScreen('join');
+  document.getElementById(name ? 'code-input' : 'join-name-input').focus();
+}
+
+export function showLanding() {
+  showScreen('landing');
+}
+
+export function getName() {
+  const active = document.querySelector('.screen.active');
+  const val = active && active.id === 'join'
+    ? document.getElementById('join-name-input').value.trim()
+    : document.getElementById('name-input').value.trim();
+  return val || state.randomNamePlaceholder;
+}
+
+export function createGame() {
+  connectWS(() => state.ws.send(JSON.stringify({ action: 'create', name: getName() })));
+}
+
+export function joinGame() {
+  const code = document.getElementById('code-input').value.trim();
+  if (!code) { setJoinError('Enter a game code'); return; }
+  connectWS(() => state.ws.send(JSON.stringify({ action: 'join', name: getName(), code })));
+}
+
+function joinLink() {
+  return `${location.origin}/?join=${state.gameCode}`;
+}
+
+export function copyCode() {
+  if (!state.gameCode) return;
+  navigator.clipboard.writeText(joinLink()).then(() => {
+    const hint = document.getElementById('copy-hint');
+    hint.textContent = 'link copied!';
+    hint.classList.add('copied');
+    setTimeout(() => { hint.textContent = 'click to copy link'; hint.classList.remove('copied'); }, 2000);
+  });
+}
+
+export function smsTap() {
+  if (!state.gameCode) return false;
+  const body = encodeURIComponent(`🎲 Come play Tensies! ${joinLink()}`);
+  // & works on iOS; ? works on Android — the combined form is broadly supported
+  location.href = `sms:?&body=${body}`;
+  return false;
+}
+
+export function startGame() {
+  state.ws.send(JSON.stringify({ action: 'start' }));
+}
