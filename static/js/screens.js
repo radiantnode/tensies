@@ -128,11 +128,19 @@ export function renderMyArea(snap) {
   unmatchedZone.className = 'zone-unmatched';
 
   const diceToPlace = [...unmatched];
-  requestAnimationFrame(() => {
+  // Wait until the zone actually has dimensions before placing. When this
+  // render is triggered by a startViewTransition swap (new game, reconnect),
+  // the .active class hasn't yet been applied at the first rAF tick, so
+  // getBoundingClientRect returns 0×0 and placeGrid produces an empty array
+  // — every die would fall back to (8, 8) and pile up in the corner.
+  const place = (attempts = 0) => {
     const rect = unmatchedZone.getBoundingClientRect();
-    const sz   = window.innerWidth <= 480 ? 50 : 56;
+    if ((rect.width <= 0 || rect.height <= 0) && attempts < 30) {
+      requestAnimationFrame(() => place(attempts + 1));
+      return;
+    }
+    const sz = window.innerWidth <= 480 ? 50 : 56;
     const positions = placeGrid(rect, diceToPlace.length, sz);
-
     diceToPlace.forEach((v, i) => {
       const { x, y, rot } = positions[i] || { x: 8, y: 8, rot: 0 };
       const wrapper = document.createElement('div');
@@ -141,7 +149,8 @@ export function renderMyArea(snap) {
       wrapper.appendChild(makeDie(v, effectiveTarget));
       unmatchedZone.appendChild(wrapper);
     });
-  });
+  };
+  requestAnimationFrame(() => place());
   zones.appendChild(unmatchedZone);
 
   const matchedZone = document.createElement('div');
