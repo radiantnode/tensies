@@ -15,7 +15,9 @@
       "mcp__playwright__browser_tabs",
       "mcp__playwright__browser_close",
       "Edit(/.claude/skills/test-game/**)",
-      "Bash(docker compose *)"
+      "Bash(docker compose *)",
+      "mcp__playwright__browser_network_requests",
+      "mcp__playwright__browser_network_request"
     ]
   }
 }
