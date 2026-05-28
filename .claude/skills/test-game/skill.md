@@ -116,7 +116,7 @@ Check console messages — flag any JS errors.
 
 In Tab 1:
 1. Type `Alpha` into `#name-input`
-2. Click `#create-btn` ("Create Game")
+2. Submit the landing form: click `#landing-form button[type="submit"]` (or call `document.getElementById('landing-form').requestSubmit()` via `evaluate`). The "Create Game" button itself has no `id`; it's identified by being the form's submit button.
 
 Wait for `#lobby` screen to become `.active`. Then:
 - Read the game code from `#lobby-code` — store it as `GAME_CODE`
@@ -141,7 +141,7 @@ Verify:
 - `#code-input` is pre-filled with `GAME_CODE` (deep-link works)
 - The URL has been cleaned to `/` (no `?join=` in the address bar)
 
-Type `Beta` into `#join-name-input`, then click `#join-btn`.
+Type `Beta` into `#join-name-input`, then submit the join form (`#join-form button[type="submit"]`).
 
 Wait for `#lobby` to become active. Verify:
 - Both "Alpha" and "Beta" appear in `#lobby-players`
@@ -160,7 +160,7 @@ Take screenshot **"03-lobby-both"**.
 
 Before starting, open a **third tab** and navigate to the root. The join flow is two steps:
 1. Type `Gamma` into `#name-input` on the landing screen, then click `#show-join-btn` to reach the join screen.
-2. On the join screen, fill `#code-input` with `ZZZZZ`, then click `#join-btn`.
+2. On the join screen, fill `#code-input` with `ZZZZZ`, then submit the join form (`#join-form button[type="submit"]`).
 
 Verify `#join-error` (not `#landing-error`) contains "Game not found". Close or reuse Tab 3.
 
@@ -188,7 +188,7 @@ Also verify Tab 2 is now on `#game` as well. Check the players bar on Tab 2 mirr
 
 Open a new tab to `http://localhost:8000/`. Use the two-step join flow:
 1. Type `Latebird` into `#name-input`, then click `#show-join-btn`.
-2. Fill `#code-input` with `GAME_CODE`, then click `#join-btn`.
+2. Fill `#code-input` with `GAME_CODE`, then submit the join form (`#join-form button[type="submit"]`).
 
 Verify `#join-error` (not `#landing-error`) contains "Game already in progress". Close this tab.
 
