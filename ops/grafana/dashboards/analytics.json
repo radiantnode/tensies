@@ -1,0 +1,157 @@
+{
+  "uid": "tensies-analytics",
+  "title": "Tensies — Player & Game Analytics",
+  "tags": ["tensies", "analytics"],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "time": { "from": "now-24h", "to": "now" },
+  "refresh": "1m",
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Games (range)",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
+        "rawSql": "SELECT count(*) FROM games WHERE started_ts >= $__timeFrom() AND started_ts < $__timeTo()"
+      }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 2, "type": "stat", "title": "Rounds (range)",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
+        "rawSql": "SELECT count(*) FROM rounds WHERE started_ts >= $__timeFrom() AND started_ts < $__timeTo()"
+      }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 3, "type": "stat", "title": "Total rolls (range)",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
+        "rawSql": "SELECT count(*) FROM events WHERE type = 'roll' AND ts >= $__timeFrom() AND ts < $__timeTo()"
+      }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 4, "type": "stat", "title": "Unique players (range)",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
+        "rawSql": "SELECT count(DISTINCT user_id) FROM events WHERE user_id IS NOT NULL AND ts >= $__timeFrom() AND ts < $__timeTo()"
+      }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 5, "type": "stat", "title": "Sessions (range)",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
+        "rawSql": "SELECT count(*) FROM sessions WHERE connected_ts >= $__timeFrom() AND connected_ts < $__timeTo()"
+      }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 6, "type": "stat", "title": "Total events stored",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
+        "rawSql": "SELECT count(*) FROM events"
+      }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+
+    {
+      "id": 10, "type": "table", "title": "Leaderboard — Most wins",
+      "gridPos": { "h": 10, "w": 8, "x": 0, "y": 4 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
+        "rawSql": "SELECT coalesce(name_last, user_id) AS \"Player\", total_wins AS \"Wins\", total_rounds AS \"Rounds\", round(100.0 * total_wins / NULLIF(total_rounds, 0), 1) AS \"Win %\" FROM player_stats ORDER BY total_wins DESC LIMIT 20"
+      }],
+      "fieldConfig": { "defaults": { "custom": { "align": "left" } }, "overrides": [
+        { "matcher": { "id": "byName", "options": "Wins" }, "properties": [{ "id": "custom.cellOptions", "value": { "type": "gauge", "mode": "gradient" } }] }
+      ]}
+    },
+    {
+      "id": 11, "type": "table", "title": "Leaderboard — Fastest wins",
+      "gridPos": { "h": 10, "w": 8, "x": 8, "y": 4 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
+        "rawSql": "SELECT coalesce(name_last, user_id) AS \"Player\", fastest_win_ms AS \"Fastest (ms)\", fastest_win_rolls AS \"Fewest rolls\" FROM player_stats WHERE fastest_win_ms IS NOT NULL ORDER BY fastest_win_ms ASC LIMIT 20"
+      }],
+      "fieldConfig": { "defaults": {}, "overrides": [
+        { "matcher": { "id": "byName", "options": "Fastest (ms)" }, "properties": [{ "id": "unit", "value": "ms" }, { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "gradient" } }, { "id": "thresholds", "value": { "steps": [{ "color": "green" }, { "color": "yellow", "value": 15000 }, { "color": "red", "value": 60000 }] } }] }
+      ]}
+    },
+    {
+      "id": 12, "type": "table", "title": "Leaderboard — Most rolls",
+      "gridPos": { "h": 10, "w": 8, "x": 16, "y": 4 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
+        "rawSql": "SELECT coalesce(name_last, user_id) AS \"Player\", total_rolls AS \"Rolls\", total_sessions AS \"Sessions\", round(total_time_played_ms / 1000.0 / 60.0, 1) AS \"Minutes\" FROM player_stats ORDER BY total_rolls DESC LIMIT 20"
+      }],
+      "fieldConfig": { "defaults": {}, "overrides": [
+        { "matcher": { "id": "byName", "options": "Rolls" }, "properties": [{ "id": "custom.cellOptions", "value": { "type": "gauge", "mode": "gradient" } }] }
+      ]}
+    },
+
+    {
+      "id": 20, "type": "histogram", "title": "Distribution: rolls per round",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 14 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
+        "rawSql": "SELECT rolls AS \"rolls\" FROM round_player WHERE rolls > 0 AND game_code IN (SELECT game_code FROM games WHERE started_ts >= $__timeFrom() AND started_ts < $__timeTo())"
+      }],
+      "options": { "bucketSize": 5 }
+    },
+    {
+      "id": 21, "type": "histogram", "title": "Distribution: round duration (s)",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 14 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
+        "rawSql": "SELECT (duration_ms / 1000.0)::float AS \"seconds\" FROM rounds WHERE duration_ms IS NOT NULL AND started_ts >= $__timeFrom() AND started_ts < $__timeTo()"
+      }],
+      "options": { "bucketSize": 10 }
+    },
+    {
+      "id": 22, "type": "histogram", "title": "Distribution: session duration (min)",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 14 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
+        "rawSql": "SELECT (duration_ms / 60000.0)::float AS \"minutes\" FROM sessions WHERE duration_ms IS NOT NULL AND connected_ts >= $__timeFrom() AND connected_ts < $__timeTo()"
+      }],
+      "options": { "bucketSize": 1 }
+    },
+
+    {
+      "id": 30, "type": "timeseries", "title": "Activity over time (rolls/min)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true,
+        "rawSql": "SELECT date_trunc('minute', ts) AS time, count(*) AS rolls FROM events WHERE type = 'roll' AND ts >= $__timeFrom() AND ts < $__timeTo() GROUP BY 1 ORDER BY 1"
+      }],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80 }, "unit": "short" } }
+    },
+    {
+      "id": 31, "type": "barchart", "title": "Dice fairness (all-time)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (value) (tensies_dice_value_total)", "refId": "A", "format": "table", "instant": true, "legendFormat": "{{value}}" }],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 80 } } },
+      "options": { "orientation": "auto", "showValue": "auto", "legend": { "showLegend": false } }
+    },
+
+    {
+      "id": 40, "type": "timeseries", "title": "Active players hourly",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 30 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true,
+        "rawSql": "SELECT date_trunc('hour', ts) AS time, count(DISTINCT user_id) AS players FROM events WHERE user_id IS NOT NULL AND ts >= $__timeFrom() AND ts < $__timeTo() GROUP BY 1 ORDER BY 1"
+      }],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 30, "lineWidth": 2, "pointSize": 5, "showPoints": "always" } } }
+    }
+  ]
+}

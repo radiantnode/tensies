@@ -102,6 +102,10 @@ function showFor(msg) {
 
 export function handleMessage(msg) {
   switch (msg.type) {
+    case 'ping':
+      state.ws.send(JSON.stringify({ action: 'pong', t: msg.t }));
+      return;
+
     case 'welcome':
       state.myId = msg.player_id;
       localStorage.setItem('tensies_pid', state.myId);

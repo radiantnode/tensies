@@ -1,0 +1,133 @@
+{
+  "uid": "tensies-conn",
+  "title": "Tensies — Connections",
+  "tags": ["tensies", "connections"],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "time": { "from": "now-1h", "to": "now" },
+  "refresh": "5s",
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Open connections",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "tensies_ws_connections_active", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "blue" }, { "color": "green", "value": 1 }] } } },
+      "options": { "graphMode": "area", "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 2, "type": "stat", "title": "Connects / min",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "rate(tensies_ws_connects_total[1m]) * 60", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 1 } },
+      "options": { "graphMode": "area", "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 3, "type": "stat", "title": "Reconnects (1h)",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "increase(tensies_reconnects_total[1h])", "refId": "A" }],
+      "options": { "graphMode": "area", "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 4, "type": "stat", "title": "Median ping (5m)",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "histogram_quantile(0.5, sum by (le) (rate(tensies_ws_ping_rtt_seconds_bucket[5m])))", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 3 } },
+      "options": { "graphMode": "area", "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 5, "type": "stat", "title": "p99 ping (5m)",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "histogram_quantile(0.99, sum by (le) (rate(tensies_ws_ping_rtt_seconds_bucket[5m])))", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 3, "thresholds": { "steps": [{ "color": "green" }, { "color": "yellow", "value": 0.1 }, { "color": "red", "value": 0.5 }] } } },
+      "options": { "graphMode": "area", "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 6, "type": "stat", "title": "Sessions started (1h)",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "increase(tensies_sessions_started_total[1h])", "refId": "A" }],
+      "options": { "graphMode": "area", "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+
+    {
+      "id": 10, "type": "timeseries", "title": "Connects vs disconnects",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "rate(tensies_ws_connects_total[1m])", "refId": "A", "legendFormat": "connects" },
+        { "expr": "sum(rate(tensies_ws_disconnects_total[1m]))", "refId": "B", "legendFormat": "disconnects" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "fillOpacity": 30, "drawStyle": "line", "lineWidth": 2 } } }
+    },
+    {
+      "id": 11, "type": "piechart", "title": "Disconnect reasons (1h)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (reason) (increase(tensies_ws_disconnects_total[1h]))", "refId": "A", "legendFormat": "{{reason}}" }],
+      "options": { "pieType": "donut", "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right" } }
+    },
+
+    {
+      "id": 20, "type": "heatmap", "title": "Ping RTT distribution",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (le) (increase(tensies_ws_ping_rtt_seconds_bucket[1m]))", "refId": "A", "format": "heatmap", "legendFormat": "{{le}}" }],
+      "options": { "color": { "mode": "scheme", "scheme": "Spectral", "steps": 64 }, "yAxis": { "unit": "s" } }
+    },
+    {
+      "id": 21, "type": "heatmap", "title": "Connection lifetime distribution",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (le) (increase(tensies_ws_connection_seconds_bucket[5m]))", "refId": "A", "format": "heatmap", "legendFormat": "{{le}}" }],
+      "options": { "color": { "mode": "scheme", "scheme": "Viridis", "steps": 64 }, "yAxis": { "unit": "s" } }
+    },
+
+    {
+      "id": 30, "type": "timeseries", "title": "Message throughput (msgs/sec)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sum by (action) (rate(tensies_ws_messages_in_total[1m]))", "refId": "A", "legendFormat": "in: {{action}}" },
+        { "expr": "sum by (type) (rate(tensies_ws_messages_out_total[1m]))", "refId": "B", "legendFormat": "out: {{type}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "fillOpacity": 20, "stacking": { "mode": "none" } } } }
+    },
+    {
+      "id": 31, "type": "timeseries", "title": "Bandwidth (B/sec)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 21 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "rate(tensies_ws_bytes_in_total[1m])", "refId": "A", "legendFormat": "in" },
+        { "expr": "rate(tensies_ws_bytes_out_total[1m])", "refId": "B", "legendFormat": "out" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps" } }
+    },
+
+    {
+      "id": 40, "type": "logs", "title": "Live connect / disconnect feed",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 29 },
+      "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+      "targets": [{ "refId": "A", "queryType": "measurements", "channel": "stream/tensies/connections" }],
+      "options": { "showTime": true, "wrapLogMessage": true, "sortOrder": "Descending" }
+    },
+    {
+      "id": 41, "type": "table", "title": "Live sessions",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 29 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
+        "rawSql": "SELECT coalesce(name, '?') AS \"Name\", session_id AS \"Session\", game_code AS \"Game\", connected_ts AS \"Connected\", extract(epoch from (now() - connected_ts))::int AS \"Age (s)\", last_ping_rtt_ms AS \"Ping (ms)\", peer AS \"Peer\" FROM live_sessions ORDER BY connected_ts DESC"
+      }],
+      "fieldConfig": { "defaults": {}, "overrides": [
+        { "matcher": { "id": "byName", "options": "Ping (ms)" }, "properties": [{ "id": "unit", "value": "ms" }, { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "gradient" } }, { "id": "thresholds", "value": { "steps": [{ "color": "green" }, { "color": "yellow", "value": 100 }, { "color": "red", "value": 500 }] } }]},
+        { "matcher": { "id": "byName", "options": "Session" }, "properties": [{ "id": "custom.width", "value": 90 }] }
+      ]}
+    }
+  ]
+}
