@@ -1,0 +1,108 @@
+/* Shared entrance animation for modal/overlay boxes */
+@keyframes popIn {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Winner overlay ── */
+#winner-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+#winner-overlay.visible { display: flex; }
+
+.winner-box {
+  background: rgba(15, 7, 3, 0.95);
+  border: 3px solid var(--accent);
+  border-radius: 20px;
+  padding: 3rem 4rem;
+  text-align: center;
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.winner-label { color: var(--muted); font-size: 1rem; text-transform: uppercase; letter-spacing: 0.15em; }
+.winner-name  { font-size: clamp(2rem, 8vw, 3.5rem); font-weight: 900; color: var(--accent); margin: 0.5rem 0; }
+.winner-sub   { color: var(--muted); font-size: 1rem; margin-top: 0.75rem; }
+.confetti { font-size: 3rem; }
+
+@media (max-width: 480px) {
+  .winner-box { padding: 2rem; }
+}
+
+/* ── Disconnect overlay (other players' view while someone reconnects) ── */
+#disconnect-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  z-index: 210;
+  align-items: center;
+  justify-content: center;
+}
+#disconnect-overlay.visible { display: flex; }
+
+.disconnect-box {
+  background: rgba(15, 7, 3, 0.95);
+  border: 2px solid rgba(180, 100, 20, 0.5);
+  border-radius: 20px;
+  padding: 2.5rem 3rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#disconnect-msg {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  max-width: 240px;
+  line-height: 1.5;
+}
+
+/* ── Reconnecting modal (local player while reconnecting) ── */
+#reconnecting-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  z-index: 300;
+  align-items: center;
+  justify-content: center;
+}
+#reconnecting-modal.visible { display: flex; }
+
+.reconnecting-box {
+  background: rgba(15, 7, 3, 0.95);
+  border: 2px solid rgba(180, 100, 20, 0.5);
+  border-radius: 20px;
+  padding: 2.5rem 3rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.disconnect-spinner,
+.reconnecting-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(180, 100, 20, 0.25);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}

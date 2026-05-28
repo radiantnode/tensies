@@ -1,0 +1,77 @@
+:root {
+  --bg: #0d0d1a;
+  --card: #1a1b2e;
+  --card2: #22243a;
+  --accent: #ff4d6d;
+  --green: #2ecc71;
+  --text: #e8e8f0;
+  --muted: #777;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
+
+html {
+  /* Prevent document-level scroll on iOS Safari */
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #1a0e08 url('/static/bar-top.png') center 10% / cover no-repeat;
+  color: var(--text);
+  /* Pin body to exact viewport — prevents iOS rubber-band scroll and vh bugs */
+  position: fixed;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.screen:not(.active) { display: none !important; }
+
+input {
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(180, 100, 20, 0.3);
+  border-radius: var(--radius);
+  background: rgba(20, 10, 5, 0.7);
+  color: var(--text);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+input::placeholder { color: var(--muted); letter-spacing: normal; }
+input:focus { border-color: var(--accent); }
+input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight: 700; font-size: 1.3rem; }
+
+.btn {
+  padding: 0.85rem 1.5rem;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.05em;
+  touch-action: manipulation;
+  text-decoration: none;
+  color: inherit;
+}
+.btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+.btn:active:not(:disabled) { transform: translateY(0); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-secondary { background: var(--card2); color: var(--text); }
+
+.error-msg {
+  color: var(--accent);
+  font-size: 0.9rem;
+  min-height: 1.4rem;
+  text-align: center;
+}
