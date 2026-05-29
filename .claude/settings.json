@@ -15,6 +15,7 @@
       "mcp__playwright__browser_tabs",
       "mcp__playwright__browser_close",
       "Edit(/.claude/skills/test-game/**)",
+      "Edit(/.claude/skills/test-telemetry/**)",
       "Bash(docker compose *)",
       "mcp__playwright__browser_network_requests",
       "mcp__playwright__browser_network_request",
@@ -31,11 +32,16 @@
       "mcp__playwright-g2-guest__browser_evaluate",
       "mcp__playwright-g3-guest__browser_evaluate",
       "mcp__playwright-g2-host__browser_take_screenshot",
+      "mcp__playwright-g2-host__browser_snapshot",
+      "mcp__playwright-g2-host__browser_wait_for",
+      "mcp__playwright-g2-host__browser_click",
       "mcp__playwright-g2-guest__browser_take_screenshot",
       "mcp__playwright-g3-host__browser_take_screenshot",
       "mcp__playwright-g3-guest__browser_take_screenshot",
       "mcp__playwright-guest__browser_tabs",
-      "mcp__playwright-guest__browser_console_messages"
+      "mcp__playwright-guest__browser_console_messages",
+      "mcp__playwright-guest__browser_type",
+      "mcp__playwright-guest__browser_wait_for"
     ]
   }
 }
