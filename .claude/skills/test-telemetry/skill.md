@@ -208,7 +208,7 @@ Capture counter values **before** the test game so you can measure deltas precis
 
 ```bash
 # Prometheus counters baseline
-curl -sf http://localhost:8888/metrics | grep -E "^tensies_(rolls_total|games_started_total|games_ended_total|rounds_started_total|rounds_completed_total|sessions_started_total|telemetry_dropped_total|live_push_failures_total)[^_]" | sort
+curl -sf http://localhost:8888/metrics | grep -E "^tensies_(rolls_total|games_started_total|games_ended_total|rounds_started_total|rounds_completed_total|sessions_started_total|telemetry_dropped_total|live_push_failures_total|games_active)[^_]" | sort
 ```
 
 Store these values. Also snapshot current Postgres event counts:
@@ -224,6 +224,7 @@ Record:
 - `BASELINE_SESSIONS` — value of `tensies_sessions_started_total`
 - `BASELINE_DROPPED` — value of `tensies_telemetry_dropped_total`
 - `BASELINE_PUSH_FAILURES` — value of `tensies_live_push_failures_total`
+- `BASELINE_GAMES_ACTIVE` — value of `tensies_games_active` (gauge — should be 0 if no games running)
 
 This step always passes (it's a read).
 
@@ -264,34 +265,77 @@ Then navigate both to `http://localhost:8888/`.
 ```
 Store `ALPHA_ID`, `BETA_ID`, and confirm `GAME_CODE`.
 
-**Roll to win 1 round (then let the second round auto-start):**
-8. Install a MutationObserver on the winner dialog (same technique as test-game Step 12):
+**Verify `tensies_games_active` incremented:**
+```bash
+curl -sf http://localhost:8888/metrics | grep "^tensies_games_active "
+```
+Should be `BASELINE_GAMES_ACTIVE + 1`. If not, WARN (another game may be running).
+
+**Roll 3 rounds using the auto-roller:**
+
+8. Inject the auto-roller into both instances. It stops itself after 3 rounds:
 ```js
-window._winCap = null;
-const dlg = document.getElementById('winner-overlay');
-new MutationObserver(() => {
-  if (dlg.open && !window._winCap) {
-    window._winCap = {
-      winnerName: document.getElementById('winner-name')?.textContent.trim(),
-      capturedAt: Date.now()
-    };
-  }
-}).observe(dlg, { attributes: true, attributeFilter: ['open'] });
+// Run on mcp__playwright (Alpha)
+() => {
+  window._autoRollEnabled = true;
+  window._rollCount = 0;
+  window._lastRoundNum = _state.currentState?.round_num ?? 1;
+  window._autoRoller = setInterval(() => {
+    if (!window._autoRollEnabled) return;
+    const state = _state.currentState;
+    if (!state?.started) return;
+    if (state.round_num > window._lastRoundNum) { window._lastRoundNum = state.round_num; }
+    if (state.round_num > 3) { window._autoRollEnabled = false; return; }
+    if (_state.rolling || _state.awaitingAck) return;
+    const btn = document.getElementById('roll-btn');
+    if (btn && !btn.disabled) { btn.click(); window._rollCount++; }
+  }, 250);
+  return 'roller installed';
+}
+```
+```js
+// Run on mcp__playwright-guest (Beta) — same but 280ms interval
+() => {
+  window._autoRollEnabled = true;
+  window._autoRoller = setInterval(() => {
+    if (!window._autoRollEnabled) return;
+    const state = _state.currentState;
+    if (!state?.started || state.round_num > 3) { window._autoRollEnabled = false; return; }
+    if (_state.rolling || _state.awaitingAck) return;
+    const btn = document.getElementById('roll-btn');
+    if (btn && !btn.disabled) btn.click();
+  }, 280);
+  return 'roller installed';
+}
 ```
 
-9. Roll Alpha in a loop until all 10 are matched (same loop as test-game Step 12 — click `#roll-btn`, wait for re-enable, check matched count). Time out after 120 seconds.
-
-10. Read `window._winCap` — confirm `winnerName` contains "Telemetry".
-
-**Let the pipeline drain:**
-
-After the round win, wait for the second round to auto-start (up to 5 seconds), then close both game sockets to trigger `game_ended` and `session_ended` events:
-```js
-// Run on both instances
-() => { _state.ws.close(); return 'closed'; }
+9. Poll Postgres until 3 rounds have completed (background Bash, timeout 3 minutes):
+```bash
+until docker compose exec -T postgres psql -U tensies tensies -c \
+  "SELECT count(*) FROM rounds WHERE game_code = 'GAME_CODE' AND winner_user_id IS NOT NULL" \
+  2>/dev/null | grep -qE '^\s+3\s*$'; do sleep 5; done && echo "3 rounds done"
 ```
 
-Wait 2 seconds for the writer to drain before querying Postgres.
+10. Stop the rollers on both instances:
+```js
+() => { window._autoRollEnabled = false; clearInterval(window._autoRoller); return window._rollCount; }
+```
+
+**End the game cleanly — navigate both browsers away:**
+
+Navigate both instances to `about:blank`. This tears down the JS context so the auto-reconnect loop cannot fire, causing a clean DISCONNECT_GRACE expiry and proper `game_ended` emission.
+```
+// mcp__playwright and mcp__playwright-guest: browser_navigate to "about:blank"
+```
+
+Then poll Postgres until `games.status = 'ended'` (DISCONNECT_GRACE is 60s — allow up to 90s):
+```bash
+until docker compose exec -T postgres psql -U tensies tensies -c \
+  "SELECT status FROM games WHERE game_code = 'GAME_CODE'" \
+  2>/dev/null | grep -q 'ended'; do sleep 5; done && echo "game ended"
+```
+
+Wait 3 additional seconds for the telemetry writer to drain.
 
 ---
 
@@ -310,16 +354,16 @@ ORDER BY type;
 ```
 
 Check each required type is present (count >= 1):
-- `connection_opened` — at least 2 (one per player)
-- `session_started` — exactly 2
 - `game_created` — exactly 1
-- `player_joined` — exactly 2
 - `game_started` — exactly 1
-- `round_started` — at least 1
-- `roll` — at least 1 (Alpha rolled to win)
-- `round_won` — at least 1
-- `round_ended` — at least 1
-- `connection_closed` — at least 2
+- `game_ended` — exactly 1 (now fires because we navigated away cleanly)
+- `player_joined` — exactly 2
+- `round_started` — at least 3
+- `round_ended` — at least 3
+- `round_won` — at least 3
+- `roll` — at least 3 (both players rolled across 3 rounds)
+
+Note: `connection_opened`, `connection_closed`, `session_started`, `session_ended` are stored **without** `game_code` (they fire before/after a player is associated with a game). They will not appear in this query — that is expected. They can be verified separately by filtering on `user_id` if needed.
 
 Also verify the `roll` events have complete payloads:
 ```bash
@@ -336,7 +380,7 @@ WHERE game_code = 'GAME_CODE' AND type = 'roll';
 ```
 
 **Pass criteria:**
-- All 10 required event types present
+- All 8 required event types present (including `game_ended`)
 - `missing_matched` = 0, `missing_dice_after` = 0
 - `max_matched` <= 10 (no impossible match count)
 
@@ -364,26 +408,31 @@ FROM round_player WHERE game_code = 'GAME_CODE' ORDER BY round_num, user_id;
 ```
 
 Check:
+- `games.status = 'ended'` (game closed cleanly)
 - `games.player_count == 2`
-- At least one `rounds` row with `has_winner = true` and `duration_ms > 0`
-- `round_player` rows exist for both `ALPHA_ID` and `BETA_ID`
+- `games.round_count >= 3` (all 3 played rounds recorded)
+- All 3 `rounds` rows have `has_winner = true` and `duration_ms > 0`
+- Target cycling is correct: round 1 → target 6, round 2 → target 5, round 3 → target 4
+- `round_player` rows exist for rounds with rolls
 - `rounds.total_rolls` matches `round_player` roll sums
 
-Check player_stats updated for the winner:
+Check player_stats updated for both players:
 ```bash
 docker compose exec -T postgres psql -U tensies tensies -c "
 SELECT user_id, total_rolls, total_wins
 FROM player_stats
-WHERE user_id IN ('ALPHA_ID')
+WHERE user_id IN ('ALPHA_ID', 'BETA_ID')
 ORDER BY user_id;
 "
 ```
 
 **Pass criteria:**
+- `games.status = 'ended'`
 - `games.player_count = 2`
-- At least one round with a set `winner_user_id` and positive `duration_ms`
-- `round_player` has at least one row in round 1 (for the player who rolled; guests who never roll won't have a row — that is expected)
-- `player_stats.total_wins >= 1` for Alpha
+- `games.round_count >= 3`
+- All 3 rounds have winner and positive duration
+- Targets follow the 6→5→4 sequence
+- `player_stats` rows exist for both players with `total_rolls > 0`
 
 ---
 
@@ -392,19 +441,23 @@ ORDER BY user_id;
 Read the current Prometheus counters and compare the delta against the Postgres event counts for the test game.
 
 ```bash
-curl -sf http://localhost:8888/metrics | grep -E "^tensies_(rolls_total|games_started_total|games_ended_total|rounds_started_total|sessions_started_total|telemetry_dropped_total|live_push_failures_total)[^_]" | sort
+curl -sf http://localhost:8888/metrics | grep -E "^tensies_(rolls_total|games_started_total|games_ended_total|rounds_started_total|sessions_started_total|telemetry_dropped_total|live_push_failures_total|games_active)[^_]" | sort
 ```
 
 Compute deltas vs baseline (Step 4). Then compare:
 
-| Metric delta | Expected | Source |
+| Metric | Check | Tolerance |
 |---|---|---|
-| `tensies_rolls_total` delta | = Postgres `COUNT(*)` WHERE `type='roll' AND game_code=GAME_CODE` | 5% tolerance |
+| `tensies_rolls_total` delta | = Postgres `COUNT(*)` WHERE `type='roll' AND game_code=GAME_CODE` | 5% |
 | `tensies_games_started_total` delta | = 1 | exact |
-| `tensies_sessions_started_total` delta | = 2 (two players) | exact (+ any other players on the server) |
-| `tensies_rounds_started_total{target=...}` delta | >= 1 | exact |
+| `tensies_games_ended_total` delta | = 1 (game closed cleanly) | exact |
+| `tensies_sessions_started_total` delta | >= 2 (two players) | exact |
+| `tensies_rounds_started_total` sum delta | >= 3 | exact |
+| `tensies_games_active` (gauge) | = `BASELINE_GAMES_ACTIVE` (back to baseline — game ended) | exact |
 
-**5% tolerance rule:** if `abs(prometheus_count - postgres_count) / postgres_count > 0.05` and the absolute difference > 2, flag as FAIL. An absolute difference of 1–2 on a count of 1–5 is acceptable (timing window).
+**`tensies_games_active` is the key "playing" metric.** It should have gone `BASELINE → BASELINE+1` when the game started, and back to `BASELINE` now that `game_ended` fired. If it's still `BASELINE+1`, the game did not end cleanly — FAIL.
+
+**5% tolerance rule:** if `abs(prometheus_count - postgres_count) / postgres_count > 0.05` and the absolute difference > 2, flag as FAIL.
 
 Also verify no new drops or push failures occurred:
 ```bash
@@ -416,60 +469,108 @@ FAILS_NOW=$(curl -sf http://localhost:8888/metrics | grep "^tensies_live_push_fa
 **Pass criteria:**
 - `rolls_total` delta within 5% of Postgres roll count
 - `games_started_total` delta == 1
-- `sessions_started_total` delta >= 2
+- `games_ended_total` delta == 1
+- `tensies_games_active` == `BASELINE_GAMES_ACTIVE` (returned to baseline)
 - `tensies_telemetry_dropped_total` unchanged since baseline
 - `tensies_live_push_failures_total` unchanged since baseline
 
 ---
 
-## Step 9 — live-games dashboard (Live panel verification)
+## Step 9 — live-games dashboard
 
-The `live-games` dashboard is the default home. Navigate the Grafana inspector instance to it immediately after the game — the Grafana Live channels (`stream/tensies/rolls`, `stream/tensies/wins`, `stream/tensies/games`) should have recent data.
+Get the game's start time from Postgres so all dashboard URLs are scoped to the test game's actual time window:
+
+```bash
+docker compose exec -T postgres psql -U tensies tensies -c "
+SELECT
+  extract(epoch from started_ts)::bigint * 1000 AS from_ms,
+  extract(epoch from coalesce(ended_ts, now() + interval '1 minute'))::bigint * 1000 AS to_ms
+FROM games WHERE game_code = 'GAME_CODE';
+" 2>/dev/null
+```
+
+Store `FROM_MS` and `TO_MS`. Use these in all dashboard URLs below instead of `now-15m`.
 
 Navigate to:
 ```
-http://localhost:8889/d/tensies-live/tensies-live-games?refresh=5s&from=now-15m&to=now
+http://localhost:8889/d/tensies-live/tensies-live-games?refresh=5s&from=FROM_MS&to=TO_MS
 ```
 
-Wait 3 seconds for panels to render.
+Wait 3 seconds for panels to render. Take screenshot **`.playwright-mcp/t09-live-games.png`**.
 
-Take screenshot **`.playwright-mcp/t09-live-games.png`**.
-
-Check for "No data" or error states — run a snapshot and look for:
+Run the panel health check:
 ```js
 () => {
   const panels = Array.from(document.querySelectorAll('[class*="panel-container"]'));
   const noData = panels.filter(p => p.textContent.includes('No data'));
   const errors = panels.filter(p => p.textContent.includes('Error') || p.textContent.includes('error'));
-  return { total: panels.length, noData: noData.length, errors: errors.length };
+  return { total: panels.length, noData: noData.map(p => p.querySelector('h6,[class*="title"]')?.textContent?.trim() || '?'), errors: errors.length };
 }
 ```
 
-Verify the Live roll firehose panel shows recent data. Look for panel content that includes a "Rolls" table or a live stream display with a timestamp within the last 5 minutes.
-
 **Pass criteria:**
-- All panels render (no error states)
-- `noData` count is 0 (after a game was just played, all panels should have data)
-- At least one panel showing roll or win data from the test game (visible in screenshot)
+- No error states
+- `noData` count is 0 (game was just played, all panels should have data in this window)
 
 ---
 
-## Step 10 — per-game dashboard
+## Step 10 — per-game dashboard (post-game validation)
 
-Navigate to the per-game dashboard with the test game code as the variable:
+This step does a thorough post-game validation of the enriched per-game dashboard — scoped to the game's exact time window so every panel should be fully populated.
 
+Navigate to:
 ```
-http://localhost:8889/d/tensies-game/tensies-per-game-drilldown?var-game_code=GAME_CODE&from=now-1h&to=now
+http://localhost:8889/d/tensies-game/tensies-per-game-drilldown?var-game_code=GAME_CODE&from=FROM_MS&to=TO_MS
 ```
 
-Wait 3 seconds for panels to render. Take screenshot **`.playwright-mcp/t10-per-game.png`**.
+Wait 4 seconds for panels to render. Take a **fullPage** screenshot **`.playwright-mcp/t10-per-game.png`**.
 
-Check for "No data" / error states using the same evaluate as Step 9.
+Run the panel health check:
+```js
+() => {
+  const panels = Array.from(document.querySelectorAll('[class*="panel-container"]'));
+  const noData = panels.filter(p => p.textContent.includes('No data'));
+  return {
+    total: panels.length,
+    noData: noData.map(p => p.querySelector('h6,[class*="title"]')?.textContent?.trim() || '?')
+  };
+}
+```
+
+**Expected "No data" panels (not a failure):**
+- `"Match progression (current round)"` — queries the current round in `live_games`; post-game it shows the empty next round
+- `"Status"` and `"Round / Target"` — both query `live_games` which is cleared when a game ends; these will be empty after clean game end
+- `"Current round progress"` — same `live_games` source; empty post-game
+
+These four panels are only populated for *active* games. All other panels query `events`/`rounds` directly and must have data. Report WARN only if a panel outside this list shows No data.
+
+**Per-panel assertions** — verify each of these panels has data by checking page text:
+
+```js
+() => {
+  const text = document.body.innerText;
+  return {
+    stat_rounds_completed: /Rounds completed/.test(text) && !/Rounds completed\s*[-–]\s*$/.test(text),
+    event_log_has_entries: (text.match(/rolled \d+\/10/g) || []).length > 0,
+    rounds_table_has_rows: (text.match(/Alpha|Beta|Telemetry|Monitor/g) || []).length > 0,
+    rolls_per_round_visible: /Rolls per round/.test(text),
+    match_progression_all_rounds: /Match progression \(all rounds\)/.test(text),
+    dice_distribution_visible: /Dice distribution/.test(text),
+    player_wins_visible: /Player wins/.test(text),
+  };
+}
+```
+
+Cross-check stat panels against Postgres:
+- "Rounds completed" stat should match `SELECT count(*) FROM rounds WHERE game_code='GAME_CODE' AND winner_user_id IS NOT NULL`
+- "Total rolls" stat should match `SELECT total_rolls FROM games WHERE game_code='GAME_CODE'`
 
 **Pass criteria:**
-- Panels load for the specific game code
-- No error states
-- Round timeline panels show data (not empty)
+- `total` panels >= 8
+- Only `"Match progression (current round)"` may show No data — anything else is a FAIL
+- `event_log_has_entries = true` (rolled N/10 entries visible)
+- `rounds_table_has_rows = true`
+- Stat panel values match Postgres (within 1 roll — timing window)
 
 ---
 
@@ -477,7 +578,7 @@ Check for "No data" / error states using the same evaluate as Step 9.
 
 Navigate to:
 ```
-http://localhost:8889/d/tensies-conn/tensies-connections?from=now-15m&to=now
+http://localhost:8889/d/tensies-conn/tensies-connections?from=FROM_MS&to=TO_MS
 ```
 
 Wait 3 seconds. Take screenshot **`.playwright-mcp/t11-connections.png`**.
@@ -485,7 +586,6 @@ Wait 3 seconds. Take screenshot **`.playwright-mcp/t11-connections.png`**.
 **Pass criteria:**
 - No error states
 - Connect/disconnect rate panels show the 2 connections from the test game
-- Live session table is visible (may be empty if game ended, which is correct)
 
 ---
 
@@ -493,15 +593,10 @@ Wait 3 seconds. Take screenshot **`.playwright-mcp/t11-connections.png`**.
 
 Navigate to:
 ```
-http://localhost:8889/d/tensies-health/tensies-gameplay-health?from=now-15m&to=now
+http://localhost:8889/d/tensies-health/tensies-gameplay-health?from=FROM_MS&to=TO_MS
 ```
 
 Wait 3 seconds. Take screenshot **`.playwright-mcp/t12-gameplay-health.png`**.
-
-Pay particular attention to:
-- Telemetry queue depths panel — should show values near 0
-- Postgres cache hit ratio — should be > 90%
-- WS send latency p99 panel — should be visible and reasonable
 
 **Pass criteria:**
 - No error states
@@ -513,7 +608,7 @@ Pay particular attention to:
 
 Navigate to:
 ```
-http://localhost:8889/d/tensies-analytics/tensies-player-game-analytics?from=now-24h&to=now
+http://localhost:8889/d/tensies-analytics/tensies-player-game-analytics?from=FROM_MS&to=TO_MS
 ```
 
 Wait 3 seconds. Take screenshot **`.playwright-mcp/t13-analytics.png`**.
@@ -710,7 +805,7 @@ Preflight: self-update <ran|none>, prior-run review <ran|none> (not scored)
  PASS  07  Rollup table integrity
  PASS  08  Prometheus delta cross-check
  PASS  09  live-games dashboard (Live panels)
- PASS  10  per-game dashboard
+ PASS  10  per-game dashboard (post-game validation)
  PASS  11  connections dashboard
  PASS  12  gameplay-health dashboard
  PASS  13  analytics dashboard
