@@ -121,6 +121,8 @@ If the check fails, stop and report — no point running the browser suite again
 
 Navigate **instance #1** (`mcp__playwright__browser_navigate → http://localhost:8888/`) — Player 1 / host (Alpha). Also navigate **instance #2** (`mcp__playwright-guest__browser_navigate → http://localhost:8888/`) now so both browsers are warm; Player 2 / guest (Beta) lives there for the rest of the suite. The two navigations are independent — issue them in parallel.
 
+**Clear stale sessions first.** These are persistent profiles, so `tensies_pid`/`tensies_code` survive from prior runs — the bootstrap then attempts a doomed auto-reconnect to a dead game and flashes "Connection failed" on the landing. On **both** instances run `() => { localStorage.clear(); return true; }`, then **re-navigate both** to `http://localhost:8888/`. The landing is now clean.
+
 Take a screenshot **`.playwright-mcp/02-landing.png`** (instance #1). Verify:
 - `#name-input` is visible
 - `#landing-error` is empty
@@ -249,13 +251,17 @@ Roll 5 times in sequence, checking after each that `_state.rolling` returns to `
 
 ## Step 10 — Rate limit enforcement
 
-While the roll button is enabled, fire two rolls within 250 ms (click the button twice in rapid succession via `evaluate`):
+Clicking `#roll-btn` twice does **not** trigger the rate limit — `roll()` has an `if (state.rolling) return` guard that drops the second click before any frame is sent, and after a roll completes (~1.4 s later) the next click is well past `MIN_ROLL_INTERVAL`. To actually exercise the server limit, send two raw `roll` frames straight down the socket (bypassing the client guard), < 250 ms apart:
 
 ```js
-() => { document.getElementById('roll-btn').click(); document.getElementById('roll-btn').click(); }
+() => { _state.ws.send(JSON.stringify({ action: 'roll' })); _state.ws.send(JSON.stringify({ action: 'roll' })); return 'sent 2 raw rolls'; }
 ```
 
-Check console messages — the server should have logged a rate limit warning. Verify the roll button re-enables (the `error` message handler clears the locked state) so the game is not stuck.
+Then verify:
+- The server logged the limit — `docker compose logs web --since 15s 2>&1 | grep "RATE LIMIT"` shows a `roll … RATE LIMIT` line (the second frame was rejected with a "Slow down" error).
+- The roll button is **not stuck** — after ~1.5 s, `#roll-btn` is enabled and `_state.rolling` / `_state.awaitingAck` are both `false` (the in-game `error` handler clears the locked state).
+
+**Don't run this at 9/10 matched:** the first raw roll could win, making the second hit `round_over` (silently dropped) instead of the rate limit. Run it when the roller is comfortably below 10 matched.
 
 ---
 

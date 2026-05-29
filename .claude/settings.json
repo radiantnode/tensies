@@ -33,7 +33,9 @@
       "mcp__playwright-g2-host__browser_take_screenshot",
       "mcp__playwright-g2-guest__browser_take_screenshot",
       "mcp__playwright-g3-host__browser_take_screenshot",
-      "mcp__playwright-g3-guest__browser_take_screenshot"
+      "mcp__playwright-g3-guest__browser_take_screenshot",
+      "mcp__playwright-guest__browser_tabs",
+      "mcp__playwright-guest__browser_console_messages"
     ]
   }
 }
