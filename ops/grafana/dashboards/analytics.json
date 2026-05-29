@@ -10,58 +10,73 @@
   "refresh": "1m",
   "panels": [
     {
+      "id": 0, "type": "text", "title": "",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "options": {
+        "mode": "html",
+        "content": "<div style=\"display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;\"><img src=\"http://localhost:8888/static/logo.svg\" style=\"width:120px;height:120px;filter:drop-shadow(0 12px 28px rgba(0,0,0,0.75)) drop-shadow(0 0 32px rgba(255,77,109,0.35));margin-bottom:-2.5rem;position:relative;z-index:2;\"/><span style=\"font-family:system-ui,-apple-system,sans-serif;font-size:32px;font-weight:900;letter-spacing:0.15em;color:#ff4d6d;text-shadow:0 0 40px rgba(255,77,109,0.4);\">TENSIES</span></div>"
+      },
+      "transparent": true
+    },
+    {
       "id": 1, "type": "stat", "title": "Games (range)",
-      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "gridPos": { "h": 4, "w": 3, "x": 6, "y": 0 },
       "datasource": { "type": "postgres", "uid": "postgres" },
       "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
         "rawSql": "SELECT count(*) FROM games WHERE started_ts >= $__timeFrom() AND started_ts < $__timeTo()"
       }],
-      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+      "fieldConfig": { "defaults": { "unit": "locale", "decimals": 0 } },
+      "options": { "colorMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
     },
     {
       "id": 2, "type": "stat", "title": "Rounds (range)",
-      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "gridPos": { "h": 4, "w": 3, "x": 9, "y": 0 },
       "datasource": { "type": "postgres", "uid": "postgres" },
       "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
         "rawSql": "SELECT count(*) FROM rounds WHERE started_ts >= $__timeFrom() AND started_ts < $__timeTo()"
       }],
-      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+      "fieldConfig": { "defaults": { "unit": "locale", "decimals": 0 } },
+      "options": { "colorMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
     },
     {
       "id": 3, "type": "stat", "title": "Total rolls (range)",
-      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "gridPos": { "h": 4, "w": 3, "x": 12, "y": 0 },
       "datasource": { "type": "postgres", "uid": "postgres" },
       "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
         "rawSql": "SELECT count(*) FROM events WHERE type = 'roll' AND ts >= $__timeFrom() AND ts < $__timeTo()"
       }],
-      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+      "fieldConfig": { "defaults": { "unit": "locale", "decimals": 0 } },
+      "options": { "colorMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
     },
     {
       "id": 4, "type": "stat", "title": "Unique players (range)",
-      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "gridPos": { "h": 4, "w": 3, "x": 15, "y": 0 },
       "datasource": { "type": "postgres", "uid": "postgres" },
       "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
         "rawSql": "SELECT count(DISTINCT user_id) FROM events WHERE user_id IS NOT NULL AND ts >= $__timeFrom() AND ts < $__timeTo()"
       }],
-      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+      "fieldConfig": { "defaults": { "unit": "locale", "decimals": 0 } },
+      "options": { "colorMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
     },
     {
       "id": 5, "type": "stat", "title": "Sessions (range)",
-      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "gridPos": { "h": 4, "w": 3, "x": 18, "y": 0 },
       "datasource": { "type": "postgres", "uid": "postgres" },
       "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
         "rawSql": "SELECT count(*) FROM sessions WHERE connected_ts >= $__timeFrom() AND connected_ts < $__timeTo()"
       }],
-      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+      "fieldConfig": { "defaults": { "unit": "locale", "decimals": 0 } },
+      "options": { "colorMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
     },
     {
       "id": 6, "type": "stat", "title": "Total events stored",
-      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "gridPos": { "h": 4, "w": 3, "x": 21, "y": 0 },
       "datasource": { "type": "postgres", "uid": "postgres" },
       "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
         "rawSql": "SELECT count(*) FROM events"
       }],
-      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } }
+      "fieldConfig": { "defaults": { "unit": "locale", "decimals": 0 } },
+      "options": { "colorMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
     },
 
     {

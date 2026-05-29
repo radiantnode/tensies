@@ -61,6 +61,7 @@ services:
       GF_LIVE_ALLOWED_ORIGINS: "*"
       GF_USERS_DEFAULT_THEME: dark
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/live-games.json
+      GF_PANELS_DISABLE_SANITIZE_HTML: "true"
     volumes:
       - ./ops/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./ops/grafana/dashboards:/var/lib/grafana/dashboards:ro
