@@ -1,0 +1,56 @@
+/* ── Hamburger / × button ── */
+.game-menu-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.game-menu-btn span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 2px;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+  transform-origin: center;
+}
+
+.game-menu-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.game-menu-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.game-menu-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ── Menu overlay ── */
+.game-menu {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: rgba(8, 4, 1, 0.88);
+  transform: translateY(-100%);
+  /* visibility delays to hidden after slide-out so backdrop-filter
+     never runs while the menu is off-screen (layout bounds = full #game) */
+  visibility: hidden;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0s linear 0.28s;
+  pointer-events: none;
+}
+
+
+.game-menu.open {
+  transform: translateY(0);
+  visibility: visible;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: all;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0s linear 0s;
+}

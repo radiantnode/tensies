@@ -5,6 +5,9 @@
   overflow-x: auto;
   scrollbar-width: none;
   padding: 0.6rem 0.75rem;
+  background: rgba(8, 4, 1, 0.58);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .players-bar::-webkit-scrollbar { display: none; }
 

@@ -6,6 +6,7 @@
   max-height: 100vh;
   max-height: 100dvh;
   overflow: hidden;
+  position: relative;
 }
 
 /* ── Round header (centered in play area) ── */
@@ -45,13 +46,24 @@
 
 /* ── Top bar ── */
 .game-topbar {
-  background: rgba(8, 4, 1, 0.58);
+  /* No backdrop-filter here — it would create an implicit stacking context,
+     causing the entire topbar to sit below the menu overlay (z-index 50).
+     Blur lives on .topbar-title-row so only that row forms a stacking context. */
+  flex-shrink: 0;
+  position: relative;
   border-bottom: 1px solid rgba(180, 100, 20, 0.25);
+  padding-top: env(safe-area-inset-top);
+}
+
+.topbar-title-row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(180, 100, 20, 0.2);
+  background: rgba(8, 4, 1, 0.58);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  flex-shrink: 0;
-  /* Notch / status bar clearance */
-  padding-top: env(safe-area-inset-top);
+  position: relative;
+  z-index: 100;
 }
 
 .game-title {
@@ -61,7 +73,6 @@
   color: var(--accent);
   text-transform: uppercase;
   padding: 0.5rem 0.75rem 0.5rem 0.4rem;
-  border-bottom: 1px solid rgba(180, 100, 20, 0.2);
   display: flex;
   align-items: center;
   gap: 0;
