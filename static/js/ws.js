@@ -5,7 +5,7 @@ import { resetRollState } from './animations.js';
 import { renderGame, renderLobby, renderMyArea, renderPlayersBar } from './screens.js';
 import { hideWinner, leaveLoading, showLoading, showWinner, waitingText } from './overlays.js';
 
-const RECONNECT_WINDOW_MS = 30000;
+const RECONNECT_WINDOW_MS = 60000;
 const RETRY_DELAY_MS = 2000;
 
 function wsUrl() {

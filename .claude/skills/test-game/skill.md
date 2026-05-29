@@ -9,13 +9,36 @@ user_invocable: true
 You are about to run a full integration test of the Tensies multiplayer dice game. This covers:
 - Server health
 - Full gameplay loop (create → lobby → start → roll → win → next round)
-- Multiplayer synchronisation (two separate browser contexts)
+- Multiplayer synchronisation (two **separate** browser instances)
 - Every specific bug that was previously fixed
 - Animation-integrity spot checks via screenshots and console errors
 
 **Do not ask for confirmation. Run everything and report results.**
 
 **All screenshots must be saved to the `.playwright-mcp/` directory** (e.g. `.playwright-mcp/01-landing.png`). Never save them to the project root.
+
+## Test topology — two isolated Playwright instances
+
+The two players MUST run in **separate Playwright MCP instances**, each with its own browser profile. The project `.mcp.json` defines **six** instances — three host/guest pairs, enough to drive three concurrent 2-player games:
+
+| Role | Player | MCP tool prefix | Profile |
+|------|--------|-----------------|---------|
+| Game 1 host (Player 1) | Alpha | `mcp__playwright__*` | `/tmp/pw-mcp-host` |
+| Game 1 guest (Player 2) | Beta | `mcp__playwright-guest__*` | `/tmp/pw-mcp-guest` |
+| Game 2 host | Alpha2 | `mcp__playwright-g2-host__*` | `/tmp/pw-mcp-g2-host` |
+| Game 2 guest | Beta2 | `mcp__playwright-g2-guest__*` | `/tmp/pw-mcp-g2-guest` |
+| Game 3 host | Alpha3 | `mcp__playwright-g3-host__*` | `/tmp/pw-mcp-g3-host` |
+| Game 3 guest | Beta3 | `mcp__playwright-g3-guest__*` | `/tmp/pw-mcp-g3-guest` |
+
+The core suite below uses only the first pair: **"Tab 1" = instance #1 (`mcp__playwright`)** and **"Tab 2" = instance #2 (`mcp__playwright-guest`)**. The g2/g3 instances are available for optional concurrent-games / cross-game-isolation checks (run three games at once and confirm distinct game codes, correct per-game rosters, and `tensies_games_active == 3`). For very high scale (hundreds of games), don't fan out browsers — use the headless WebSocket driver `loadtest.py` in the repo root: `docker compose cp loadtest.py web:/app/loadtest.py && docker compose exec -T -w /app web python loadtest.py 250 1000`. It runs the real create/join/start/roll protocol per client and reports throughput, errors, and whether `games_active` drains back to 0 after the disconnect grace (a leak check — it caught a real game-leak regression at 250+ games).
+
+**Why this matters (do not regress to two tabs in one browser):** two tabs/windows in a *single* profile share `localStorage`, so the second player's `tensies_pid`/`tensies_code` overwrites the first's. That silently corrupts per-player identity and produces *false* reconnect failures (a "host reconnect fails" report on 2026-05-29 was exactly this artifact, not a real bug). Separate instances give each player its own isolated `localStorage`.
+
+Because each instance uses a **persistent** profile, `localStorage` now survives reloads — so reconnect can be exercised with a real page reload (no dynamic-import seeding hack required).
+
+If either instance's tools are unavailable (e.g. `mcp__playwright-guest__browser_navigate` doesn't resolve), the MCP config hasn't been picked up — reconnect to MCP / restart the session before proceeding.
+
+For throwaway single-client edge-case checks (invalid-code / join-after-start), open a **separate tab inside instance #2** and close it afterward; never run them in instance #1, and don't rely on instance #2's `localStorage` surviving them (the reconnect step re-seeds explicitly).
 
 ---
 
@@ -77,10 +100,9 @@ If no logs exist yet, skip this step.
 
 ## Step 1 — Prep
 
-Kill any stale browser processes, then bring the server up:
+Bring the server up. **Do not `pkill` browser/playwright processes** — that would kill the two MCP-managed browser instances this skill drives. Each Playwright MCP instance manages its own browser lifecycle; just navigate them.
 
 ```bash
-pkill -f "firefox|chrome|chromium|playwright" 2>/dev/null; true
 docker compose up -d
 sleep 2
 ```
@@ -95,13 +117,15 @@ If the check fails, stop and report — no point running the browser suite again
 
 ---
 
-## Step 2 — Open two browser tabs
+## Step 2 — Open the two browser instances
 
-Use `mcp__playwright` to navigate **Tab 1** (Player 1 / host):
+Navigate **instance #1** (`mcp__playwright__browser_navigate`) — this is Player 1 / host (Alpha):
 
 ```
-navigate → http://localhost:8888/
+mcp__playwright__browser_navigate → http://localhost:8888/
 ```
+
+Also open **instance #2** (`mcp__playwright-guest__browser_navigate → http://localhost:8888/`) now so both browsers are warm. Player 2 / guest (Beta) lives here for the rest of the suite.
 
 Take a screenshot labelled **"01-landing"**. Verify:
 - `#name-input` is visible
@@ -130,7 +154,7 @@ Take screenshot **"02-lobby-p1"**.
 
 ## Step 4 — Join via deep link (Player 2)
 
-Open a **new tab** in the same browser session. Navigate to:
+In **instance #2** (`mcp__playwright-guest__*`), navigate to:
 
 ```
 http://localhost:8888/?join=<GAME_CODE>
@@ -158,11 +182,11 @@ Take screenshot **"03-lobby-both"**.
 
 ## Step 5 — Attempt to join a started game (edge case)
 
-Before starting, open a **third tab** and navigate to the root. The join flow is two steps:
+Before starting, open a **throwaway tab in instance #2** (`mcp__playwright-guest__browser_tabs` action `new`) and navigate it to the root — keep Beta's main tab untouched. The join flow is two steps:
 1. Type `Gamma` into `#name-input` on the landing screen, then click `#show-join-btn` to reach the join screen.
 2. On the join screen, fill `#code-input` with `ZZZZZ`, then submit the join form (`#join-form button[type="submit"]`).
 
-Verify `#join-error` (not `#landing-error`) contains "Game not found". Close or reuse Tab 3.
+Verify `#join-error` (not `#landing-error`) contains "Game not found". Close the throwaway tab (`mcp__playwright-guest__browser_tabs` action `close`) so Beta's main tab stays active.
 
 ---
 
@@ -186,11 +210,11 @@ Also verify Tab 2 is now on `#game` as well. Check the players bar on Tab 2 mirr
 
 ## Step 7 — Join-after-start rejection (edge case)
 
-Open a new tab to `http://localhost:8888/`. Use the two-step join flow:
+Open a **throwaway tab in instance #2** (`mcp__playwright-guest__browser_tabs` action `new`) to `http://localhost:8888/`. Use the two-step join flow:
 1. Type `Latebird` into `#name-input`, then click `#show-join-btn`.
 2. Fill `#code-input` with `GAME_CODE`, then submit the join form (`#join-form button[type="submit"]`).
 
-Verify `#join-error` (not `#landing-error`) contains "Game already in progress". Close this tab.
+Verify `#join-error` (not `#landing-error`) contains "Game already in progress". Close the throwaway tab (`mcp__playwright-guest__browser_tabs` action `close`).
 
 ---
 
@@ -447,17 +471,13 @@ Take screenshot **"14-post-disconnect"** (you'll see the loading bar with "Waiti
 
 Continuing from Step 15 (Beta's WS is closed, Tab 1 is on the loading screen).
 
-On Tab 2, seed localStorage with Beta's pid/code and call the reconnect path directly via dynamic import (the per-tab Playwright MCP wipes localStorage across `goto`/`reload`, so the auto-trigger on page load doesn't work):
+Because instance #2 uses a persistent profile, `localStorage` survives a reload — so the faithful reconnect test is a **real page reload** of instance #2, which lets the page bootstrap auto-reconnect exactly as a real user's reopened tab would:
 
-```js
-async () => {
-  localStorage.setItem('tensies_pid', _state.myId);
-  localStorage.setItem('tensies_code', _state.gameCode);
-  _state.reconnecting = false;
-  const ws = await import('/static/js/ws.js');
-  ws.maybeReconnect();
-}
 ```
+mcp__playwright-guest__browser_navigate → http://localhost:8888/
+```
+
+On load the bootstrap reads `tensies_pid`/`tensies_code` and calls `maybeReconnect()` automatically. (If a throwaway edge-case tab earlier clobbered instance #2's `localStorage`, re-seed first with `localStorage.setItem('tensies_pid', BETA_PID); localStorage.setItem('tensies_code', GAME_CODE)` using the values captured when Beta joined, then reload.)
 
 Verify on Tab 2:
 - `#loading.active` is true and `#loading-msg.textContent` is `Reconnecting…` within the first ~50 ms.
@@ -470,7 +490,7 @@ Then switch back to Tab 1 (Alpha) and verify:
 
 Take screenshot **"14b-reconnected"**.
 
-If the reconnect fails (loading screen stays indefinitely or landing screen shows `Connection failed`), mark this step FAIL. Confirm whether it's because the server already dropped Beta (30 s grace elapsed during the test's tab-switch latency) or a client-side bug by running an out-of-band direct-WS reconnect:
+If the reconnect fails (loading screen stays indefinitely or landing screen shows `Connection failed`), mark this step FAIL. Confirm whether it's because the server already dropped Beta (the `DISCONNECT_GRACE` window — currently **60 s** — elapsed during test latency) or a client-side bug by running an out-of-band direct-WS reconnect:
 
 ```python
 import asyncio, json, websockets
@@ -493,15 +513,17 @@ Expected `False`. If that passes, the failure was test-tooling latency, not a re
 
 ## Step 16 — Host disconnect / host transfer
 
-This test requires a fresh game. Start a new two-player game (Tabs 3 and 4, or reuse). Start the game. Then close the **host's WS** via `_state.ws.close()` in `evaluate` (not the tab itself).
+This test reuses the two instances (instance #1 = host Alpha, instance #2 = guest Beta). With the running game, close the **host's WS** via `_state.ws.close()` in an `evaluate` on **instance #1** (not the browser itself — we want a clean socket close while the page stays put).
 
-In Tab 4 (the non-host), verify the **immediate** post-disconnect state (within ~2 seconds):
-- Tab 4 has switched to the loading screen: `#loading.active` is true, `#game.active` is false
+On **instance #2** (the non-host), verify the **immediate** post-disconnect state (within ~2 seconds):
+- Instance #2 has switched to the loading screen: `#loading.active` is true, `#game.active` is false
 - `#loading-msg` reads `Waiting for <host name> to reconnect…`
 - `_state.currentState.host` still shows the old host ID (host transfer hasn't happened yet — the drop_player task hasn't fired)
 - The game does not crash
 
-**Note:** Host transfer (`host` field updating to the remaining player's ID) only happens after the 30-second drop timer fires. Do **not** wait 30s — verify the immediate disconnected-but-not-dropped state instead. Test that `_state.currentState.host` still shows the old host ID at this point (transfer has not yet occurred).
+**Note:** Host transfer (`host` field updating to the remaining player's ID) only happens after the `DISCONNECT_GRACE` drop timer fires (currently **60 s**). Do **not** wait it out — verify the immediate disconnected-but-not-dropped state instead. Test that `_state.currentState.host` still shows the old host ID at this point (transfer has not yet occurred).
+
+Then reload **instance #1** (`mcp__playwright__browser_navigate → http://localhost:8888/`) and verify the host reconnects: instance #1 returns to `#game` with `_state.currentState.players[_state.myId].disconnected === false`, and instance #2 leaves the loading screen back to `#game`. This is the host-reconnect path that a shared-`localStorage` test setup previously mis-reported as broken.
 
 Take screenshot **"15-host-transfer"**.
 
