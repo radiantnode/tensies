@@ -9,19 +9,42 @@ user_invocable: true
 You are about to run a full integration test of the Tensies multiplayer dice game. This covers:
 - Server health
 - Full gameplay loop (create → lobby → start → roll → win → next round)
-- Multiplayer synchronisation (two separate browser contexts)
+- Multiplayer synchronisation (two **separate** browser instances)
 - Every specific bug that was previously fixed
 - Animation-integrity spot checks via screenshots and console errors
 
 **Do not ask for confirmation. Run everything and report results.**
 
-**All screenshots must be saved to the `.playwright-mcp/` directory** (e.g. `.playwright-mcp/01-landing.png`). Never save them to the project root.
+**All screenshots must be saved into the `.playwright-mcp/` directory** — pass the full relative path as the `filename` (e.g. `filename: ".playwright-mcp/02-landing.png"`). A bare filename lands in the project root; always include the `.playwright-mcp/` prefix. Screenshot labels match their step number.
+
+## Test topology — two isolated Playwright instances
+
+The two players MUST run in **separate Playwright MCP instances**, each with its own browser profile. The project `.mcp.json` defines **six** instances — three host/guest pairs, enough to drive three concurrent 2-player games:
+
+| Role | Player | MCP tool prefix | Profile |
+|------|--------|-----------------|---------|
+| Game 1 host (Player 1) | Alpha | `mcp__playwright__*` | `/tmp/pw-mcp-host` |
+| Game 1 guest (Player 2) | Beta | `mcp__playwright-guest__*` | `/tmp/pw-mcp-guest` |
+| Game 2 host | Alpha2 | `mcp__playwright-g2-host__*` | `/tmp/pw-mcp-g2-host` |
+| Game 2 guest | Beta2 | `mcp__playwright-g2-guest__*` | `/tmp/pw-mcp-g2-guest` |
+| Game 3 host | Alpha3 | `mcp__playwright-g3-host__*` | `/tmp/pw-mcp-g3-host` |
+| Game 3 guest | Beta3 | `mcp__playwright-g3-guest__*` | `/tmp/pw-mcp-g3-guest` |
+
+The core suite below uses only the first pair: **"Tab 1" = instance #1 (`mcp__playwright`)** and **"Tab 2" = instance #2 (`mcp__playwright-guest`)**. These are independent processes — acting on one never disturbs the other, and you may issue calls to different instances in parallel. The g2/g3 instances are available for optional concurrent-games / cross-game-isolation checks (run three games at once and confirm distinct game codes, correct per-game rosters, and `tensies_games_active == 3`). For very high scale (hundreds of games), don't fan out browsers — use the headless WebSocket driver `loadtest.py` in the repo root: `docker compose cp loadtest.py web:/app/loadtest.py && docker compose exec -T -w /app web python loadtest.py 250 1000`. It runs the real create/join/start/roll protocol per client and reports throughput, errors, and whether `games_active` drains back to 0 after the disconnect grace (a leak check — it caught a real game-leak regression at 250+ games).
+
+**Why this matters (do not regress to two tabs in one browser):** two tabs/windows in a *single* profile share `localStorage`, so the second player's `tensies_pid`/`tensies_code` overwrites the first's. That silently corrupts per-player identity and produces *false* reconnect failures (a "host reconnect fails" report on 2026-05-29 was exactly this artifact, not a real bug). Separate instances give each player its own isolated `localStorage`.
+
+Because each instance uses a **persistent** profile, `localStorage` survives reloads — so reconnect can be exercised with a real page reload (no dynamic-import seeding hack required).
+
+If either instance's tools are unavailable (e.g. `mcp__playwright-guest__browser_navigate` doesn't resolve), the MCP config hasn't been picked up — reconnect to MCP / restart the session before proceeding.
+
+For throwaway single-client edge-case checks (invalid-code / join-after-start), open a **separate tab inside instance #2** and close it afterward; never run them in instance #1, and don't rely on instance #2's `localStorage` surviving them (the reconnect step re-seeds explicitly).
 
 ---
 
-## Step 0 — Self-update preflight
+## Preflight A — Self-update
 
-Before running any tests, check whether the skill is stale relative to the game code. This keeps the test suite accurate as the game evolves.
+Before running any tests, check whether the skill is stale relative to the game code. This keeps the test suite accurate as the game evolves. (Preflight is not a scored test row.)
 
 ```bash
 # Get the skill file's last-modified timestamp (seconds since epoch)
@@ -49,14 +72,14 @@ If any commits appear **or** any files are listed in the `git diff` output (stag
    - Add new test steps for new behaviour
    - Update selectors, variable names, or assertions that have changed
    - Remove tests for things that no longer exist
-   - Update the checkpoint count and summary table at the bottom
+   - **Renumber consistently** — steps, their screenshot labels, and the report rows are all 1:1; if you add/remove a step, renumber the rest and update the count in the summary table and the Log-writing section.
 4. After saving the updated skill, **continue running the tests** with the new version — do not stop.
 
-If there are no new commits **and** no unstaged/staged changes, skip straight to Step 0b (Prior run review).
+If there are no new commits **and** no unstaged/staged changes, skip straight to Preflight B.
 
 ---
 
-## Step 0b — Prior run review
+## Preflight B — Prior run review
 
 Read the most recent test log(s) from `test-logs/` (project root) before starting:
 
@@ -75,12 +98,11 @@ If no logs exist yet, skip this step.
 
 ---
 
-## Step 1 — Prep
+## Step 1 — Server health
 
-Kill any stale browser processes, then bring the server up:
+Bring the server up. **Do not `pkill` browser/playwright processes** — that would kill the MCP-managed browser instances this skill drives. Each Playwright MCP instance manages its own browser lifecycle; just navigate them.
 
 ```bash
-pkill -f "firefox|chrome|chromium|playwright" 2>/dev/null; true
 docker compose up -d
 sleep 2
 ```
@@ -91,19 +113,19 @@ Confirm the server is responding before touching the browser:
 curl -sf http://localhost:8888/ | grep -q "TENSIES" && echo "OK" || echo "FAIL: server not up"
 ```
 
-If the check fails, stop and report — no point running the browser suite against a dead server. (Name generation is now client-side; there is no `/random-name` endpoint.)
+If the check fails, stop and report — no point running the browser suite against a dead server. (Name generation is client-side; there is no `/random-name` endpoint.)
 
 ---
 
-## Step 2 — Open two browser tabs
+## Step 2 — Landing screen (open both instances)
 
-Use `mcp__playwright` to navigate **Tab 1** (Player 1 / host):
+Navigate **instance #1** (`mcp__playwright__browser_navigate → http://localhost:8888/`) — Player 1 / host (Alpha). Also navigate **instance #2** (`mcp__playwright-guest__browser_navigate → http://localhost:8888/`) now so both browsers are warm; Player 2 / guest (Beta) lives there for the rest of the suite. The two navigations are independent — issue them in parallel.
 
-```
-navigate → http://localhost:8888/
-```
+**Expect a one-retry relaunch.** If an instance's browser was closed since a prior session, the first `browser_navigate` errors with "Target page, context or browser has been closed". This is normal — the MCP relaunches the browser on the call; simply re-issue the same `browser_navigate` once and it succeeds. Only treat it as a failure if the *retry* also errors.
 
-Take a screenshot labelled **"01-landing"**. Verify:
+**Clear stale sessions first.** These are persistent profiles, so `tensies_pid`/`tensies_code` survive from prior runs — the bootstrap then attempts a doomed auto-reconnect to a dead game and flashes "Connection failed" on the landing. On **both** instances run `() => { localStorage.clear(); return true; }`, then **re-navigate both** to `http://localhost:8888/`. The landing is now clean.
+
+Take a screenshot **`.playwright-mcp/02-landing.png`** (instance #1). Verify:
 - `#name-input` is visible
 - `#landing-error` is empty
 - The placeholder text on `#name-input` contains a random name (not blank and not the literal "Player")
@@ -124,13 +146,13 @@ Wait for `#lobby` screen to become `.active`. Then:
 - Verify `#start-btn` is visible (you are the host)
 - Verify `#waiting-msg` says something about "solo" or "Invite" (only 1 player)
 
-Take screenshot **"02-lobby-p1"**.
+Take screenshot **`.playwright-mcp/03-lobby-host.png`**.
 
 ---
 
-## Step 4 — Join via deep link (Player 2)
+## Step 4 — Deep-link join + lobby sync (Player 2)
 
-Open a **new tab** in the same browser session. Navigate to:
+In **instance #2** (`mcp__playwright-guest__*`), navigate to:
 
 ```
 http://localhost:8888/?join=<GAME_CODE>
@@ -148,25 +170,25 @@ Wait for `#lobby` to become active. Verify:
 - Beta sees `#waiting-msg` = "Waiting for the host to start…"
 - Start button is hidden for Beta
 
-Switch back to Tab 1. Verify:
+On Tab 1, verify the lobby synced:
 - Beta now appears in the lobby player list
 - `#waiting-msg` is now empty (2 players — no longer "invite friends")
 
-Take screenshot **"03-lobby-both"**.
+Take screenshot **`.playwright-mcp/04-lobby-both.png`**.
 
 ---
 
-## Step 5 — Attempt to join a started game (edge case)
+## Step 5 — Invalid game code rejection (edge case)
 
-Before starting, open a **third tab** and navigate to the root. The join flow is two steps:
+Open a **throwaway tab in instance #2** (`mcp__playwright-guest__browser_tabs` action `new`) and navigate it to the root — keep Beta's main tab untouched. The join flow is two steps:
 1. Type `Gamma` into `#name-input` on the landing screen, then click `#show-join-btn` to reach the join screen.
-2. On the join screen, fill `#code-input` with `ZZZZZ`, then submit the join form (`#join-form button[type="submit"]`).
+2. On the join screen, fill `#code-input` with `ZZZZZ` (a code that doesn't exist), then submit the join form (`#join-form button[type="submit"]`).
 
-Verify `#join-error` (not `#landing-error`) contains "Game not found". Close or reuse Tab 3.
+Verify `#join-error` (not `#landing-error`) contains "Game not found". Close the throwaway tab (`mcp__playwright-guest__browser_tabs` action `close`) so Beta's main tab stays active.
 
 ---
 
-## Step 6 — Start the game
+## Step 6 — Start the game + initial render
 
 In Tab 1, click `#start-btn`. Wait for `#game` screen to become active on Tab 1.
 
@@ -178,7 +200,7 @@ Verify:
 - Roll button (`#roll-btn`) is present and **enabled**
 - Players-bar text for Alpha contains `0/10` (no separate `#locked-count` element exists — it is embedded in the bar)
 
-Take screenshot **"05-game-start"**.
+Take screenshot **`.playwright-mcp/06-game-start.png`**.
 
 Also verify Tab 2 is now on `#game` as well. Check the players bar on Tab 2 mirrors Tab 1.
 
@@ -186,11 +208,11 @@ Also verify Tab 2 is now on `#game` as well. Check the players bar on Tab 2 mirr
 
 ## Step 7 — Join-after-start rejection (edge case)
 
-Open a new tab to `http://localhost:8888/`. Use the two-step join flow:
+Open a **throwaway tab in instance #2** (`mcp__playwright-guest__browser_tabs` action `new`) to `http://localhost:8888/`. Use the two-step join flow:
 1. Type `Latebird` into `#name-input`, then click `#show-join-btn`.
 2. Fill `#code-input` with `GAME_CODE`, then submit the join form (`#join-form button[type="submit"]`).
 
-Verify `#join-error` (not `#landing-error`) contains "Game already in progress". Close this tab.
+Verify `#join-error` (not `#landing-error`) contains "Game already in progress". Close the throwaway tab (`mcp__playwright-guest__browser_tabs` action `close`).
 
 ---
 
@@ -208,7 +230,7 @@ In Tab 1:
 
 Check console for any errors during this sequence.
 
-Take screenshot **"07-after-roll"**. Visually verify:
+Take screenshot **`.playwright-mcp/08-after-roll.png`**. Visually verify:
 - Dice faces are showing (not mid-tumble blur)
 - No dice are visually overlapping in the unmatched zone
 - The locked count in the header reflects matched dice
@@ -231,13 +253,17 @@ Roll 5 times in sequence, checking after each that `_state.rolling` returns to `
 
 ## Step 10 — Rate limit enforcement
 
-While the roll button is enabled, fire two rolls within 250 ms (click the button twice in rapid succession via `evaluate`):
+Clicking `#roll-btn` twice does **not** trigger the rate limit — `roll()` has an `if (state.rolling) return` guard that drops the second click before any frame is sent, and after a roll completes (~1.4 s later) the next click is well past `MIN_ROLL_INTERVAL`. To actually exercise the server limit, send two raw `roll` frames straight down the socket (bypassing the client guard), < 250 ms apart:
 
 ```js
-() => { document.getElementById('roll-btn').click(); document.getElementById('roll-btn').click(); }
+() => { _state.ws.send(JSON.stringify({ action: 'roll' })); _state.ws.send(JSON.stringify({ action: 'roll' })); return 'sent 2 raw rolls'; }
 ```
 
-Check console messages — the server should have logged a rate limit warning. Verify the roll button re-enables (the `error` message handler clears the locked state) so the game is not stuck.
+Then verify:
+- The server logged the limit — `docker compose logs web --since 15s 2>&1 | grep "RATE LIMIT"` shows a `roll … RATE LIMIT` line (the second frame was rejected with a "Slow down" error).
+- The roll button is **not stuck** — after ~1.5 s, `#roll-btn` is enabled and `_state.rolling` / `_state.awaitingAck` are both `false` (the in-game `error` handler clears the locked state).
+
+**Don't run this at 9/10 matched:** the first raw roll could win, making the second hit `round_over` (silently dropped) instead of the rate limit. Run it when the roller is comfortably below 10 matched.
 
 ---
 
@@ -263,12 +289,12 @@ This checks that other players don't see a roll before the roller's reveal anima
      return { alphaId, preRollCount };
    }
    ```
-2. Switch to Tab 1. Record the click timestamp and roll:
+2. On Tab 1, record the click timestamp and roll:
    ```js
    () => { window._rollClickedAt = Date.now(); document.getElementById('roll-btn').click(); return window._rollClickedAt; }
    ```
 3. Wait 3 seconds (for animation to complete and broadcast to arrive).
-4. Switch back to Tab 2 and read results:
+4. On Tab 2, read results:
    ```js
    () => {
      const w = window._broadcastWatch;
@@ -290,24 +316,24 @@ This checks that other players don't see a roll before the roller's reveal anima
 
 ---
 
-## Step 12 — Roll to win
+## Step 12 — Roll to win (winner overlay)
 
-**Note:** Alpha will often have already won round 1 during the roll-heavy steps 9–12 (8+ rolls total). If so, this step runs in round 2 or later — that is expected and fine. Check `_state.currentState.round_num` to confirm which round you're in.
+**Note:** Alpha will often have already won round 1 during the roll-heavy steps above (8–11). If so, this step runs in round 2 or later — that is expected and fine. Check `_state.currentState.round_num` to confirm which round you're in.
 
-**Winner overlay capture:** The overlay auto-dismisses after ~4 seconds. A post-loop screenshot will always miss it. Install a `MutationObserver` before the roll loop and capture content when the overlay gains `visible`:
+**Winner overlay capture:** The winner overlay is a `<dialog id="winner-overlay">` opened with `showModal()` — it has **no `visible` class**; its open state is the dialog's `open` property/attribute. It auto-dismisses after ~3s. A post-loop screenshot will always miss it, so install a `MutationObserver` on the `open` attribute and capture content the moment it opens:
 
 ```js
 window._winnerCapture = null;
 const overlay = document.getElementById('winner-overlay');
 new MutationObserver(() => {
-  if (overlay.classList.contains('visible') && !window._winnerCapture) {
+  if (overlay.open && !window._winnerCapture) {
     window._winnerCapture = {
       winnerName: document.getElementById('winner-name')?.textContent.trim(),
       winnerSub: document.getElementById('winner-sub')?.textContent.trim(),
       capturedAt: Date.now()
     };
   }
-}).observe(overlay, { attributes: true, attributeFilter: ['class'] });
+}).observe(overlay, { attributes: true, attributeFilter: ['open'] });
 ```
 
 Then roll in a loop:
@@ -317,15 +343,15 @@ Then roll in a loop:
 
 When the loop exits, read `window._winnerCapture`. Verify:
 - `winnerName` contains "Alpha"
-- `winnerSub` mentions the next target number (one step down from current)
+- `winnerSub` mentions the next target number (one step down from current; wraps 1→6)
 
-Take screenshot **"11-winner"** (will show post-advance state; the MutationObserver data is the authoritative overlay check).
+Take screenshot **`.playwright-mcp/12-winner.png`** (will show post-advance state; the MutationObserver data is the authoritative overlay check).
 
 Check Tab 2 also advanced to the next round with the same state (same `round_num`, same `target`, same `winnerName` in the overlay element).
 
 ---
 
-## Step 12b — Sticky winner overlay regression
+## Step 13 — Sticky winner overlay regression
 
 Simulate a player pressing spacebar (or clicking the still-keyboard-focusable roll button) during the winner overlay. The bug being guarded against:
 
@@ -338,7 +364,7 @@ Simulate a player pressing spacebar (or clicking the still-keyboard-focusable ro
 
 **Do not run this as a separate evaluate after Step 12.** Step 12's roll-loop usually consumes most of the 3 s `ROUND_WIN_DELAY` window, so by the time a follow-up evaluate is dispatched the overlay has already auto-closed and there's nothing left to hammer.
 
-Instead, run a single self-contained promise that rolls to win **and then immediately** hammers spacebar during the open window. Use a `phase` state-machine + `obs.disconnect()` so the `setTimeout` chain *cannot* keep firing after `resolve()` — orphan ticks were the source of the round-3 contamination that Step 13 used to misread:
+Instead, run a single self-contained promise that rolls to win **and then immediately** hammers spacebar during the open window. Use a `phase` state-machine + `obs.disconnect()` so the `setTimeout` chain *cannot* keep firing after `resolve()` — orphan ticks were a source of round contamination that the round-transition step (Step 14) used to misread:
 
 ```js
 () => new Promise(resolve => {
@@ -397,80 +423,62 @@ Instead, run a single self-contained promise that rolls to win **and then immedi
 
 If `stillOpen` is `true`, the sticky-overlay regression is back — check `static/js/roll.js` for the `winner?.open` guard and `static/js/animations.js` for the defensive `hideWinner()` in `tryReveal`'s `onComplete`.
 
-**Note on Step 13 timing:** because this step consumes the 3 s `ROUND_WIN_DELAY` window, Step 13 below should NOT wait an additional 4 seconds — the round has likely already auto-advanced by the time this watcher resolves. Just verify the post-advance state directly.
+**Note on Step 14 timing:** because this step consumes the 3 s `ROUND_WIN_DELAY` window, Step 14 below should NOT wait an additional 4 seconds — the round has likely already auto-advanced by the time this watcher resolves. Just verify the post-advance state directly.
 
 ---
 
-## Step 13 — Round transition
+## Step 14 — Round transition + target cycle
 
-After the winner overlay appears, wait 4 seconds for the auto-advance.
+After the winner overlay appears, wait (up to 4 seconds, less if Step 13 already consumed the window) for the auto-advance.
 
 Verify on both tabs:
-- Winner overlay is gone (`#winner-overlay` does not have class `visible`)
+- Winner overlay is closed — `document.getElementById('winner-overlay').open === false`
 - `round_num` has incremented by 1
-- `target` has changed (cycled: 6→5, 5→4, …, 1→6)
+- `target` has changed and matches the cycle **6→5→4→3→2→1→6** (one step down, wrapping 1→6). This is the live check of `next_target`; confirm the new `target` is exactly the predecessor in that cycle.
 - All dice are unlocked (new fresh dice dealt)
 - `has_rolled` is `false` for all players
 - Roll button is enabled on Tab 1
 - Players-bar text for each player contains `0/10` (matched count reset)
 
-Take screenshot **"12-round2"**.
-
----
-
-## Step 14 — Target cycling correctness
-
-Verify the client-side `nextTarget` function matches the server's `next_target` logic:
-```js
-() => {
-  const results = [];
-  for (let t = 1; t <= 6; t++) results.push([t, ((t - 2 + 6) % 6) + 1]);
-  return results;
-}
-```
-Expected: `[[1,6],[2,1],[3,2],[4,3],[5,4],[6,5]]`
+Take screenshot **`.playwright-mcp/14-round2.png`**.
 
 ---
 
 ## Step 15 — Player disconnect mid-game
 
-In Tab 2, run `_state.ws.close()` via `evaluate` to simulate Beta dropping (per prior log: `browser_close` kills the whole session). Switch to Tab 1. Verify (within ~2 seconds):
+On Tab 2, run `_state.ws.close()` via `evaluate` to simulate Beta dropping (close the socket, not the browser, so the page state stays inspectable). On Tab 1, verify (within ~2 seconds):
 - Tab 1 switches off the game screen entirely — `#loading.active` is true, `#game.active` is false
 - `#loading-msg` reads `Waiting for Beta to reconnect…`
 - `_state.currentState` shows Beta with `disconnected: true` (state is preserved underneath; only the screen swapped)
 
-Take screenshot **"14-post-disconnect"** (you'll see the loading bar with "Waiting for Beta to reconnect…").
+Take screenshot **`.playwright-mcp/15-post-disconnect.png`** (the loading bar with "Waiting for Beta to reconnect…").
 
 ---
 
-## Step 15b — Player reconnect
+## Step 16 — Player reconnect
 
 Continuing from Step 15 (Beta's WS is closed, Tab 1 is on the loading screen).
 
-On Tab 2, seed localStorage with Beta's pid/code and call the reconnect path directly via dynamic import (the per-tab Playwright MCP wipes localStorage across `goto`/`reload`, so the auto-trigger on page load doesn't work):
+Because instance #2 uses a persistent profile, `localStorage` survives a reload — so the faithful reconnect test is a **real page reload** of instance #2, which lets the page bootstrap auto-reconnect exactly as a real user's reopened tab would:
 
-```js
-async () => {
-  localStorage.setItem('tensies_pid', _state.myId);
-  localStorage.setItem('tensies_code', _state.gameCode);
-  _state.reconnecting = false;
-  const ws = await import('/static/js/ws.js');
-  ws.maybeReconnect();
-}
 ```
+mcp__playwright-guest__browser_navigate → http://localhost:8888/
+```
+
+On load the bootstrap reads `tensies_pid`/`tensies_code` and calls `maybeReconnect()` automatically. (If a throwaway edge-case tab earlier clobbered instance #2's `localStorage`, re-seed first with `localStorage.setItem('tensies_pid', BETA_PID); localStorage.setItem('tensies_code', GAME_CODE)` using the values captured when Beta joined, then reload.)
 
 Verify on Tab 2:
 - `#loading.active` is true and `#loading-msg.textContent` is `Reconnecting…` within the first ~50 ms.
 - Within ~3 seconds: `#game.active` is true, Beta's dice area is rendered.
 
-Then switch back to Tab 1 (Alpha) and verify:
+Then on Tab 1 (Alpha) verify:
 - `#loading.active` is now false and `#game.active` is true (game restored).
 - `_state.currentState` shows Beta with `disconnected: false`.
 - Alpha can still roll.
 
-Take screenshot **"14b-reconnected"**.
+Take screenshot **`.playwright-mcp/16-reconnected.png`**.
 
-If the reconnect fails (loading screen stays indefinitely or landing screen shows `Connection failed`), mark this step FAIL. Confirm whether it's because the server already dropped Beta (30 s grace elapsed during the test's tab-switch latency) or a client-side bug by running an out-of-band direct-WS reconnect:
+If the reconnect fails (loading screen stays indefinitely or landing screen shows `Connection failed`), mark this step FAIL. Confirm whether it's because the server already dropped Beta (the `DISCONNECT_GRACE` window — currently **60 s** — elapsed during test latency) or a client-side bug by running an out-of-band direct-WS reconnect:
 
 ```python
 import asyncio, json, websockets
@@ -491,27 +499,33 @@ Expected `False`. If that passes, the failure was test-tooling latency, not a re
 
 ---
 
-## Step 16 — Host disconnect / host transfer
+## Step 17 — Host disconnect + reconnect
 
-This test requires a fresh game. Start a new two-player game (Tabs 3 and 4, or reuse). Start the game. Then close the **host's WS** via `_state.ws.close()` in `evaluate` (not the tab itself).
+This reuses the two instances (instance #1 = host Alpha, instance #2 = guest Beta). With the running game, close the **host's WS** via `_state.ws.close()` in an `evaluate` on **instance #1** (the socket, not the browser — we want a clean close while the page stays inspectable).
 
-In Tab 4 (the non-host), verify the **immediate** post-disconnect state (within ~2 seconds):
-- Tab 4 has switched to the loading screen: `#loading.active` is true, `#game.active` is false
+On **instance #2** (the non-host), verify the **immediate** post-disconnect state (within ~2 seconds):
+- Instance #2 has switched to the loading screen: `#loading.active` is true, `#game.active` is false
 - `#loading-msg` reads `Waiting for <host name> to reconnect…`
-- `_state.currentState.host` still shows the old host ID (host transfer hasn't happened yet — the drop_player task hasn't fired)
+- `_state.currentState.host` still shows the old host ID (host transfer has NOT happened — the `drop_player` task hasn't fired)
 - The game does not crash
 
-**Note:** Host transfer (`host` field updating to the remaining player's ID) only happens after the 30-second drop timer fires. Do **not** wait 30s — verify the immediate disconnected-but-not-dropped state instead. Test that `_state.currentState.host` still shows the old host ID at this point (transfer has not yet occurred).
+**Note on host transfer:** the `host` field only reassigns to the remaining player after the `DISCONNECT_GRACE` drop timer fires (currently **60 s**). This step does **not** wait it out — it verifies the immediate disconnected-but-not-dropped state, then the host *reconnect* path below. (Verifying the actual transfer is an optional slow check, not part of this step.)
 
-Take screenshot **"15-host-transfer"**.
+Then reload **instance #1** (`mcp__playwright__browser_navigate → http://localhost:8888/`) and verify the host reconnects:
+- Instance #1 returns to `#game` with `_state.currentState.players[_state.myId].disconnected === false`
+- Instance #2 leaves the loading screen back to `#game`
+
+This is the host-reconnect path that a shared-`localStorage` test setup previously mis-reported as broken.
+
+Take screenshot **`.playwright-mcp/17-host-disconnect.png`**.
 
 ---
 
-## Step 17 — Animation integrity (visual spot checks)
+## Step 18 — Animation integrity (visual spot checks)
 
-Take a screenshot immediately after clicking roll (during shake animation) — label **"16a-shake"**. Verify dice are visually gathered toward center.
+Take a screenshot immediately after clicking roll (during shake animation) — **`.playwright-mcp/18a-shake.png`**. Verify dice are visually gathered toward center.
 
-Take a screenshot 400ms after roll completes (during reveal) — label **"16b-reveal"**. Verify:
+Take a screenshot 400ms after roll completes (during reveal) — **`.playwright-mcp/18b-reveal.png`**. Verify:
 - No dice are clipping through each other
 - Newly-matched dice show the target value face
 - The `.die-3d` elements do not appear mid-tumble (the dice-tearing regression)
@@ -524,9 +538,9 @@ All should be `false` / `null` at rest.
 
 ---
 
-## Step 18 — Console error audit
+## Step 19 — Console error audit
 
-At the end of all tests, collect all browser console messages from all tabs. Flag any:
+At the end of all tests, collect all browser console messages from both instances. Flag any:
 - `Error:` or `Uncaught` entries
 - WebSocket close events with non-1000 codes
 - Failed resource loads (404s for static assets)
@@ -535,40 +549,38 @@ At the end of all tests, collect all browser console messages from all tabs. Fla
 
 ## Reporting
 
-Print a summary table:
+Print a summary table. Preflight (self-update, prior-run review) is reported as a one-line note, not a scored row. The 19 numbered rows map 1:1 to Steps 1–19.
 
 ```
 TENSIES TEST RESULTS
 ====================
- PASS  01  Self-update check
- PASS  02  Server health
- PASS  03  Landing screen
- PASS  04  Create game + lobby
- PASS  05  Deep-link join (?join=CODE)
- PASS  06  Invalid code rejection
- PASS  07  Multiplayer lobby sync
- PASS  08  Join-after-start rejection
- PASS  09  Game start + initial render
- PASS  10  Roll + reveal (single player)
- PASS  11  Same-value re-roll (no hang)
- PASS  12  Rate limit + recovery
- PASS  13  Multiplayer broadcast timing
- PASS  14  Roll to win + winner overlay
- PASS  15  Sticky winner overlay regression (spacebar)
- PASS  16  Round transition + target cycle
- PASS  17  Target cycling math
- PASS  18  Player disconnect mid-game
- PASS  19  Player reconnect flow
- PASS  20  Host disconnect / host transfer
- PASS  21  Animation integrity (no tearing)
- PASS  22  Console clean (no JS errors)
+Preflight: self-update <ran|none>, prior-run review <ran|none> (not scored)
+ PASS  01  Server health
+ PASS  02  Landing screen
+ PASS  03  Create game + lobby
+ PASS  04  Deep-link join + lobby sync
+ PASS  05  Invalid game code rejection
+ PASS  06  Game start + initial render
+ PASS  07  Join-after-start rejection
+ PASS  08  Roll + reveal (single player)
+ PASS  09  Same-value re-roll (no hang)
+ PASS  10  Rate limit + recovery
+ PASS  11  Multiplayer broadcast timing
+ PASS  12  Roll to win + winner overlay
+ PASS  13  Sticky winner overlay regression (spacebar)
+ PASS  14  Round transition + target cycle
+ PASS  15  Player disconnect mid-game
+ PASS  16  Player reconnect flow
+ PASS  17  Host disconnect + reconnect
+ PASS  18  Animation integrity (no tearing)
+ PASS  19  Console clean (no JS errors)
 ====================
-22/22 passed
+19/19 passed
 ```
 
 Replace `PASS` with `FAIL` and append a one-line description for any failure. If any test FAILs, describe exactly what went wrong and where to look.
 
-Embed the most interesting screenshot inline at the end of the report (the winner overlay screenshot or the shake animation, whichever is more visually compelling).
+Embed the most interesting screenshot inline at the end of the report (the winner overlay or the shake animation, whichever is more visually compelling).
 
 ---
 
@@ -594,6 +606,6 @@ The log must include:
 <explicit list of things to double-check next time — e.g. steps that were borderline, flaky timing checks, FAILs that got fixed, anything the tester should keep an eye on>
 ```
 
-If all 20 tests passed and nothing notable was observed, the Findings section should say "None." and Notes should say "Clean run."
+If all 19 tests passed and nothing notable was observed, the Findings section should say "None." and Notes should say "Clean run."
 
 After writing the log, output the file path so it's visible in the report.

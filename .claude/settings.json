@@ -17,7 +17,25 @@
       "Edit(/.claude/skills/test-game/**)",
       "Bash(docker compose *)",
       "mcp__playwright__browser_network_requests",
-      "mcp__playwright__browser_network_request"
+      "mcp__playwright__browser_network_request",
+      "mcp__playwright-guest__browser_navigate",
+      "mcp__playwright-guest__browser_evaluate",
+      "mcp__playwright-guest__browser_take_screenshot",
+      "mcp__playwright__browser_run_code_unsafe",
+      "mcp__playwright-g2-host__browser_navigate",
+      "mcp__playwright-g2-guest__browser_navigate",
+      "mcp__playwright-g3-host__browser_navigate",
+      "mcp__playwright-g3-guest__browser_navigate",
+      "mcp__playwright-g2-host__browser_evaluate",
+      "mcp__playwright-g3-host__browser_evaluate",
+      "mcp__playwright-g2-guest__browser_evaluate",
+      "mcp__playwright-g3-guest__browser_evaluate",
+      "mcp__playwright-g2-host__browser_take_screenshot",
+      "mcp__playwright-g2-guest__browser_take_screenshot",
+      "mcp__playwright-g3-host__browser_take_screenshot",
+      "mcp__playwright-g3-guest__browser_take_screenshot",
+      "mcp__playwright-guest__browser_tabs",
+      "mcp__playwright-guest__browser_console_messages"
     ]
   }
 }
