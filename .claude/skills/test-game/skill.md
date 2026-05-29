@@ -121,6 +121,8 @@ If the check fails, stop and report — no point running the browser suite again
 
 Navigate **instance #1** (`mcp__playwright__browser_navigate → http://localhost:8888/`) — Player 1 / host (Alpha). Also navigate **instance #2** (`mcp__playwright-guest__browser_navigate → http://localhost:8888/`) now so both browsers are warm; Player 2 / guest (Beta) lives there for the rest of the suite. The two navigations are independent — issue them in parallel.
 
+**Expect a one-retry relaunch.** If an instance's browser was closed since a prior session, the first `browser_navigate` errors with "Target page, context or browser has been closed". This is normal — the MCP relaunches the browser on the call; simply re-issue the same `browser_navigate` once and it succeeds. Only treat it as a failure if the *retry* also errors.
+
 **Clear stale sessions first.** These are persistent profiles, so `tensies_pid`/`tensies_code` survive from prior runs — the bootstrap then attempts a doomed auto-reconnect to a dead game and flashes "Connection failed" on the landing. On **both** instances run `() => { localStorage.clear(); return true; }`, then **re-navigate both** to `http://localhost:8888/`. The landing is now clean.
 
 Take a screenshot **`.playwright-mcp/02-landing.png`** (instance #1). Verify:
