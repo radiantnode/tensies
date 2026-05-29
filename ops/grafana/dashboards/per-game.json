@@ -1,195 +1,668 @@
 {
   "uid": "tensies-game",
-  "title": "Tensies — Per-Game Drilldown",
-  "tags": ["tensies", "game"],
+  "title": "Tensies \u2014 Per-Game Drilldown",
+  "tags": [
+    "tensies",
+    "game"
+  ],
   "schemaVersion": 39,
   "version": 3,
   "editable": true,
   "graphTooltip": 1,
-  "time": { "from": "now-30m", "to": "now" },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
   "refresh": "2s",
-  "timepicker": { "refresh_intervals": ["1s", "2s", "5s", "10s"] },
+  "timepicker": {
+    "refresh_intervals": [
+      "1s",
+      "2s",
+      "5s",
+      "10s"
+    ]
+  },
   "templating": {
     "list": [
       {
         "name": "game_code",
         "label": "Game",
         "type": "query",
-        "datasource": { "type": "postgres", "uid": "postgres" },
+        "datasource": {
+          "type": "postgres",
+          "uid": "postgres"
+        },
         "refresh": 2,
-        "query": "SELECT game_code AS __text, game_code AS __value FROM games ORDER BY started_ts DESC LIMIT 200",
+        "query": "SELECT g.game_code AS __value, g.game_code || ' \u2014 ' || coalesce(string_agg(DISTINCT e.payload->>'name', ' vs ' ORDER BY (e.payload->>'name')), '?') || ' (' || CASE WHEN count(DISTINCT e.payload->>'name') <= 1 THEN 'Solo' ELSE count(DISTINCT e.payload->>'name')::text || ' players' END || ')' AS __text FROM games g LEFT JOIN events e ON e.game_code = g.game_code AND e.type = 'player_joined' GROUP BY g.game_code, g.started_ts ORDER BY g.started_ts DESC LIMIT 200",
         "sort": 0,
-        "current": { "selected": false, "text": "", "value": "" }
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        }
       }
     ]
   },
   "panels": [
     {
-      "id": 1, "type": "stat", "title": "Status",
-      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "postgres" },
-      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
-        "rawSql": "SELECT status FROM games WHERE game_code = '$game_code'"
-      }],
-      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/.*/" } },
-      "fieldConfig": { "defaults": { "mappings": [
-        { "type": "value", "options": { "lobby": { "color": "blue", "text": "lobby" }, "playing": { "color": "green", "text": "playing" }, "ended": { "color": "purple", "text": "ended" } } }
-      ]}}
+      "id": 1,
+      "type": "stat",
+      "title": "Status",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT status FROM games WHERE game_code = '$game_code'"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "lobby": {
+                  "color": "blue",
+                  "text": "lobby"
+                },
+                "playing": {
+                  "color": "green",
+                  "text": "playing"
+                },
+                "ended": {
+                  "color": "purple",
+                  "text": "ended"
+                }
+              }
+            }
+          ]
+        }
+      }
     },
     {
-      "id": 2, "type": "stat", "title": "Round / Target",
-      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "postgres" },
-      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
-        "rawSql": "SELECT (round_num || ' / target ' || target) AS rnd FROM live_games WHERE game_code = '$game_code'"
-      }],
-      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/.*/" } }
+      "id": 2,
+      "type": "stat",
+      "title": "Round / Target",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT (round_num || ' / target ' || target) AS rnd FROM live_games WHERE game_code = '$game_code'"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/"
+        }
+      }
     },
     {
-      "id": 3, "type": "stat", "title": "Players",
-      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "postgres" },
-      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
-        "rawSql": "SELECT player_count FROM games WHERE game_code = '$game_code'"
-      }],
-      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+      "id": 3,
+      "type": "stat",
+      "title": "Players",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT player_count FROM games WHERE game_code = '$game_code'"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
     },
     {
-      "id": 4, "type": "stat", "title": "Total rolls",
-      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "postgres" },
-      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
-        "rawSql": "SELECT total_rolls FROM games WHERE game_code = '$game_code'"
-      }],
-      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+      "id": 4,
+      "type": "stat",
+      "title": "Total rolls",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT total_rolls FROM games WHERE game_code = '$game_code'"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
     },
     {
-      "id": 5, "type": "stat", "title": "Rounds completed",
-      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "postgres" },
-      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
-        "rawSql": "SELECT count(*) FROM rounds WHERE game_code = '$game_code' AND winner_user_id IS NOT NULL"
-      }],
-      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+      "id": 5,
+      "type": "stat",
+      "title": "Rounds completed",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FROM rounds WHERE game_code = '$game_code' AND winner_user_id IS NOT NULL"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
     },
     {
-      "id": 6, "type": "stat", "title": "Game age",
-      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "postgres" },
-      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
-        "rawSql": "SELECT extract(epoch from (coalesce(ended_ts, now()) - started_ts))::int AS age FROM games WHERE game_code = '$game_code'"
-      }],
-      "fieldConfig": { "defaults": { "unit": "s" } },
-      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } }
+      "id": 6,
+      "type": "stat",
+      "title": "Game age",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT extract(epoch from (coalesce(ended_ts, now()) - started_ts))::int AS age FROM games WHERE game_code = '$game_code'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
     },
-
     {
-      "id": 10, "type": "bargauge", "title": "Current round progress",
-      "gridPos": { "h": 8, "w": 10, "x": 0, "y": 4 },
-      "datasource": { "type": "postgres", "uid": "postgres" },
-      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
-        "rawSql": "SELECT coalesce(name, user_id) AS metric, matched AS value FROM live_players WHERE game_code = '$game_code' ORDER BY matched DESC"
-      }],
-      "fieldConfig": { "defaults": { "max": 10, "min": 0, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue" }, { "color": "green", "value": 5 }, { "color": "yellow", "value": 8 }, { "color": "red", "value": 10 }] } } },
-      "options": { "displayMode": "gradient", "orientation": "horizontal", "showUnfilled": true, "valueMode": "color" }
+      "id": 10,
+      "type": "bargauge",
+      "title": "Current round progress",
+      "gridPos": {
+        "h": 8,
+        "w": 10,
+        "x": 0,
+        "y": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT coalesce(name, user_id) AS metric, matched AS value FROM live_players WHERE game_code = '$game_code' ORDER BY matched DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "max": 10,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue"
+              },
+              {
+                "color": "green",
+                "value": 5
+              },
+              {
+                "color": "yellow",
+                "value": 8
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "showUnfilled": true,
+        "valueMode": "color"
+      }
     },
-
     {
-      "id": 11, "type": "timeseries", "title": "Match progression (current round)",
-      "gridPos": { "h": 8, "w": 14, "x": 10, "y": 4 },
-      "datasource": { "type": "postgres", "uid": "postgres" },
-      "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true,
-        "rawSql": "SELECT ts AS time, coalesce(e.user_id, 'unknown') AS metric, (payload->>'matched')::int AS value FROM events e WHERE e.game_code = '$game_code' AND e.type = 'roll' AND e.round_num = (SELECT round_num FROM live_games WHERE game_code = '$game_code') ORDER BY ts"
-      }],
-      "fieldConfig": { "defaults": { "min": 0, "max": 10, "custom": { "drawStyle": "line", "lineInterpolation": "stepAfter", "spanNulls": true, "showPoints": "always", "pointSize": 6, "lineWidth": 2 } } }
+      "id": 11,
+      "type": "timeseries",
+      "title": "Match progression (current round)",
+      "gridPos": {
+        "h": 8,
+        "w": 14,
+        "x": 10,
+        "y": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, coalesce(e.user_id, 'unknown') AS metric, (payload->>'matched')::int AS value FROM events e WHERE e.game_code = '$game_code' AND e.type = 'roll' AND e.round_num = (SELECT round_num FROM live_games WHERE game_code = '$game_code') ORDER BY ts"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 10,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "spanNulls": true,
+            "showPoints": "always",
+            "pointSize": 6,
+            "lineWidth": 2
+          }
+        }
+      }
     },
-
     {
-      "id": 20, "type": "logs", "title": "Game event log",
-      "gridPos": { "h": 14, "w": 14, "x": 0, "y": 12 },
-      "datasource": { "type": "postgres", "uid": "postgres" },
-      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
-        "rawSql": "SELECT ts AS time, CASE type WHEN 'roll' THEN coalesce(payload->>'name','?') || ' rolled ' || (payload->>'matched') || '/10 (target ' || (payload->>'target') || ')' WHEN 'round_won' THEN '🏆 ' || coalesce(payload->>'name','?') || ' won round ' || (payload->>'round_num') || ' in ' || (payload->>'roll_count') || ' rolls (' || round(coalesce((payload->>'duration_ms'),'0')::numeric/1000,1) || 's)' WHEN 'round_started' THEN '▶ Round ' || (payload->>'round_num') || ' started — target ' || (payload->>'target') WHEN 'round_ended' THEN '⏹ Round ' || (payload->>'round_num') || ' ended' WHEN 'game_created' THEN '🎲 Game created by ' || coalesce(payload->>'name','?') WHEN 'game_started' THEN '🎮 Game started — ' || coalesce(payload->>'player_count','?') || ' players, target ' || coalesce(payload->>'target','?') WHEN 'game_ended' THEN '🏁 Game ended' WHEN 'player_joined' THEN '👋 ' || coalesce(payload->>'name','?') || ' joined (' || coalesce(payload->>'player_count','?') || ' players)' WHEN 'player_left' THEN '🚪 ' || coalesce(payload->>'name','?') || ' left' WHEN 'reconnected' THEN '🔄 ' || coalesce(payload->>'name','?') || ' reconnected' WHEN 'rate_limited' THEN '⚡ Rate limit — ' || coalesce(payload->>'dt_ms','?') || 'ms since last roll' ELSE type END AS message, CASE type WHEN 'round_won' THEN 'info' WHEN 'game_started' THEN 'info' WHEN 'game_ended' THEN 'info' WHEN 'player_joined' THEN 'debug' WHEN 'player_left' THEN 'warning' WHEN 'rate_limited' THEN 'warning' WHEN 'round_started' THEN 'debug' WHEN 'round_ended' THEN 'debug' ELSE 'trace' END AS level FROM events WHERE game_code = '$game_code' ORDER BY ts DESC LIMIT 500"
-      }],
-      "options": { "showTime": true, "wrapLogMessage": true, "enableLogDetails": true, "sortOrder": "Descending" }
+      "id": 20,
+      "type": "logs",
+      "title": "Game event log",
+      "gridPos": {
+        "h": 14,
+        "w": 14,
+        "x": 0,
+        "y": 12
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, CASE type WHEN 'roll' THEN coalesce(payload->>'name','?') || ' rolled ' || (payload->>'matched') || '/10 (target ' || (payload->>'target') || ')' WHEN 'round_won' THEN '\ud83c\udfc6 ' || coalesce(payload->>'name','?') || ' won round ' || (payload->>'round_num') || ' in ' || (payload->>'roll_count') || ' rolls (' || round(coalesce((payload->>'duration_ms'),'0')::numeric/1000,1) || 's)' WHEN 'round_started' THEN '\u25b6 Round ' || (payload->>'round_num') || ' started \u2014 target ' || (payload->>'target') WHEN 'round_ended' THEN '\u23f9 Round ' || (payload->>'round_num') || ' ended' WHEN 'game_created' THEN '\ud83c\udfb2 Game created by ' || coalesce(payload->>'name','?') WHEN 'game_started' THEN '\ud83c\udfae Game started \u2014 ' || coalesce(payload->>'player_count','?') || ' players, target ' || coalesce(payload->>'target','?') WHEN 'game_ended' THEN '\ud83c\udfc1 Game ended' WHEN 'player_joined' THEN '\ud83d\udc4b ' || coalesce(payload->>'name','?') || ' joined (' || coalesce(payload->>'player_count','?') || ' players)' WHEN 'player_left' THEN '\ud83d\udeaa ' || coalesce(payload->>'name','?') || ' left' WHEN 'reconnected' THEN '\ud83d\udd04 ' || coalesce(payload->>'name','?') || ' reconnected' WHEN 'rate_limited' THEN '\u26a1 Rate limit \u2014 ' || coalesce(payload->>'dt_ms','?') || 'ms since last roll' ELSE type END AS message, CASE type WHEN 'round_won' THEN 'info' WHEN 'game_started' THEN 'info' WHEN 'game_ended' THEN 'info' WHEN 'player_joined' THEN 'debug' WHEN 'player_left' THEN 'warning' WHEN 'rate_limited' THEN 'warning' WHEN 'round_started' THEN 'debug' WHEN 'round_ended' THEN 'debug' ELSE 'trace' END AS level FROM events WHERE game_code = '$game_code' ORDER BY ts DESC LIMIT 500"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
     },
-
     {
-      "id": 21, "type": "table", "title": "Rounds in this game",
-      "gridPos": { "h": 8, "w": 10, "x": 14, "y": 12 },
-      "datasource": { "type": "postgres", "uid": "postgres" },
-      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
-        "rawSql": "SELECT round_num AS \"#\", target AS \"Target\", coalesce(ps.name_last, r.winner_user_id) AS \"Winner\", r.duration_ms AS \"Duration (ms)\", r.total_rolls AS \"Rolls\" FROM rounds r LEFT JOIN player_stats ps ON ps.user_id = r.winner_user_id WHERE r.game_code = '$game_code' ORDER BY r.round_num DESC"
-      }],
-      "fieldConfig": { "defaults": { "custom": { "align": "left" } }, "overrides": [
-        { "matcher": { "id": "byName", "options": "Duration (ms)" }, "properties": [{ "id": "unit", "value": "ms" }] }
-      ]}
+      "id": 21,
+      "type": "table",
+      "title": "Rounds in this game",
+      "gridPos": {
+        "h": 8,
+        "w": 10,
+        "x": 14,
+        "y": 12
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT round_num AS \"#\", target AS \"Target\", coalesce(ps.name_last, r.winner_user_id) AS \"Winner\", r.duration_ms AS \"Duration (ms)\", r.total_rolls AS \"Rolls\" FROM rounds r LEFT JOIN player_stats ps ON ps.user_id = r.winner_user_id WHERE r.game_code = '$game_code' ORDER BY r.round_num DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duration (ms)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          }
+        ]
+      }
     },
-
     {
-      "id": 22, "type": "barchart", "title": "Rolls per round",
-      "gridPos": { "h": 6, "w": 10, "x": 14, "y": 20 },
-      "datasource": { "type": "postgres", "uid": "postgres" },
-      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
-        "rawSql": "SELECT 'R' || round_num::text AS \"Round\", total_rolls AS \"Rolls\" FROM rounds WHERE game_code = '$game_code' AND winner_user_id IS NOT NULL ORDER BY round_num"
-      }],
-      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
-      "options": { "xField": "Round", "barWidth": 0.7, "groupWidth": 0.7, "fillOpacity": 80, "gradientMode": "none", "tooltip": { "mode": "single" } }
+      "id": 22,
+      "type": "barchart",
+      "title": "Rolls per round",
+      "gridPos": {
+        "h": 6,
+        "w": 10,
+        "x": 14,
+        "y": 20
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT 'R' || round_num::text AS \"Round\", total_rolls AS \"Rolls\" FROM rounds WHERE game_code = '$game_code' AND winner_user_id IS NOT NULL ORDER BY round_num"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "options": {
+        "xField": "Round",
+        "barWidth": 0.7,
+        "groupWidth": 0.7,
+        "fillOpacity": 80,
+        "gradientMode": "none",
+        "tooltip": {
+          "mode": "single"
+        }
+      }
     },
-
     {
-      "id": 23, "type": "timeseries", "title": "Match progression (all rounds)",
-      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 26 },
-      "datasource": { "type": "postgres", "uid": "postgres" },
-      "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true,
-        "rawSql": "SELECT ts AS time, 'R' || e.round_num || ' ' || coalesce(payload->>'name','?') AS metric, (payload->>'matched')::int AS value FROM events e WHERE e.game_code = '$game_code' AND e.type = 'roll' ORDER BY ts"
-      }],
-      "fieldConfig": { "defaults": { "min": 0, "max": 10, "custom": { "drawStyle": "line", "lineInterpolation": "stepAfter", "spanNulls": false, "showPoints": "auto", "pointSize": 4, "lineWidth": 1.5 } } }
+      "id": 23,
+      "type": "timeseries",
+      "title": "Match progression (all rounds)",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, 'R' || e.round_num || ' ' || coalesce(payload->>'name','?') AS metric, (payload->>'matched')::int AS value FROM events e WHERE e.game_code = '$game_code' AND e.type = 'roll' ORDER BY ts"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 10,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "spanNulls": false,
+            "showPoints": "auto",
+            "pointSize": 4,
+            "lineWidth": 1.5
+          }
+        }
+      }
     },
-
     {
-      "id": 30, "type": "table", "title": "Per-player round breakdown",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 35 },
-      "datasource": { "type": "postgres", "uid": "postgres" },
-      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
-        "rawSql": "SELECT rp.round_num AS \"Round\", coalesce(ps.name_last, rp.user_id) AS \"Player\", rp.rolls AS \"Rolls\", rp.matched_at_end AS \"Final matched\", rp.time_to_first_match_ms AS \"First match (ms)\", rp.avg_dt_between_rolls_ms AS \"Avg dt (ms)\", rp.fastest_dt_ms AS \"Fastest dt\", rp.slowest_dt_ms AS \"Slowest dt\" FROM round_player rp LEFT JOIN player_stats ps ON ps.user_id = rp.user_id WHERE rp.game_code = '$game_code' ORDER BY rp.round_num DESC, rp.matched_at_end DESC"
-      }],
-      "fieldConfig": { "defaults": { "custom": { "align": "left" } }, "overrides": [
-        { "matcher": { "id": "byRegexp", "options": ".*ms.*|.*dt.*" }, "properties": [{ "id": "unit", "value": "ms" }] }
-      ]}
+      "id": 30,
+      "type": "table",
+      "title": "Per-player round breakdown",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 35
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT rp.round_num AS \"Round\", coalesce(ps.name_last, rp.user_id) AS \"Player\", rp.rolls AS \"Rolls\", rp.matched_at_end AS \"Final matched\", rp.time_to_first_match_ms AS \"First match (ms)\", rp.avg_dt_between_rolls_ms AS \"Avg dt (ms)\", rp.fastest_dt_ms AS \"Fastest dt\", rp.slowest_dt_ms AS \"Slowest dt\" FROM round_player rp LEFT JOIN player_stats ps ON ps.user_id = rp.user_id WHERE rp.game_code = '$game_code' ORDER BY rp.round_num DESC, rp.matched_at_end DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*ms.*|.*dt.*"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          }
+        ]
+      }
     },
-
     {
-      "id": 24, "type": "barchart", "title": "Dice distribution (this game)",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 45 },
-      "datasource": { "type": "postgres", "uid": "postgres" },
-      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
-        "rawSql": "SELECT val AS \"Face\", count(*) AS \"Rolls\" FROM events, jsonb_array_elements_text(payload->'rolled_values') AS val WHERE game_code = '$game_code' AND type = 'roll' GROUP BY val ORDER BY val::int"
-      }],
-      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
-      "options": { "xField": "Face", "barWidth": 0.7, "groupWidth": 0.7, "fillOpacity": 80, "gradientMode": "none", "tooltip": { "mode": "single" } }
+      "id": 24,
+      "type": "barchart",
+      "title": "Dice distribution (this game)",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 45
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT val AS \"Face\", count(*) AS \"Rolls\" FROM events, jsonb_array_elements_text(payload->'rolled_values') AS val WHERE game_code = '$game_code' AND type = 'roll' GROUP BY val ORDER BY val::int"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "options": {
+        "xField": "Face",
+        "barWidth": 0.7,
+        "groupWidth": 0.7,
+        "fillOpacity": 80,
+        "gradientMode": "none",
+        "tooltip": {
+          "mode": "single"
+        }
+      }
     },
-
     {
-      "id": 25, "type": "table", "title": "Player wins",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 45 },
-      "datasource": { "type": "postgres", "uid": "postgres" },
-      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
-        "rawSql": "SELECT coalesce(ps.name_last, r.winner_user_id) AS \"Player\", count(*) AS \"Wins\", round(count(*)::numeric / NULLIF((SELECT count(*) FROM rounds WHERE game_code = '$game_code' AND winner_user_id IS NOT NULL), 0) * 100, 1) AS \"Win %\" FROM rounds r LEFT JOIN player_stats ps ON ps.user_id = r.winner_user_id WHERE r.game_code = '$game_code' AND r.winner_user_id IS NOT NULL GROUP BY r.winner_user_id, ps.name_last ORDER BY \"Wins\" DESC"
-      }],
-      "fieldConfig": { "defaults": { "custom": { "align": "left" } }, "overrides": [
-        { "matcher": { "id": "byName", "options": "Win %" }, "properties": [{ "id": "unit", "value": "percent" }] }
-      ]}
+      "id": 25,
+      "type": "table",
+      "title": "Player wins",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 45
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT coalesce(ps.name_last, r.winner_user_id) AS \"Player\", count(*) AS \"Wins\", round(count(*)::numeric / NULLIF((SELECT count(*) FROM rounds WHERE game_code = '$game_code' AND winner_user_id IS NOT NULL), 0) * 100, 1) AS \"Win %\" FROM rounds r LEFT JOIN player_stats ps ON ps.user_id = r.winner_user_id WHERE r.game_code = '$game_code' AND r.winner_user_id IS NOT NULL GROUP BY r.winner_user_id, ps.name_last ORDER BY \"Wins\" DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Win %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
+      }
     },
-
     {
-      "id": 40, "type": "logs", "title": "Raw events (last 200)",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 53 },
-      "datasource": { "type": "postgres", "uid": "postgres" },
-      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
-        "rawSql": "SELECT ts AS time, type, coalesce(user_id, '') AS user, payload::text AS message FROM events WHERE game_code = '$game_code' ORDER BY ts DESC LIMIT 200"
-      }],
-      "options": { "showTime": true, "wrapLogMessage": true, "sortOrder": "Descending" }
+      "id": 40,
+      "type": "logs",
+      "title": "Raw events (last 200)",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 53
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, type, coalesce(user_id, '') AS user, payload::text AS message FROM events WHERE game_code = '$game_code' ORDER BY ts DESC LIMIT 200"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending"
+      }
     }
   ]
 }
