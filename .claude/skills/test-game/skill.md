@@ -81,10 +81,10 @@ If there are no new commits **and** no unstaged/staged changes, skip straight to
 
 ## Preflight B — Prior run review
 
-Read the most recent test log(s) from `test-logs/` (project root) before starting:
+Read the most recent test log(s) from `docs/test-runs/game/` before starting:
 
 ```bash
-ls -t test-logs/*.md 2>/dev/null | head -3
+ls -t docs/test-runs/game/*.md 2>/dev/null | grep -v README | head -3
 ```
 
 Read each file returned (up to the 3 most recent). Extract:
@@ -647,7 +647,7 @@ Embed the most interesting screenshot inline at the end of the report (the winne
 
 ## Log writing
 
-After reporting, write a log file to `test-logs/` in the project root. Create the directory if it doesn't exist. Name the file using the current date and time: `test-logs/YYYY-MM-DDTHH-MM-SS.md`.
+After reporting, write a log file to `docs/test-runs/game/`. Create the directory if it doesn't exist. Name the file using the current date and time: `docs/test-runs/game/YYYY-MM-DDTHH-MM-SS.md`.
 
 The log must include:
 
@@ -667,6 +667,12 @@ The log must include:
 <explicit list of things to double-check next time — e.g. steps that were borderline, flaky timing checks, FAILs that got fixed, anything the tester should keep an eye on>
 ```
 
-If all 19 tests passed and nothing notable was observed, the Findings section should say "None." and Notes should say "Clean run."
+If all tests passed and nothing notable was observed, the Findings section should say "None." and Notes should say "Clean run."
 
-After writing the log, output the file path so it's visible in the report.
+After writing the log, add a row for this run to the index table in `docs/test-runs/game/README.md`. The row format matches the existing entries:
+
+```
+| [YYYY-MM-DDTHH:MM:SS](YYYY-MM-DDTHH-MM-SS.md) | <scope> | ✅ PASS or 🔴 FAIL | <passed> | <total> | <one-line highlight> |
+```
+
+Scope is `Game`, `Telemetry`, or `Game + Telemetry`. Insert the new row at the top of the table (below the header row), so the most recent run appears first. Then output the log file path so it's visible in the report.
