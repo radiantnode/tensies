@@ -5,7 +5,7 @@ import uuid
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from .broadcast import broadcast, delayed_broadcast, drop_player, pause_timeout, send
+from .broadcast import advance_round, broadcast, delayed_broadcast, drop_player, pause_timeout, send
 from .config import MIN_ROLL_INTERVAL, PAUSE_MAX, log
 from .game import apply_roll, deal_round, fresh_player, new_game, state_msg
 from .state import connections, games, sessions
@@ -255,6 +255,7 @@ async def handle_pause(session: Session, msg: dict) -> None:
         if old:
             old.cancel()
         game["pause_task"] = asyncio.create_task(pause_timeout(code))
+        await broadcast(code, state_msg(game, code))
     else:
         game.pop("pause_deadline_mono", None)
         t = game.pop("pause_task", None)
@@ -265,7 +266,11 @@ async def handle_pause(session: Session, msg: dict) -> None:
         for pid, p in game["players"].items():
             if p.get("disconnected"):
                 p["disconnect_task"] = asyncio.create_task(drop_player(code, pid))
-    await broadcast(code, state_msg(game, code))
+        # A round win deferred during the pause (delayed_broadcast) advances now.
+        if game.pop("round_advance_pending", False):
+            await advance_round(code)  # broadcasts the fresh round itself
+        else:
+            await broadcast(code, state_msg(game, code))
 
 
 async def handle_roll_done(session: Session, msg: dict) -> None:

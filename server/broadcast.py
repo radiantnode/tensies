@@ -53,6 +53,25 @@ async def broadcast(code: str, message: dict, *, exclude: str | None = None) -> 
         connections[code].pop(pid, None)
 
 
+async def advance_round(code: str) -> None:
+    """Roll the game to the next round: cycle the target, deal fresh dice."""
+    if code not in games:
+        return
+    game = games[code]
+    old_round = game["round_num"]
+    old_target = game["target"]
+    emit("round_ended", game_code=code, round_num=old_round, target=old_target)
+    game["target"] = next_target(old_target)
+    game["round_num"] += 1
+    game["round_over"] = False
+    game["round_count"] += 1
+    deal_round(game)
+    emit("round_started", game_code=code,
+         round_num=game["round_num"], target=game["target"])
+    metrics.rounds_started_total.labels(target=str(game["target"])).inc()
+    await broadcast(code, state_msg(game, code))
+
+
 async def delayed_broadcast(code: str, pid: str, is_win: bool, winner_name: str | None) -> None:
     """Hold the broadcast until the roller acks their reveal (or times out)."""
     if code not in games:
@@ -88,20 +107,12 @@ async def delayed_broadcast(code: str, pid: str, is_win: bool, winner_name: str 
         if code not in games:
             return
         game = games[code]
-        # End the old round
-        old_round = game["round_num"]
-        old_target = game["target"]
-        emit("round_ended", game_code=code, round_num=old_round, target=old_target)
-        # Advance to the next round
-        game["target"] = next_target(old_target)
-        game["round_num"] += 1
-        game["round_over"] = False
-        game["round_count"] += 1
-        deal_round(game)
-        emit("round_started", game_code=code,
-             round_num=game["round_num"], target=game["target"])
-        metrics.rounds_started_total.labels(target=str(game["target"])).inc()
-        await broadcast(code, state_msg(game, code))
+        if game.get("paused"):
+            # A pause landed during the win delay — don't advance the round on
+            # top of it. Freeze here; handle_pause() advances on resume.
+            game["round_advance_pending"] = True
+            return
+        await advance_round(code)
 
 
 async def pause_timeout(code: str) -> None:
@@ -149,6 +160,20 @@ async def drop_player(code: str, pid: str) -> None:
     # itself runs out, pause_timeout() ends the whole game. On resume,
     # handle_pause reschedules a fresh drop for anyone still offline.
     if game.get("paused"):
+        # A paused game must not be held hostage by an absent host. If the host
+        # is the one who's gone (this drop fired after the grace), hand the host
+        # role — and the resume control — to a still-connected player so the
+        # game stays recoverable. The old host keeps their seat (just not host)
+        # and can reconnect as a regular player.
+        if game["host"] == pid:
+            new_host = next((q for q, pl in game["players"].items()
+                             if q != pid and not pl.get("disconnected")), None)
+            if new_host:
+                game["host"] = new_host
+                log.info("host_xfer game=%s  (paused, host away)  %s -> %s",
+                         code, pid[:8], new_host[:8])
+                emit("host_transferred", game_code=code, **{"from": pid, "to": new_host})
+                await broadcast(code, state_msg(game, code))
         return
     player_name = player["name"]
     del game["players"][pid]

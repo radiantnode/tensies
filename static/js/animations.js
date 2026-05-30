@@ -3,6 +3,7 @@ import { FACE_ROTATIONS, makeDie, myDiceKey, placeGrid } from './dice.js';
 import { saveDicePositions } from './dice-positions.js';
 import { renderMyArea, renderPlayersBar } from './screens.js';
 import { hideWinner, showWinner } from './overlays.js';
+import { showFor } from './ws.js';
 
 export function resetRollState() {
   state.pendingRollTimeouts.forEach(clearTimeout);
@@ -10,6 +11,7 @@ export function resetRollState() {
   state.rolling = false;
   state.awaitingAck = false;
   state.pendingRollState = null;
+  state.postRevealState = null;
   state.pendingWinName = null;
   state.pendingWinTarget = null;
 }
@@ -207,6 +209,14 @@ export function tryReveal() {
       // spurious roll attempt during a round-end trapped the next-round state
       // in pendingRollState), close it now.
       hideWinner();
+    }
+    // A newer broadcast (e.g. the host paused) arrived mid-reveal — apply its
+    // screen decision now that the animation is done, so a paused non-host
+    // lands on the wait screen instead of being stranded on the board.
+    if (state.postRevealState) {
+      const m = state.postRevealState;
+      state.postRevealState = null;
+      showFor(m);
     }
   });
 }

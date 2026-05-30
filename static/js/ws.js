@@ -90,7 +90,7 @@ export function attemptReconnect(pid, code, deadline) {
 // Single screen-decision for every server state message: lobby / loading /
 // game, depending on whether the game has started and whether any player
 // is currently disconnected.
-function showFor(msg) {
+export function showFor(msg) {
   // Track the latest server-side state on every branch — without this, the
   // disconnect/loading branch leaves state.currentState frozen at the last
   // game-screen render, which then misreports who's disconnected.
@@ -146,9 +146,14 @@ export function handleMessage(msg) {
 
     case 'state':
       if (msg.code) localStorage.setItem('tensies_code', msg.code);
-      if (state.awaitingAck && msg.started && myDiceKey(msg) !== state.lastMyDiceKey) {
+      if (state.awaitingAck && msg.started && myDiceKey(msg) !== state.lastMyDiceKey && !state.pendingRollState) {
         // Response to my in-flight roll — let tryReveal drive the animation
         state.pendingRollState = msg;
+      } else if (state.awaitingAck && state.pendingRollState) {
+        // A newer broadcast (e.g. the host paused) landed while I'm mid-reveal.
+        // Don't lose it or let it clobber the roll response — hold it and let
+        // tryReveal re-route through showFor once the reveal finishes.
+        state.postRevealState = msg;
       } else {
         showFor(msg);
       }
