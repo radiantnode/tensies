@@ -81,7 +81,7 @@
 
     {
       "id": 10, "type": "table", "title": "Leaderboard — Most wins",
-      "gridPos": { "h": 10, "w": 8, "x": 0, "y": 4 },
+      "gridPos": { "h": 10, "w": 6, "x": 0, "y": 4 },
       "datasource": { "type": "postgres", "uid": "postgres" },
       "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
         "rawSql": "SELECT coalesce(name_last, user_id) AS \"Player\", total_wins AS \"Wins\", total_rounds AS \"Rounds\", round(100.0 * total_wins / NULLIF(total_rounds, 0), 1) AS \"Win %\" FROM player_stats ORDER BY total_wins DESC LIMIT 20"
@@ -92,7 +92,7 @@
     },
     {
       "id": 11, "type": "table", "title": "Leaderboard — Fastest wins",
-      "gridPos": { "h": 10, "w": 8, "x": 8, "y": 4 },
+      "gridPos": { "h": 10, "w": 6, "x": 6, "y": 4 },
       "datasource": { "type": "postgres", "uid": "postgres" },
       "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
         "rawSql": "SELECT coalesce(name_last, user_id) AS \"Player\", fastest_win_ms AS \"Fastest (ms)\", fastest_win_rolls AS \"Fewest rolls\" FROM player_stats WHERE fastest_win_ms IS NOT NULL ORDER BY fastest_win_ms ASC LIMIT 20"
@@ -103,13 +103,28 @@
     },
     {
       "id": 12, "type": "table", "title": "Leaderboard — Most rolls",
-      "gridPos": { "h": 10, "w": 8, "x": 16, "y": 4 },
+      "gridPos": { "h": 10, "w": 6, "x": 12, "y": 4 },
       "datasource": { "type": "postgres", "uid": "postgres" },
       "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
         "rawSql": "SELECT coalesce(name_last, user_id) AS \"Player\", total_rolls AS \"Rolls\", total_sessions AS \"Sessions\", round(total_time_played_ms / 1000.0 / 60.0, 1) AS \"Minutes\" FROM player_stats ORDER BY total_rolls DESC LIMIT 20"
       }],
       "fieldConfig": { "defaults": {}, "overrides": [
         { "matcher": { "id": "byName", "options": "Rolls" }, "properties": [{ "id": "custom.cellOptions", "value": { "type": "gauge", "mode": "gradient" } }] }
+      ]}
+    },
+
+    {
+      "id": 13, "type": "table", "title": "Leaderboard — Luckiest players",
+      "gridPos": { "h": 10, "w": 6, "x": 18, "y": 4 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "targets": [{ "refId": "A", "format": "table", "rawQuery": true,
+        "rawSql": "SELECT payload->>'name' AS \"Player\", COUNT(*) AS \"Rolls\", round(SUM(jsonb_array_length(payload->'newly_locked') - jsonb_array_length(payload->'rolled_values')::float / 6.0)::numeric, 1) AS \"Luck\" FROM events WHERE type = 'roll' AND ts >= $__timeFrom() AND ts < $__timeTo() GROUP BY payload->>'name' HAVING COUNT(*) >= 10 ORDER BY \"Luck\" DESC LIMIT 20"
+      }],
+      "fieldConfig": { "defaults": { "custom": { "align": "left" } }, "overrides": [
+        { "matcher": { "id": "byName", "options": "Luck" }, "properties": [
+          { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "gradient" } },
+          { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 0 }, { "color": "green", "value": 5 }] } }
+        ]}
       ]}
     },
 
