@@ -309,14 +309,56 @@ Should be `BASELINE_GAMES_ACTIVE + 1`. If not, WARN (another game may be running
 }
 ```
 
-9. Poll Postgres until 3 rounds have completed (background Bash, timeout 3 minutes):
+9. **Mid-game live-games dashboard check** — while the rollers run, validate the Live panels with a real active game. Wait 5 seconds for at least one roll to land, then:
+
+   Query `started_ts` to build the Grafana URL (store as `LIVE_FROM_MS`):
+   ```bash
+   docker compose exec -T postgres psql -U tensies tensies -c "
+   SELECT extract(epoch from started_ts)::bigint * 1000 AS from_ms
+   FROM games WHERE game_code = 'GAME_CODE';
+   "
+   ```
+
+   Navigate the Grafana inspector to the live-games dashboard using `LIVE_FROM_MS` and `now` as the window:
+   ```
+   http://localhost:8889/d/tensies-live/tensies-live-games?refresh=5s&from=LIVE_FROM_MS&to=now
+   ```
+
+   Wait 3 seconds, then take screenshot **`.playwright-mcp/t05-live-games-active.png`**.
+
+   Assert the Live panels show real data:
+   ```js
+   () => {
+     const panels = Array.from(document.querySelectorAll('[class*="panel-container"]'));
+     const byTitle = title => panels.find(p => p.querySelector('h6,[class*="title"]')?.textContent?.trim() === title);
+     const activeGamesPanel = byTitle('Active games');
+     const roundProgressPanel = byTitle('Round progress per player');
+     const text = document.body.innerText;
+     return {
+       active_games_has_data: activeGamesPanel ? !activeGamesPanel.textContent.includes('No data') : null,
+       round_progress_has_data: roundProgressPanel ? !roundProgressPanel.textContent.includes('No data') : null,
+       game_code_visible: text.includes('GAME_CODE'),
+       player_count_visible: /[12]\s*(Players?|player)/.test(text) || text.includes('Monitor') || text.includes('Telemetry'),
+     };
+   }
+   ```
+
+   **Pass criteria for mid-game check:**
+   - `active_games_has_data = true` — "Active games" table shows the running game
+   - `round_progress_has_data = true` — "Round progress per player" shows matched counts
+   - `game_code_visible = true` — the test game's code appears in the panel
+   - `player_count_visible = true` — at least one player name or count is visible
+
+   FAIL if either Live panel shows "No data" during an active game.
+
+10. Poll Postgres until 3 rounds have completed (timeout 3 minutes):
 ```bash
 until docker compose exec -T postgres psql -U tensies tensies -c \
   "SELECT count(*) FROM rounds WHERE game_code = 'GAME_CODE' AND winner_user_id IS NOT NULL" \
   2>/dev/null | grep -qE '^\s+3\s*$'; do sleep 5; done && echo "3 rounds done"
 ```
 
-10. Stop the rollers on both instances:
+11. Stop the rollers on both instances:
 ```js
 () => { window._autoRollEnabled = false; clearInterval(window._autoRoller); return window._rollCount; }
 ```
@@ -503,16 +545,32 @@ Wait 3 seconds for panels to render. Take screenshot **`.playwright-mcp/t09-live
 Run the panel health check:
 ```js
 () => {
+  const EXPECTED_NO_DATA = new Set(['Active games', 'Round progress per player']);
   const panels = Array.from(document.querySelectorAll('[class*="panel-container"]'));
   const noData = panels.filter(p => p.textContent.includes('No data'));
-  const errors = panels.filter(p => p.textContent.includes('Error') || p.textContent.includes('error'));
-  return { total: panels.length, noData: noData.map(p => p.querySelector('h6,[class*="title"]')?.textContent?.trim() || '?'), errors: errors.length };
+  const unexpected = noData.filter(p => {
+    const title = p.querySelector('h6,[class*="title"]')?.textContent?.trim() || '?';
+    return !EXPECTED_NO_DATA.has(title);
+  });
+  const errors = panels.filter(p => p.textContent.includes('Error') && !p.textContent.includes('out: error'));
+  return {
+    total: panels.length,
+    noData: noData.map(p => p.querySelector('h6,[class*="title"]')?.textContent?.trim() || '?'),
+    unexpectedNoData: unexpected.map(p => p.querySelector('h6,[class*="title"]')?.textContent?.trim() || '?'),
+    errors: errors.length,
+  };
 }
 ```
 
+**Expected "No data" panels (not a failure):**
+- `"Active games"` — queries `live_games`, which is cleared when a game ends
+- `"Round progress per player"` — queries `live_players JOIN live_games`, same source
+
+These two panels are validated with live data during the mid-game check in Step 5. Post-game they will always be empty by design.
+
 **Pass criteria:**
 - No error states
-- `noData` count is 0 (game was just played, all panels should have data in this window)
+- `unexpectedNoData` is empty (any No-data panel outside the two expected ones is a FAIL)
 
 ---
 
