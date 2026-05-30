@@ -50,6 +50,7 @@
   letter-spacing: 0.02em;
   max-width: 280px;
   line-height: 1.5;
+  height: 3.5rem;
 }
 
 /* Indeterminate progress bar — styled to match .player-mini-progress /

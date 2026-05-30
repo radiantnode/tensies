@@ -1,11 +1,23 @@
 import { nextTarget, showScreen } from './util.js';
 
-// Winner is the only true dialog overlay — it sits on top of the still-relevant
+// Winner and pause are dialog overlays — they sit on top of the still-visible
 // game board. Loading is a screen (see #loading in index.html), not a dialog,
 // and is driven via showLoading().
 
 const winner = document.getElementById('winner-overlay');
 if (winner) winner.addEventListener('cancel', e => e.preventDefault());
+
+const pauseOverlay = document.getElementById('pause-overlay');
+if (pauseOverlay) pauseOverlay.addEventListener('cancel', e => e.preventDefault());
+
+export function showPaused(text) {
+  document.getElementById('pause-overlay-msg').textContent = text;
+  if (pauseOverlay && !pauseOverlay.open) pauseOverlay.showModal();
+}
+
+export function hidePaused() {
+  if (pauseOverlay && pauseOverlay.open) pauseOverlay.close();
+}
 
 export function showWinner(name, target) {
   document.getElementById('winner-name').textContent = name;
@@ -38,6 +50,12 @@ export function leaveLoading(action) {
   const remaining = Math.max(0, MIN_LOADING_MS - (Date.now() - loadingShownAt));
   if (remaining === 0) requestAnimationFrame(action);
   else setTimeout(action, remaining);
+}
+
+// Non-host waiting screen while the game is paused.
+export function pausedText(msg) {
+  const host = msg.players[msg.host]?.name || 'the host';
+  return `Waiting for ${host} to resume the game`;
 }
 
 // Build the "Waiting for A and B to reconnect…" text from a name list.

@@ -13,6 +13,10 @@ MIN_ROLL_INTERVAL = 0.25
 ROLL_ACK_TIMEOUT = 2.0
 DISCONNECT_GRACE = 60.0
 ROUND_WIN_DELAY = 3.0
+# A paused game is held open (players are never dropped) for at most this long,
+# so the host can put their phone down and come back. Past it, the game is
+# assumed abandoned and ended.
+PAUSE_MAX = 3600.0
 
 # Telemetry
 POSTGRES_DSN = os.environ.get(

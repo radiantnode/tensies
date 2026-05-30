@@ -48,6 +48,7 @@ def new_game(host_id: str, host_name: str) -> tuple[str, dict]:
         "round_num": 1,
         "started": False,
         "round_over": False,
+        "paused": False,
         "host": host_id,
         "players": {host_id: fresh_player(host_name)},
         # Telemetry bookkeeping — monotonic timers + counters. Consumed by
@@ -104,12 +105,13 @@ def apply_roll(player: dict, target: int) -> dict:
 
 
 def state_msg(game: dict, code: str, msg_type: str = "state", **extra) -> dict:
-    return {
+    msg = {
         "type": msg_type,
         "code": code,
         "target": game["target"],
         "round_num": game["round_num"],
         "started": game["started"],
+        "paused": game.get("paused", False),
         "host": game["host"],
         "players": {
             pid: {
@@ -124,3 +126,9 @@ def state_msg(game: dict, code: str, msg_type: str = "state", **extra) -> dict:
         },
         **extra,
     }
+    # While paused, hand the host a live countdown to the abandonment cap.
+    if game.get("paused") and game.get("pause_deadline_mono") is not None:
+        msg["pause_remaining_ms"] = max(
+            0, int((game["pause_deadline_mono"] - time.monotonic()) * 1000)
+        )
+    return msg

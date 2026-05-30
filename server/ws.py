@@ -5,8 +5,8 @@ import uuid
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from .broadcast import broadcast, delayed_broadcast, drop_player, send
-from .config import MIN_ROLL_INTERVAL, log
+from .broadcast import advance_round, broadcast, delayed_broadcast, drop_player, pause_timeout, send
+from .config import MIN_ROLL_INTERVAL, PAUSE_MAX, log
 from .game import apply_roll, deal_round, fresh_player, new_game, state_msg
 from .state import connections, games, sessions
 from .telemetry import emit, metrics
@@ -160,6 +160,9 @@ async def handle_roll(session: Session, msg: dict) -> None:
     game = games[code]
     if not game["started"] or game["round_over"]:
         return
+    if game.get("paused"):
+        await _error(session.ws, "Game is paused")
+        return
     player = game["players"].get(session.pid)
     if not player:
         return
@@ -232,6 +235,44 @@ async def handle_roll(session: Session, msg: dict) -> None:
         asyncio.create_task(delayed_broadcast(code, session.pid, False, None))
 
 
+async def handle_pause(session: Session, msg: dict) -> None:
+    """Host-only toggle that freezes/unfreezes rolling for everyone in the game."""
+    code = session.code
+    if not code or code not in games:
+        return
+    game = games[code]
+    if game["host"] != session.pid or not game["started"]:
+        return
+    game["paused"] = not game.get("paused", False)
+    log.info("pause    game=%s  paused=%s  by=%s", code, game["paused"], session.name)
+    emit("game_paused" if game["paused"] else "game_resumed",
+         game_code=code, user_id=session.pid, name=session.name,
+         round_num=game["round_num"])
+    if game["paused"]:
+        # Hold the game open for up to PAUSE_MAX; drops are suspended meanwhile.
+        game["pause_deadline_mono"] = time.monotonic() + PAUSE_MAX
+        old = game.pop("pause_task", None)
+        if old:
+            old.cancel()
+        game["pause_task"] = asyncio.create_task(pause_timeout(code))
+        await broadcast(code, state_msg(game, code))
+    else:
+        game.pop("pause_deadline_mono", None)
+        t = game.pop("pause_task", None)
+        if t:
+            t.cancel()
+        # Players who went offline during the pause were never dropped. Now
+        # that we're live again, give each one the normal grace to return.
+        for pid, p in game["players"].items():
+            if p.get("disconnected"):
+                p["disconnect_task"] = asyncio.create_task(drop_player(code, pid))
+        # A round win deferred during the pause (delayed_broadcast) advances now.
+        if game.pop("round_advance_pending", False):
+            await advance_round(code)  # broadcasts the fresh round itself
+        else:
+            await broadcast(code, state_msg(game, code))
+
+
 async def handle_roll_done(session: Session, msg: dict) -> None:
     code = session.code
     if not code or code not in games:
@@ -255,6 +296,7 @@ ACTIONS = {
     "start": handle_start,
     "reconnect": handle_reconnect,
     "roll": handle_roll,
+    "pause": handle_pause,
     "roll_done": handle_roll_done,
     "pong": handle_pong,
 }

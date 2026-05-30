@@ -88,11 +88,35 @@
       </div>
       <div class="players-bar" id="players-bar" role="list" aria-label="Players"></div>
     </header>
-    <div id="game-menu" class="game-menu" aria-hidden="true"></div>
+    <div id="game-menu" class="game-menu" aria-hidden="true">
+      <nav class="menu-panel" aria-label="Game menu">
+        <button id="menu-pause-btn" type="button" class="menu-item menu-toggle"
+                aria-pressed="false" hidden>
+          <span class="menu-item-label">Pause Game</span>
+          <span class="menu-switch" aria-hidden="true"></span>
+        </button>
+        <div id="menu-pause-status" class="menu-status" aria-live="polite" hidden>
+          <div class="menu-status-row">
+            <span class="menu-status-label">Time remaining</span>
+            <span class="menu-status-value" id="pause-remaining">—</span>
+          </div>
+          <p id="pause-players" class="menu-status-players"></p>
+        </div>
+      </nav>
+    </div>
     <div class="my-area" id="my-area"></div>
   </section>
 
 </main>
+
+<dialog id="pause-overlay" class="overlay-dialog" aria-labelledby="pause-overlay-msg">
+  <img src="/static/logo.svg" class="logo-mark" alt="">
+  <h1 class="logo">TENSIES</h1>
+  <div class="loading-bar" aria-hidden="true">
+    <div class="loading-bar-fill"></div>
+  </div>
+  <p id="pause-overlay-msg"></p>
+</dialog>
 
 <dialog id="winner-overlay" class="overlay-dialog" aria-labelledby="winner-name">
   <div class="winner-box">

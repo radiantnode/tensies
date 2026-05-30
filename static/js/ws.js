@@ -3,9 +3,13 @@ import { setError, setJoinError, showScreen } from './util.js';
 import { myDiceKey } from './dice.js';
 import { resetRollState } from './animations.js';
 import { renderGame, renderLobby, renderMyArea, renderPlayersBar } from './screens.js';
-import { hideWinner, leaveLoading, showLoading, showWinner, waitingText } from './overlays.js';
+import { hidePaused, hideWinner, leaveLoading, pausedText, showLoading, showPaused, showWinner, waitingText } from './overlays.js';
+import { openMenu, RESUME_CLOSE_DELAY_MS } from './menu.js';
 
 const RECONNECT_WINDOW_MS = 60000;
+// While the game is paused the server holds it open for up to an hour, so keep
+// trying to reconnect that long — covers the host backgrounding their phone.
+const PAUSED_RECONNECT_WINDOW_MS = 61 * 60 * 1000;
 const RETRY_DELAY_MS = 2000;
 
 function wsUrl() {
@@ -52,7 +56,8 @@ export function maybeReconnect() {
   state.myId = pid;
   state.reconnecting = true;
   showLoading('Reconnecting…');
-  attemptReconnect(pid, code, Date.now() + RECONNECT_WINDOW_MS);
+  const window = state.currentState?.paused ? PAUSED_RECONNECT_WINDOW_MS : RECONNECT_WINDOW_MS;
+  attemptReconnect(pid, code, Date.now() + window);
 }
 
 export function attemptReconnect(pid, code, deadline) {
@@ -85,7 +90,7 @@ export function attemptReconnect(pid, code, deadline) {
 // Single screen-decision for every server state message: lobby / loading /
 // game, depending on whether the game has started and whether any player
 // is currently disconnected.
-function showFor(msg) {
+export function showFor(msg) {
   // Track the latest server-side state on every branch — without this, the
   // disconnect/loading branch leaves state.currentState frozen at the last
   // game-screen render, which then misreports who's disconnected.
@@ -94,17 +99,52 @@ function showFor(msg) {
   // mid-game error doesn't get bounced to the landing/join screen.
   state.pendingOrigin = null;
   if (!msg.started) {
-    leaveLoading(() => { hideWinner(); showScreen('lobby'); renderLobby(msg); });
+    leaveLoading(() => { hideWinner(); hidePaused(); showScreen('lobby'); renderLobby(msg); });
+    return;
+  }
+  // Paused: non-hosts see a dialog overlay on top of the game board so their
+  // dice stay visible in place. The host stays on the board with the menu open
+  // (countdown + player count + resume toggle). This branch must precede the
+  // disconnect check below, or a paused host with offline players would be
+  // sent to loading too.
+  if (msg.paused) {
+    if (msg.host !== state.myId) {
+      hideWinner();
+      leaveLoading(() => {
+        showScreen('game');
+        renderGame(msg);
+        showPaused(pausedText(msg));
+      });
+      return;
+    }
+    // Host returning from a reconnect lands on #loading — pop the menu open
+    // when we swap to the board so the resume toggle is right in front of them.
+    const fromLoading = document.getElementById('loading').classList.contains('active');
+    leaveLoading(() => {
+      hideWinner();
+      hidePaused();
+      showScreen('game');
+      renderGame(msg);
+      if (fromLoading) openMenu();
+    });
     return;
   }
   const downNames = Object.values(msg.players).filter(p => p.disconnected).map(p => p.name);
   if (downNames.length > 0) {
     // Entering loading — no min-duration gate, just show it.
     hideWinner();
+    hidePaused();
     showLoading(waitingText(downNames));
     return;
   }
-  leaveLoading(() => { hideWinner(); showScreen('game'); renderGame(msg); });
+  leaveLoading(() => {
+    hideWinner();
+    showScreen('game');
+    renderGame(msg);
+    const overlay = document.getElementById('pause-overlay');
+    if (overlay?.open) setTimeout(hidePaused, RESUME_CLOSE_DELAY_MS);
+    else hidePaused();
+  });
 }
 
 export function handleMessage(msg) {
@@ -120,9 +160,14 @@ export function handleMessage(msg) {
 
     case 'state':
       if (msg.code) localStorage.setItem('tensies_code', msg.code);
-      if (state.awaitingAck && msg.started && myDiceKey(msg) !== state.lastMyDiceKey) {
+      if (state.awaitingAck && msg.started && myDiceKey(msg) !== state.lastMyDiceKey && !state.pendingRollState) {
         // Response to my in-flight roll — let tryReveal drive the animation
         state.pendingRollState = msg;
+      } else if (state.awaitingAck && state.pendingRollState) {
+        // A newer broadcast (e.g. the host paused) landed while I'm mid-reveal.
+        // Don't lose it or let it clobber the roll response — hold it and let
+        // tryReveal re-route through showFor once the reveal finishes.
+        state.postRevealState = msg;
       } else {
         showFor(msg);
       }
@@ -150,6 +195,18 @@ export function handleMessage(msg) {
       break;
 
     case 'error':
+      if (msg.fatal) {
+        // Terminal — the game no longer exists (e.g. paused past the cap).
+        // Drop our session and return to the landing screen with the reason.
+        clearSession();
+        state.currentState = null;
+        state.reconnecting = false;
+        hideWinner();
+        hidePaused();
+        showScreen('landing');
+        setError(msg.msg);
+        return;
+      }
       if (state.currentState && state.currentState.started) {
         // In-game error (e.g. rate limit) — clear roll state so the button comes back
         state.pendingRollTimeouts.forEach(clearTimeout);

@@ -85,6 +85,7 @@ static/
 | `create` | create new game; payload: `name` |
 | `join` | join existing game; payload: `name`, `code` |
 | `start` | host starts the game (host only) |
+| `pause` | host-only toggle that freezes/unfreezes rolling for everyone |
 | `roll` | roll unlocked dice |
 | `roll_done` | client signals its reveal animation has completed |
 
@@ -96,7 +97,21 @@ static/
 | `round_won` | state snapshot with `winner_name`; triggers overlay |
 | `error` | `msg` field with human-readable reason |
 
-The full state snapshot shape is defined by `state_msg()` in `server/game.py`. It includes `target`, `round_num`, `started`, `host`, and a `players` dict with `name`, `dice`, `wins`, `has_rolled`, and `roll_count` per player.
+The full state snapshot shape is defined by `state_msg()` in `server/game.py`. It includes `target`, `round_num`, `started`, `paused`, `host`, and a `players` dict with `name`, `dice`, `wins`, `has_rolled`, and `roll_count` per player.
+
+A terminal `error` frame carries `fatal: true` (the only producer today is the pause cap below). The client clears its saved session and returns to the landing screen instead of treating it as an in-game error.
+
+### Pause (host-only)
+
+The host toggles `pause` (first feature in the in-game menu, `static/js/menu.js`). `handle_pause` flips `game["paused"]` and broadcasts. While paused:
+
+- **Rolls are rejected** (`handle_roll` guards on `paused`; the client also disables the roll button and guards `roll()`).
+- **Non-host players see the `#loading` screen** ("Waiting for &lt;Host&gt; to resume the game") via `showFor()`; the host keeps the board — even with players offline — so the menu stays reachable. The paused branch in `showFor` precedes the disconnect-loading branch precisely so a paused host isn't bounced to a "waiting to reconnect" screen.
+- **The host's menu shows live status while paused.** `state_msg` adds `pause_remaining_ms` (from `pause_deadline_mono`); `renderMenu()` runs a local 1 Hz countdown plus an "X of Y connected" count so the host can wait for stragglers. A host returning from reconnect lands on `#loading`, so `showFor` calls `openMenu()` on the swap to surface the resume toggle. Resuming closes the menu; pausing leaves it open.
+- **Players are never dropped — but the host isn't a single point of failure.** `drop_player` returns early when paused, so a disconnect (host backgrounding their phone) doesn't end the game. The client extends its reconnect window to ~1 h (`PAUSED_RECONNECT_WINDOW_MS`) when its last-known state was paused. The one exception: if the *host* is the one who's been gone past `DISCONNECT_GRACE`, `drop_player` hands the host role (and the resume control) to a still-connected player instead of dropping anyone — so an absent host can't freeze the table until the cap.
+- **A round won during the pause window doesn't slip past it.** `delayed_broadcast` advances the round after `ROUND_WIN_DELAY`; if a pause landed in that window it sets `round_advance_pending` and freezes instead, and `handle_pause` calls `advance_round()` on resume.
+- **A pause that lands mid-reveal on a roller isn't lost.** A non-host who is mid-roll when the host pauses holds the pause snapshot in `state.postRevealState`; `tryReveal` re-routes through `showFor()` once the reveal finishes, so the roller lands on the wait screen instead of being stranded on the board.
+- **A cap backstops abandonment.** `handle_pause` schedules `pause_timeout()` for `PAUSE_MAX` (1 h); if still paused then, the game is ended (fatal `error` broadcast + cleanup). Resume cancels the watchdog and reschedules a normal `DISCONNECT_GRACE` drop for anyone still offline. Re-pausing starts a fresh `PAUSE_MAX` — intentional, since an actively-toggling host isn't an abandoned game.
 
 ### Delayed broadcast (key design detail)
 

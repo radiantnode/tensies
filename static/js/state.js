@@ -11,6 +11,8 @@ export const state = {
   rolling: false,
   awaitingAck: false,
   pendingRollState: null,    // server's response, held until shake animation ends
+  postRevealState: null,     // a newer broadcast (e.g. pause) that arrived mid-reveal,
+                             // re-routed via showFor once the reveal completes
   pendingWinName: null,      // winner overlay info, held until reveal completes
   pendingWinTarget: null,
   pendingRollTimeouts: [],
