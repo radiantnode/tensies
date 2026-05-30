@@ -478,24 +478,42 @@ Then on Tab 1 (Alpha) verify:
 
 Take screenshot **`.playwright-mcp/16-reconnected.png`**.
 
+**Negative-auth spot check (reconnect token, commit 4d63929).** After the happy-path reconnect passes, confirm the token is actually enforced: open a throwaway tab in instance #2, and from it send a reconnect for Beta's `pid`/`code` with a bogus token. It must be rejected with "Game not found":
+```js
+() => new Promise(res => {
+  const ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/ws');
+  ws.onmessage = e => { const m = JSON.parse(e.data);
+    if (m.type==='welcome') ws.send(JSON.stringify({action:'reconnect',player_id:'beta-pid-here',game_code:'CODE',token:'WRONG'}));
+    else { res(m); ws.close(); } };
+})
+```
+Expect `{type:'error', msg:'Game not found'}`. A `state`/`round_won` reply instead means the token gate is not working — FAIL. Close the throwaway tab afterward. (Use Beta's real captured pid + the game code.)
+
 If the reconnect fails (loading screen stays indefinitely or landing screen shows `Connection failed`), mark this step FAIL. Confirm whether it's because the server already dropped Beta (the `DISCONNECT_GRACE` window — currently **60 s** — elapsed during test latency) or a client-side bug by running an out-of-band direct-WS reconnect:
 
 ```python
 import asyncio, json, websockets
 async def main():
     h = await websockets.connect("ws://127.0.0.1:8888/ws")
-    json.loads(await h.recv())
+    json.loads(await h.recv())  # welcome
     await h.send(json.dumps({"action":"create","name":"X"}))
-    st = json.loads(await h.recv()); code = st["code"]; pid = list(st["players"])[0]
+    # create now emits a private `reconnect_token` frame before the `state`
+    # broadcast — collect both regardless of order. Reconnect REQUIRES the
+    # token (commit 4d63929): pid + code alone now return "Game not found".
+    token = code = pid = None
+    while code is None:
+        m = json.loads(await h.recv())
+        if m.get("type") == "reconnect_token": token = m["token"]
+        elif m.get("type") == "state": code = m["code"]; pid = list(m["players"])[0]
     await h.close(); await asyncio.sleep(0.3)
     h2 = await websockets.connect("ws://127.0.0.1:8888/ws")
-    json.loads(await h2.recv())
-    await h2.send(json.dumps({"action":"reconnect","player_id":pid,"game_code":code}))
+    json.loads(await h2.recv())  # welcome
+    await h2.send(json.dumps({"action":"reconnect","player_id":pid,"game_code":code,"token":token}))
     print(json.loads(await h2.recv())["players"][pid]["disconnected"])
 asyncio.run(main())
 ```
 
-Expected `False`. If that passes, the failure was test-tooling latency, not a regression.
+Expected `False`. If that passes, the failure was test-tooling latency, not a regression. (If you omit `token`, expect an `error` "Game not found" frame — that is the new auth working, not a bug.)
 
 ---
 
