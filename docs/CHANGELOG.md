@@ -45,7 +45,7 @@ Tuesday, May 26, 2026
 
 Monday, May 25, 2026
 
-- **Round up the crew in one tap.** Share a link or fire off a text before the drinks arrive.
-- Joining got its own screen, with a random name ready for when "just put me as Steve" won't cut it.
-- The dice came alive: smoother rolls, nicer shadows, no more piling up like last call. 🎲
-- Plays great on iPhones: no stray zooming or jumpy scrolling, even when the bar gets rowdy.
+- **Tensies is born.** It started as a bar regular and his friends loving the dice game, then one night, a few heated rounds deep, thinking "we should be able to play this anywhere, even when we forget the dice." So we built it together, right there on a barstool. 🍺
+- The first game board was sketched on a napkin's worth of inspiration before a single line of code.
+- Everything you need for a night out: make a game, round up the crew, and roll. The whole thing runs in a browser, no physical dice required.
+- _Behind the scenes: yes, the git history starts mid-stride. Someone forgot to hit "init" until the game already worked. Silly us._

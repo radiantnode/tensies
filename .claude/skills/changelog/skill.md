@@ -162,6 +162,37 @@ So: start at **`1.0.0`** when the history opens on an already-built product (or
 there's a launch/tag), and **`0.1.0`** only when you can see it genuinely starting
 from nothing.
 
+### The first version is the origin story, not a commit summary
+
+When the baseline is a mature `1.0.0` (a fat root commit), the git log can't tell
+you how the app was *born* — that work happened before `git init`. So **write the
+`1.0.0` entry as the founding story**, not as a summary of the root commit's diff.
+
+The canonical Tensies origin (use it for the `1.0.0` entry, and treat it as the
+template for how a first version should read):
+
+> A bar regular and his friends love playing Tensies, the dice game. One night,
+> a few heated rounds deep and drinks in, he thought it'd be great to play
+> anywhere, even when you forget the dice. So he started having Claude build the
+> game, sketched the very first game board himself, and has kept tinkering on it
+> from his barstool, chatting with Claude between rounds. The git history only
+> starts at the first commit because he forgot to `git init` until the game
+> already worked.
+
+How to write it:
+
+- **Tell the story, warmly and briefly.** The why (forgetting the dice, wanting to
+  play anywhere), the bar setting, the napkin-sketch beginning, built with Claude.
+  This is the one entry that's allowed to be a little sentimental.
+- **Own the `git init` gag.** The reason `1.0.0` is a fat commit is the forgotten
+  init. Land it as a self-deprecating joke (a good fit for the italic
+  behind-the-scenes line).
+- **Still follow every house rule:** bar-night voice, no em dashes, no "table,"
+  short bullets, the `1.0.0 ("Codename")` heading with the date on its own line,
+  and at least one bullet emoji (a 🍺 fits the founding pint).
+- **If the user gives you a different or updated founding story, use theirs.**
+  This story is the default; their words win.
+
 Then walk the days **oldest to newest**, carrying a running version:
 
 1. The **first release** (oldest day) gets the starting version you picked above.
@@ -338,6 +369,9 @@ Do **not** commit or push unless the user asks. Do **not** open a PR.
   already-built app means a mature `1.0.0` baseline, a from-scratch skeleton means
   `0.1.0`. Then bump MAJOR/MINOR/PATCH by what shipped and zero the components to
   the right.
+- **The `1.0.0` entry is the origin story.** When the baseline is a fat root
+  commit, write the first version from the founding story (built with Claude at the
+  bar, sketched the board, forgot to `git init`), not from the commit diff.
 - **Humanize on the way out, then season lightly.** The humanizer pass is part of
   the deliverable, not optional polish: plain prose, no em dashes. Then add emojis
   back in bullets only, at least one per release but sparingly, where they're funny
