@@ -119,11 +119,11 @@
           "refId": "A",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT (round_num || ' / target ' || target) AS rnd FROM live_games WHERE game_code = '$game_code'"
+          "rawSql": "SELECT coalesce((SELECT round_num || ' / target ' || target FROM live_games WHERE game_code = '$game_code'), '-') AS rnd"
         }
       ],
       "options": {
-        "colorMode": "background",
+        "colorMode": "none",
         "graphMode": "none",
         "reduceOptions": {
           "calcs": [
@@ -152,11 +152,11 @@
           "refId": "A",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT player_count FROM games WHERE game_code = '$game_code'"
+          "rawSql": "SELECT peak_players AS \"Players\", player_count AS \"Connected\" FROM games WHERE game_code = '$game_code'"
         }
       ],
       "options": {
-        "colorMode": "background",
+        "colorMode": "none",
         "graphMode": "none",
         "reduceOptions": {
           "calcs": [
@@ -188,7 +188,7 @@
         }
       ],
       "options": {
-        "colorMode": "background",
+        "colorMode": "none",
         "graphMode": "none",
         "reduceOptions": {
           "calcs": [
@@ -220,7 +220,7 @@
         }
       ],
       "options": {
-        "colorMode": "background",
+        "colorMode": "none",
         "graphMode": "none",
         "reduceOptions": {
           "calcs": [
@@ -257,7 +257,7 @@
         }
       },
       "options": {
-        "colorMode": "background",
+        "colorMode": "none",
         "graphMode": "area",
         "reduceOptions": {
           "calcs": [

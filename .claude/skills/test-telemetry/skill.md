@@ -393,7 +393,7 @@ Verify each rollup table was updated correctly for this game.
 ```bash
 docker compose exec -T postgres psql -U tensies tensies -c "
 -- games rollup
-SELECT game_code, status, player_count, round_count, total_rolls
+SELECT game_code, status, peak_players, player_count, round_count, total_rolls
 FROM games WHERE game_code = 'GAME_CODE';
 
 -- rounds rollup
@@ -409,7 +409,8 @@ FROM round_player WHERE game_code = 'GAME_CODE' ORDER BY round_num, user_id;
 
 Check:
 - `games.status = 'ended'` (game closed cleanly)
-- `games.player_count == 2`
+- `games.peak_players == 2` (max players who joined; stable at game-end)
+- `games.player_count == 0` (live connected count; expected 0 after clean end)
 - `games.round_count >= 3` (all 3 played rounds recorded)
 - All 3 `rounds` rows have `has_winner = true` and `duration_ms > 0`
 - Target cycling is correct: round 1 → target 6, round 2 → target 5, round 3 → target 4
@@ -428,7 +429,8 @@ ORDER BY user_id;
 
 **Pass criteria:**
 - `games.status = 'ended'`
-- `games.player_count = 2`
+- `games.peak_players = 2`
+- `games.player_count = 0` (drops to 0 on clean game end — expected)
 - `games.round_count >= 3`
 - All 3 rounds have winner and positive duration
 - Targets follow the 6→5→4 sequence
