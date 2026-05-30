@@ -126,20 +126,37 @@ Structure, **newest day first** (a changelog is read top-down for "what's new"):
 
 A friendly log of everything that's changed. Newest stuff up top.
 
-## <Friendly date, e.g. Friday, May 30, 2026>
+## <Drink codename>: <Friendly date, e.g. Friday, May 30, 2026>
 
 - Player-facing change, told as a benefit.
 - Another one, maybe with a light joke.
 - _Behind the scenes: the player payoff of the invisible work (only if worth it)._
 
-## <Next day down>
+## <Next day's codename>: <Next day down>
 
 - ...
 ```
 
+Each day is its own little "release," so **give every day a funny bar- or
+drink-themed codename** and put it in the heading before the date.
+
+- **Make it a pun on that day's actual changes when you can.** The codename should
+  wink at what shipped, not just name a random cocktail. Pause features landing?
+  *"Last Call."* Reconnect/stay-in-your-seat work? *"On the Rocks"* or
+  *"Hold My Drink."* First invites and the dice coming alive? *"Opening Tab."* A
+  fix that stops something sticking around? *"Closing Time."* When nothing puns
+  cleanly, any fun drink name works (*"House Pour," "Two-Olive Martini," "Round
+  on the House"*).
+- **Keep them short** (one to three words), good-natured, and inclusive. Lean on
+  bar atmosphere as much as alcohol (last call, the tab, the jukebox, happy hour,
+  the back booth) so it still lands for non-drinkers. Never reuse a codename.
+- The codename is flavor, not a section of its own. One per day heading, then the
+  bullets do the real work.
+
 Formatting rules:
 
-- **Date headings** use a human format ("Friday, May 30, 2026"), not `2026-05-30`.
+- **Date headings** use the `Codename: Friendly date` shape (codename first, then
+  a colon, then a human date like "Friday, May 30, 2026", never `2026-05-30`).
   Derive the weekday from the date.
 - **No emojis.** Not in the title, not in day headings, not in bullets. The
   humanizer pass cuts them anyway.
@@ -196,6 +213,8 @@ Do **not** commit or push unless the user asks. Do **not** open a PR.
 - **Group ruthlessly.** Commits are raw material; significant changes are the
   product. One feature = one bullet, no matter how many commits built it.
 - **Funny, not cringe.** A light touch of humor; never at the expense of clarity.
+- **Every day gets a drink codename.** Pun on that day's changes when you can, and
+  never reuse one.
 - **Humanize on the way out.** The humanizer pass is part of the deliverable, not
   optional polish. Plain prose, no em dashes, no emojis.
 - **Regenerate, don't append.** Re-running rebuilds the whole file from history,
