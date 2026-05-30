@@ -59,10 +59,12 @@
       "Bash(curl -sf http://localhost:*)",
       "Bash(curl -sf -X POST http://localhost:*)",
       "Bash(curl -sf -u admin:admin -X POST http://localhost:*)",
+      "Bash(curl -sf 'http://localhost:*)",
       "Bash(curl -s http://localhost:*)",
       "Bash(pg_isready *)",
       "Bash(node --check *)",
-      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Grafana', d.get\\('version','?'\\)\\)\")"
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Grafana', d.get\\('version','?'\\)\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Grafana', d.get\\('version','?'\\), '-', 'OK' if d.get\\('database'\\)=='ok' else 'FAIL: db not ok'\\)\")"
     ]
   }
 }
