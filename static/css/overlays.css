@@ -30,6 +30,38 @@
 }
 .overlay-dialog::backdrop { background: transparent; }
 
+/* ── Pause overlay (non-host) ──
+   Visually identical to #loading — same background, logo, bar, and message —
+   but implemented as a <dialog> so the game board stays live underneath. */
+#pause-overlay[open] {
+  flex-direction: column;
+  background: rgba(6, 3, 1, 0.92);
+  padding: calc(2rem + env(safe-area-inset-top)) 2rem calc(2rem + env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+/* Match #loading's logo spacing exactly, without triggering view-transition
+   morphing that's scoped to #loading/.logo-mark in loading.css. */
+#pause-overlay .logo-mark {
+  margin-bottom: -3.5rem;
+  view-transition-name: none;
+}
+#pause-overlay .logo {
+  margin-bottom: 2.5rem;
+  view-transition-name: none;
+}
+
+#pause-overlay-msg {
+  margin-top: 1.25rem;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  max-width: 280px;
+  line-height: 1.5;
+  height: 3.5rem;
+}
+
 /* ── Winner overlay ── */
 #winner-overlay { background: rgba(0, 0, 0, 0.88); }
 

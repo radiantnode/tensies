@@ -29,7 +29,7 @@ btn.addEventListener('click', () => { isOpen() ? closeMenu() : openMenu(); });
 // Pausing keeps the menu open (so the host sees the countdown + player count);
 // resuming closes it to hand the board back — but after a beat, so the toggle's
 // slide-off (the .menu-switch 0.2s transition) is visible before the menu goes.
-const RESUME_CLOSE_DELAY_MS = 600;
+export const RESUME_CLOSE_DELAY_MS = 600;
 pauseBtn.addEventListener('click', () => {
   if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
   const resuming = !!state.currentState?.paused;

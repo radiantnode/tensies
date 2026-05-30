@@ -3,8 +3,8 @@ import { setError, setJoinError, showScreen } from './util.js';
 import { myDiceKey } from './dice.js';
 import { resetRollState } from './animations.js';
 import { renderGame, renderLobby, renderMyArea, renderPlayersBar } from './screens.js';
-import { hideWinner, leaveLoading, pausedText, showLoading, showWinner, waitingText } from './overlays.js';
-import { openMenu } from './menu.js';
+import { hidePaused, hideWinner, leaveLoading, pausedText, showLoading, showPaused, showWinner, waitingText } from './overlays.js';
+import { openMenu, RESUME_CLOSE_DELAY_MS } from './menu.js';
 
 const RECONNECT_WINDOW_MS = 60000;
 // While the game is paused the server holds it open for up to an hour, so keep
@@ -99,17 +99,22 @@ export function showFor(msg) {
   // mid-game error doesn't get bounced to the landing/join screen.
   state.pendingOrigin = null;
   if (!msg.started) {
-    leaveLoading(() => { hideWinner(); showScreen('lobby'); renderLobby(msg); });
+    leaveLoading(() => { hideWinner(); hidePaused(); showScreen('lobby'); renderLobby(msg); });
     return;
   }
-  // Paused: non-hosts wait on the loading screen; the host stays on the board
-  // (even with players offline) so the menu — countdown, player count, and the
-  // resume toggle — is reachable. This branch must precede the disconnect check
-  // below, or a paused host with offline players would be sent to loading too.
+  // Paused: non-hosts see a dialog overlay on top of the game board so their
+  // dice stay visible in place. The host stays on the board with the menu open
+  // (countdown + player count + resume toggle). This branch must precede the
+  // disconnect check below, or a paused host with offline players would be
+  // sent to loading too.
   if (msg.paused) {
     if (msg.host !== state.myId) {
       hideWinner();
-      showLoading(pausedText(msg));
+      leaveLoading(() => {
+        showScreen('game');
+        renderGame(msg);
+        showPaused(pausedText(msg));
+      });
       return;
     }
     // Host returning from a reconnect lands on #loading — pop the menu open
@@ -117,6 +122,7 @@ export function showFor(msg) {
     const fromLoading = document.getElementById('loading').classList.contains('active');
     leaveLoading(() => {
       hideWinner();
+      hidePaused();
       showScreen('game');
       renderGame(msg);
       if (fromLoading) openMenu();
@@ -127,10 +133,18 @@ export function showFor(msg) {
   if (downNames.length > 0) {
     // Entering loading — no min-duration gate, just show it.
     hideWinner();
+    hidePaused();
     showLoading(waitingText(downNames));
     return;
   }
-  leaveLoading(() => { hideWinner(); showScreen('game'); renderGame(msg); });
+  leaveLoading(() => {
+    hideWinner();
+    showScreen('game');
+    renderGame(msg);
+    const overlay = document.getElementById('pause-overlay');
+    if (overlay?.open) setTimeout(hidePaused, RESUME_CLOSE_DELAY_MS);
+    else hidePaused();
+  });
 }
 
 export function handleMessage(msg) {
@@ -188,6 +202,7 @@ export function handleMessage(msg) {
         state.currentState = null;
         state.reconnecting = false;
         hideWinner();
+        hidePaused();
         showScreen('landing');
         setError(msg.msg);
         return;
