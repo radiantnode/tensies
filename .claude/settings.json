@@ -17,7 +17,6 @@
       "mcp__playwright__browser_take_screenshot",
       "mcp__playwright__browser_type",
       "mcp__playwright__browser_wait_for",
-
       "mcp__playwright-guest__browser_click",
       "mcp__playwright-guest__browser_console_messages",
       "mcp__playwright-guest__browser_evaluate",
@@ -29,7 +28,6 @@
       "mcp__playwright-guest__browser_take_screenshot",
       "mcp__playwright-guest__browser_type",
       "mcp__playwright-guest__browser_wait_for",
-
       "mcp__playwright-g2-host__browser_click",
       "mcp__playwright-g2-host__browser_evaluate",
       "mcp__playwright-g2-host__browser_handle_dialog",
@@ -38,22 +36,17 @@
       "mcp__playwright-g2-host__browser_tabs",
       "mcp__playwright-g2-host__browser_take_screenshot",
       "mcp__playwright-g2-host__browser_wait_for",
-
       "mcp__playwright-g2-guest__browser_evaluate",
       "mcp__playwright-g2-guest__browser_navigate",
       "mcp__playwright-g2-guest__browser_take_screenshot",
-
       "mcp__playwright-g3-host__browser_evaluate",
       "mcp__playwright-g3-host__browser_navigate",
       "mcp__playwright-g3-host__browser_take_screenshot",
-
       "mcp__playwright-g3-guest__browser_evaluate",
       "mcp__playwright-g3-guest__browser_navigate",
       "mcp__playwright-g3-guest__browser_take_screenshot",
-
       "Edit(/.claude/skills/test-game/**)",
       "Edit(/.claude/skills/test-telemetry/**)",
-
       "Bash(docker compose *)",
       "Bash(until docker compose *)",
       "Bash(curl -sf http://localhost:*)",
@@ -64,7 +57,8 @@
       "Bash(pg_isready *)",
       "Bash(node --check *)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Grafana', d.get\\('version','?'\\)\\)\")",
-      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Grafana', d.get\\('version','?'\\), '-', 'OK' if d.get\\('database'\\)=='ok' else 'FAIL: db not ok'\\)\")"
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Grafana', d.get\\('version','?'\\), '-', 'OK' if d.get\\('database'\\)=='ok' else 'FAIL: db not ok'\\)\")",
+      "mcp__playwright-guest__browser_close"
     ]
   }
 }
