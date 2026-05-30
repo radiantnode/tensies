@@ -1,14 +1,18 @@
 ---
 name: changelog
-description: "Generate a friendly, player-facing changelog from the git history. Reads the full git log, lumps related commits into significant changes, groups them by day (newest first), and writes a simple, warm, lightly humorous markdown file — the opposite of a raw commit dump. Use when the user asks for a changelog, a \"what's new\", release notes, or wants to refresh docs/CHANGELOG.md."
+description: "Generate a friendly, player-facing changelog from the git history. Reads the full git log, lumps related commits into significant changes, groups them by day (newest first), and writes a simple, warm, lightly humorous markdown file, the opposite of a raw commit dump. Runs the result through the humanizer skill so the prose reads like a real person wrote it. Use when the user asks for a changelog, a \"what's new\", release notes, or wants to refresh docs/CHANGELOG.md."
 user_invocable: true
 ---
 
 # Tensies Changelog Generator
 
-Turn the git history into a changelog a *player* would enjoy reading — friendly,
+Turn the git history into a changelog a *player* would enjoy reading: friendly,
 plain-English, a little funny, not a wall of commit hashes. The audience is
 someone who plays the dice game, not someone who writes it.
+
+The final step runs the whole file through the **humanizer** skill so it doesn't
+read like AI wrote it. That pass strips em dashes and emojis (see Phase 5), so
+this skill no longer uses either — write plain.
 
 **Output file:** `docs/CHANGELOG.md` (overwrite it each run). If the user names a
 different path, use that instead.
@@ -20,13 +24,13 @@ different path, use that instead.
 ## The voice (read this first — it's the whole point)
 
 **Who you're talking to:** Tensies is the game a group of friends pulls up at the
-bar — drinks in hand, phones out, talking trash and laughing. Your reader is one
+bar, drinks in hand, phones out, talking trash and laughing. Your reader is one
 of those people: a fun, social, slightly-tipsy player on a night out, not someone
 reading at a desk. Write *to them*. Talk like you're leaning over at the bar to
-tell them what's new before the next round. Lean into the setting — rounds, buying
-the next one, passing the phone around, "hold my drink" moments, settling who pays
-— but keep it inclusive and good-natured (never assume everyone's drinking, never
-push it).
+tell them what's new before the next round. Lean into the setting (rounds, buying
+the next one, passing the phone around, "hold my drink" moments, settling who
+pays) but keep it inclusive and good-natured (never assume everyone's drinking,
+never push it).
 
 **Never say "table."** You're at a *bar*, not sitting at a dinner table. Say the
 bar, the crew, the group, your friends, the whole gang — whatever fits — but
@@ -37,13 +41,13 @@ Keep these rules in mind:
 - **Plain English, no jargon.** A player doesn't know what a "WebSocket" or a
   "delayed broadcast" is. Say what *changed for them*: "rolls feel snappier now."
 - **Simple and short.** One line per change. If you can't explain it in a
-  sentence, it's probably an under-the-hood thing — fold it away (see below).
+  sentence, it's probably an under-the-hood thing, so fold it away (see below).
 - **Warm and a little funny.** A light joke is welcome; a groan-worthy pun in
   moderation is on-brand. Never sarcastic, never mean, never forced. Bar-night
-  humor — the kind that lands with friends mid-round.
-- **Emojis sparingly.** At most one per day heading, and only where it genuinely
-  adds something. A changelog peppered with 🎉🚀✨ on every line reads like spam.
-  When in doubt, leave it out.
+  humor, the kind that lands with friends mid-round.
+- **No emojis, no em dashes.** The humanizer pass (Phase 5) cuts both, so don't
+  add them in the first place. Use commas, periods, colons, or parentheses where
+  you'd reach for a dash.
 - **Lead with the player.** "You can now invite friends by text" beats "Added SMS
   invite button."
 - **Group, don't list.** Several commits that together make one improvement become
@@ -53,11 +57,11 @@ Translation examples (technical commit → friendly line):
 
 | Commit message | Friendly changelog line |
 |----------------|-------------------------|
-| `Join via link + SMS invite button` | You can now invite friends with a tap — share a link or fire off a text. |
+| `Join via link + SMS invite button` | You can now invite friends with a tap. Share a link or fire off a text. |
 | `Fix roll-ack hang when re-roll lands on same dice values` | Fixed a sneaky freeze when your re-roll landed on the exact same numbers. Spooky, but no longer sticky. |
-| `Add host-only Pause Game toggle as the menu's first feature` | Whoever's hosting can pause the game — perfect for a bar run, a bathroom break, or settling who's buying the next round. |
+| `Add host-only Pause Game toggle as the menu's first feature` | Whoever's hosting can pause the game. Perfect for a bar run, a bathroom break, or settling who's buying the next round. |
 | `Persist dice scatter positions across refresh/reconnect` | Your dice stay put now, even if you refresh or your phone naps. |
-| `Split server into server/ package` | *(behind-the-scenes — frame as the player benefit it enables, e.g. "we're tuning the engine so games stay smooth and fair", not "refactored the server")* |
+| `Split server into server/ package` | *(behind-the-scenes: frame as the player benefit it enables, e.g. "we're tuning the engine so games stay smooth and fair", not "refactored the server")* |
 
 ---
 
@@ -103,13 +107,13 @@ looks significant but the one-liner is opaque.
    End a day with a single line framed around the player, e.g.
    *"Behind the scenes: we're sharpening how we understand each game so matches
    keep getting more fun, fair, and engaging."* Vary the wording to fit what that
-   day's work actually serves — fairness, speed, reliability, or smarter gameplay —
+   day's work actually serves (fairness, speed, reliability, or smarter gameplay)
    but always lead with the player's payoff, never the plumbing. Skip the line
    entirely on days with nothing worth saying.
 4. **Drop pure noise.** Merge commits, "fix typo", and test-run log entries don't
    each earn a mention.
 
-Aim for **2–5 bullets per active day**. If a day genuinely had one thing, one
+Aim for **2 to 5 bullets per active day**. If a day genuinely had one thing, one
 bullet is fine. If it had ten commits that were all the same feature, still one
 bullet.
 
@@ -118,7 +122,7 @@ bullet.
 Structure, **newest day first** (a changelog is read top-down for "what's new"):
 
 ```markdown
-# What's New in Tensies 🎲
+# What's New in Tensies
 
 A friendly log of everything that's changed. Newest stuff up top.
 
@@ -130,27 +134,54 @@ A friendly log of everything that's changed. Newest stuff up top.
 
 ## <Next day down>
 
-- …
+- ...
 ```
 
 Formatting rules:
 
 - **Date headings** use a human format ("Friday, May 30, 2026"), not `2026-05-30`.
   Derive the weekday from the date.
-- **One emoji max per day heading**, and only when it fits. The title line may
-  carry one. Most day headings need none.
+- **No emojis.** Not in the title, not in day headings, not in bullets. The
+  humanizer pass cuts them anyway.
+- **No em dashes or en dashes.** Use commas, periods, colons, or parentheses.
 - **No commit hashes, no author names, no branch names** in the body. This is for
   players, not contributors.
 - **Behind-the-scenes line** is italicized, framed around the player benefit, and
   always last in its day.
-- Keep the whole thing skimmable — short bullets, no paragraphs.
+- Keep the whole thing skimmable with short bullets, no paragraphs.
 
-## Phase 4 — Write the file and report
+## Phase 4 — Write the draft file
 
-Write to `docs/CHANGELOG.md` (or the user's path). Then tell the user:
+Write your draft to `docs/CHANGELOG.md` (or the user's path). This is a draft, not
+the deliverable yet. The humanizer pass comes next.
+
+## Phase 5 — Run it through the humanizer
+
+Invoke the **humanizer** skill on the file you just wrote so the prose reads like
+a real person wrote it, not an LLM. Use the Skill tool:
+
+```
+Skill(skill="humanizer", args="Humanize docs/CHANGELOG.md in place. Keep it
+short, warm, and in the bar-night voice. Preserve the markdown structure (title,
+day headings, bullets, the italic behind-the-scenes lines).")
+```
+
+The humanizer cuts em dashes, en dashes, and emojis, flattens AI-vocabulary and
+rule-of-three padding, and varies the rhythm. That's exactly what we want here, so
+let it do its job, then fold its final rewrite back into `docs/CHANGELOG.md`
+(overwrite the draft).
+
+After the pass, eyeball the result: confirm it still groups by day, still leads
+with the player, still sounds like the bar (no "table"), and contains no `—`, `–`,
+or emojis. Fix anything the pass over-flattened (it shouldn't strip the jokes).
+
+## Phase 6 — Report
+
+Tell the user:
 
 - Where the file is.
 - How many days / how big a span it covers.
+- That it was humanized on the way out.
 - A one-line note that it's player-facing and regeneratable any time by
   re-running the skill.
 
@@ -165,6 +196,7 @@ Do **not** commit or push unless the user asks. Do **not** open a PR.
 - **Group ruthlessly.** Commits are raw material; significant changes are the
   product. One feature = one bullet, no matter how many commits built it.
 - **Funny, not cringe.** A light touch of humor; never at the expense of clarity.
-- **Emojis are seasoning, not the meal.** Sparing means sparing.
+- **Humanize on the way out.** The humanizer pass is part of the deliverable, not
+  optional polish. Plain prose, no em dashes, no emojis.
 - **Regenerate, don't append.** Re-running rebuilds the whole file from history,
   so it's always in sync with the log.
