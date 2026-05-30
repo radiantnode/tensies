@@ -74,7 +74,28 @@ JS_OVERLAY = """() => {
 }"""
 
 
+# Suppress focus rings / tap highlights — driving the game by clicks leaves a
+# full-viewport .screen element focused, which paints an amber WebKit focus ring
+# around the whole frame under the mobile/iOS-UA context.
+NO_OUTLINE = """
+(() => {
+  const css = '*{outline:none !important;-webkit-tap-highlight-color:transparent !important}';
+  const add = () => {
+    const s = document.createElement('style');
+    s.textContent = css;
+    (document.head || document.documentElement).appendChild(s);
+  };
+  if (document.head || document.documentElement) add();
+  document.addEventListener('DOMContentLoaded', add);
+})();
+"""
+
+
 def snap(page, step):
+    try:
+        page.evaluate("() => { const a=document.activeElement; if (a && a.blur) a.blur(); }")
+    except Exception:
+        pass
     try:
         page.screenshot(path=f"{PREFIX}{step}.png")
     except Exception:
@@ -114,6 +135,8 @@ def main():
         browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
         host_ctx = browser.new_context(**DEVICE)
         guest_ctx = browser.new_context(**DEVICE)
+        host_ctx.add_init_script(NO_OUTLINE)
+        guest_ctx.add_init_script(NO_OUTLINE)
         host = host_ctx.new_page()
         guest = guest_ctx.new_page()
         status = []
