@@ -3,7 +3,7 @@ import { setError, setJoinError, showScreen } from './util.js';
 import { myDiceKey } from './dice.js';
 import { resetRollState } from './animations.js';
 import { renderGame, renderLobby, renderMyArea, renderPlayersBar } from './screens.js';
-import { hideWinner, leaveLoading, showLoading, showWinner, waitingText } from './overlays.js';
+import { hideWinner, leaveLoading, pausedText, showLoading, showWinner, waitingText } from './overlays.js';
 
 const RECONNECT_WINDOW_MS = 60000;
 const RETRY_DELAY_MS = 2000;
@@ -95,6 +95,13 @@ function showFor(msg) {
   state.pendingOrigin = null;
   if (!msg.started) {
     leaveLoading(() => { hideWinner(); showScreen('lobby'); renderLobby(msg); });
+    return;
+  }
+  // Paused: everyone waits on the loading screen — except the host, who keeps
+  // the game board so the menu stays reachable to resume.
+  if (msg.paused && msg.host !== state.myId) {
+    hideWinner();
+    showLoading(pausedText(msg));
     return;
   }
   const downNames = Object.values(msg.players).filter(p => p.disconnected).map(p => p.name);

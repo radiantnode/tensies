@@ -40,6 +40,12 @@ export function leaveLoading(action) {
   else setTimeout(action, remaining);
 }
 
+// "<Host> has paused the game" for the non-host waiting screen.
+export function pausedText(msg) {
+  const host = msg.players[msg.host]?.name || 'The host';
+  return `${host} has paused the game`;
+}
+
 // Build the "Waiting for A and B to reconnect…" text from a name list.
 export function waitingText(names) {
   if (names.length === 0) return '';
