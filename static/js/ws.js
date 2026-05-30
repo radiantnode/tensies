@@ -16,6 +16,7 @@ function wsUrl() {
 function clearSession() {
   localStorage.removeItem('tensies_pid');
   localStorage.removeItem('tensies_code');
+  localStorage.removeItem('tensies_token');
 }
 
 function expireSession() {
@@ -60,8 +61,9 @@ export function attemptReconnect(pid, code, deadline) {
     expireSession();
     return;
   }
+  const token = localStorage.getItem('tensies_token') || '';
   state.ws = new WebSocket(wsUrl());
-  state.ws.onopen = () => state.ws.send(JSON.stringify({ action: 'reconnect', player_id: pid, game_code: code }));
+  state.ws.onopen = () => state.ws.send(JSON.stringify({ action: 'reconnect', player_id: pid, game_code: code, token }));
   state.ws.onerror = () => {};
   state.ws.onmessage = evt => {
     const msg = JSON.parse(evt.data);
@@ -116,6 +118,12 @@ export function handleMessage(msg) {
     case 'welcome':
       state.myId = msg.player_id;
       localStorage.setItem('tensies_pid', state.myId);
+      break;
+
+    case 'reconnect_token':
+      // Private per-player credential — only this client ever receives it.
+      // Required (alongside pid + code) to reclaim the slot after a drop.
+      localStorage.setItem('tensies_token', msg.token);
       break;
 
     case 'state':

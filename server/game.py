@@ -1,8 +1,29 @@
+import hashlib
 import random
+import secrets
 import string
 import time
 
 from .state import games
+
+
+def make_reconnect_token() -> tuple[str, str]:
+    """Mint an opaque reconnect token; return (raw_token, sha256_hex).
+
+    The raw token is sent only to the owning player. We store the hash on
+    the player dict so a leaked game snapshot (which carries pids) can't be
+    used to hijack a disconnected slot — reconnect requires the raw token.
+    """
+    token = secrets.token_urlsafe(32)
+    return token, hashlib.sha256(token.encode()).hexdigest()
+
+
+def verify_token(token_hash: str | None, token: str) -> bool:
+    """Constant-time check of a presented reconnect token against its hash."""
+    if not token_hash or not token:
+        return False
+    presented = hashlib.sha256(token.encode()).hexdigest()
+    return secrets.compare_digest(presented, token_hash)
 
 
 def make_code() -> str:
@@ -26,6 +47,9 @@ def fresh_player(name: str) -> dict:
         "last_roll": 0.0,
         "roll_count": 0,
         "disconnected": False,
+        # sha256 of this player's reconnect token, set when the slot is
+        # created in handle_create / handle_join. Never leaves the server.
+        "token_hash": None,
     }
 
 
