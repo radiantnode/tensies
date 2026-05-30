@@ -350,5 +350,156 @@ Tensies is a strong single-node real-time game prototype with excellent observab
 
 ---
 
-*After this exchange, implementation began with the reconnect-token fix
-(commit `4d63929`).*
+## Turn 4 — Claude Code (decision rationale & implementation notes)
+
+This section is added after the fact to record *why* I took the positions I did,
+and the design decisions behind the work that followed. The three turns above are
+verbatim; this one is a reflective summary written from memory of the session.
+
+### How I evaluated the original feedback
+
+I did not take the feedback on trust. Before agreeing with anything I read the
+actual modules it referenced — `server/ws.py`, `server/game.py`,
+`server/broadcast.py`, `server/routes.py`, `server/state.py`, the telemetry
+`writer.py`, `migrations/001_init.sql`, `docker-compose.yml`, the `Dockerfile`,
+and the client `screens.js` / `util.js` / `ws.js`. Every "CONFIRMED" in my Turn 2
+review means I traced the claim to specific lines, not that it sounded plausible.
+
+### Where I agreed, and why
+
+- **Reconnect hijack (#1).** I agreed this was the most important issue and rated
+  it real. The proof is structural, not hypothetical: `state_msg()` keys the
+  `players` dict by `pid` and also ships `host` as a `pid`, so every connected
+  client already holds every opponent's identifier; `handle_reconnect()` then
+  accepts `player_id` + `game_code` + the `disconnected` flag as sufficient to
+  seize a slot. The "credential" is broadcast to everyone, which is the whole
+  problem. The reviewer's proposed fix (a private hashed token) was exactly
+  right, so I adopted it rather than inventing an alternative.
+
+- **Writer transaction trap (#6).** I agreed *and escalated* it. The reviewer
+  said a rollup bug could "poison the batch." Reading `_flush()` I concluded it
+  was worse: because the event insert and all rollup handlers share one
+  `con.transaction()` with no savepoints, an aborted transaction rolls back the
+  append-only event insert too — which directly contradicts the project's own
+  documented guarantee that unhandled events still land in the `events` table.
+  That moved it, in my mind, from "observability polish" to "data-integrity bug,"
+  which is why I ranked it #2 in Turn 2.
+
+- **Stats semantics (#7).** Confirmed by reading the SQL: `total_rounds` is only
+  ever incremented alongside `total_wins` in `_h_round_won`, so the two columns
+  are always equal and the name is misleading; `total_games` is declared in the
+  schema but written by no handler. These are the kind of findings you only get
+  from reading the queries, which is why I credited the reviewer with having
+  actually read the code.
+
+- **Issues 2–5, duplicate `player_left`, client XSS, missing CI/README/lockfile.**
+  All confirmed against the code; I had no material disagreement.
+
+### Where I added something the review missed
+
+The original review separately noted that Grafana ran with
+`GF_PANELS_DISABLE_SANITIZE_HTML: "true"` *and* that player names are
+user-controlled, but never joined the two facts. I connected them: player names
+flow into telemetry (`leader_name`, `live_players.name`) and are rendered on
+Grafana dashboards, so disabled HTML sanitization plus attacker-controlled names
+is a **stored-XSS path into the Grafana admin's browser** — a concrete attack,
+not just loose configuration. This is the point the external reviewer then
+singled out in Turn 3 as the thing they had underweighted, and promoted to their
+#2 priority.
+
+### Where I pushed back or softened
+
+- **Single-process framing.** I declined to treat single-process as a defect.
+  Tensies games are intentionally ephemeral — they die when the last player
+  leaves and there is no active state worth persisting — so "single worker is a
+  legitimate design choice that must be documented" is the honest framing, not
+  "move to Redis." I did sharpen the operational consequence, though: it is not
+  just "won't scale to many pods," it's that you cannot even run
+  `uvicorn --workers >1` safely, and that constraint is currently undocumented.
+
+- **Severity of the hijack.** I agreed it was the #1 fix but argued the blast
+  radius is griefing a disconnected player mid-round, not account or data theft
+  (there are no accounts). "Don't ship publicly like this," not "five-alarm
+  fire." This kept the priority without overstating the stakes.
+
+### The one thing I was later told to drop
+
+When discussing what to implement, the project owner directed me to **ignore the
+Grafana XSS entirely** — despite it being my own addition and the reviewer's #2.
+I recorded that decision and did not act on it. (The analysis above is preserved
+because the transcript is a record of the exchange, not of the final build plan.)
+
+### Token design decision (the fix I built)
+
+The owner asked which token approach was more secure. I compared two:
+
+- **Opaque random token, hash stored server-side** — mint
+  `secrets.token_urlsafe(32)`, send the raw value only to the owning player,
+  store its SHA-256 on the player record, and compare in constant time on
+  reconnect.
+- **Signed/stateless HMAC token** — sign `player_id + game_code` with a
+  server-wide secret; no per-player storage.
+
+I recommended and built the **opaque-token-with-stored-hash** option, for
+reasons specific to this codebase:
+
+- **Smaller blast radius.** A leaked opaque token compromises one player in one
+  game. A leaked HMAC signing key forges *every* token in *every* game, forever.
+- **Revocation is trivial.** The hash dies with the in-memory player record; an
+  HMAC token stays valid until expiry and can't be individually revoked without
+  rotating the key for everyone.
+- **Statelessness buys nothing here.** HMAC's only real advantage is verifying
+  without a state lookup — but reconnect must load the game anyway (to clear
+  `disconnected`, cancel the grace task, re-key the connection), so the lookup
+  happens regardless.
+- **It externalizes cleanly for the owner's multi-process goal.** The owner said
+  they eventually want multi-process. The token hash lives on the player record,
+  so when game state later moves to a shared store (Redis/Postgres) the same
+  `verify_token()` logic works across processes unchanged. I noted that the token
+  is *not* the multi-process blocker — `disconnect_task`, the per-process
+  `connections`/`sessions` dicts, and `delayed_broadcast`'s single-event-loop
+  assumption are.
+
+### What the implementation actually changed (commit `4d63929`)
+
+- `server/game.py` — added `make_reconnect_token()` (opaque token → SHA-256) and
+  `verify_token()` (constant-time `secrets.compare_digest`); added a `token_hash`
+  field to the player record.
+- `server/ws.py` — mint a token on `create`/`join`, deliver the raw value
+  privately via a new `reconnect_token` server→client message, and require the
+  raw token in `handle_reconnect()` (verified constant-time). The hash never
+  appears in `state_msg()`, so a leaked snapshot is no longer a usable credential.
+- `static/js/ws.js` — persist the token in `localStorage` next to pid/code,
+  replay it on reconnect, and clear it on session expiry.
+
+### How I verified it (telemetry stack was unavailable)
+
+Docker image pulls were network-blocked in the environment, so the full Compose
+stack (Postgres/Grafana/Prometheus) could not run and telemetry was left
+untested. I ran the app telemetry-free and tested in two layers:
+
+1. A headless WebSocket protocol driver (`ws_integration_test.py`, added to the
+   repo) — 25/25 checks, covering create/join/start/roll/rate-limit/win/
+   target-cycle/disconnect plus the full token auth matrix: private token frame
+   sent, `token_hash` never leaked, and reconnect rejected for missing / wrong /
+   another-player's token while accepted for the correct one.
+2. Two isolated real browsers driving the actual UI — lobby sync, start,
+   roll-to-win + overlay, round advance, and a token-authenticated reload
+   reconnect (host reconnect ~602 ms, `isHost` preserved), with live attacker
+   reconnect attempts rejected. 0 server exceptions, 0 console errors.
+
+One honest correction surfaced during testing: a remaining player initially did
+*not* show the "waiting" loading screen on a peer disconnect. Investigation of the
+server log showed this was **correct self-healing** — a live client with a valid
+stored token auto-reconnects within the same second, so the peer never sustains a
+`disconnected` view. Suppressing auto-reconnect reproduced the documented
+loading-screen state. Not a regression; a gap in the test's assumptions.
+
+### Deferred (not done in this session)
+
+In the reviewer's revised priority order, after the reconnect token came: Grafana
+XSS (explicitly dropped by the owner), the writer-transaction split (#3), stats
+semantics (#4), single-worker documentation (#5), and production config / CI /
+resource caps (#6). Only the reconnect token (#1) was implemented and verified
+here. Also still open: documenting the new `reconnect_token` message in the
+WebSocket protocol table in `CLAUDE.md`.
