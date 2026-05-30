@@ -2,7 +2,7 @@
 
 Pull up a stool. Here's what's new since last call, newest round up top.
 
-## 0.5.0 ("Last Call")
+## 0.5.0 ("Last Call") 🍻
 
 Saturday, May 30, 2026
 
@@ -31,7 +31,7 @@ Thursday, May 28, 2026
 
 Wednesday, May 27, 2026
 
-- Lose signal? Hop right back in. A dead zone by the jukebox won't knock you out.
+- Lose signal? Hop right back in. A dead zone by the jukebox won't knock you out. 🔌
 - Smoother dice rolls, plus a fix for a freeze when a re-roll landed on the same numbers. Spooky, but no longer sticky.
 - Tensies got a face: new logo, phone icon, and a slick preview when you text the link.
 
@@ -47,5 +47,5 @@ Monday, May 25, 2026
 
 - **Round up the crew in one tap.** Share a link or fire off a text before the drinks arrive.
 - Joining got its own screen, with a random name ready for when "just put me as Steve" won't cut it.
-- The dice came alive: smoother rolls, nicer shadows, no more piling up like last call.
+- The dice came alive: smoother rolls, nicer shadows, no more piling up like last call. 🎲
 - Plays great on iPhones: no stray zooming or jumpy scrolling, even when the bar gets rowdy.

@@ -231,8 +231,8 @@ Formatting rules:
 - **The date** goes on its own line directly under the heading, in a human format
   like "Friday, May 30, 2026" (never `2026-05-30`). Derive the weekday from the
   date.
-- **No emojis.** Not in the title, not in day headings, not in bullets. The
-  humanizer pass cuts them anyway.
+- **No emojis in the draft.** Write the draft clean; the humanizer pass cuts
+  emojis anyway, and a later phase adds a sparing few back tastefully (Phase 6).
 - **No em dashes or en dashes.** Use commas, periods, colons, or parentheses.
 - **No commit hashes, no author names, no branch names** in the body. This is for
   players, not contributors.
@@ -262,16 +262,42 @@ let it do its job, then fold its final rewrite back into `docs/CHANGELOG.md`
 (overwrite the draft).
 
 After the pass, eyeball the result: confirm it still groups by day, still leads
-with the player, still sounds like the bar (no "table"), and contains no `—`, `–`,
-or emojis. Fix anything the pass over-flattened (it shouldn't strip the jokes).
+with the player, still sounds like the bar (no "table"), and contains no `—` or
+`–`. Fix anything the pass over-flattened (it shouldn't strip the jokes). The
+humanizer strips emojis; the next phase adds a few back, tastefully.
 
-## Phase 6 — Report
+## Phase 6 — Add a few emojis, tastefully
+
+The humanizer cut every emoji. Now sprinkle a *very* small number back in, only
+where one is genuinely funny or relevant. The goal is a couple of well-placed
+winks across the whole file, not decoration on every line.
+
+Rules:
+
+- **Sparing.** Think one emoji every few days at most, never more than one per
+  line. Most lines get none. If you're adding a third or fourth, you've gone too
+  far, so pull some back out.
+- **Only when it lands.** Add one when it amplifies a joke or maps to the change
+  with a wink (🎲 for the dice coming alive, 🔌 for reconnect, 🍺 / 🍻 for a
+  bar-night beat, ⏸️ for pause). Never add one just to fill space or to mark a
+  routine bug fix.
+- **Where it goes.** A codename heading can carry one trailing emoji
+  (`## 0.5.0 ("Last Call") 🍻`), or it can punctuate the end of a single funny
+  bullet. Don't open a line with an emoji, and don't put one on the
+  behind-the-scenes lines (keep those dry).
+- **Keep the rest of the humanizer's work.** Still no em dashes, no curly quotes,
+  no "table." You're only adding emojis, not rewriting prose.
+
+When in doubt, leave it out. A clean line beats a forced emoji. It's fine for a
+whole day to have zero.
+
+## Phase 7 — Report
 
 Tell the user:
 
 - Where the file is.
 - How many days / how big a span it covers.
-- That it was humanized on the way out.
+- That it was humanized, then lightly emoji'd, on the way out.
 - A one-line note that it's player-facing and regeneratable any time by
   re-running the skill.
 
@@ -291,7 +317,8 @@ Do **not** commit or push unless the user asks. Do **not** open a PR.
 - **Every day gets a semver number.** Pick the starting version by project
   maturity (`0.1.0` for early development, `1.0.0` only for a stable launch), then
   bump MAJOR/MINOR/PATCH by what shipped and zero the components to the right.
-- **Humanize on the way out.** The humanizer pass is part of the deliverable, not
-  optional polish. Plain prose, no em dashes, no emojis.
+- **Humanize on the way out, then season lightly.** The humanizer pass is part of
+  the deliverable, not optional polish: plain prose, no em dashes. Then add a few
+  emojis back only where they're funny or relevant. Sparing means sparing.
 - **Regenerate, don't append.** Re-running rebuilds the whole file from history,
   so it's always in sync with the log.
