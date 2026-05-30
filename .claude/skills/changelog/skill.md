@@ -44,7 +44,7 @@ Translation examples (technical commit → friendly line):
 | `Fix roll-ack hang when re-roll lands on same dice values` | Fixed a sneaky freeze when your re-roll landed on the exact same numbers. Spooky, but no longer sticky. |
 | `Add host-only Pause Game toggle as the menu's first feature` | Hosts can now pause the game — perfect for snack breaks and "wait, who's winning?" moments. |
 | `Persist dice scatter positions across refresh/reconnect` | Your dice stay put now, even if you refresh or your phone naps. |
-| `Split server into server/ package` | *(under-the-hood — tidied the engine room, nothing to see on screen)* |
+| `Split server into server/ package` | *(behind-the-scenes — frame as the player benefit it enables, e.g. "we're tuning the engine so games stay smooth and fair", not "refactored the server")* |
 
 ---
 
@@ -81,13 +81,18 @@ looks significant but the one-liner is opaque.
    (`Add pause toggle`, `Show paused screen`, `Keep paused games alive`,
    `Harden pause…`, `Pause menu polish`) collapse into **one** bullet about
    pausing — maybe with a sub-note if the polish is worth calling out.
-3. **Decide what's player-facing vs. under-the-hood.** Refactors, file moves,
+3. **Decide what's player-facing vs. behind-the-scenes.** Refactors, file moves,
    test-harness work, CLAUDE.md updates, telemetry/dashboard plumbing, and merge
-   commits are *not* features a player sees. Don't list them individually.
-   Instead, end a day with a single light line when there was real invisible work,
-   e.g. *"Under the hood: tidied up the codebase and beefed up the test suite."*
-   Skip the line entirely on days that were purely internal with nothing fun to
-   say.
+   commits are *not* features a player sees. Don't list them individually — and
+   **don't describe them in engineering terms** ("refactored the server", "added
+   test coverage"). A player doesn't care that the code got tidier; they care
+   *why you did it.* Translate the invisible work into the benefit it buys them.
+   End a day with a single line framed around the player, e.g.
+   *"Behind the scenes: we're sharpening how we understand each game so matches
+   keep getting more fun, fair, and engaging."* Vary the wording to fit what that
+   day's work actually serves — fairness, speed, reliability, or smarter gameplay —
+   but always lead with the player's payoff, never the plumbing. Skip the line
+   entirely on days with nothing worth saying.
 4. **Drop pure noise.** Merge commits, "fix typo", and test-run log entries don't
    each earn a mention.
 
@@ -108,7 +113,7 @@ A friendly log of everything that's changed. Newest stuff up top.
 
 - Player-facing change, told as a benefit.
 - Another one, maybe with a light joke.
-- _Under the hood: one-line summary of invisible work (only if worth it)._
+- _Behind the scenes: the player payoff of the invisible work (only if worth it)._
 
 ## <Next day down>
 
@@ -123,7 +128,8 @@ Formatting rules:
   carry one. Most day headings need none.
 - **No commit hashes, no author names, no branch names** in the body. This is for
   players, not contributors.
-- **Under-the-hood line** is italicized and always last in its day.
+- **Behind-the-scenes line** is italicized, framed around the player benefit, and
+  always last in its day.
 - Keep the whole thing skimmable — short bullets, no paragraphs.
 
 ## Phase 4 — Write the file and report

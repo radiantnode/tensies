@@ -10,15 +10,17 @@ A friendly log of everything that's changed. Newest stuff up top.
   your phone down mid-match no longer means the game gives up on you.
 - Your seat at the table is now locked to you. If your connection hiccups, you
   come back to *your* spot — nobody can wander into it while you're gone.
-- _Under the hood: smarter behind-the-scenes stats, a feedback workflow, and a lot
-  of testing to keep pause from misbehaving._
+- _Behind the scenes: we're getting smarter about how every game plays out, so we
+  can keep making matches more fun, fair, and engaging — and make sure new features
+  like pause just work._
 
 ## Friday, May 29, 2026
 
 - Added a menu button to the game — a tidy little home for new options (pause was
   the first to move in).
 - Switching between screens feels smoother and skips a needless flicker.
-- _Under the hood: a beefier test harness and behind-the-scenes dashboards._
+- _Behind the scenes: we're sharpening our understanding of how games unfold so we
+  can keep making them more fun, fair, and engaging._
 
 ## Thursday, May 28, 2026
 
@@ -29,7 +31,8 @@ A friendly log of everything that's changed. Newest stuff up top.
 - Squashed a bug where the winner banner would overstay its welcome and refuse to
   leave.
 - Fixed dice clumping together awkwardly when a new game or reconnect kicked in.
-- _Under the hood: a big tidy-up of the codebase so future features come faster._
+- _Behind the scenes: we're tuning the game's foundations so everything stays fast,
+  fair, and ready for the fun stuff coming next._
 
 ## Wednesday, May 27, 2026
 
