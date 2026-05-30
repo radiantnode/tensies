@@ -274,9 +274,10 @@ winks across the whole file, not decoration on every line.
 
 Rules:
 
-- **Sparing.** Think one emoji every few days at most, never more than one per
-  line. Most lines get none. If you're adding a third or fourth, you've gone too
-  far, so pull some back out.
+- **At least one per release, but sparing.** Every release gets exactly one or two
+  emojis: aim for one well-placed wink per day, never more than one per line, and
+  most lines get none. A release should never be totally bare, but it should never
+  be peppered either. If a release has three or more, pull some back out.
 - **Only when it lands.** Add one when it amplifies a joke or maps to the change
   with a wink (🎲 for the dice coming alive, 🔌 for reconnect, 🍺 / 🍻 for a
   bar-night beat, ⏸️ for pause). Never add one just to fill space or to mark a
@@ -288,8 +289,9 @@ Rules:
 - **Keep the rest of the humanizer's work.** Still no em dashes, no curly quotes,
   no "table." You're only adding emojis, not rewriting prose.
 
-When in doubt, leave it out. A clean line beats a forced emoji. It's fine for a
-whole day to have zero.
+Pick the most fitting line in each release to carry its emoji. A clean line beats
+a forced emoji, so put the one emoji where it lands best rather than scattering
+weak ones, but don't leave any release with none.
 
 ## Phase 7 — Report
 
@@ -318,7 +320,8 @@ Do **not** commit or push unless the user asks. Do **not** open a PR.
   maturity (`0.1.0` for early development, `1.0.0` only for a stable launch), then
   bump MAJOR/MINOR/PATCH by what shipped and zero the components to the right.
 - **Humanize on the way out, then season lightly.** The humanizer pass is part of
-  the deliverable, not optional polish: plain prose, no em dashes. Then add a few
-  emojis back only where they're funny or relevant. Sparing means sparing.
+  the deliverable, not optional polish: plain prose, no em dashes. Then add emojis
+  back in bullets only, at least one per release but sparingly, where they're funny
+  or relevant.
 - **Regenerate, don't append.** Re-running rebuilds the whole file from history,
   so it's always in sync with the log.

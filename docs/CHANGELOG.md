@@ -15,7 +15,7 @@ Saturday, May 30, 2026
 
 Friday, May 29, 2026
 
-- New menu button: a tidy home for fresh tricks. Pause moved in first.
+- New menu button: a tidy home for fresh tricks. Pause moved in first. 📋
 - Screens load snappier now, so it's less phone-staring and more trash-talking.
 
 ## 0.3.0 ("Hold My Drink")
@@ -24,7 +24,7 @@ Thursday, May 28, 2026
 
 - Friendlier loading screen while things connect. No more clunky pop-ups.
 - Your dice stay put through a refresh or a phone nap. Pick up right where you were.
-- Killed the bug where the winner banner wouldn't leave, like that friend who won't stop bragging.
+- Killed the bug where the winner banner wouldn't leave, like that friend who won't stop bragging. 🏆
 - _Behind the scenes: shoring up the foundations so things stay quick, no matter how loud the bar gets._
 
 ## 0.2.0 ("On the Rocks")
@@ -39,7 +39,7 @@ Wednesday, May 27, 2026
 
 Tuesday, May 26, 2026
 
-- Every roll is refereed by the server now, so when you win, nobody can cry foul.
+- Every roll is refereed by the server now, so when you win, nobody can cry foul. ⚖️
 
 ## 0.1.0 ("Opening Tab")
 
