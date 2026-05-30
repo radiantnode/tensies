@@ -84,15 +84,15 @@
               "options": {
                 "lobby": {
                   "color": "blue",
-                  "text": "lobby"
+                  "text": "Lobby"
                 },
                 "playing": {
                   "color": "green",
-                  "text": "playing"
+                  "text": "Playing"
                 },
                 "ended": {
                   "color": "purple",
-                  "text": "ended"
+                  "text": "Ended"
                 }
               }
             }
@@ -272,7 +272,7 @@
       "title": "Current round progress",
       "gridPos": {
         "h": 8,
-        "w": 10,
+        "w": 8,
         "x": 0,
         "y": 4
       },
@@ -327,8 +327,8 @@
       "title": "Match progression (current round)",
       "gridPos": {
         "h": 8,
-        "w": 14,
-        "x": 10,
+        "w": 8,
+        "x": 8,
         "y": 4
       },
       "datasource": {
@@ -634,6 +634,59 @@
             ]
           }
         ]
+      }
+    },
+    {
+      "id": 26,
+      "type": "timeseries",
+      "title": "Luck balance (dice ahead of expectation)",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, payload->>'name' AS metric, SUM(jsonb_array_length(payload->'newly_locked') - jsonb_array_length(payload->'rolled_values')::float / 6.0) OVER (PARTITION BY payload->>'name' ORDER BY ts) AS value FROM events WHERE type = 'roll' AND game_code = '$game_code' ORDER BY ts"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "spanNulls": true,
+            "showPoints": "always",
+            "pointSize": 5,
+            "lineWidth": 2,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "transparent", "value": null },
+              { "color": "gray", "value": 0 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        }
       }
     },
     {
