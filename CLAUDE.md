@@ -12,6 +12,17 @@ docker compose down           # stop
 
 The volume mount in `docker-compose.yml` means edits to any file are live immediately — no rebuild needed unless `requirements.txt` changes.
 
+## Git submodules
+
+The [humanizer](https://github.com/blader/humanizer) writing skill is vendored as a **git submodule** at `.claude/skills/humanizer/` (the changelog skill runs it as a final pass). A fresh clone leaves that directory empty until the submodule is fetched:
+
+```bash
+git clone --recurse-submodules <repo-url>   # clone with submodules, or…
+git submodule update --init --recursive      # …populate them after a plain clone
+```
+
+If `.claude/skills/humanizer/SKILL.md` is missing, the skill won't load — run the `update --init` above. To pull upstream humanizer changes, `git submodule update --remote .claude/skills/humanizer`, then commit the bumped pointer.
+
 ## Architecture overview
 
 Tensies is a real-time multiplayer dice game. There is no database — game state lives in two in-memory dicts defined in `server/state.py`:
