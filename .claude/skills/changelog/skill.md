@@ -136,14 +136,31 @@ development. Anything MAY change at any time. The public API SHOULD NOT be
 considered stable." `1.0.0` means the project has shipped a stable, public
 release.
 
-- If the history is early, active development with no stable launch (rapid
-  iteration, things still in flux, no "1.0" or "v1" tag, no public release
-  announced), start the oldest day at **`0.1.0`**. This is the common case for a
-  young project.
-- Only start at **`1.0.0`** if there's real evidence the project hit a stable
-  public release (a `1.0`/`v1` tag, a launch commit, or the user says so).
-- Check for tags to settle it: `git tag --list` and `git describe --tags`. Let an
-  explicit version tag override your guess.
+**The git log is not necessarily when the project started.** Before you assume the
+oldest commit is `0.1.0`, *look at what that commit actually contains* — the log
+may begin long after the project was already a working product:
+
+```bash
+git rev-list --max-parents=0 HEAD          # find the root commit
+git show --stat <root>                     # what landed in it?
+git log --reverse --format="%ad %s" --date=short | head -20
+```
+
+Read the signals:
+
+- **A fat root commit is a tell.** If the first commit drops a whole working app
+  (a full server, the UI, assets, Docker setup, hundreds of lines) and its message
+  says "Polish", "Tweak", "Fix", or otherwise assumes the thing already exists,
+  the project was **already mature** before history began. Don't call that
+  `0.1.0`. Treat the earliest documented day as a stable **`1.0.0`** baseline.
+- **A thin root commit** ("init", "scaffold", an empty skeleton, a README) means
+  you really are watching the project grow from scratch, so **`0.1.0`** is right.
+- **Tags win over inference.** Check `git tag --list` and `git describe --tags`; an
+  explicit `1.0`/`v1` tag (or the user telling you) settles it.
+
+So: start at **`1.0.0`** when the history opens on an already-built product (or
+there's a launch/tag), and **`0.1.0`** only when you can see it genuinely starting
+from nothing.
 
 Then walk the days **oldest to newest**, carrying a running version:
 
@@ -157,16 +174,17 @@ Then walk the days **oldest to newest**, carrying a running version:
    (a MINOR bump zeroes PATCH; a MAJOR bump zeroes MINOR and PATCH). This is a
    hard semver rule, not a style choice.
 
-Worked example over six days of an early-development project, oldest first:
+Worked example over six days, oldest first, where the root commit already held a
+complete, polished game (so the baseline is a mature `1.0.0`, not `0.1.0`):
 
 | Day | What shipped | Bump | Version |
 |-----|--------------|------|---------|
-| 1 | first release | — | `0.1.0` |
-| 2 | fairness fix only, no new feature | PATCH | `0.1.1` |
-| 3 | reconnect + new logo (features) | MINOR | `0.2.0` |
-| 4 | loading screen + persistence (features) | MINOR | `0.3.0` |
-| 5 | in-game menu (feature) | MINOR | `0.4.0` |
-| 6 | pause (feature) | MINOR | `0.5.0` |
+| 1 | already-built game (root commit) | — | `1.0.0` |
+| 2 | fairness fix only, no new feature | PATCH | `1.0.1` |
+| 3 | reconnect + new logo (features) | MINOR | `1.1.0` |
+| 4 | loading screen + persistence (features) | MINOR | `1.2.0` |
+| 5 | in-game menu (feature) | MINOR | `1.3.0` |
+| 6 | pause (feature) | MINOR | `1.4.0` |
 
 The newest day carries the highest version and sits at the top of the file.
 Judge the bump from the *changes you kept*, not the raw commit count: a day of
@@ -316,9 +334,10 @@ Do **not** commit or push unless the user asks. Do **not** open a PR.
 - **Funny, not cringe.** A light touch of humor; never at the expense of clarity.
 - **Every day gets a drink codename.** Pun on that day's changes when you can, and
   never reuse one.
-- **Every day gets a semver number.** Pick the starting version by project
-  maturity (`0.1.0` for early development, `1.0.0` only for a stable launch), then
-  bump MAJOR/MINOR/PATCH by what shipped and zero the components to the right.
+- **Every day gets a semver number.** Inspect the root commit first: an
+  already-built app means a mature `1.0.0` baseline, a from-scratch skeleton means
+  `0.1.0`. Then bump MAJOR/MINOR/PATCH by what shipped and zero the components to
+  the right.
 - **Humanize on the way out, then season lightly.** The humanizer pass is part of
   the deliverable, not optional polish: plain prose, no em dashes. Then add emojis
   back in bullets only, at least one per release but sparingly, where they're funny
