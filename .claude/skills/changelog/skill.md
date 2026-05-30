@@ -130,27 +130,43 @@ Every day is a release, so give it a `MAJOR.MINOR.PATCH` version following
   significant fix. This is the common case for an active feature day.
 - **PATCH** — the day was *only* small bug fixes and polish, no new feature.
 
-Walk the days **oldest to newest**, carrying a running version:
+First, **pick the right starting version for the project's maturity.** Per semver,
+`0.y.z` is the development range: "Major version zero (0.y.z) is for initial
+development. Anything MAY change at any time. The public API SHOULD NOT be
+considered stable." `1.0.0` means the project has shipped a stable, public
+release.
 
-1. The **first release** (oldest day) is `1.0.0`. (Use `0.x` only if the project
-   was explicitly pre-release / unstable then; default to `1.0.0`.)
+- If the history is early, active development with no stable launch (rapid
+  iteration, things still in flux, no "1.0" or "v1" tag, no public release
+  announced), start the oldest day at **`0.1.0`**. This is the common case for a
+  young project.
+- Only start at **`1.0.0`** if there's real evidence the project hit a stable
+  public release (a `1.0`/`v1` tag, a launch commit, or the user says so).
+- Check for tags to settle it: `git tag --list` and `git describe --tags`. Let an
+  explicit version tag override your guess.
+
+Then walk the days **oldest to newest**, carrying a running version:
+
+1. The **first release** (oldest day) gets the starting version you picked above.
 2. For each later day, look at what it shipped and bump the highest-order
    component that applies: a breaking change bumps MAJOR, otherwise any new
-   feature bumps MINOR, otherwise (fixes only) bump PATCH.
+   feature bumps MINOR, otherwise (fixes only) bump PATCH. (In `0.y.z`, MINOR is
+   the normal bump for a feature day; you stay in `0.x` until the project actually
+   reaches a stable `1.0.0`.)
 3. **When you bump a component, reset every component to its right to zero**
    (a MINOR bump zeroes PATCH; a MAJOR bump zeroes MINOR and PATCH). This is a
    hard semver rule, not a style choice.
 
-Worked example over six days, oldest first:
+Worked example over six days of an early-development project, oldest first:
 
 | Day | What shipped | Bump | Version |
 |-----|--------------|------|---------|
-| 1 | first release | — | `1.0.0` |
-| 2 | fairness fix only, no new feature | PATCH | `1.0.1` |
-| 3 | reconnect + new logo (features) | MINOR | `1.1.0` |
-| 4 | loading screen + persistence (features) | MINOR | `1.2.0` |
-| 5 | in-game menu (feature) | MINOR | `1.3.0` |
-| 6 | pause (feature) | MINOR | `1.4.0` |
+| 1 | first release | — | `0.1.0` |
+| 2 | fairness fix only, no new feature | PATCH | `0.1.1` |
+| 3 | reconnect + new logo (features) | MINOR | `0.2.0` |
+| 4 | loading screen + persistence (features) | MINOR | `0.3.0` |
+| 5 | in-game menu (feature) | MINOR | `0.4.0` |
+| 6 | pause (feature) | MINOR | `0.5.0` |
 
 The newest day carries the highest version and sits at the top of the file.
 Judge the bump from the *changes you kept*, not the raw commit count: a day of
@@ -272,8 +288,9 @@ Do **not** commit or push unless the user asks. Do **not** open a PR.
 - **Funny, not cringe.** A light touch of humor; never at the expense of clarity.
 - **Every day gets a drink codename.** Pun on that day's changes when you can, and
   never reuse one.
-- **Every day gets a semver number.** Oldest is `1.0.0`; bump MAJOR/MINOR/PATCH by
-  what shipped and zero the components to the right.
+- **Every day gets a semver number.** Pick the starting version by project
+  maturity (`0.1.0` for early development, `1.0.0` only for a stable launch), then
+  bump MAJOR/MINOR/PATCH by what shipped and zero the components to the right.
 - **Humanize on the way out.** The humanizer pass is part of the deliverable, not
   optional polish. Plain prose, no em dashes, no emojis.
 - **Regenerate, don't append.** Re-running rebuilds the whole file from history,
