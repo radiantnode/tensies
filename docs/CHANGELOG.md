@@ -1,67 +1,39 @@
 # What's New in Tensies
 
-Pull up a stool. Here's everything that's gotten better since last call, newest round up top.
+Pull up a stool. Here's what's new since last call, newest round up top.
 
 ## Saturday, May 30, 2026
 
-- **Whoever's hosting can pause the game now.** Bar run, bathroom break, or a
-  heated debate over who's buying next round. Hit pause and the game waits up for
-  the whole crew.
-- Stepped away a little too long? Paused games stick around for up to an hour, so
-  your phone dying in your pocket won't kill the whole night.
-- Your spot in the game is yours. Lose signal in the back corner of the bar and
-  you'll drop right back into *your* seat. Nobody's stealing it while you're up
-  ordering.
-- _Behind the scenes: we're getting smarter about how every game plays out, so we
-  can keep your nights out fun, fair, and worth the round you just lost._
+- **Hosts can pause now.** Bar run, bathroom break, or a debate over who's buying. Hit pause and the game waits for the crew.
+- Paused games hang on for up to an hour, so a dead phone won't kill the night.
+- Lose signal in the back corner? You drop right back into *your* seat. Nobody steals it while you're up ordering.
+- _Behind the scenes: we're getting smarter about how games play out, to keep your nights fun, fair, and worth the round you lost._
 
 ## Friday, May 29, 2026
 
-- Added a menu button to the game, a tidy little home for new tricks. Pause moved
-  in first.
-- Jumping between screens is snappier now, so there's less staring at your phone
-  and more talking trash with the crew.
-- _Behind the scenes: we're learning to read each game better, which keeps the
-  matches feeling fair._
+- New menu button: a tidy home for fresh tricks. Pause moved in first.
+- Screens load snappier now, so it's less phone-staring and more trash-talking.
 
 ## Thursday, May 28, 2026
 
-- A friendlier loading screen keeps you company while things connect. No more
-  clunky pop-ups interrupting the fun.
-- Your dice stay exactly where you left them, even if you refresh or your phone
-  takes a nap mid-round. Pick up right where you were.
-- Shut down a bug where the winner banner refused to leave, like that one friend
-  who won't stop bragging.
-- Fixed dice awkwardly clumping together when a new game or reconnect kicked in.
-- _Behind the scenes: we're shoring up the game's foundations so everything stays
-  quick and steady, no matter how loud the bar gets._
+- Friendlier loading screen while things connect. No more clunky pop-ups.
+- Your dice stay put through a refresh or a phone nap. Pick up right where you were.
+- Killed the bug where the winner banner wouldn't leave, like that friend who won't stop bragging.
+- _Behind the scenes: shoring up the foundations so things stay quick, no matter how loud the bar gets._
 
 ## Wednesday, May 27, 2026
 
-- Lose signal? Hop right back in. There's a grace period and a clear
-  "reconnecting" screen, so a dead zone by the jukebox won't knock you out of the
-  game.
-- Made the dice roll buttery smooth and squashed a sneaky freeze when a re-roll
-  landed on the exact same numbers. Spooky, but no longer sticky.
-- Tensies got a face! A shiny new logo, a proper icon on your phone, and a slick
-  preview when you text the game link to the group.
-- Join errors now pop up on the right screen instead of leaving you confused at
-  the door.
+- Lose signal? Hop right back in. A dead zone by the jukebox won't knock you out.
+- Smoother dice rolls, plus a fix for a freeze when a re-roll landed on the same numbers. Spooky, but no longer sticky.
+- Tensies got a face: new logo, phone icon, and a slick preview when you text the link.
 
 ## Tuesday, May 26, 2026
 
-- Every roll is now refereed by the server, so when you crush a round, nobody at
-  the bar can cry foul. Fair and square.
+- Every roll is refereed by the server now, so when you win, nobody can cry foul.
 
 ## Monday, May 25, 2026
 
-- **Get the whole crew in with one tap.** Share a link or fire off a text and
-  round everyone up before the drinks even arrive.
-- Joining got its own clean screen, with a random name suggested and ready to go
-  for when "uhh just put me as Steve" isn't cutting it.
-- The dice came alive: smoother rolls, nicer shadows, and dice that keep their
-  distance instead of piling up like last call.
-- Polished the whole look, with a bolder round label and a roll button that sits
-  right on the wood and gives a satisfying push when you smack it.
-- Made it play great on iPhones. No accidental zooming, no jumpy scrolling, and
-  rapid-fire taps still roll just fine when the bar gets rowdy.
+- **Round up the crew in one tap.** Share a link or fire off a text before the drinks arrive.
+- Joining got its own screen, with a random name ready for when "just put me as Steve" won't cut it.
+- The dice came alive: smoother rolls, nicer shadows, no more piling up like last call.
+- Plays great on iPhones: no stray zooming or jumpy scrolling, even when the bar gets rowdy.
