@@ -26,9 +26,13 @@ btn.addEventListener('click', () => { isOpen() ? closeMenu() : openMenu(); });
 
 // Pause Game toggle — server flips the flag and echoes it back; renderMenu()
 // drives the switch's visual state from that broadcast, so we only send intent.
+// Pausing keeps the menu open (so the host sees the countdown + player count);
+// resuming closes it to hand the board back.
 pauseBtn.addEventListener('click', () => {
   if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+  const resuming = !!state.currentState?.paused;
   state.ws.send(JSON.stringify({ action: 'pause' }));
+  if (resuming) closeMenu();
 });
 
 document.addEventListener('keydown', e => {

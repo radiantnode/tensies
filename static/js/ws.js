@@ -4,6 +4,7 @@ import { myDiceKey } from './dice.js';
 import { resetRollState } from './animations.js';
 import { renderGame, renderLobby, renderMyArea, renderPlayersBar } from './screens.js';
 import { hideWinner, leaveLoading, pausedText, showLoading, showWinner, waitingText } from './overlays.js';
+import { openMenu } from './menu.js';
 
 const RECONNECT_WINDOW_MS = 60000;
 // While the game is paused the server holds it open for up to an hour, so keep
@@ -101,11 +102,25 @@ function showFor(msg) {
     leaveLoading(() => { hideWinner(); showScreen('lobby'); renderLobby(msg); });
     return;
   }
-  // Paused: everyone waits on the loading screen — except the host, who keeps
-  // the game board so the menu stays reachable to resume.
-  if (msg.paused && msg.host !== state.myId) {
-    hideWinner();
-    showLoading(pausedText(msg));
+  // Paused: non-hosts wait on the loading screen; the host stays on the board
+  // (even with players offline) so the menu — countdown, player count, and the
+  // resume toggle — is reachable. This branch must precede the disconnect check
+  // below, or a paused host with offline players would be sent to loading too.
+  if (msg.paused) {
+    if (msg.host !== state.myId) {
+      hideWinner();
+      showLoading(pausedText(msg));
+      return;
+    }
+    // Host returning from a reconnect lands on #loading — pop the menu open
+    // when we swap to the board so the resume toggle is right in front of them.
+    const fromLoading = document.getElementById('loading').classList.contains('active');
+    leaveLoading(() => {
+      hideWinner();
+      showScreen('game');
+      renderGame(msg);
+      if (fromLoading) openMenu();
+    });
     return;
   }
   const downNames = Object.values(msg.players).filter(p => p.disconnected).map(p => p.name);

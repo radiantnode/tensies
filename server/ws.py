@@ -6,7 +6,7 @@ import uuid
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from .broadcast import broadcast, delayed_broadcast, drop_player, pause_timeout, send
-from .config import MIN_ROLL_INTERVAL, log
+from .config import MIN_ROLL_INTERVAL, PAUSE_MAX, log
 from .game import apply_roll, deal_round, fresh_player, new_game, state_msg
 from .state import connections, games, sessions
 from .telemetry import emit, metrics
@@ -250,11 +250,13 @@ async def handle_pause(session: Session, msg: dict) -> None:
          round_num=game["round_num"])
     if game["paused"]:
         # Hold the game open for up to PAUSE_MAX; drops are suspended meanwhile.
+        game["pause_deadline_mono"] = time.monotonic() + PAUSE_MAX
         old = game.pop("pause_task", None)
         if old:
             old.cancel()
         game["pause_task"] = asyncio.create_task(pause_timeout(code))
     else:
+        game.pop("pause_deadline_mono", None)
         t = game.pop("pause_task", None)
         if t:
             t.cancel()

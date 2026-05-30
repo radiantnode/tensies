@@ -95,6 +95,17 @@
           <span class="menu-item-label">Pause Game</span>
           <span class="menu-switch" aria-hidden="true"></span>
         </button>
+        <div id="menu-pause-status" class="menu-status" aria-live="polite" hidden>
+          <div class="menu-status-row">
+            <span class="menu-status-label">Time remaining</span>
+            <span class="menu-status-value" id="pause-remaining">—</span>
+          </div>
+          <div class="menu-status-row">
+            <span class="menu-status-label">Players</span>
+            <span class="menu-status-value" id="pause-players">—</span>
+          </div>
+          <p class="menu-status-hint">Resume when everyone's back.</p>
+        </div>
       </nav>
     </div>
     <div class="my-area" id="my-area"></div>

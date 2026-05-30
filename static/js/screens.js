@@ -179,17 +179,58 @@ export function renderMyArea(snap) {
   area.appendChild(rollArea);
 }
 
+// mm:ss for the pause countdown.
+function fmtRemaining(ms) {
+  const total = Math.max(0, Math.round(ms / 1000));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+
+// Local 1 Hz ticker for the pause countdown — server broadcasts are too sparse
+// during a quiet pause to drive it, so we re-sync the deadline on each snapshot
+// and count down locally between them.
+let pauseTick = null;
+function stopPauseTick() {
+  if (pauseTick) { clearInterval(pauseTick); pauseTick = null; }
+}
+
 // Host-only menu controls. Kept separate from renderMyArea so a pause toggle
 // (which doesn't change dice) refreshes the button without re-scattering dice.
 export function renderMenu(snap) {
   const btn = document.getElementById('menu-pause-btn');
   if (!btn) return;
-  btn.hidden = snap.host !== state.myId;
+  const isHost = snap.host === state.myId;
   const paused = !!snap.paused;
+  btn.hidden = !isHost;
   btn.classList.toggle('active', paused);
   btn.setAttribute('aria-pressed', String(paused));
   const label = btn.querySelector('.menu-item-label');
   if (label) label.textContent = paused ? 'Resume Game' : 'Pause Game';
+
+  const status = document.getElementById('menu-pause-status');
+  if (!status) return;
+  if (!(isHost && paused)) {
+    status.hidden = true;
+    stopPauseTick();
+    return;
+  }
+  status.hidden = false;
+
+  // "X of Y connected" so the host can wait for stragglers before resuming.
+  const players = Object.values(snap.players);
+  const connected = players.filter(p => !p.disconnected).length;
+  const playersEl = document.getElementById('pause-players');
+  if (playersEl) playersEl.textContent = `${connected} of ${players.length} connected`;
+
+  // Countdown to the abandonment cap. Re-anchor the deadline to this snapshot,
+  // then tick locally every second.
+  const remEl = document.getElementById('pause-remaining');
+  if (remEl && typeof snap.pause_remaining_ms === 'number') {
+    const deadline = Date.now() + snap.pause_remaining_ms;
+    const tick = () => { remEl.textContent = fmtRemaining(deadline - Date.now()); };
+    tick();
+    stopPauseTick();
+    pauseTick = setInterval(tick, 1000);
+  }
 }
 
 // Reflect the paused flag on the roll button for every player. A pause toggle

@@ -106,7 +106,8 @@ A terminal `error` frame carries `fatal: true` (the only producer today is the p
 The host toggles `pause` (first feature in the in-game menu, `static/js/menu.js`). `handle_pause` flips `game["paused"]` and broadcasts. While paused:
 
 - **Rolls are rejected** (`handle_roll` guards on `paused`; the client also disables the roll button and guards `roll()`).
-- **Non-host players see the `#loading` screen** ("<Host> has paused the game") via `showFor()`; the host keeps the board so the menu stays reachable to resume.
+- **Non-host players see the `#loading` screen** ("Waiting for &lt;Host&gt; to resume the game") via `showFor()`; the host keeps the board — even with players offline — so the menu stays reachable. The paused branch in `showFor` precedes the disconnect-loading branch precisely so a paused host isn't bounced to a "waiting to reconnect" screen.
+- **The host's menu shows live status while paused.** `state_msg` adds `pause_remaining_ms` (from `pause_deadline_mono`); `renderMenu()` runs a local 1 Hz countdown plus an "X of Y connected" count so the host can wait for stragglers. A host returning from reconnect lands on `#loading`, so `showFor` calls `openMenu()` on the swap to surface the resume toggle. Resuming closes the menu; pausing leaves it open.
 - **Players are never dropped.** `drop_player` returns early when paused, so a disconnect (host backgrounding their phone) doesn't end the game. The client extends its reconnect window to ~1 h (`PAUSED_RECONNECT_WINDOW_MS`) when its last-known state was paused.
 - **A cap backstops abandonment.** `handle_pause` schedules `pause_timeout()` for `PAUSE_MAX` (1 h); if still paused then, the game is ended (fatal `error` broadcast + cleanup). Resume cancels the watchdog and reschedules a normal `DISCONNECT_GRACE` drop for anyone still offline.
 

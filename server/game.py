@@ -105,7 +105,7 @@ def apply_roll(player: dict, target: int) -> dict:
 
 
 def state_msg(game: dict, code: str, msg_type: str = "state", **extra) -> dict:
-    return {
+    msg = {
         "type": msg_type,
         "code": code,
         "target": game["target"],
@@ -126,3 +126,9 @@ def state_msg(game: dict, code: str, msg_type: str = "state", **extra) -> dict:
         },
         **extra,
     }
+    # While paused, hand the host a live countdown to the abandonment cap.
+    if game.get("paused") and game.get("pause_deadline_mono") is not None:
+        msg["pause_remaining_ms"] = max(
+            0, int((game["pause_deadline_mono"] - time.monotonic()) * 1000)
+        )
+    return msg
