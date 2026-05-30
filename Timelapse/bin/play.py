@@ -28,7 +28,19 @@ URL = sys.argv[1]
 OUTDIR = sys.argv[2]
 IDX = int(sys.argv[3])
 PREFIX = f"{OUTDIR}/frame_{IDX:03d}_"
-W, H = 760, 1180
+
+# iPhone 17 Pro Max: 440x956 CSS pts @ DPR 3 -> 1320x2868 native px, 6.9".
+# Captured as a real mobile context so the page renders its true phone layout.
+DEVICE = dict(
+    viewport={"width": 440, "height": 956},
+    device_scale_factor=3,
+    is_mobile=True,
+    has_touch=True,
+    user_agent=(
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) "
+        "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
+    ),
+)
 
 JS_FIND_BTN = """(re) => {
   const els=[...document.querySelectorAll('button, a, .btn, [role=button], [onclick]')];
@@ -100,8 +112,8 @@ def click_re(page, re, ms=5000):
 def main():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
-        host_ctx = browser.new_context(viewport={"width": W, "height": H}, device_scale_factor=2)
-        guest_ctx = browser.new_context(viewport={"width": W, "height": H}, device_scale_factor=2)
+        host_ctx = browser.new_context(**DEVICE)
+        guest_ctx = browser.new_context(**DEVICE)
         host = host_ctx.new_page()
         guest = guest_ctx.new_page()
         status = []

@@ -33,6 +33,19 @@ selectors** (`#lobby-code`, `#code-input`, `#winner-overlay`) and **button text*
 (`Create` / `Start` / `Roll`), which survive the markup and protocol drift across
 the project's history.
 
+### Capture device & output
+
+Frames are captured in a real **mobile** browser context emulating an
+**iPhone 17 Pro Max** — viewport 440×956 CSS pts at DPR 3 → native **1320×2868**
+pixels, `is_mobile`/`has_touch`, iOS Safari UA — so the page renders its true
+phone layout (not a desktop window scaled down). To target a different device,
+edit the `DEVICE` dict at the top of `bin/play.py`.
+
+The video keeps that native resolution and is encoded for phones: H.264 **Main**
++ `yuv420p`, **CRF 26 / `veryslow` / `-tune stillimage`** (the frames are
+stills), a silent AAC track, and `+faststart`. At native 3× the result is large
+(~80 MB for the full history); raise CRF for a smaller file.
+
 ## Usage
 
 ```bash
@@ -68,4 +81,4 @@ Notes:
 | `bin/launch.py` | boots a commit's `main:app`, telemetry neutralized |
 | `bin/play.py` | 2-player gameplay arc → 8 frames (`arc` mode) |
 | `bin/shoot.py` | single fresh-board screenshot (`board` mode) |
-| `bin/build_video.py` | frames → MP4, holding the win/loss beats longer |
+| `bin/build_video.py` | frames → MP4 (native res, mobile compression), holding the win/loss beats longer |

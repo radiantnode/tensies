@@ -55,11 +55,20 @@ def main():
 
     ff = find_ffmpeg()
     print(f"{len(frames)} frames -> {OUT}")
+    # Keep the frames' native resolution (the capture already targets the device
+    # — e.g. iPhone 17 Pro Max at 1320x2868). Mobile-friendly compression:
+    # H.264 Main + yuv420p, CRF 26 / veryslow / stillimage (frames are stills),
+    # a silent AAC track (some mobile/social players reject audioless files),
+    # and +faststart for progressive streaming.
     subprocess.run(
         [
-            ff, "-y", "-f", "concat", "-safe", "0", "-i", listfile,
-            "-vf", "scale=-2:1280,format=yuv420p,fps=30",
-            "-c:v", "libx264", "-crf", "20", "-preset", "slow",
+            ff, "-y",
+            "-f", "concat", "-safe", "0", "-i", listfile,
+            "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
+            "-vf", "format=yuv420p,fps=30",
+            "-c:v", "libx264", "-profile:v", "main", "-crf", "26",
+            "-preset", "veryslow", "-tune", "stillimage",
+            "-c:a", "aac", "-b:a", "64k", "-shortest",
             "-movflags", "+faststart", OUT,
         ],
         check=True,

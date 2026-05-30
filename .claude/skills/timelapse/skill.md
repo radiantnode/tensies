@@ -46,17 +46,22 @@ playwright==1.56`). `imageio-ffmpeg` provides a static libx264 ffmpeg; a system
   run with no Postgres/Grafana. Older commits have no telemetry — the patch is
   guarded.
 - **`play.py`** drives two browser contexts (host = winner, guest = loser)
-  against one server. It clicks by **button text** (`Create`/`Start`/`Roll`) and
-  reads **stable ids** (`#lobby-code` for the join code, `#code-input` to join,
-  `#winner-overlay` to detect the win). Rolls are paced above
-  `MIN_ROLL_INTERVAL` and the host rolls until the winner overlay appears; the
-  guest's screen at that instant is the loss frame. Every step screenshots
-  best-effort, so a commit never produces a missing frame.
+  against one server. Contexts emulate an **iPhone 17 Pro Max** (the `DEVICE`
+  dict: 440×956 @ DPR 3 → native 1320×2868, mobile + touch + iOS UA) so the page
+  renders its real phone layout; change `DEVICE` to target another device. It
+  clicks by **button text** (`Create`/`Start`/`Roll`) and reads **stable ids**
+  (`#lobby-code` for the join code, `#code-input` to join, `#winner-overlay` to
+  detect the win). Rolls are paced above `MIN_ROLL_INTERVAL` and the host rolls
+  until the winner overlay appears; the guest's screen at that instant is the
+  loss frame. Every step screenshots best-effort, so a commit never produces a
+  missing frame.
 - **`shoot.py`** is the lightweight `board`-mode driver (create → start →
   screenshot the board).
 - **`build_video.py`** stitches `frames/frame_NNN_S.png` via ffmpeg's concat
-  demuxer, holding the win/loss beats (steps 6 & 7) longer so each round reads
-  as a story.
+  demuxer at the frames' native resolution, holding the win/loss beats (steps 6
+  & 7) longer so each round reads as a story. Mobile-friendly encode: H.264
+  Main + yuv420p, CRF 26 / veryslow / `-tune stillimage`, silent AAC, faststart.
+  Raise CRF for a smaller file.
 
 ## Gotchas
 
@@ -67,5 +72,8 @@ playwright==1.56`). `imageio-ffmpeg` provides a static libx264 ffmpeg; a system
   setup is what makes both win and loss frames possible.
 - Parallel git worktrees on one repo can deadlock on lock files — that's why
   each worker uses a separate `git clone --shared` instead.
+- At native iPhone resolution (3× DPR) each worker drives two ~1320×2868
+  Chromium contexts, which is memory-hungry; 5 workers can OOM (a worker may die
+  with signal 143). Use ~4 workers at 3× DPR, then re-run any missing indices.
 - If a commit comes back `PARTIAL` (no win captured), just re-run that index;
   it's almost always a timing fluke, not a real failure.
