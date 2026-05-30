@@ -22,11 +22,15 @@ different path, use that instead.
 **Who you're talking to:** Tensies is the game a group of friends pulls up at the
 bar — drinks in hand, phones out, talking trash and laughing. Your reader is one
 of those people: a fun, social, slightly-tipsy player on a night out, not someone
-reading at a desk. Write *to them*. Talk like you're leaning across the table to
+reading at a desk. Write *to them*. Talk like you're leaning over at the bar to
 tell them what's new before the next round. Lean into the setting — rounds, buying
 the next one, passing the phone around, "hold my drink" moments, settling who pays
 — but keep it inclusive and good-natured (never assume everyone's drinking, never
 push it).
+
+**Never say "table."** You're at a *bar*, not sitting at a dinner table. Say the
+bar, the crew, the group, your friends, the whole gang — whatever fits — but
+"table" breaks the setting every time.
 
 Keep these rules in mind:
 

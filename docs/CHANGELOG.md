@@ -5,11 +5,11 @@ Pull up a stool. Here's everything that's gotten better since last call — newe
 ## Saturday, May 30, 2026 ⏸️
 
 - **Whoever's hosting can pause the game now.** Bar run, bathroom break, or a
-  heated debate over who's buying next round — hit pause and the table waits for
-  everyone to get back.
+  heated debate over who's buying next round — hit pause and the game waits up for
+  the whole crew.
 - Stepped away a little too long? Paused games stick around for up to an hour, so
   your phone dying in your pocket won't kill the whole night.
-- Your spot at the table is yours. Lose signal in the back corner of the bar and
+- Your spot in the game is yours. Lose signal in the back corner of the bar and
   you'll drop right back into *your* seat — nobody's stealing it while you're at
   the bar.
 - _Behind the scenes: we're getting smarter about how every game plays out, so we
@@ -55,13 +55,13 @@ Pull up a stool. Here's everything that's gotten better since last call — newe
 
 ## Monday, May 25, 2026 ✨
 
-- **Get the whole table in with one tap.** Share a link or fire off a text — round
+- **Get the whole crew in with one tap.** Share a link or fire off a text — round
   everyone up before the drinks even arrive.
 - Joining got its own clean screen, with a random name suggestion ready to go for
   when "uhh just put me as Steve" isn't cutting it.
 - The dice came alive: smoother rolls, nicer shadows, and dice that keep their
   distance instead of piling up like last call.
 - Polished the whole look — a bolder round label and a roll button that sits right
-  on the wooden table and gives a satisfying push when you smack it.
+  on the wood and gives a satisfying push when you smack it.
 - Made it play great on iPhones: no accidental zooming, no jumpy scrolling, and
-  rapid-fire taps still roll just fine when the table gets rowdy.
+  rapid-fire taps still roll just fine when the bar gets rowdy.
