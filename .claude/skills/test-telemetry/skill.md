@@ -1,6 +1,6 @@
 ---
 name: test-telemetry
-description: Full telemetry pipeline test — services health, event-to-Postgres-to-Prometheus pipeline integrity, all five Grafana dashboards (screenshots + Live panel verification), dice fairness, timeline sanity, and anomaly detection. Reports a pass/fail summary and writes a log to ./telemetry-test-logs/.
+description: Full telemetry pipeline test — services health, event-to-Postgres-to-Prometheus pipeline integrity, all five Grafana dashboards (screenshots + Live panel verification), dice fairness, timeline sanity, and anomaly detection. Reports a pass/fail summary and writes a log to docs/test-runs/telemetry/.
 user_invocable: true
 ---
 
@@ -65,7 +65,7 @@ If no changes, skip straight to Preflight B.
 ## Preflight B — Prior run review
 
 ```bash
-ls -t telemetry-test-logs/*.md 2>/dev/null | head -3
+ls -t docs/test-runs/telemetry/*.md 2>/dev/null | grep -v README | head -3
 ```
 
 Read each file returned (up to 3 most recent). Extract:
@@ -828,7 +828,7 @@ Embed one of the Grafana screenshots inline at the end of the report.
 
 ## Log writing
 
-After reporting, write a log file to `telemetry-test-logs/` in the project root. Create the directory if it doesn't exist (`mkdir -p telemetry-test-logs`). Name the file using the current date and time: `telemetry-test-logs/YYYY-MM-DDTHH-MM-SS.md`.
+After reporting, write a log file to `docs/test-runs/telemetry/`. Create the directory if it doesn't exist. Name the file using the current date and time: `docs/test-runs/telemetry/YYYY-MM-DDTHH-MM-SS.md`.
 
 The log must include:
 
@@ -859,4 +859,10 @@ The log must include:
 
 If all 18 tests passed and nothing notable was observed, Findings should say "None." and Notes should say "Clean run."
 
-After writing the log, output the file path so it's visible in the report.
+After writing the log, add a row for this run to the index table in `docs/test-runs/telemetry/README.md`. The row format matches the existing entries:
+
+```
+| [YYYY-MM-DDTHH:MM:SS](YYYY-MM-DDTHH-MM-SS.md) | Telemetry | ✅ PASS or ⚠️ WARN or 🔴 FAIL | <passed> | <warned> | <total> | <one-line highlight> |
+```
+
+Insert the new row at the top of the table (below the header row), so the most recent run appears first. Then output the log file path so it's visible in the report.
