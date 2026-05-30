@@ -126,19 +126,20 @@ Structure, **newest day first** (a changelog is read top-down for "what's new"):
 
 A friendly log of everything that's changed. Newest stuff up top.
 
-## <Drink codename>: <Friendly date, e.g. Friday, May 30, 2026>
+## <Friendly date, e.g. Friday, May 30, 2026> ("<Drink codename>")
 
 - Player-facing change, told as a benefit.
 - Another one, maybe with a light joke.
 - _Behind the scenes: the player payoff of the invisible work (only if worth it)._
 
-## <Next day's codename>: <Next day down>
+## <Next day down> ("<Next day's codename>")
 
 - ...
 ```
 
 Each day is its own little "release," so **give every day a funny bar- or
-drink-themed codename** and put it in the heading before the date.
+drink-themed codename** and put it in the heading after the date, in quotes inside
+parentheses: `## Friday, May 30, 2026 ("Last Call")`.
 
 - **Make it a pun on that day's actual changes when you can.** The codename should
   wink at what shipped, not just name a random cocktail. Pause features landing?
@@ -155,9 +156,9 @@ drink-themed codename** and put it in the heading before the date.
 
 Formatting rules:
 
-- **Date headings** use the `Codename: Friendly date` shape (codename first, then
-  a colon, then a human date like "Friday, May 30, 2026", never `2026-05-30`).
-  Derive the weekday from the date.
+- **Date headings** use the `Friendly date ("Codename")` shape: a human date like
+  "Friday, May 30, 2026" (never `2026-05-30`), then the quoted codename in
+  parentheses. Derive the weekday from the date.
 - **No emojis.** Not in the title, not in day headings, not in bullets. The
   humanizer pass cuts them anyway.
 - **No em dashes or en dashes.** Use commas, periods, colons, or parentheses.
