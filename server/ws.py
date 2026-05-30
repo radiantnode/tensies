@@ -7,7 +7,15 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from .broadcast import advance_round, broadcast, delayed_broadcast, drop_player, pause_timeout, send
 from .config import MIN_ROLL_INTERVAL, PAUSE_MAX, log
-from .game import apply_roll, deal_round, fresh_player, new_game, state_msg
+from .game import (
+    apply_roll,
+    deal_round,
+    fresh_player,
+    make_reconnect_token,
+    new_game,
+    state_msg,
+    verify_token,
+)
 from .state import connections, games, sessions
 from .telemetry import emit, metrics
 from .telemetry.pinger import Pinger
@@ -69,6 +77,8 @@ async def handle_create(session: Session, msg: dict) -> None:
     name = (msg.get("name") or "Player")[:20].strip() or "Player"
     session.name = name
     code, game = new_game(session.pid, name)
+    token, token_hash = make_reconnect_token()
+    game["players"][session.pid]["token_hash"] = token_hash
     connections[code] = {session.pid: session.ws}
     session.code = code
     session.games_joined += 1
@@ -79,6 +89,7 @@ async def handle_create(session: Session, msg: dict) -> None:
          session_id=session.session_id)
     emit("player_joined", game_code=code, user_id=session.pid, name=name,
          session_id=session.session_id, player_count=1)
+    await send(session.ws, {"type": "reconnect_token", "token": token})
     await broadcast(code, state_msg(game, code))
 
 
@@ -96,13 +107,16 @@ async def handle_join(session: Session, msg: dict) -> None:
         await _error(session.ws, "Game already in progress")
         return
     session.code = join_code
+    token, token_hash = make_reconnect_token()
     game["players"][session.pid] = fresh_player(name)
+    game["players"][session.pid]["token_hash"] = token_hash
     connections[join_code][session.pid] = session.ws
     session.games_joined += 1
     _ensure_session_started(session)
     log.info("join     game=%s  player=%s  players=%d", join_code, name, len(game["players"]))
     emit("player_joined", game_code=join_code, user_id=session.pid, name=name,
          session_id=session.session_id, player_count=len(game["players"]))
+    await send(session.ws, {"type": "reconnect_token", "token": token})
     await broadcast(join_code, state_msg(game, join_code))
 
 
@@ -130,13 +144,17 @@ async def handle_start(session: Session, msg: dict) -> None:
 async def handle_reconnect(session: Session, msg: dict) -> None:
     old_pid = msg.get("player_id", "").strip()
     join_code = (msg.get("game_code") or "").upper().strip()
-    if (join_code not in games
-            or old_pid not in games[join_code]["players"]
-            or not games[join_code]["players"][old_pid].get("disconnected")):
+    token = msg.get("token", "")
+    game = games.get(join_code)
+    player = game["players"].get(old_pid) if game else None
+    # A leaked snapshot reveals every pid + the host pid, so pid alone can't
+    # be the credential. Require the private reconnect token (constant-time
+    # compared) and that the slot is actually awaiting reconnect.
+    if (player is None
+            or not player.get("disconnected")
+            or not verify_token(player.get("token_hash"), token)):
         await _error(session.ws, "Game not found")
         return
-    game = games[join_code]
-    player = game["players"][old_pid]
     task = player.pop("disconnect_task", None)
     if task:
         task.cancel()
