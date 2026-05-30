@@ -1,5 +1,8 @@
+import { state } from './state.js';
+
 const btn  = document.getElementById('game-menu-btn');
 const menu = document.getElementById('game-menu');
+const pauseBtn = document.getElementById('menu-pause-btn');
 
 function isOpen() { return btn.classList.contains('open'); }
 
@@ -20,6 +23,13 @@ export function closeMenu() {
 }
 
 btn.addEventListener('click', () => { isOpen() ? closeMenu() : openMenu(); });
+
+// Pause Game toggle — server flips the flag and echoes it back; renderMenu()
+// drives the switch's visual state from that broadcast, so we only send intent.
+pauseBtn.addEventListener('click', () => {
+  if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+  state.ws.send(JSON.stringify({ action: 'pause' }));
+});
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && isOpen()) closeMenu();

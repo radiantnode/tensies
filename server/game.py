@@ -48,6 +48,7 @@ def new_game(host_id: str, host_name: str) -> tuple[str, dict]:
         "round_num": 1,
         "started": False,
         "round_over": False,
+        "paused": False,
         "host": host_id,
         "players": {host_id: fresh_player(host_name)},
         # Telemetry bookkeeping — monotonic timers + counters. Consumed by
@@ -110,6 +111,7 @@ def state_msg(game: dict, code: str, msg_type: str = "state", **extra) -> dict:
         "target": game["target"],
         "round_num": game["round_num"],
         "started": game["started"],
+        "paused": game.get("paused", False),
         "host": game["host"],
         "players": {
             pid: {

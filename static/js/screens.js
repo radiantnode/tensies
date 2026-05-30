@@ -179,6 +179,33 @@ export function renderMyArea(snap) {
   area.appendChild(rollArea);
 }
 
+// Host-only menu controls. Kept separate from renderMyArea so a pause toggle
+// (which doesn't change dice) refreshes the button without re-scattering dice.
+export function renderMenu(snap) {
+  const btn = document.getElementById('menu-pause-btn');
+  if (!btn) return;
+  btn.hidden = snap.host !== state.myId;
+  const paused = !!snap.paused;
+  btn.classList.toggle('active', paused);
+  btn.setAttribute('aria-pressed', String(paused));
+  const label = btn.querySelector('.menu-item-label');
+  if (label) label.textContent = paused ? 'Resume Game' : 'Pause Game';
+}
+
+// Reflect the paused flag on the roll button for every player. A pause toggle
+// leaves myDiceKey unchanged, so renderMyArea won't run — sync here instead.
+function syncPaused(snap) {
+  const btn = document.getElementById('roll-btn');
+  if (!btn) return;
+  if (snap.paused) {
+    btn.disabled = true;
+    btn.textContent = 'Paused';
+  } else if (!state.rolling && !state.awaitingAck) {
+    btn.disabled = false;
+    btn.textContent = 'Roll';
+  }
+}
+
 export function renderGame(snap) {
   state.currentState = snap;
   const key = myDiceKey(snap);
@@ -191,4 +218,6 @@ export function renderGame(snap) {
   } else {
     renderPlayersBar(snap);
   }
+  renderMenu(snap);
+  syncPaused(snap);
 }

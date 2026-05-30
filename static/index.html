@@ -88,7 +88,15 @@
       </div>
       <div class="players-bar" id="players-bar" role="list" aria-label="Players"></div>
     </header>
-    <div id="game-menu" class="game-menu" aria-hidden="true"></div>
+    <div id="game-menu" class="game-menu" aria-hidden="true">
+      <nav class="menu-panel" aria-label="Game menu">
+        <button id="menu-pause-btn" type="button" class="menu-item menu-toggle"
+                aria-pressed="false" hidden>
+          <span class="menu-item-label">Pause Game</span>
+          <span class="menu-switch" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </div>
     <div class="my-area" id="my-area"></div>
   </section>
 

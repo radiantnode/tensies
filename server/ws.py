@@ -160,6 +160,9 @@ async def handle_roll(session: Session, msg: dict) -> None:
     game = games[code]
     if not game["started"] or game["round_over"]:
         return
+    if game.get("paused"):
+        await _error(session.ws, "Game is paused")
+        return
     player = game["players"].get(session.pid)
     if not player:
         return
@@ -232,6 +235,22 @@ async def handle_roll(session: Session, msg: dict) -> None:
         asyncio.create_task(delayed_broadcast(code, session.pid, False, None))
 
 
+async def handle_pause(session: Session, msg: dict) -> None:
+    """Host-only toggle that freezes/unfreezes rolling for everyone in the game."""
+    code = session.code
+    if not code or code not in games:
+        return
+    game = games[code]
+    if game["host"] != session.pid or not game["started"]:
+        return
+    game["paused"] = not game.get("paused", False)
+    log.info("pause    game=%s  paused=%s  by=%s", code, game["paused"], session.name)
+    emit("game_paused" if game["paused"] else "game_resumed",
+         game_code=code, user_id=session.pid, name=session.name,
+         round_num=game["round_num"])
+    await broadcast(code, state_msg(game, code))
+
+
 async def handle_roll_done(session: Session, msg: dict) -> None:
     code = session.code
     if not code or code not in games:
@@ -255,6 +274,7 @@ ACTIONS = {
     "start": handle_start,
     "reconnect": handle_reconnect,
     "roll": handle_roll,
+    "pause": handle_pause,
     "roll_done": handle_roll_done,
     "pong": handle_pong,
 }
