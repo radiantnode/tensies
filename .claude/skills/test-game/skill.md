@@ -455,9 +455,10 @@ On Tab 1, click `#menu-pause-btn`. Verify:
 - `_state.currentState.paused === true` on Tab 1.
 - `#roll-btn` is **disabled** with text `Paused`.
 
-On Tab 2, verify the non-host wait screen:
-- `#loading.active` is true, `#game.active` is false.
-- `#loading-msg` reads `Waiting for Alpha to resume the game`.
+On Tab 2, verify the non-host pause overlay (game board stays live — dice remain visible underneath):
+- `#game.active` is true, `#loading.active` is false (no screen swap).
+- `document.getElementById('pause-overlay').open === true` (the `<dialog>` is open).
+- `document.getElementById('pause-overlay-msg').textContent` reads `Waiting for Alpha to resume the game`.
 - `_state.currentState.paused === true`.
 
 Take screenshot **`.playwright-mcp/15-paused.png`** (Tab 1, menu open with the toggle on).
@@ -469,12 +470,12 @@ Take screenshot **`.playwright-mcp/15-paused.png`** (Tab 1, menu open with the t
 The host's menu shows a live status block while paused; players are **not** dropped during a pause, and a host returning from a reconnect lands on the board with the menu auto-opened.
 
 On **Tab 1** (still paused, menu open), verify `#menu-pause-status` is visible and:
-- `#pause-players` reads `2 of 2 connected`.
+- `#pause-players` reads `Everyone is here! Let's go!` (all connected).
 - `#pause-remaining` matches `^\d+:\d{2}$` and is **counting down** — read it, wait ~2 s, read again; the second value is smaller (the local 1 Hz ticker).
 
 **Everyone steps away.** On Tab 2, close the socket: `_state.ws.close()`. Within ~2 s verify the pause holds the game open rather than dropping Beta:
 - Tab 1 host **stays on the board** — `#game.active` is true, `#game` did **not** swap to `#loading` (the paused-host branch must precede the disconnect-loading branch).
-- `#pause-players` now reads `1 of 2 connected`.
+- `#pause-players` now reads `Waiting on Beta…` (one player offline).
 - `_state.currentState.players[BETA_ID].disconnected === true` (held, not removed).
 
 **Host returns.** On Tab 1, close the socket (`_state.ws.close()`), then reload instance #1 (`browser_navigate → http://localhost:8888/`). Verify the host comes back to the paused board with the menu surfaced:
@@ -482,7 +483,7 @@ On **Tab 1** (still paused, menu open), verify `#menu-pause-status` is visible a
 - `#game-menu` has the `open` class (menu auto-opened so the resume toggle is reachable).
 - `#menu-pause-status` is visible and `#menu-pause-btn` shows `Resume Game`.
 
-Reload **Tab 2** to bring Beta back; verify it returns to the wait screen (`#loading-msg` = `Waiting for Alpha to resume the game`) and Tab 1's `#pause-players` returns to `2 of 2 connected`.
+Reload **Tab 2** to bring Beta back; verify it returns to the pause overlay (`document.getElementById('pause-overlay').open === true`, `#pause-overlay-msg` = `Waiting for Alpha to resume the game`) and Tab 1's `#pause-players` returns to `Everyone is here! Let's go!`.
 
 Take screenshot **`.playwright-mcp/16-pause-status.png`** (Tab 1, status panel with countdown + player count).
 
