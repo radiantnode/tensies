@@ -19,15 +19,24 @@ different path, use that instead.
 
 ## The voice (read this first — it's the whole point)
 
-The changelog should sound like a friendly human telling a friend what got better
-this week. Keep these rules in mind:
+**Who you're talking to:** Tensies is the game a group of friends pulls up at the
+bar — drinks in hand, phones out, talking trash and laughing. Your reader is one
+of those people: a fun, social, slightly-tipsy player on a night out, not someone
+reading at a desk. Write *to them*. Talk like you're leaning across the table to
+tell them what's new before the next round. Lean into the setting — rounds, buying
+the next one, passing the phone around, "hold my drink" moments, settling who pays
+— but keep it inclusive and good-natured (never assume everyone's drinking, never
+push it).
+
+Keep these rules in mind:
 
 - **Plain English, no jargon.** A player doesn't know what a "WebSocket" or a
   "delayed broadcast" is. Say what *changed for them*: "rolls feel snappier now."
 - **Simple and short.** One line per change. If you can't explain it in a
   sentence, it's probably an under-the-hood thing — fold it away (see below).
 - **Warm and a little funny.** A light joke is welcome; a groan-worthy pun in
-  moderation is on-brand. Never sarcastic, never mean, never forced.
+  moderation is on-brand. Never sarcastic, never mean, never forced. Bar-night
+  humor — the kind that lands with friends mid-round.
 - **Emojis sparingly.** At most one per day heading, and only where it genuinely
   adds something. A changelog peppered with 🎉🚀✨ on every line reads like spam.
   When in doubt, leave it out.
@@ -42,7 +51,7 @@ Translation examples (technical commit → friendly line):
 |----------------|-------------------------|
 | `Join via link + SMS invite button` | You can now invite friends with a tap — share a link or fire off a text. |
 | `Fix roll-ack hang when re-roll lands on same dice values` | Fixed a sneaky freeze when your re-roll landed on the exact same numbers. Spooky, but no longer sticky. |
-| `Add host-only Pause Game toggle as the menu's first feature` | Hosts can now pause the game — perfect for snack breaks and "wait, who's winning?" moments. |
+| `Add host-only Pause Game toggle as the menu's first feature` | Whoever's hosting can pause the game — perfect for a bar run, a bathroom break, or settling who's buying the next round. |
 | `Persist dice scatter positions across refresh/reconnect` | Your dice stay put now, even if you refresh or your phone naps. |
 | `Split server into server/ package` | *(behind-the-scenes — frame as the player benefit it enables, e.g. "we're tuning the engine so games stay smooth and fair", not "refactored the server")* |
 
