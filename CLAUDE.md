@@ -85,6 +85,7 @@ static/
 | `create` | create new game; payload: `name` |
 | `join` | join existing game; payload: `name`, `code` |
 | `start` | host starts the game (host only) |
+| `pause` | host-only toggle that freezes/unfreezes rolling for everyone |
 | `roll` | roll unlocked dice |
 | `roll_done` | client signals its reveal animation has completed |
 
@@ -96,7 +97,18 @@ static/
 | `round_won` | state snapshot with `winner_name`; triggers overlay |
 | `error` | `msg` field with human-readable reason |
 
-The full state snapshot shape is defined by `state_msg()` in `server/game.py`. It includes `target`, `round_num`, `started`, `host`, and a `players` dict with `name`, `dice`, `wins`, `has_rolled`, and `roll_count` per player.
+The full state snapshot shape is defined by `state_msg()` in `server/game.py`. It includes `target`, `round_num`, `started`, `paused`, `host`, and a `players` dict with `name`, `dice`, `wins`, `has_rolled`, and `roll_count` per player.
+
+A terminal `error` frame carries `fatal: true` (the only producer today is the pause cap below). The client clears its saved session and returns to the landing screen instead of treating it as an in-game error.
+
+### Pause (host-only)
+
+The host toggles `pause` (first feature in the in-game menu, `static/js/menu.js`). `handle_pause` flips `game["paused"]` and broadcasts. While paused:
+
+- **Rolls are rejected** (`handle_roll` guards on `paused`; the client also disables the roll button and guards `roll()`).
+- **Non-host players see the `#loading` screen** ("<Host> has paused the game") via `showFor()`; the host keeps the board so the menu stays reachable to resume.
+- **Players are never dropped.** `drop_player` returns early when paused, so a disconnect (host backgrounding their phone) doesn't end the game. The client extends its reconnect window to ~1 h (`PAUSED_RECONNECT_WINDOW_MS`) when its last-known state was paused.
+- **A cap backstops abandonment.** `handle_pause` schedules `pause_timeout()` for `PAUSE_MAX` (1 h); if still paused then, the game is ended (fatal `error` broadcast + cleanup). Resume cancels the watchdog and reschedules a normal `DISCONNECT_GRACE` drop for anyone still offline.
 
 ### Delayed broadcast (key design detail)
 

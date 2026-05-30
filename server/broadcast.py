@@ -4,7 +4,7 @@ import time
 
 from fastapi import WebSocket
 
-from .config import DISCONNECT_GRACE, ROLL_ACK_TIMEOUT, ROUND_WIN_DELAY, log
+from .config import DISCONNECT_GRACE, PAUSE_MAX, ROLL_ACK_TIMEOUT, ROUND_WIN_DELAY, log
 from .game import deal_round, next_target, state_msg
 from .state import connections, games, sessions
 from .telemetry import emit, metrics
@@ -104,6 +104,37 @@ async def delayed_broadcast(code: str, pid: str, is_win: bool, winner_name: str 
         await broadcast(code, state_msg(game, code))
 
 
+async def pause_timeout(code: str) -> None:
+    """End a game that has stayed paused past PAUSE_MAX — assumed abandoned.
+
+    Cancelled by handle_pause() on resume. Holding the game open (instead of
+    dropping players) is what lets the host put their phone down mid-pause; this
+    is the backstop so an abandoned paused game doesn't live forever in memory.
+    """
+    try:
+        await asyncio.sleep(PAUSE_MAX)
+    except asyncio.CancelledError:
+        return
+    if code not in games:
+        return
+    game = games[code]
+    if not game.get("paused"):
+        return
+    log.info("pause_timeout  game=%s  (paused > %ds)", code, int(PAUSE_MAX))
+    duration_ms = int((time.monotonic() - game["created_mono"]) * 1000)
+    emit("game_ended", game_code=code, reason="pause_timeout",
+         duration_ms=duration_ms, round_count=game["round_count"],
+         total_rolls=game["total_rolls"])
+    metrics.games_active.dec()
+    metrics.games_ended_total.labels(reason="pause_timeout").inc()
+    metrics.game_duration_seconds.observe(duration_ms / 1000.0)
+    # Best-effort: send anyone still connected back to the landing screen.
+    await broadcast(code, {"type": "error", "fatal": True,
+                           "msg": "Game ended — it was paused too long."})
+    del games[code]
+    connections.pop(code, None)
+
+
 async def drop_player(code: str, pid: str) -> None:
     """Remove a disconnected player after the grace period."""
     await asyncio.sleep(DISCONNECT_GRACE)
@@ -112,6 +143,12 @@ async def drop_player(code: str, pid: str) -> None:
     game = games[code]
     player = game["players"].get(pid)
     if player is None or not player.get("disconnected"):
+        return
+    # While paused, nobody is dropped — the host may have stepped away (phone
+    # asleep). They can reconnect any time until the pause cap; if the pause
+    # itself runs out, pause_timeout() ends the whole game. On resume,
+    # handle_pause reschedules a fresh drop for anyone still offline.
+    if game.get("paused"):
         return
     player_name = player["name"]
     del game["players"][pid]

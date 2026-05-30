@@ -5,7 +5,7 @@ import uuid
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from .broadcast import broadcast, delayed_broadcast, drop_player, send
+from .broadcast import broadcast, delayed_broadcast, drop_player, pause_timeout, send
 from .config import MIN_ROLL_INTERVAL, log
 from .game import apply_roll, deal_round, fresh_player, new_game, state_msg
 from .state import connections, games, sessions
@@ -248,6 +248,21 @@ async def handle_pause(session: Session, msg: dict) -> None:
     emit("game_paused" if game["paused"] else "game_resumed",
          game_code=code, user_id=session.pid, name=session.name,
          round_num=game["round_num"])
+    if game["paused"]:
+        # Hold the game open for up to PAUSE_MAX; drops are suspended meanwhile.
+        old = game.pop("pause_task", None)
+        if old:
+            old.cancel()
+        game["pause_task"] = asyncio.create_task(pause_timeout(code))
+    else:
+        t = game.pop("pause_task", None)
+        if t:
+            t.cancel()
+        # Players who went offline during the pause were never dropped. Now
+        # that we're live again, give each one the normal grace to return.
+        for pid, p in game["players"].items():
+            if p.get("disconnected"):
+                p["disconnect_task"] = asyncio.create_task(drop_player(code, pid))
     await broadcast(code, state_msg(game, code))
 
 

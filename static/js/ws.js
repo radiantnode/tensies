@@ -6,6 +6,9 @@ import { renderGame, renderLobby, renderMyArea, renderPlayersBar } from './scree
 import { hideWinner, leaveLoading, pausedText, showLoading, showWinner, waitingText } from './overlays.js';
 
 const RECONNECT_WINDOW_MS = 60000;
+// While the game is paused the server holds it open for up to an hour, so keep
+// trying to reconnect that long — covers the host backgrounding their phone.
+const PAUSED_RECONNECT_WINDOW_MS = 61 * 60 * 1000;
 const RETRY_DELAY_MS = 2000;
 
 function wsUrl() {
@@ -52,7 +55,8 @@ export function maybeReconnect() {
   state.myId = pid;
   state.reconnecting = true;
   showLoading('Reconnecting…');
-  attemptReconnect(pid, code, Date.now() + RECONNECT_WINDOW_MS);
+  const window = state.currentState?.paused ? PAUSED_RECONNECT_WINDOW_MS : RECONNECT_WINDOW_MS;
+  attemptReconnect(pid, code, Date.now() + window);
 }
 
 export function attemptReconnect(pid, code, deadline) {
@@ -157,6 +161,17 @@ export function handleMessage(msg) {
       break;
 
     case 'error':
+      if (msg.fatal) {
+        // Terminal — the game no longer exists (e.g. paused past the cap).
+        // Drop our session and return to the landing screen with the reason.
+        clearSession();
+        state.currentState = null;
+        state.reconnecting = false;
+        hideWinner();
+        showScreen('landing');
+        setError(msg.msg);
+        return;
+      }
       if (state.currentState && state.currentState.started) {
         // In-game error (e.g. rate limit) — clear roll state so the button comes back
         state.pendingRollTimeouts.forEach(clearTimeout);
