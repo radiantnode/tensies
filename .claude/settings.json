@@ -50,7 +50,10 @@
       "Bash(curl -sf -u admin:admin -X POST http://localhost:8889/api/admin/provisioning/dashboards/reload)",
       "Bash(until docker compose *)",
       "mcp__playwright-g2-host__browser_handle_dialog",
-      "mcp__playwright-g2-host__browser_tabs"
+      "mcp__playwright-g2-host__browser_tabs",
+      "mcp__playwright-guest__browser_snapshot",
+      "Bash(curl -s http://localhost:8888/)",
+      "mcp__playwright-guest__browser_fill_form"
     ]
   }
 }

@@ -215,11 +215,20 @@ export function renderMenu(snap) {
   }
   status.hidden = false;
 
-  // "X of Y connected" so the host can wait for stragglers before resuming.
   const players = Object.values(snap.players);
-  const connected = players.filter(p => !p.disconnected).length;
+  const downNames = players.filter(p => p.disconnected).map(p => p.name);
   const playersEl = document.getElementById('pause-players');
-  if (playersEl) playersEl.textContent = `${connected} of ${players.length} connected`;
+  if (playersEl) {
+    if (downNames.length === 0) {
+      playersEl.textContent = "Everyone is here! Let's go!";
+    } else if (downNames.length === 1) {
+      playersEl.textContent = `Waiting on ${downNames[0]}…`;
+    } else if (downNames.length === 2) {
+      playersEl.textContent = `Waiting on ${downNames[0]} and ${downNames[1]}…`;
+    } else {
+      playersEl.textContent = `Waiting on ${downNames.slice(0, -1).join(', ')}, and ${downNames.at(-1)}…`;
+    }
+  }
 
   // Countdown to the abandonment cap. Re-anchor the deadline to this snapshot,
   // then tick locally every second.
