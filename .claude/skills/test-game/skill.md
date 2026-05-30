@@ -609,37 +609,38 @@ At the end of all tests, collect all browser console messages from both instance
 
 Print a summary table. Preflight (self-update, prior-run review) is reported as a one-line note, not a scored row. The 22 numbered rows map 1:1 to Steps 1–22.
 
-```
 TENSIES TEST RESULTS
-====================
-Preflight: self-update <ran|none>, prior-run review <ran|none> (not scored)
- PASS  01  Server health
- PASS  02  Landing screen
- PASS  03  Create game + lobby
- PASS  04  Deep-link join + lobby sync
- PASS  05  Invalid game code rejection
- PASS  06  Game start + initial render
- PASS  07  Join-after-start rejection
- PASS  08  Roll + reveal (single player)
- PASS  09  Same-value re-roll (no hang)
- PASS  10  Rate limit + recovery
- PASS  11  Multiplayer broadcast timing
- PASS  12  Roll to win + winner overlay
- PASS  13  Sticky winner overlay regression (spacebar)
- PASS  14  Round transition + target cycle
- PASS  15  Host pause toggle + non-host wait screen
- PASS  16  Pause status panel + drops suspended + host returns to open menu
- PASS  17  Resume returns everyone to play
- PASS  18  Player disconnect mid-game
- PASS  19  Player reconnect flow
- PASS  20  Host disconnect + reconnect
- PASS  21  Animation integrity (no tearing)
- PASS  22  Console clean (no JS errors)
-====================
-22/22 passed
-```
 
-Replace `PASS` with `FAIL` and append a one-line description for any failure. If any test FAILs, describe exactly what went wrong and where to look.
+Preflight: self-update <ran|none>, prior-run review <ran|none> (not scored)
+
+| # | Result | Description |
+|---|--------|-------------|
+| 01 | ✅ PASS | Server health |
+| 02 | ✅ PASS | Landing screen |
+| 03 | ✅ PASS | Create game + lobby |
+| 04 | ✅ PASS | Deep-link join + lobby sync |
+| 05 | ✅ PASS | Invalid game code rejection |
+| 06 | ✅ PASS | Game start + initial render |
+| 07 | ✅ PASS | Join-after-start rejection |
+| 08 | ✅ PASS | Roll + reveal (single player) |
+| 09 | ✅ PASS | Same-value re-roll (no hang) |
+| 10 | ✅ PASS | Rate limit + recovery |
+| 11 | ✅ PASS | Multiplayer broadcast timing |
+| 12 | ✅ PASS | Roll to win + winner overlay |
+| 13 | ✅ PASS | Sticky winner overlay regression (spacebar) |
+| 14 | ✅ PASS | Round transition + target cycle |
+| 15 | ✅ PASS | Host pause toggle + non-host wait screen |
+| 16 | ✅ PASS | Pause status panel + drops suspended + host returns to open menu |
+| 17 | ✅ PASS | Resume returns everyone to play |
+| 18 | ✅ PASS | Player disconnect mid-game |
+| 19 | ✅ PASS | Player reconnect flow |
+| 20 | ✅ PASS | Host disconnect + reconnect |
+| 21 | ✅ PASS | Animation integrity (no tearing) |
+| 22 | ✅ PASS | Console clean (no JS errors) |
+
+22/22 passed
+
+Replace `✅ PASS` with `❌ FAIL` or `📝 NOTE` and append a one-line description for any issue. If any test FAILs, describe exactly what went wrong and where to look.
 
 Embed the most interesting screenshot inline at the end of the report (the winner overlay or the shake animation, whichever is more visually compelling).
 
