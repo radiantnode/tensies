@@ -20,7 +20,7 @@ Pull up a stool. Here's everything that's gotten better since last call — newe
 - Added a menu button to the game — a tidy little home for new tricks (pause moved
   in first).
 - Jumping between screens is snappier now, so there's less staring at your phone
-  and more talking trash across the table.
+  and more talking trash with the crew.
 - _Behind the scenes: we're sharpening how we read each game so we can keep making
   bar nights more fun, fair, and engaging._
 
@@ -51,7 +51,7 @@ Pull up a stool. Here's everything that's gotten better since last call — newe
 ## Tuesday, May 26, 2026
 
 - Every roll is now refereed by the server — so when you crush a round, nobody at
-  the table can cry foul. Fair and square.
+  the bar can cry foul. Fair and square.
 
 ## Monday, May 25, 2026 ✨
 
