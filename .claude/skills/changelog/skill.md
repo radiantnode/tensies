@@ -281,10 +281,10 @@ Rules:
   with a wink (🎲 for the dice coming alive, 🔌 for reconnect, 🍺 / 🍻 for a
   bar-night beat, ⏸️ for pause). Never add one just to fill space or to mark a
   routine bug fix.
-- **Where it goes.** A codename heading can carry one trailing emoji
-  (`## 0.5.0 ("Last Call") 🍻`), or it can punctuate the end of a single funny
-  bullet. Don't open a line with an emoji, and don't put one on the
-  behind-the-scenes lines (keep those dry).
+- **Bullets only, never headings.** An emoji goes at the end of a single funny
+  bullet, never in a heading, version, codename, or the title. Don't open a line
+  with an emoji, and don't put one on the behind-the-scenes lines (keep those
+  dry).
 - **Keep the rest of the humanizer's work.** Still no em dashes, no curly quotes,
   no "table." You're only adding emojis, not rewriting prose.
 

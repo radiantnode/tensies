@@ -2,11 +2,11 @@
 
 Pull up a stool. Here's what's new since last call, newest round up top.
 
-## 0.5.0 ("Last Call") 🍻
+## 0.5.0 ("Last Call")
 
 Saturday, May 30, 2026
 
-- **Hosts can pause now.** Bar run, bathroom break, or a debate over who's buying. Hit pause and the game waits for the crew.
+- **Hosts can pause now.** Bar run, bathroom break, or a debate over who's buying. Hit pause and the game waits for the crew. 🍻
 - Paused games hang on for up to an hour, so a dead phone won't kill the night.
 - Lose signal in the back corner? You drop right back into *your* seat. Nobody steals it while you're up ordering.
 - _Behind the scenes: we're getting smarter about how games play out, to keep your nights fun, fair, and worth the round you lost._
