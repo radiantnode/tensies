@@ -444,20 +444,77 @@ Take screenshot **`.playwright-mcp/14-round2.png`**.
 
 ---
 
-## Step 15 — Player disconnect mid-game
+## Step 15 — Host pause toggle (host-only) + non-host wait screen
+
+Pause is the first in-game menu feature (`static/js/menu.js`, host-only, a toggle). With the game running:
+
+On **Tab 1** (host Alpha): click `#game-menu-btn` to open the menu, then verify `#menu-pause-btn` is **visible** (host sees it). On **Tab 2** (guest Beta): click `#game-menu-btn`, verify `#menu-pause-btn` is **hidden** (`hidden` attribute present) — pause is host-only.
+
+On Tab 1, click `#menu-pause-btn`. Verify:
+- The button gains the `active` class, its `aria-pressed` is `"true"`, and its `.menu-item-label` text is `Resume Game`.
+- `_state.currentState.paused === true` on Tab 1.
+- `#roll-btn` is **disabled** with text `Paused`.
+
+On Tab 2, verify the non-host wait screen:
+- `#loading.active` is true, `#game.active` is false.
+- `#loading-msg` reads `Waiting for Alpha to resume the game`.
+- `_state.currentState.paused === true`.
+
+Take screenshot **`.playwright-mcp/15-paused.png`** (Tab 1, menu open with the toggle on).
+
+---
+
+## Step 16 — Pause status panel, drops suspended, host returns to open menu
+
+The host's menu shows a live status block while paused; players are **not** dropped during a pause, and a host returning from a reconnect lands on the board with the menu auto-opened.
+
+On **Tab 1** (still paused, menu open), verify `#menu-pause-status` is visible and:
+- `#pause-players` reads `2 of 2 connected`.
+- `#pause-remaining` matches `^\d+:\d{2}$` and is **counting down** — read it, wait ~2 s, read again; the second value is smaller (the local 1 Hz ticker).
+
+**Everyone steps away.** On Tab 2, close the socket: `_state.ws.close()`. Within ~2 s verify the pause holds the game open rather than dropping Beta:
+- Tab 1 host **stays on the board** — `#game.active` is true, `#game` did **not** swap to `#loading` (the paused-host branch must precede the disconnect-loading branch).
+- `#pause-players` now reads `1 of 2 connected`.
+- `_state.currentState.players[BETA_ID].disconnected === true` (held, not removed).
+
+**Host returns.** On Tab 1, close the socket (`_state.ws.close()`), then reload instance #1 (`browser_navigate → http://localhost:8888/`). Verify the host comes back to the paused board with the menu surfaced:
+- `#game.active` is true (not stuck on loading).
+- `#game-menu` has the `open` class (menu auto-opened so the resume toggle is reachable).
+- `#menu-pause-status` is visible and `#menu-pause-btn` shows `Resume Game`.
+
+Reload **Tab 2** to bring Beta back; verify it returns to the wait screen (`#loading-msg` = `Waiting for Alpha to resume the game`) and Tab 1's `#pause-players` returns to `2 of 2 connected`.
+
+Take screenshot **`.playwright-mcp/16-pause-status.png`** (Tab 1, status panel with countdown + player count).
+
+---
+
+## Step 17 — Resume returns everyone to play
+
+On **Tab 1**, click `#menu-pause-btn` to resume. Verify:
+- The menu **closes** (`#game-menu` no longer has the `open` class) — resuming hands the board back.
+- `_state.currentState.paused === false`; `#menu-pause-status` is hidden.
+- `#roll-btn` is enabled again with text `Roll`.
+
+On **Tab 2**, verify it leaves the wait screen: `#game.active` is true, `#loading.active` is false.
+
+Confirm play resumes: roll once on Tab 1 and verify `roll_count` increments (the `paused` guard in `handle_roll` and `roll()` is cleared). Take screenshot **`.playwright-mcp/17-resumed.png`**.
+
+---
+
+## Step 18 — Player disconnect mid-game
 
 On Tab 2, run `_state.ws.close()` via `evaluate` to simulate Beta dropping (close the socket, not the browser, so the page state stays inspectable). On Tab 1, verify (within ~2 seconds):
 - Tab 1 switches off the game screen entirely — `#loading.active` is true, `#game.active` is false
 - `#loading-msg` reads `Waiting for Beta to reconnect…`
 - `_state.currentState` shows Beta with `disconnected: true` (state is preserved underneath; only the screen swapped)
 
-Take screenshot **`.playwright-mcp/15-post-disconnect.png`** (the loading bar with "Waiting for Beta to reconnect…").
+Take screenshot **`.playwright-mcp/18-post-disconnect.png`** (the loading bar with "Waiting for Beta to reconnect…").
 
 ---
 
-## Step 16 — Player reconnect
+## Step 19 — Player reconnect
 
-Continuing from Step 15 (Beta's WS is closed, Tab 1 is on the loading screen).
+Continuing from Step 18 (Beta's WS is closed, Tab 1 is on the loading screen).
 
 Because instance #2 uses a persistent profile, `localStorage` survives a reload — so the faithful reconnect test is a **real page reload** of instance #2, which lets the page bootstrap auto-reconnect exactly as a real user's reopened tab would:
 
@@ -476,7 +533,7 @@ Then on Tab 1 (Alpha) verify:
 - `_state.currentState` shows Beta with `disconnected: false`.
 - Alpha can still roll.
 
-Take screenshot **`.playwright-mcp/16-reconnected.png`**.
+Take screenshot **`.playwright-mcp/19-reconnected.png`**.
 
 If the reconnect fails (loading screen stays indefinitely or landing screen shows `Connection failed`), mark this step FAIL. Confirm whether it's because the server already dropped Beta (the `DISCONNECT_GRACE` window — currently **60 s** — elapsed during test latency) or a client-side bug by running an out-of-band direct-WS reconnect:
 
@@ -499,7 +556,7 @@ Expected `False`. If that passes, the failure was test-tooling latency, not a re
 
 ---
 
-## Step 17 — Host disconnect + reconnect
+## Step 20 — Host disconnect + reconnect
 
 This reuses the two instances (instance #1 = host Alpha, instance #2 = guest Beta). With the running game, close the **host's WS** via `_state.ws.close()` in an `evaluate` on **instance #1** (the socket, not the browser — we want a clean close while the page stays inspectable).
 
@@ -517,15 +574,15 @@ Then reload **instance #1** (`mcp__playwright__browser_navigate → http://local
 
 This is the host-reconnect path that a shared-`localStorage` test setup previously mis-reported as broken.
 
-Take screenshot **`.playwright-mcp/17-host-disconnect.png`**.
+Take screenshot **`.playwright-mcp/20-host-disconnect.png`**.
 
 ---
 
-## Step 18 — Animation integrity (visual spot checks)
+## Step 21 — Animation integrity (visual spot checks)
 
-Take a screenshot immediately after clicking roll (during shake animation) — **`.playwright-mcp/18a-shake.png`**. Verify dice are visually gathered toward center.
+Take a screenshot immediately after clicking roll (during shake animation) — **`.playwright-mcp/21a-shake.png`**. Verify dice are visually gathered toward center.
 
-Take a screenshot 400ms after roll completes (during reveal) — **`.playwright-mcp/18b-reveal.png`**. Verify:
+Take a screenshot 400ms after roll completes (during reveal) — **`.playwright-mcp/21b-reveal.png`**. Verify:
 - No dice are clipping through each other
 - Newly-matched dice show the target value face
 - The `.die-3d` elements do not appear mid-tumble (the dice-tearing regression)
@@ -538,7 +595,7 @@ All should be `false` / `null` at rest.
 
 ---
 
-## Step 19 — Console error audit
+## Step 22 — Console error audit
 
 At the end of all tests, collect all browser console messages from both instances. Flag any:
 - `Error:` or `Uncaught` entries
@@ -549,7 +606,7 @@ At the end of all tests, collect all browser console messages from both instance
 
 ## Reporting
 
-Print a summary table. Preflight (self-update, prior-run review) is reported as a one-line note, not a scored row. The 19 numbered rows map 1:1 to Steps 1–19.
+Print a summary table. Preflight (self-update, prior-run review) is reported as a one-line note, not a scored row. The 22 numbered rows map 1:1 to Steps 1–22.
 
 ```
 TENSIES TEST RESULTS
@@ -569,13 +626,16 @@ Preflight: self-update <ran|none>, prior-run review <ran|none> (not scored)
  PASS  12  Roll to win + winner overlay
  PASS  13  Sticky winner overlay regression (spacebar)
  PASS  14  Round transition + target cycle
- PASS  15  Player disconnect mid-game
- PASS  16  Player reconnect flow
- PASS  17  Host disconnect + reconnect
- PASS  18  Animation integrity (no tearing)
- PASS  19  Console clean (no JS errors)
+ PASS  15  Host pause toggle + non-host wait screen
+ PASS  16  Pause status panel + drops suspended + host returns to open menu
+ PASS  17  Resume returns everyone to play
+ PASS  18  Player disconnect mid-game
+ PASS  19  Player reconnect flow
+ PASS  20  Host disconnect + reconnect
+ PASS  21  Animation integrity (no tearing)
+ PASS  22  Console clean (no JS errors)
 ====================
-19/19 passed
+22/22 passed
 ```
 
 Replace `PASS` with `FAIL` and append a one-line description for any failure. If any test FAILs, describe exactly what went wrong and where to look.
