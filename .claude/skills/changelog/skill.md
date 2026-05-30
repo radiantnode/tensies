@@ -117,6 +117,45 @@ Aim for **2 to 5 bullets per active day**. If a day genuinely had one thing, one
 bullet is fine. If it had ten commits that were all the same feature, still one
 bullet.
 
+### Assign each day a version number (semantic versioning)
+
+Every day is a release, so give it a `MAJOR.MINOR.PATCH` version following
+[semantic versioning](https://en.wikipedia.org/wiki/Software_versioning):
+
+- **MAJOR** — a change that breaks backward compatibility or is a big jump in
+  functionality (a redesign, a save-format change that orphans old games, a
+  rules overhaul). Rare. Bump only when something genuinely breaks how things
+  worked before.
+- **MINOR** — the day added at least one new player-facing feature, or a
+  significant fix. This is the common case for an active feature day.
+- **PATCH** — the day was *only* small bug fixes and polish, no new feature.
+
+Walk the days **oldest to newest**, carrying a running version:
+
+1. The **first release** (oldest day) is `1.0.0`. (Use `0.x` only if the project
+   was explicitly pre-release / unstable then; default to `1.0.0`.)
+2. For each later day, look at what it shipped and bump the highest-order
+   component that applies: a breaking change bumps MAJOR, otherwise any new
+   feature bumps MINOR, otherwise (fixes only) bump PATCH.
+3. **When you bump a component, reset every component to its right to zero**
+   (a MINOR bump zeroes PATCH; a MAJOR bump zeroes MINOR and PATCH). This is a
+   hard semver rule, not a style choice.
+
+Worked example over six days, oldest first:
+
+| Day | What shipped | Bump | Version |
+|-----|--------------|------|---------|
+| 1 | first release | — | `1.0.0` |
+| 2 | fairness fix only, no new feature | PATCH | `1.0.1` |
+| 3 | reconnect + new logo (features) | MINOR | `1.1.0` |
+| 4 | loading screen + persistence (features) | MINOR | `1.2.0` |
+| 5 | in-game menu (feature) | MINOR | `1.3.0` |
+| 6 | pause (feature) | MINOR | `1.4.0` |
+
+The newest day carries the highest version and sits at the top of the file.
+Judge the bump from the *changes you kept*, not the raw commit count: a day of
+ten polish commits is still a PATCH.
+
 ## Phase 3 — Write the markdown
 
 Structure, **newest day first** (a changelog is read top-down for "what's new"):
@@ -126,20 +165,35 @@ Structure, **newest day first** (a changelog is read top-down for "what's new"):
 
 A friendly log of everything that's changed. Newest stuff up top.
 
-## <Friendly date, e.g. Friday, May 30, 2026> ("<Drink codename>")
+## <Version> ("<Drink codename>")
+
+<Friendly date, e.g. Friday, May 30, 2026>
 
 - Player-facing change, told as a benefit.
 - Another one, maybe with a light joke.
 - _Behind the scenes: the player payoff of the invisible work (only if worth it)._
 
-## <Next day down> ("<Next day's codename>")
+## <Next version down> ("<Next day's codename>")
+
+<Next day down>
 
 - ...
 ```
 
+The heading is the **version and the codename**; the date sits on its own line
+right under it. So a day reads:
+
+```markdown
+## 1.4.0 ("Last Call")
+
+Saturday, May 30, 2026
+
+- Hosts can pause now.
+```
+
 Each day is its own little "release," so **give every day a funny bar- or
-drink-themed codename** and put it in the heading after the date, in quotes inside
-parentheses: `## Friday, May 30, 2026 ("Last Call")`.
+drink-themed codename** and put it in the heading after the version, in quotes
+inside parentheses: `## 1.4.0 ("Last Call")`.
 
 - **Make it a pun on that day's actual changes when you can.** The codename should
   wink at what shipped, not just name a random cocktail. Pause features landing?
@@ -156,9 +210,11 @@ parentheses: `## Friday, May 30, 2026 ("Last Call")`.
 
 Formatting rules:
 
-- **Date headings** use the `Friendly date ("Codename")` shape: a human date like
-  "Friday, May 30, 2026" (never `2026-05-30`), then the quoted codename in
-  parentheses. Derive the weekday from the date.
+- **Headings** use the `Version ("Codename")` shape, e.g. `## 1.4.0 ("Last
+  Call")`. Versions come from the semver pass in Phase 2.
+- **The date** goes on its own line directly under the heading, in a human format
+  like "Friday, May 30, 2026" (never `2026-05-30`). Derive the weekday from the
+  date.
 - **No emojis.** Not in the title, not in day headings, not in bullets. The
   humanizer pass cuts them anyway.
 - **No em dashes or en dashes.** Use commas, periods, colons, or parentheses.
@@ -216,6 +272,8 @@ Do **not** commit or push unless the user asks. Do **not** open a PR.
 - **Funny, not cringe.** A light touch of humor; never at the expense of clarity.
 - **Every day gets a drink codename.** Pun on that day's changes when you can, and
   never reuse one.
+- **Every day gets a semver number.** Oldest is `1.0.0`; bump MAJOR/MINOR/PATCH by
+  what shipped and zero the components to the right.
 - **Humanize on the way out.** The humanizer pass is part of the deliverable, not
   optional polish. Plain prose, no em dashes, no emojis.
 - **Regenerate, don't append.** Re-running rebuilds the whole file from history,
