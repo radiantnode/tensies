@@ -8,6 +8,13 @@
     <filter id="w-rim" x="-60%" y="-60%" width="220%" height="220%">
       <feGaussianBlur stdDeviation="3.5"/>
     </filter>
+    <!-- Rim glow gradient: bright at the top-right, fading to subtle toward the
+         bottom-left (per die — light source from the top-right). -->
+    <linearGradient id="w-rimg" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0"    stop-color="#ffdca8"/>
+      <stop offset="0.45" stop-color="#f6ad60"/>
+      <stop offset="1"    stop-color="#b9803f" stop-opacity="0.18"/>
+    </linearGradient>
     <linearGradient id="w-pink" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ff6b85"/>
       <stop offset="1" stop-color="#e63a59"/>
@@ -25,9 +32,9 @@
 
   <!-- Back die: pink, showing 6 -->
   <g transform="translate(74 80) rotate(-14)">
-    <!-- glowing warm rim -->
-    <rect x="-40" y="-40" width="80" height="80" rx="15" fill="none" stroke="#f8bd76" stroke-width="6" filter="url(#w-rim)" opacity="0.95"/>
-    <rect x="-40" y="-40" width="80" height="80" rx="15" fill="url(#w-pink)" stroke="#ffe1b8" stroke-width="2.2"/>
+    <!-- glowing warm rim (brighter top-right, subtle bottom-left) -->
+    <rect x="-40" y="-40" width="80" height="80" rx="15" fill="none" stroke="url(#w-rimg)" stroke-width="6.5" filter="url(#w-rim)"/>
+    <rect x="-40" y="-40" width="80" height="80" rx="15" fill="url(#w-pink)" stroke="url(#w-rimg)" stroke-width="2.2"/>
     <rect x="-37" y="-37" width="74" height="20" rx="9" fill="#ffffff" opacity="0.12"/>
     <circle cx="-20" cy="-22" r="6" fill="#fff"/>
     <circle cx="-20" cy="0"   r="6" fill="#fff"/>
@@ -40,9 +47,9 @@
   <!-- Front die: white, showing 4 -->
   <g transform="translate(132 130) rotate(10)">
     <rect x="-39" y="-39" width="78" height="78" rx="14" fill="#1a1a2e" opacity="0.35" transform="translate(3 5)"/>
-    <!-- glowing warm rim -->
-    <rect x="-38" y="-38" width="76" height="76" rx="14" fill="none" stroke="#f8bd76" stroke-width="6" filter="url(#w-rim)" opacity="0.95"/>
-    <rect x="-38" y="-38" width="76" height="76" rx="14" fill="url(#w-white)" stroke="#ffe9cc" stroke-width="2.2"/>
+    <!-- glowing warm rim (brighter top-right, subtle bottom-left) -->
+    <rect x="-38" y="-38" width="76" height="76" rx="14" fill="none" stroke="url(#w-rimg)" stroke-width="6.5" filter="url(#w-rim)"/>
+    <rect x="-38" y="-38" width="76" height="76" rx="14" fill="url(#w-white)" stroke="url(#w-rimg)" stroke-width="2.2"/>
     <rect x="-35" y="-35" width="70" height="18" rx="8" fill="#ffffff" opacity="0.6"/>
     <circle cx="-19" cy="-19" r="6" fill="#1a1a2e"/>
     <circle cx="19"  cy="-19" r="6" fill="#1a1a2e"/>
