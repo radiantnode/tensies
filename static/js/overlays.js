@@ -42,9 +42,13 @@ function startWinTimer() {
   winTimer = setInterval(tick, 50);
 }
 
-export function showWinner(name, target, round) {
-  const banner = document.getElementById('winner-round');
-  if (banner) banner.textContent = round;
+// `name` is the name shown under the dice (the winner's name on a win, the
+// viewer's own name on a loss); isLoser flips the banner word Winner→Loser.
+export function showWinner(name, target, round, isLoser = false) {
+  const pill = document.getElementById('winner-round');
+  if (pill) pill.textContent = round;
+  const suffix = document.getElementById('winner-banner-suffix');
+  if (suffix) suffix.textContent = isLoser ? 'Loser' : 'Winner';
   const nameEl = document.getElementById('winner-name');
   if (nameEl) nameEl.textContent = name;
   startWinTimer();

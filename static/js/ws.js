@@ -181,13 +181,20 @@ export function handleMessage(msg) {
       }
       break;
 
-    case 'round_won':
+    case 'round_won': {
+      // The winner is the player whose dice are all on the target. The overlay
+      // shows the winner's name + "Winner" only to the winner; everyone else
+      // sees their own name + "Loser".
+      const me = msg.players[state.myId];
+      const myName = me ? me.name : (msg.winner_name || '?');
+      const iWon = !!me && me.dice.every(d => d === msg.target);
       if (state.awaitingAck && myDiceKey(msg) !== state.lastMyDiceKey) {
-        // I just won — animate the reveal first, then show the overlay
+        // I was mid-roll — animate the reveal first, then show the overlay
         state.pendingRollState = msg;
-        state.pendingWinName = msg.winner_name;
+        state.pendingWinName = myName;
         state.pendingWinTarget = msg.target;
         state.pendingWinRound = msg.round_num;
+        state.pendingWinIsLoser = !iWon;
       } else {
         state.pendingRollTimeouts.forEach(clearTimeout);
         state.pendingRollTimeouts = [];
@@ -199,9 +206,10 @@ export function handleMessage(msg) {
         showScreen('game');
         renderPlayersBar(msg);
         renderMyArea(msg);
-        showWinner(msg.winner_name, msg.target, msg.round_num);
+        showWinner(myName, msg.target, msg.round_num, !iWon);
       }
       break;
+    }
 
     case 'error':
       if (msg.fatal) {
