@@ -1,3 +1,17 @@
+/* ── Embedded UI font ──
+   Self-hosted Inter (variable, Latin subset, ~47 KB) so the app renders with
+   identical type on every platform instead of each OS's own UI font
+   (San Francisco on Apple, Roboto on Android, Segoe on Windows). The single
+   variable file carries every weight (100–900); font-display: swap paints the
+   system fallback first, then swaps. system-ui stays in the stack as fallback. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/static/fonts/inter-latin-variable.woff2') format('woff2');
+}
+
 :root {
   /* ── Tensies design system ──
      The aesthetic is set by the game board: a frosted, warm "speakeasy bar"
@@ -47,10 +61,11 @@
 * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
 
 /* Element-level resets so semantic tags can stand in for divs without
-   re-introducing default UA styling. Specific screens style their own
-   typography on top of these. We intentionally leave button font-family
-   alone — letting it inherit shifts text metrics by ~1px on Chromium and
-   breaks visual parity with the original div-as-button layout. */
+   re-introducing default UA styling. Form controls don't inherit font-family
+   by default, so they'd fall back to the UA font (defeating the embedded
+   Inter) — inherit it explicitly so buttons, inputs, and the code field all
+   render in Inter for true cross-platform consistency. */
+button, input, textarea, select { font-family: inherit; }
 button { color: inherit; background: none; border: none; cursor: pointer; }
 ul, ol { list-style: none; }
 h1, h2, h3, p { font-weight: inherit; font-size: inherit; }
@@ -76,7 +91,7 @@ html {
 }
 
 body {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: #1a0e08 url('/static/bar-top.png') center 10% / cover no-repeat;
   color: var(--text);
   /* Pin body to exact viewport — prevents iOS rubber-band scroll and vh bugs */
