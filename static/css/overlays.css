@@ -197,12 +197,23 @@
   letter-spacing: 0.2em;
   text-shadow: var(--text-shadow);
 }
+/* Winner name: a warm cream→gold gradient with a soft amber glow — lit like
+   the dice/round pill, NOT the brand's accent-red wordmark style. */
 .winner-name {
-  font-size: clamp(2rem, 8vw, 3.3rem);
-  font-weight: 900;
-  color: var(--accent);
-  margin: 0.35rem 0 0.2rem;
-  text-shadow: 0 0 26px rgba(255, 77, 109, 0.5), 0 2px 6px rgba(0, 0, 0, 0.6);
+  font-size: clamp(1.9rem, 7.5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: 0.005em;
+  margin: 0.6rem 0 0;
+  background: linear-gradient(180deg, #fff6e9 0%, #f6dcb0 52%, #e7ba7f 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  /* Glow + legibility (text-shadow doesn't show through clipped text, so the
+     halo and shadow come from drop-shadow filters on the element). */
+  filter:
+    drop-shadow(0 0 18px rgba(246, 152, 62, 0.4))
+    drop-shadow(0 2px 5px rgba(0, 0, 0, 0.65));
 }
 .winner-sub {
   color: var(--muted);
