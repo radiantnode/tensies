@@ -28,7 +28,7 @@
   font-weight: 900;
   letter-spacing: 0.15em;
   color: var(--accent);
-  text-shadow: 0 0 40px rgba(255, 77, 109, 0.4);
+  text-shadow: var(--text-shadow);
   margin-bottom: 0.25rem;
 }
 
