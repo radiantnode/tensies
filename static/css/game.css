@@ -27,6 +27,7 @@
 }
 
 .round-label {
+  position: relative;
   display: inline-block;
   font-size: 0.76rem;
   font-weight: 800;
@@ -34,20 +35,37 @@
   letter-spacing: 0.16em;
   text-transform: uppercase;
   text-shadow: var(--text-shadow);
-  /* Leather pill, matching the back chip / menu-item surface. */
   padding: 0.34rem 0.9rem;
   background: rgba(30, 15, 6, 0.22);
-  /* Glowing warm rim like the ashtray, lit from the top-right: the top-right
-     edge catches the light, the bottom-left falls into shadow, and the ember
-     halo is biased up-and-to-the-right. */
-  border: 1px solid rgba(247, 180, 104, 0.82);
   border-radius: 999px;
+  /* Lit from the top-right: lit inner edge up-right, shaded inner edge
+     bottom-left, ember halo biased up-and-right (kept subtle), contact shadow. */
   box-shadow:
-    inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.5),   /* lit inner edge, top-right */
-    inset 2px -2px 6px rgba(70, 28, 8, 0.45),            /* shaded inner edge, bottom-left */
-    3px -3px 13px rgba(255, 186, 102, 0.72),             /* tight glow from top-right */
-    7px -7px 32px rgba(246, 152, 62, 0.5),               /* ambient ember, top-right */
+    inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.42),  /* lit inner edge, top-right */
+    inset 2px -2px 6px rgba(70, 28, 8, 0.4),             /* shaded inner edge, bottom-left */
+    2px -2px 9px rgba(255, 186, 102, 0.42),              /* tight glow from top-right */
+    5px -5px 22px rgba(246, 152, 62, 0.3),               /* ambient ember, top-right */
     0 3px 9px rgba(0, 0, 0, 0.45);                       /* contact shadow below */
+}
+
+/* Gradient rim that follows the pill radius: bright at the top-right, fading
+   to subtle toward the bottom-left (matching the top-right light source).
+   Masked to a 1px ring so the centre stays transparent. */
+.round-label::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(to bottom left,
+    rgba(252, 200, 126, 0.95) 0%,
+    rgba(216, 148, 80, 0.55) 38%,
+    rgba(150, 96, 46, 0.2) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
 }
 
 /* Die in the stack: drop the auto-centering margin (the flex column centers it). */
