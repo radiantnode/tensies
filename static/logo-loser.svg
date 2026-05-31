@@ -36,7 +36,7 @@
         <circle cx="20" cy="-22" r="6" fill="#fff"/><circle cx="20" cy="0" r="6" fill="#fff"/><circle cx="20" cy="22" r="6" fill="#fff"/>
       </g>
       <!-- upper piece's bottom edge: raw fracture (warm, blends with the bg) -->
-      <g clip-path="url(#l-die-p)"><path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#6a513c" stroke-width="2.4" stroke-linejoin="round" opacity="0.85"/></g>
+      <g clip-path="url(#l-die-p)"><path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#6a513c" stroke-width="1.6" stroke-linejoin="round" opacity="0.35"/></g>
     </g>
     <g transform="translate(2 6)">
       <g clip-path="url(#l-bot)">
@@ -47,8 +47,8 @@
       </g>
       <!-- lower piece's top edge: raw fracture + faint lit lip (top-right light) -->
       <g clip-path="url(#l-die-p)">
-        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#6a513c" stroke-width="2.2" stroke-linejoin="round" opacity="0.85"/>
-        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#ffcaa0" stroke-width="1" stroke-linejoin="round" opacity="0.45" transform="translate(0 -1.2)"/>
+        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#6a513c" stroke-width="1.5" stroke-linejoin="round" opacity="0.35"/>
+        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#ffcaa0" stroke-width="1" stroke-linejoin="round" opacity="0.3" transform="translate(0 -1.2)"/>
       </g>
     </g>
   </g>
@@ -63,7 +63,7 @@
         <circle cx="-19" cy="-19" r="6" fill="#1a1a2e"/><circle cx="19" cy="-19" r="6" fill="#1a1a2e"/>
         <circle cx="-19" cy="19" r="6" fill="#1a1a2e"/><circle cx="19" cy="19" r="6" fill="#1a1a2e"/>
       </g>
-      <g clip-path="url(#l-die-w)"><path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#6a513c" stroke-width="2.4" stroke-linejoin="round" opacity="0.85"/></g>
+      <g clip-path="url(#l-die-w)"><path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#6a513c" stroke-width="1.6" stroke-linejoin="round" opacity="0.35"/></g>
     </g>
     <g transform="translate(2 6)">
       <g clip-path="url(#l-bot)">
@@ -73,8 +73,8 @@
         <circle cx="-19" cy="19" r="6" fill="#1a1a2e"/><circle cx="19" cy="19" r="6" fill="#1a1a2e"/>
       </g>
       <g clip-path="url(#l-die-w)">
-        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#6a513c" stroke-width="2.2" stroke-linejoin="round" opacity="0.85"/>
-        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#fff0dc" stroke-width="1" stroke-linejoin="round" opacity="0.5" transform="translate(0 -1.2)"/>
+        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#6a513c" stroke-width="1.5" stroke-linejoin="round" opacity="0.35"/>
+        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#fff0dc" stroke-width="1" stroke-linejoin="round" opacity="0.3" transform="translate(0 -1.2)"/>
       </g>
     </g>
   </g>
