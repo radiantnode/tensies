@@ -65,13 +65,10 @@
 /* ── Winner overlay ── */
 #winner-overlay { background: rgba(6, 3, 1, 0.92); }
 
-/* "─── Round X Winner ───" banner, pinned near the top, centred. */
+/* "─── Round X Winner ───" banner, right above the logo, centred. */
 .winner-banner {
-  position: absolute;
-  top: calc(env(safe-area-inset-top) + 5.5rem);
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(360px, 84%);
+  width: min(340px, 82%);
+  margin: 0 auto 1.1rem;
   display: flex;
   align-items: center;
   justify-content: center;
