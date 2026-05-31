@@ -86,13 +86,13 @@
   0%, 100% {
     filter:
       drop-shadow(0 8px 18px rgba(0, 0, 0, 0.6))
-      drop-shadow(0 0 22px rgba(247, 162, 72, 0.16))           /* faint halo behind */
-      drop-shadow(6px -6px 18px rgba(255, 214, 150, 0.18));    /* faint top-right bias */
+      drop-shadow(0 0 26px rgba(248, 168, 80, 0.3))            /* slight even halo */
+      drop-shadow(6px -6px 18px rgba(255, 214, 150, 0.2));     /* faint top-right bias */
   }
   50% {
     filter:
       drop-shadow(0 8px 18px rgba(0, 0, 0, 0.6))
-      drop-shadow(0 0 26px rgba(249, 172, 84, 0.22))
+      drop-shadow(0 0 32px rgba(250, 176, 88, 0.38))
       drop-shadow(7px -7px 22px rgba(255, 224, 168, 0.26));
   }
 }
