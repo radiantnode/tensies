@@ -112,6 +112,7 @@
 .my-header {
   display: flex;
   align-items: baseline;
+  justify-content: center;
   gap: 0.5rem;
   margin-bottom: 0.75rem;
   flex-shrink: 0;
@@ -126,7 +127,6 @@
 }
 
 .my-locked {
-  margin-left: auto;
   font-size: 0.8rem;
   color: var(--label);
   font-variant-numeric: tabular-nums;
