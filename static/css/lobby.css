@@ -9,8 +9,20 @@
   overflow: hidden;
 }
 
-.lobby-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
-.lobby-hint  { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+.lobby-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--text);
+  text-shadow: var(--text-shadow-lg);
+  margin-bottom: 0.5rem;
+}
+.lobby-hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-shadow: var(--text-shadow);
+  margin-bottom: 2rem;
+}
 
 .code-display {
   display: block;
@@ -19,20 +31,35 @@
   font-family: inherit;
   font-size: clamp(2.5rem, 10vw, 4rem);
   font-weight: 900;
+  /* Pad the trailing letter-spacing so the glyphs stay optically centred. */
   letter-spacing: 0.3em;
+  text-indent: 0.3em;
   color: var(--accent);
-  background: rgba(20, 10, 5, 0.75);
-  border: 1px solid rgba(180, 100, 20, 0.25);
+  background: var(--field);
+  border: 1px solid var(--border-strong);
   padding: 1rem 2rem;
   border-radius: var(--radius);
   cursor: pointer;
   user-select: none;
   margin-bottom: 0.5rem;
-  transition: background 0.2s;
+  /* The code is the hero of this screen: recessed into the bar surface and
+     lit with the same accent glow that drives the game board. */
+  text-shadow: 0 0 18px rgba(255, 77, 109, 0.35), 0 2px 4px rgba(0, 0, 0, 0.6);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(220, 170, 70, 0.08),
+    0 0 24px rgba(255, 77, 109, 0.16);
+  transition: background 0.2s, box-shadow 0.2s;
 }
-.code-display:hover { background: rgba(30, 15, 5, 0.85); }
+.code-display:hover {
+  background: rgba(30, 15, 5, 0.85);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(220, 170, 70, 0.08),
+    0 0 30px rgba(255, 77, 109, 0.24);
+}
 
-.copy-hint { color: var(--muted); font-size: 0.8rem; margin-bottom: 1rem; }
+.copy-hint { color: var(--muted); font-size: 0.8rem; text-shadow: var(--text-shadow); margin-bottom: 1rem; }
 .copied { color: var(--green) !important; }
 
 .btn-sms {
@@ -40,13 +67,23 @@
   /* Was an <a>; now a <button>. Restore inherited body font. */
   font-family: inherit;
   text-decoration: none;
-  background: rgba(30, 180, 100, 0.18);
-  color: var(--text);
-  border: 1px solid rgba(30, 180, 100, 0.35);
+  /* Warm leather secondary — same surface language as .btn-secondary and the
+     in-game menu items (was an off-palette cool green). */
+  background: var(--raised);
+  color: var(--text-warm);
+  border: 1px solid var(--border-strong);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  box-shadow:
+    inset 0 1px 0 rgba(220, 170, 70, 0.12),
+    0 4px 14px rgba(0, 0, 0, 0.45);
   width: 100%;
   max-width: 400px;
   margin-bottom: 1.5rem;
   text-align: center;
+}
+.btn-sms:hover:not(:disabled) {
+  background: var(--raised-hover);
+  border-color: rgba(190, 130, 55, 0.45);
 }
 
 .player-list {
@@ -67,11 +104,16 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: rgba(20, 10, 5, 0.75);
-  border: 1px solid rgba(180, 100, 20, 0.2);
+  background: var(--raised);
+  border: 1px solid var(--border);
   padding: 0.75rem 1rem;
   border-radius: var(--radius);
   font-weight: 600;
+  color: var(--text-warm);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  box-shadow:
+    inset 0 1px 0 rgba(220, 170, 70, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .host-badge {
@@ -86,4 +128,4 @@
 
 .you-badge { font-size: 0.7rem; color: var(--muted); margin-left: auto; }
 
-#waiting-msg { color: var(--muted); font-size: 0.95rem; }
+#waiting-msg { color: var(--muted); font-size: 0.95rem; text-shadow: var(--text-shadow); }
