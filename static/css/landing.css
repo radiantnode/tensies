@@ -127,9 +127,6 @@
   margin-left: auto;
   flex-shrink: 0;
   color: var(--muted);
-  /* As a button it inherits Arial from UA; the prior <div> used system-ui
-     from body — restore that to preserve the "← Back" glyph rendering. */
-  font-family: inherit;
   font-size: 0.95rem;
   letter-spacing: 0.03em;
   text-shadow: var(--text-shadow);
@@ -137,8 +134,19 @@
   cursor: pointer;
   padding: 0.5rem 0.85rem;
   min-height: 44px;
+  /* Chevron + label on one baseline. */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
 }
 .join-back:hover { color: var(--text); }
+
+.back-chevron {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  margin-left: -0.15rem;  /* tuck the chevron toward the label */
+}
 
 @media (max-height: 700px) {
   .tagline { margin-bottom: 1.5rem; }
