@@ -14,7 +14,7 @@
   /* Die material, lit from the upper-left to match the bar photo's key light.
      Warm ivory bone face + a drilled, slightly-domed dark pip. Shared by
      regular and matched dice. */
-  --die-face: radial-gradient(125% 125% at 28% 22%, #fffdf7 0%, #f4ede1 48%, #e6d9c6 100%);
+  --die-face: radial-gradient(130% 130% at 30% 26%, #faf6ee 0%, #f0e8db 58%, #e7dbca 100%);
   --die-pip: radial-gradient(circle at 42% 34%, #2c2c3c 0%, #111120 72%);
 }
 
@@ -22,15 +22,16 @@
 .face {
   position: absolute;
   inset: 0;
-  border-radius: 10px;
+  /* Rounder corners = softer, more bone-die edges where faces meet. */
+  border-radius: 14px;
   background: var(--die-face);
   display: grid;
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   padding: 7px;
   gap: 2px;
   box-shadow:
-    inset 0 2px 3px rgba(255, 255, 255, 0.7),    /* top edge catches the light */
-    inset 0 -2px 4px rgba(120, 95, 60, 0.16),      /* gentle lower bevel (kept soft) */
+    inset 0 1px 2px rgba(255, 255, 255, 0.35),   /* gentle top sheen (no hard ridge) */
+    inset 0 -2px 4px rgba(120, 95, 60, 0.14),      /* soft lower bevel */
     4px 6px 14px rgba(18, 8, 2, 0.72),             /* warm contact shadow on the bar */
     1px 2px 4px rgba(18, 8, 2, 0.55);
   backface-visibility: hidden;
