@@ -13,7 +13,7 @@
       <stop offset="1"    stop-color="#9c6a35" stop-opacity="0.12"/>
     </radialGradient>
     <linearGradient id="l-black" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#3a3a42"/><stop offset="1" stop-color="#141418"/>
+      <stop offset="0" stop-color="#26262c"/><stop offset="1" stop-color="#08080b"/>
     </linearGradient>
     <linearGradient id="l-white" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dcd9e8"/>
