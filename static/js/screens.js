@@ -1,5 +1,4 @@
 import { state } from './state.js';
-import { esc } from './util.js';
 import { makeDie, myDiceKey, placeGrid } from './dice.js';
 import { loadDicePositions, saveDicePositions } from './dice-positions.js';
 import './components/player-card.js';
@@ -9,6 +8,19 @@ function maxWins(snap) {
   return Math.max(0, ...Object.values(snap.players).map(p => p.wins));
 }
 
+// Toggle the player-list edge fades based on how far it's scrolled, so they
+// only show when there's content to scroll toward. Attached once; re-run after
+// each lobby render and on resize.
+const lobbyList = document.getElementById('lobby-players');
+function updateLobbyFades() {
+  if (!lobbyList) return;
+  const { scrollTop, scrollHeight, clientHeight } = lobbyList;
+  lobbyList.classList.toggle('can-scroll-up', scrollTop > 1);
+  lobbyList.classList.toggle('can-scroll-down', scrollTop + clientHeight < scrollHeight - 1);
+}
+lobbyList?.addEventListener('scroll', updateLobbyFades, { passive: true });
+window.addEventListener('resize', updateLobbyFades);
+
 export function renderLobby(snap) {
   state.gameCode = snap.code;
   document.getElementById('lobby-code').textContent = snap.code;
@@ -17,7 +29,7 @@ export function renderLobby(snap) {
   Object.entries(snap.players).forEach(([pid, p]) => {
     const li = document.createElement('li');
     li.className = 'player-list-item';
-    li.innerHTML = `🎲 ${esc(p.name)}`;
+    li.textContent = p.name;
     if (pid === snap.host) {
       const b = document.createElement('span'); b.className = 'host-badge'; b.textContent = 'HOST';
       li.appendChild(b);
@@ -36,6 +48,7 @@ export function renderLobby(snap) {
     startBtn.hidden = true;
     waitMsg.textContent = 'Waiting for the host to start…';
   }
+  requestAnimationFrame(updateLobbyFades);
 }
 
 function setAttr(el, name, present, value) {
@@ -96,28 +109,20 @@ export function renderMyArea(snap) {
   const area = document.getElementById('my-area');
   area.innerHTML = '';
 
-  // Round + target die header
-  const roundHeader = document.createElement('div');
-  roundHeader.className = 'round-header';
+  // Round status — round label + target die, stacked over the play area.
+  const status = document.createElement('div');
+  status.className = 'round-status';
+
   const roundLbl = document.createElement('div');
   roundLbl.className = 'round-label';
   roundLbl.textContent = `Round ${snap.round_num}`;
-  roundHeader.appendChild(roundLbl);
+  status.appendChild(roundLbl);
+
   const target = document.createElement('round-target');
   target.setAttribute('value', snap.target);
-  roundHeader.appendChild(target);
-  area.appendChild(roundHeader);
+  status.appendChild(target);
 
-  // Locked-count header
-  const header = document.createElement('div');
-  header.className = 'my-header';
-  const lockedEl = document.createElement('div');
-  lockedEl.className = 'my-locked';
-  lockedEl.innerHTML = matched.length > 0
-    ? `<span class="locked-count">${matched.length}</span>/${player.dice.length} locked`
-    : `0/${player.dice.length}`;
-  header.appendChild(lockedEl);
-  area.appendChild(header);
+  area.appendChild(status);
 
   // Dice zones
   const zones = document.createElement('div');

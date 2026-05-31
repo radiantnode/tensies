@@ -1,4 +1,4 @@
-import { nextTarget, showScreen } from './util.js';
+import { showScreen } from './util.js';
 
 // Winner and pause are dialog overlays — they sit on top of the still-visible
 // game board. Loading is a screen (see #loading in index.html), not a dialog,
@@ -19,13 +19,46 @@ export function hidePaused() {
   if (pauseOverlay && pauseOverlay.open) pauseOverlay.close();
 }
 
-export function showWinner(name, target) {
-  document.getElementById('winner-name').textContent = name;
-  document.getElementById('winner-sub').textContent = `Next up: roll for ${nextTarget(target)}s`;
+// The server holds the winner overlay for ROUND_WIN_DELAY (server/config.py)
+// before advancing the round — mirror it here to drive the countdown.
+const WIN_OVERLAY_MS = 3000;
+let winTimer = null;
+
+function startWinTimer() {
+  const fill = document.getElementById('winner-timer-fill');
+  const secs = document.getElementById('winner-timer-secs');
+  const end = Date.now() + WIN_OVERLAY_MS;
+  clearInterval(winTimer);
+  const tick = () => {
+    const remaining = Math.max(0, end - Date.now());
+    if (fill) fill.style.width = `${(remaining / WIN_OVERLAY_MS) * 100}%`;
+    if (secs) {
+      const s = String(Math.ceil(remaining / 1000)).padStart(2, '0');
+      secs.textContent = `Next round starts in: ${s}s`;
+    }
+    if (remaining <= 0) clearInterval(winTimer);
+  };
+  tick();
+  winTimer = setInterval(tick, 50);
+}
+
+// `name` is the name shown under the dice (the winner's name on a win, the
+// viewer's own name on a loss); isLoser flips the banner word Winner→Loser.
+export function showWinner(name, target, round, isLoser = false) {
+  const pill = document.getElementById('winner-round');
+  if (pill) pill.textContent = round;
+  const suffix = document.getElementById('winner-banner-suffix');
+  if (suffix) suffix.textContent = isLoser ? 'Loser' : 'Winner';
+  const logo = document.querySelector('.winner-logo');
+  if (logo) logo.src = isLoser ? '/static/logo-loser.svg' : '/static/logo-winner.svg';
+  const nameEl = document.getElementById('winner-name');
+  if (nameEl) nameEl.textContent = name;
+  startWinTimer();
   if (winner && !winner.open) winner.showModal();
 }
 
 export function hideWinner() {
+  clearInterval(winTimer);
   if (winner && winner.open) winner.close();
 }
 

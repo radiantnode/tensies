@@ -1,16 +1,47 @@
+/* Animatable custom props for the player-list edge fades (below). */
+@property --fade-top    { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@property --fade-bottom { syntax: '<length>'; inherits: false; initial-value: 0px; }
+
 #lobby {
   height: 100vh;
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: calc(3rem + env(safe-area-inset-top)) 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
-  background: rgba(6, 3, 1, 0.72);
+  background: var(--panel-screen);
   overflow: hidden;
+  position: relative;
 }
 
-.lobby-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
-.lobby-hint  { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+/* Lobby content sits top-aligned beneath the header (it's a tall screen with
+   the scrollable player list), rather than vertically centred like Join. */
+.lobby-body {
+  justify-content: flex-start;
+  padding: 2rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
+}
+
+/* The shared .or-divider stretches to its container on landing (the form
+   stack), but the centred lobby column won't stretch it — give it an explicit
+   width so the flanking rules have room to grow. Match the invite button. */
+.lobby-body .or-divider {
+  width: 100%;
+  max-width: 400px;
+  margin: 0.4rem 0 1rem;
+}
+
+.lobby-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--text);
+  text-shadow: var(--text-shadow-lg);
+  margin-bottom: 0.5rem;
+}
+.lobby-hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-shadow: var(--text-shadow);
+  margin-bottom: 2rem;
+}
 
 .code-display {
   display: block;
@@ -18,21 +49,35 @@
      glyphs render with system-ui instead of UA Arial. */
   font-family: inherit;
   font-size: clamp(2.5rem, 10vw, 4rem);
-  font-weight: 900;
+  font-weight: 800;
+  /* Pad the trailing letter-spacing so the glyphs stay optically centred. */
   letter-spacing: 0.3em;
-  color: var(--accent);
-  background: rgba(20, 10, 5, 0.75);
-  border: 1px solid rgba(180, 100, 20, 0.25);
+  text-indent: 0.3em;
+  /* Warm white, NOT the brand accent — the bold all-caps red is the logo's
+     alone. The code earns prominence from scale + the recessed field, not
+     from borrowing the brand colour. */
+  color: var(--text);
+  background: var(--field);
+  border: 1px solid var(--border-strong);
   padding: 1rem 2rem;
   border-radius: var(--radius);
   cursor: pointer;
   user-select: none;
   margin-bottom: 0.5rem;
-  transition: background 0.2s;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(220, 170, 70, 0.08);
+  transition: background 0.2s, box-shadow 0.2s;
 }
-.code-display:hover { background: rgba(30, 15, 5, 0.85); }
+.code-display:hover {
+  background: rgba(30, 15, 5, 0.85);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(220, 170, 70, 0.12);
+}
 
-.copy-hint { color: var(--muted); font-size: 0.8rem; margin-bottom: 1rem; }
+.copy-hint { color: var(--muted); font-size: 0.8rem; text-shadow: var(--text-shadow); margin-bottom: 1rem; }
 .copied { color: var(--green) !important; }
 
 .btn-sms {
@@ -40,38 +85,107 @@
   /* Was an <a>; now a <button>. Restore inherited body font. */
   font-family: inherit;
   text-decoration: none;
-  background: rgba(30, 180, 100, 0.18);
-  color: var(--text);
-  border: 1px solid rgba(30, 180, 100, 0.35);
+  /* Warm leather secondary — same surface language as .btn-secondary and the
+     in-game menu items (was an off-palette cool green). */
+  background: var(--raised);
+  color: var(--text-warm);
+  border: 1px solid var(--border-strong);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  box-shadow:
+    inset 0 1px 0 rgba(220, 170, 70, 0.12),
+    0 4px 14px rgba(0, 0, 0, 0.45);
   width: 100%;
   max-width: 400px;
   margin-bottom: 1.5rem;
-  text-align: center;
+  /* Inline icon + label, centred together. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+}
+.btn-sms:hover:not(:disabled) {
+  background: var(--raised-hover);
+  border-color: rgba(190, 130, 55, 0.45);
 }
 
-.player-list {
+.btn-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  /* Match the warm-amber tone of the label rather than full white. */
+  opacity: 0.85;
+}
+
+/* Distinct "joined players" section — set off from the invite controls above
+   by a hairline rule, with its own warm uppercase eyebrow label. */
+.lobby-players-section {
   width: 100%;
   max-width: 400px;
   display: flex;
   flex-direction: column;
+  /* Fill the space between the invite controls and the pinned Start button so
+     the player list scrolls internally rather than pushing Start off-screen. */
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.section-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--label);
+  text-shadow: var(--text-shadow);
+  text-align: left;
+  margin-bottom: 0.75rem;
+}
+
+.player-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem;
-  margin-bottom: 2rem;
+  /* Scroll within the section; the label above and Start below stay put. */
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  /* Edge fades as a scroll affordance. The fade widths are 0 by default (no
+     fade) and grow only when there's content to scroll toward — JS toggles
+     .can-scroll-up / .can-scroll-down. */
+  --fade-top: 0px;
+  --fade-bottom: 0px;
+  -webkit-mask-image: linear-gradient(to bottom,
+    transparent 0, #000 var(--fade-top),
+    #000 calc(100% - var(--fade-bottom)), transparent 100%);
+          mask-image: linear-gradient(to bottom,
+    transparent 0, #000 var(--fade-top),
+    #000 calc(100% - var(--fade-bottom)), transparent 100%);
+  transition: --fade-top 0.15s linear, --fade-bottom 0.15s linear;
 }
+.player-list.can-scroll-up    { --fade-top: 24px; }
+.player-list.can-scroll-down  { --fade-bottom: 24px; }
 .player-list::-webkit-scrollbar { display: none; }
 
 .player-list-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: rgba(20, 10, 5, 0.75);
-  border: 1px solid rgba(180, 100, 20, 0.2);
+  background: var(--raised);
+  border: 1px solid var(--border);
   padding: 0.75rem 1rem;
   border-radius: var(--radius);
   font-weight: 600;
+  color: var(--text-warm);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  box-shadow:
+    inset 0 1px 0 rgba(220, 170, 70, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .host-badge {
@@ -86,4 +200,4 @@
 
 .you-badge { font-size: 0.7rem; color: var(--muted); margin-left: auto; }
 
-#waiting-msg { color: var(--muted); font-size: 0.95rem; }
+#waiting-msg { color: var(--muted); font-size: 0.95rem; text-shadow: var(--text-shadow); }

@@ -3,14 +3,48 @@
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  /* Safe area: push content away from notch and home bar */
-  padding: calc(2rem + env(safe-area-inset-top)) 2rem calc(2rem + env(safe-area-inset-bottom));
-  text-align: center;
-  background: rgba(6, 3, 1, 0.72);
+  background: var(--panel-screen);
   overflow: hidden;
+  position: relative;
 }
+
+/* Header is out of flow so it doesn't affect layout. The button is always
+   clickable; only the header chrome (background + title) is hidden until
+   the menu opens. */
+#landing .app-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+#landing .game-topbar { border-bottom-color: transparent; }
+
+#landing .topbar-title-row {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom-color: transparent;
+}
+
+#landing .game-title { visibility: hidden; }
+
+#landing .game-menu-btn span {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+#landing:has(#landing-menu.open) .game-topbar { border-bottom-color: rgba(180, 100, 20, 0.25); }
+
+#landing:has(#landing-menu.open) .topbar-title-row {
+  background: rgba(8, 4, 1, 0.58);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom-color: rgba(180, 100, 20, 0.2);
+}
+
+#landing:has(#landing-menu.open) .game-title { visibility: visible; }
 
 .logo-mark {
   width: clamp(110px, 32vw, 160px);
@@ -28,13 +62,29 @@
   font-weight: 900;
   letter-spacing: 0.15em;
   color: var(--accent);
-  text-shadow: 0 0 40px rgba(255, 77, 109, 0.4);
+  text-shadow: var(--text-shadow);
   margin-bottom: 0.25rem;
 }
 
+/* Per-screen heading (e.g. "Join a Game"). Deliberately NOT the brand style:
+   the bold all-caps accent-red wordmark is reserved for the TENSIES logo only.
+   This is a warm-white heading grounded with the shared drop shadow. */
+.screen-title {
+  font-size: clamp(1.75rem, 8vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--text);
+  text-shadow: var(--text-shadow-lg);
+  margin-bottom: 0.5rem;
+}
+
 .tagline {
-  color: var(--muted);
-  font-size: 1.1rem;
+  color: var(--label);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: var(--text-shadow);
   margin-bottom: 3rem;
 }
 
@@ -46,34 +96,104 @@
   max-width: 320px;
 }
 
+/* "or" divider between Create and Join — warm rules that fade out toward the
+   centre label, matching the leather border tone used across the app. */
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: var(--text-shadow);
+  margin: 0.15rem 0;
+}
+.or-divider::before,
+.or-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-strong);
+}
+.or-divider::before { background: linear-gradient(90deg, transparent, var(--border-strong)); }
+.or-divider::after  { background: linear-gradient(90deg, var(--border-strong), transparent); }
+
+/* Helper line sitting just above the name field — warm muted, pulled close
+   to the input so it reads as that field's caption rather than a form row. */
+.field-hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  text-shadow: var(--text-shadow);
+  margin-bottom: 0.4rem;
+}
+
 #join {
   height: 100vh;
   height: 100dvh;
   display: flex;
   flex-direction: column;
+  background: var(--panel-screen);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Shared post-landing shell: the branded header bar reuses the game's
+   .game-topbar / .game-title styling verbatim (single source of truth), and
+   .screen-body centres the screen's own content in the space beneath it. */
+.app-header { flex-shrink: 0; }
+
+.screen-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: calc(2rem + env(safe-area-inset-top)) 2rem calc(2rem + env(safe-area-inset-bottom));
   text-align: center;
-  background: rgba(6, 3, 1, 0.72);
+  padding: 2rem 2rem calc(2rem + env(safe-area-inset-bottom));
   overflow: hidden;
 }
 
+/* "← Back" now lives at the right of the header bar, balancing the wordmark
+   the way the menu button does on the game page. */
+/* Back lives in the content area, pinned to its top-left, as a visible leather
+   pill. The body centres the form vertically; the button is absolute so it
+   doesn't shift that centring. */
+#join .screen-body { position: relative; }
 .join-back {
   position: absolute;
-  top: calc(1.25rem + env(safe-area-inset-top));
-  left: 1.5rem;
-  color: var(--muted);
-  /* As a button it inherits Arial from UA; the prior <div> used system-ui
-     from body — restore that to preserve the "← Back" glyph rendering. */
-  font-family: inherit;
-  font-size: 1rem;
+  top: 0.75rem;
+  left: 0.5rem;
+  color: var(--text-warm);
+  font-size: 0.9rem;
+  font-weight: 700;
   letter-spacing: 0.03em;
-  transition: color 0.15s;
+  text-shadow: var(--text-shadow);
   cursor: pointer;
-  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.45rem 0.9rem 0.45rem 0.7rem;
+  background: var(--raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(220, 170, 70, 0.12), 0 2px 8px rgba(0, 0, 0, 0.45);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.join-back:hover { color: var(--text); }
+.join-back:hover {
+  color: #fff;
+  background: var(--raised-hover);
+  border-color: rgba(190, 130, 55, 0.45);
+}
+
+.back-chevron {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  margin-left: -0.15rem;  /* tuck the chevron toward the label */
+}
 
 @media (max-height: 700px) {
   .tagline { margin-bottom: 1.5rem; }

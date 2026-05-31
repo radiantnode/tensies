@@ -9,40 +9,95 @@
   position: relative;
 }
 
-/* ── Round header (centered in play area) ── */
-.round-header {
-  text-align: center;
+/* ── Round status card ──
+   Groups the target die, round label, and my locked progress into one area.
+   Borrows the scoreboard's card + progress-bar language, but on a warm
+   translucent surface so it belongs to the play area. */
+.round-status {
   flex-shrink: 0;
-  padding: 2.25rem 0;
+  width: min(240px, 76%);
+  margin: 1.6rem auto 0.4rem;
+  /* No card surface — the stacked elements sit directly on the play area. */
+  /* Stacked + centered: round label, die, locked count, progress bar. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  text-align: center;
 }
 
 .round-label {
-  font-size: 0.9rem;
+  position: relative;
+  display: inline-block;
+  font-size: 0.76rem;
   font-weight: 800;
-  color: rgba(240, 220, 200, 0.95);
-  letter-spacing: 0.2em;
+  color: var(--text-warm);
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  margin-bottom: 0.6rem;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.95), 0 1px 3px rgba(0,0,0,0.8);
+  text-shadow: var(--text-shadow);
+  padding: 0.34rem 0.9rem;
+  background: rgba(30, 15, 6, 0.22);
+  border-radius: 999px;
+  /* Lit from the top-right: lit inner edge up-right, shaded inner edge
+     bottom-left, ember halo biased up-and-right (kept subtle), contact shadow. */
+  box-shadow:
+    inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.42),  /* lit inner edge, top-right */
+    inset 2px -2px 6px rgba(70, 28, 8, 0.4),             /* shaded inner edge, bottom-left */
+    2px -2px 9px rgba(255, 186, 102, 0.42),              /* tight glow from top-right */
+    5px -5px 22px rgba(246, 152, 62, 0.3),               /* ambient ember, top-right */
+    0 3px 9px rgba(0, 0, 0, 0.45);                       /* contact shadow below */
 }
+
+/* Gradient rim that follows the pill radius: bright at the top-right, fading
+   to subtle toward the bottom-left (matching the top-right light source).
+   Masked to a 1px ring so the centre stays transparent. */
+.round-label::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(to bottom left,
+    rgba(252, 200, 126, 0.95) 0%,
+    rgba(216, 148, 80, 0.55) 38%,
+    rgba(150, 96, 46, 0.2) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Die in the stack: drop the auto-centering margin (the flex column centers it). */
+.round-status .round-target-die { margin: 0; }
 
 .round-target-die {
   --sz: 56px;
   width: var(--sz);
   height: var(--sz);
-  background: var(--accent);
-  border-radius: 11px;
+  /* Same material technique as the play dice, kept red: a top-left key light
+     across the accent face, a beveled (rounded-edge) surface, and engraved
+     pips — plus the accent glow that marks it as the round's target. */
+  background: radial-gradient(130% 130% at 30% 26%, #ff7e95 0%, #ff4d6d 55%, #e23457 100%);
+  border-radius: 13px;
   display: grid;
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   padding: 8px;
   gap: 3px;
   margin: 0 auto;
   transform: rotate(-8deg);
-  box-shadow: 0 0 24px rgba(255,77,109,0.45);
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.42),    /* top edge catches the light */
+    inset 0 -3px 6px rgba(150, 12, 42, 0.42),       /* deeper-red lower bevel */
+    0 0 24px rgba(255, 77, 109, 0.45);              /* accent glow (kept) */
   filter: drop-shadow(4px 7px 12px rgba(0,0,0,0.95)) drop-shadow(2px 3px 4px rgba(0,0,0,0.8));
 }
 .round-target-die .dot { border-radius: 50%; }
-.round-target-die .dot.active { background: #fff; }
+.round-target-die .dot.active {
+  /* Engraved white pip, domed by an off-centre highlight. */
+  background: radial-gradient(circle at 42% 34%, #ffffff 0%, #ffe6ec 80%);
+  box-shadow: inset 0 1px 1.5px rgba(130, 12, 38, 0.5), inset 0 -1px 1px rgba(255, 255, 255, 0.5);
+}
 
 /* ── Top bar ── */
 .game-topbar {
@@ -99,31 +154,6 @@
   overflow: hidden;
 }
 
-.my-header {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-  flex-shrink: 0;
-}
-
-.my-label {
-  font-size: 0.72rem;
-  color: rgba(220, 200, 180, 0.75);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
-}
-
-.my-locked {
-  margin-left: auto;
-  font-size: 0.8rem;
-  color: rgba(220, 200, 180, 0.75);
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
-}
-.my-locked .locked-count { color: var(--green); font-weight: 700; }
-
 /* ── Dice zones ── */
 .dice-zones {
   flex: 1;
@@ -175,7 +205,10 @@
 .btn-roll {
   font-size: 1.25rem;
   padding: 0.85rem 3.5rem;
-  background: rgba(30, 15, 5, 0.45);
+  /* Subtle leather sheen — lighter at the top edge, deepening toward the
+     bottom — so the button reads as a polished, tactile surface while keeping
+     its understated "casino felt" tone (no accent colour). */
+  background: linear-gradient(180deg, rgba(44, 24, 10, 0.5) 0%, rgba(22, 11, 3, 0.42) 100%);
   color: rgba(215, 180, 130, 0.82);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
   touch-action: manipulation;
@@ -191,15 +224,17 @@
   -webkit-backdrop-filter: blur(3px);
   transition: transform 0.07s ease, box-shadow 0.07s ease, background 0.07s ease;
   box-shadow:
-    inset 0 1px 0 rgba(220, 170, 70, 0.12),
+    inset 0 1px 0 rgba(230, 180, 80, 0.16),     /* crisper top highlight */
+    inset 0 5px 9px rgba(220, 170, 70, 0.05),    /* soft upper sheen */
     inset 0 -2px 5px rgba(0,0,0,0.45),
     0 5px 16px rgba(0,0,0,0.75),
     0 2px 5px rgba(0,0,0,0.55);
 }
 .btn-roll:hover:not(:disabled) {
-  background: rgba(40, 20, 6, 0.52);
+  background: linear-gradient(180deg, rgba(54, 30, 12, 0.56) 0%, rgba(30, 15, 5, 0.48) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 210, 90, 0.22),
+    inset 0 1px 0 rgba(255, 210, 90, 0.24),
+    inset 0 5px 9px rgba(230, 180, 80, 0.07),
     inset 0 -2px 5px rgba(0,0,0,0.45),
     0 7px 20px rgba(0,0,0,0.8),
     0 3px 6px rgba(0,0,0,0.6);
@@ -227,16 +262,15 @@
 }
 
 @media (max-height: 700px) {
-  .round-header { padding: 1rem 0; }
+  .round-status { margin: 0.85rem auto 0.7rem; }
   .roll-area {
     padding-top: 0.5rem;
     padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
   }
-  .my-header { margin-bottom: 0.4rem; }
 }
 
 @media (max-height: 600px) {
-  .round-header { padding: 0.5rem 0; }
+  .round-status { margin: 0.5rem auto; padding: 0.55rem 0.85rem 0.7rem; }
   .zone-matched { width: calc(2 * 46px + 14px); }
   .round-target-die { --sz: 46px; }
 }

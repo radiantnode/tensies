@@ -1,21 +1,71 @@
+/* ── Embedded UI font ──
+   Self-hosted Inter (variable, Latin subset, ~47 KB) so the app renders with
+   identical type on every platform instead of each OS's own UI font
+   (San Francisco on Apple, Roboto on Android, Segoe on Windows). The single
+   variable file carries every weight (100–900); font-display: swap paints the
+   system fallback first, then swaps. system-ui stays in the stack as fallback. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/static/fonts/inter-latin-variable.woff2') format('woff2');
+}
+
 :root {
-  --bg: #0d0d1a;
+  /* ── Tensies design system ──
+     The aesthetic is set by the game board: a frosted, warm "speakeasy bar"
+     surface over the bar-top photo, amber/leather borders, a soft warm-white
+     type ramp legible over the photo, and a single pink accent. Every screen
+     draws from these tokens so the app reads as one cohesive system. The game
+     header and pause menu were authored first (with literal rgba values); the
+     tokens below are distilled from them — change a token here, not those. */
+
+  /* Brand accent */
+  --accent: #ff4d6d;
+  --accent-soft: rgba(255, 77, 109, 0.4);
+  --green: #2ecc71;
+
+  /* Warm bar surfaces (translucent, sit over the photographic background) */
+  --bg: #1a0e08;
+  --panel: rgba(8, 4, 1, 0.58);          /* frosted bar panel — topbar/players-bar */
+  --panel-screen: rgba(6, 3, 1, 0.72);   /* full-screen scrim — landing/lobby/loading */
+  --field: rgba(20, 10, 5, 0.7);         /* inset field / code display */
+  --raised: rgba(30, 15, 5, 0.5);        /* tactile leather control — menu item / 2° btn */
+  --raised-hover: rgba(40, 20, 6, 0.6);
+
+  /* Warm leather borders */
+  --border: rgba(180, 100, 20, 0.25);
+  --border-strong: rgba(170, 115, 45, 0.3);
+
+  /* Warm type ramp (over the bar photo) */
+  --text: #efe3d4;                       /* warm white */
+  --text-warm: rgba(235, 215, 195, 0.92);
+  --muted: rgba(214, 188, 158, 0.62);    /* warm muted — hints, sub-labels */
+  --label: rgba(220, 200, 180, 0.72);    /* uppercase eyebrow labels */
+
+  /* Amber fill (progress bars, highlights) */
+  --amber: rgba(225, 180, 100, 0.95);
+
+  /* Depth — text legibility over the photo, and control elevation */
+  --text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  --text-shadow-lg: 0 2px 8px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.8);
+
+  --radius: 12px;
+
+  /* Legacy tokens (no longer referenced by the board; kept as guards) */
   --card: #1a1b2e;
   --card2: #22243a;
-  --accent: #ff4d6d;
-  --green: #2ecc71;
-  --text: #e8e8f0;
-  --muted: #777;
-  --radius: 12px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
 
 /* Element-level resets so semantic tags can stand in for divs without
-   re-introducing default UA styling. Specific screens style their own
-   typography on top of these. We intentionally leave button font-family
-   alone — letting it inherit shifts text metrics by ~1px on Chromium and
-   breaks visual parity with the original div-as-button layout. */
+   re-introducing default UA styling. Form controls don't inherit font-family
+   by default, so they'd fall back to the UA font (defeating the embedded
+   Inter) — inherit it explicitly so buttons, inputs, and the code field all
+   render in Inter for true cross-platform consistency. */
+button, input, textarea, select { font-family: inherit; }
 button { color: inherit; background: none; border: none; cursor: pointer; }
 ul, ol { list-style: none; }
 h1, h2, h3, p { font-weight: inherit; font-size: inherit; }
@@ -41,7 +91,7 @@ html {
 }
 
 body {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: #1a0e08 url('/static/bar-top.png') center 10% / cover no-repeat;
   color: var(--text);
   /* Pin body to exact viewport — prevents iOS rubber-band scroll and vh bugs */
@@ -58,38 +108,84 @@ body {
 
 input {
   padding: 0.85rem 1rem;
-  border: 1px solid rgba(180, 100, 20, 0.3);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  background: rgba(20, 10, 5, 0.7);
+  background: var(--field);
   color: var(--text);
   font-size: 1rem;
   outline: none;
-  transition: border-color 0.2s;
+  /* Inset depth so fields read as recessed into the bar surface, matching
+     the .player-mini-progress / .loading-bar troughs. */
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(220, 170, 70, 0.06);
+  transition: border-color 0.2s, box-shadow 0.2s;
   text-align: center;
   letter-spacing: 0.05em;
 }
 input::placeholder { color: var(--muted); letter-spacing: normal; }
-input:focus { border-color: var(--accent); }
+input:focus {
+  border-color: var(--accent);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45), 0 0 0 3px rgba(255, 77, 109, 0.18);
+}
 input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight: 700; font-size: 1.3rem; }
 
 .btn {
   padding: 0.85rem 1.5rem;
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--radius);
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
+  transition: transform 0.1s ease, box-shadow 0.12s ease,
+              background 0.12s ease, border-color 0.12s ease, opacity 0.15s;
   letter-spacing: 0.05em;
   touch-action: manipulation;
   text-decoration: none;
   color: inherit;
 }
-.btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
 .btn:active:not(:disabled) { transform: translateY(0); }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-secondary { background: var(--card2); color: var(--text); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+/* Primary — the pink accent, lit like the round-target die so the call to
+   action carries the same glow that drives the game board. Glossy: a vertical
+   gradient + crisp top sheen and bottom shading give it a candy/lacquer
+   roundness, wrapped in a soft accent halo. */
+.btn-primary {
+  background: linear-gradient(180deg, #ff6480 0%, var(--accent) 55%, #ef4263 100%);
+  color: #fff;
+  border-color: rgba(255, 160, 178, 0.5);
+  text-shadow: 0 1px 2px rgba(120, 0, 25, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 220, 226, 0.55),      /* specular top edge */
+    inset 0 5px 9px rgba(255, 200, 210, 0.16),     /* soft upper sheen */
+    inset 0 -3px 8px rgba(150, 10, 40, 0.3),       /* lower shading = roundness */
+    0 0 20px rgba(255, 77, 109, 0.32),             /* soft glow */
+    0 4px 14px rgba(0, 0, 0, 0.5);
+}
+.btn-primary:hover:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 230, 235, 0.65),
+    inset 0 5px 9px rgba(255, 205, 214, 0.2),
+    inset 0 -3px 8px rgba(150, 10, 40, 0.28),
+    0 0 26px rgba(255, 77, 109, 0.42),
+    0 6px 18px rgba(0, 0, 0, 0.55);
+}
+
+/* Secondary — warm leather control, identical surface language to the
+   in-game menu items and the roll button. */
+.btn-secondary {
+  background: var(--raised);
+  color: var(--text-warm);
+  border-color: var(--border-strong);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  box-shadow:
+    inset 0 1px 0 rgba(220, 170, 70, 0.12),
+    0 4px 14px rgba(0, 0, 0, 0.45);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--raised-hover);
+  border-color: rgba(190, 130, 55, 0.45);
+}
 .btn-block { display: block; width: 100%; max-width: 400px; }
 
 .error-msg {

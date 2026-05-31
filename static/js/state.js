@@ -15,6 +15,8 @@ export const state = {
                              // re-routed via showFor once the reveal completes
   pendingWinName: null,      // winner overlay info, held until reveal completes
   pendingWinTarget: null,
+  pendingWinRound: null,
+  pendingWinIsLoser: false,
   pendingRollTimeouts: [],
   rollShakeEnd: 0,
   prevMatchedCount: 0,

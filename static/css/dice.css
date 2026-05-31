@@ -11,23 +11,37 @@
   height: 100%;
   position: relative;
   transform-style: preserve-3d;
+  /* Die material, lit from the upper-left to match the bar photo's key light.
+     Warm ivory bone face + a drilled, slightly-domed dark pip. Shared by
+     regular and matched dice. */
+  --die-face: radial-gradient(130% 130% at 30% 26%, #faf6ee 0%, #f0e8db 58%, #e7dbca 100%);
+  --die-pip: radial-gradient(circle at 42% 34%, #2c2c3c 0%, #111120 72%);
 }
 
 /* Six faces */
 .face {
   position: absolute;
   inset: 0;
-  border-radius: 10px;
-  background: #fff;
+  /* Rounder corners = softer, more bone-die edges where faces meet. */
+  border-radius: 14px;
+  background: var(--die-face);
   display: grid;
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   padding: 7px;
   gap: 2px;
-  box-shadow: 4px 6px 14px rgba(0,0,0,0.75), 1px 2px 4px rgba(0,0,0,0.55);
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.35),   /* gentle top sheen (no hard ridge) */
+    inset 0 -2px 4px rgba(120, 95, 60, 0.14),      /* soft lower bevel */
+    4px 6px 14px rgba(18, 8, 2, 0.72),             /* warm contact shadow on the bar */
+    1px 2px 4px rgba(18, 8, 2, 0.55);
   backface-visibility: hidden;
 }
 .face .dot { border-radius: 50%; }
-.face .dot.active { background: #1a1a2e; }
+.face .dot.active {
+  background: var(--die-pip);
+  /* Drilled-pip depth: inner shadow up top, a faint catchlight on the lower rim. */
+  box-shadow: inset 0 1px 1.5px rgba(0, 0, 0, 0.6), inset 0 -1px 1px rgba(255, 255, 255, 0.12);
+}
 
 /* Face placement on cube (half-size = 28px) */
 .face-1 { transform: translateZ(28px); }
@@ -38,10 +52,8 @@
 .face-4 { transform: rotateX(90deg)   translateZ(28px); }
 
 /* Match — same look as regular dice */
-.die-3d.match .face {
-  background: #fff;
-}
-.die-3d.match .face .dot.active { background: #1a1a2e; }
+.die-3d.match .face { background: var(--die-face); }
+.die-3d.match .face .dot.active { background: var(--die-pip); }
 
 /* 3-D tumble animations — three variants so dice look unsynchronised */
 @keyframes tumble3d-a {

@@ -14,6 +14,8 @@ export function resetRollState() {
   state.postRevealState = null;
   state.pendingWinName = null;
   state.pendingWinTarget = null;
+  state.pendingWinRound = null;
+  state.pendingWinIsLoser = false;
 }
 
 export function startShake() {
@@ -104,14 +106,6 @@ export function updateDiceInPlace(snap, onComplete) {
       // transform already has final translate + rotate from scatter — nothing to set
     });
 
-    // Update locked-count label
-    const lockedEl = document.querySelector('.my-locked');
-    if (lockedEl) {
-      lockedEl.innerHTML = newMatched.length > 0
-        ? `<span class="locked-count">${newMatched.length}</span>/${player.dice.length} locked`
-        : `0/${player.dice.length}`;
-    }
-
     // Unmatched dice: ease from mid-tumble into face value (no snap, no bounce)
     newUnmatched.forEach((v, i) => {
       const wrapper = wrappers[i];
@@ -200,10 +194,12 @@ export function tryReveal() {
       state.ws.send(JSON.stringify({ action: 'roll_done' }));
     }
     if (state.pendingWinName) {
-      const name = state.pendingWinName, target = state.pendingWinTarget;
+      const name = state.pendingWinName, target = state.pendingWinTarget, round = state.pendingWinRound, isLoser = state.pendingWinIsLoser;
       state.pendingWinName = null;
       state.pendingWinTarget = null;
-      showWinner(name, target);
+      state.pendingWinRound = null;
+      state.pendingWinIsLoser = false;
+      showWinner(name, target, round, isLoser);
     } else {
       // Defensive: if a stale winner overlay is still open here (e.g. a
       // spurious roll attempt during a round-end trapped the next-round state
