@@ -1,5 +1,4 @@
 import { state } from './state.js';
-import { esc } from './util.js';
 import { makeDie, myDiceKey, placeGrid } from './dice.js';
 import { loadDicePositions, saveDicePositions } from './dice-positions.js';
 import './components/player-card.js';
@@ -17,7 +16,7 @@ export function renderLobby(snap) {
   Object.entries(snap.players).forEach(([pid, p]) => {
     const li = document.createElement('li');
     li.className = 'player-list-item';
-    li.innerHTML = `🎲 ${esc(p.name)}`;
+    li.textContent = p.name;
     if (pid === snap.host) {
       const b = document.createElement('span'); b.className = 'host-badge'; b.textContent = 'HOST';
       li.appendChild(b);
