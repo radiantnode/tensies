@@ -61,7 +61,7 @@ export function copyCode() {
     const hint = document.getElementById('copy-hint');
     hint.textContent = 'link copied!';
     hint.classList.add('copied');
-    setTimeout(() => { hint.textContent = 'click to copy link'; hint.classList.remove('copied'); }, 2000);
+    setTimeout(() => { hint.textContent = 'Click to copy or show your friends or don’t.'; hint.classList.remove('copied'); }, 2000);
   });
 }
 
