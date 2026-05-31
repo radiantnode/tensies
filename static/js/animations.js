@@ -14,6 +14,7 @@ export function resetRollState() {
   state.postRevealState = null;
   state.pendingWinName = null;
   state.pendingWinTarget = null;
+  state.pendingWinRound = null;
 }
 
 export function startShake() {
@@ -192,10 +193,11 @@ export function tryReveal() {
       state.ws.send(JSON.stringify({ action: 'roll_done' }));
     }
     if (state.pendingWinName) {
-      const name = state.pendingWinName, target = state.pendingWinTarget;
+      const name = state.pendingWinName, target = state.pendingWinTarget, round = state.pendingWinRound;
       state.pendingWinName = null;
       state.pendingWinTarget = null;
-      showWinner(name, target);
+      state.pendingWinRound = null;
+      showWinner(name, target, round);
     } else {
       // Defensive: if a stale winner overlay is still open here (e.g. a
       // spurious roll attempt during a round-end trapped the next-round state

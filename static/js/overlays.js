@@ -19,7 +19,9 @@ export function hidePaused() {
   if (pauseOverlay && pauseOverlay.open) pauseOverlay.close();
 }
 
-export function showWinner(name, target) {
+export function showWinner(name, target, round) {
+  const banner = document.getElementById('winner-round');
+  if (banner) banner.textContent = `Round ${round} Winner`;
   if (winner && !winner.open) winner.showModal();
 }
 

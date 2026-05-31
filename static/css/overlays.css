@@ -65,6 +65,34 @@
 /* ── Winner overlay ── */
 #winner-overlay { background: rgba(6, 3, 1, 0.92); }
 
+/* "─── Round X Winner ───" banner, pinned near the top, centred. */
+.winner-banner {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 5.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(360px, 84%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  color: var(--text-warm);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: var(--text-shadow-lg);
+}
+.winner-banner::before,
+.winner-banner::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+}
+.winner-banner::before { background: linear-gradient(90deg, transparent, var(--border-strong)); }
+.winner-banner::after  { background: linear-gradient(90deg, var(--border-strong), transparent); }
+
 .winner-box {
   /* No card surface — the content sits directly on the dimmed board.
      Perspective so the dice read as a 3D object flying toward the viewer. */

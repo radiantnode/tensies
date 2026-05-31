@@ -187,6 +187,7 @@ export function handleMessage(msg) {
         state.pendingRollState = msg;
         state.pendingWinName = msg.winner_name;
         state.pendingWinTarget = msg.target;
+        state.pendingWinRound = msg.round_num;
       } else {
         state.pendingRollTimeouts.forEach(clearTimeout);
         state.pendingRollTimeouts = [];
@@ -198,7 +199,7 @@ export function handleMessage(msg) {
         showScreen('game');
         renderPlayersBar(msg);
         renderMyArea(msg);
-        showWinner(msg.winner_name, msg.target);
+        showWinner(msg.winner_name, msg.target, msg.round_num);
       }
       break;
 
