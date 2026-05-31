@@ -87,8 +87,8 @@
   flex: 1;
   height: 1px;
 }
-.winner-banner::before { background: linear-gradient(90deg, transparent, var(--border-strong)); }
-.winner-banner::after  { background: linear-gradient(90deg, var(--border-strong), transparent); }
+.winner-banner::before { background: linear-gradient(90deg, transparent, rgba(236, 176, 106, 0.75)); }
+.winner-banner::after  { background: linear-gradient(90deg, rgba(236, 176, 106, 0.75), transparent); }
 
 .winner-banner-label {
   display: inline-flex;
