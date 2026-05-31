@@ -204,6 +204,10 @@
   font-weight: 900;
   letter-spacing: 0.005em;
   margin: 0;
+  /* Inter caps at 900, so add a warm-gold stroke (painted behind the fill) to
+     thicken the glyphs further. */
+  -webkit-text-stroke: 1.4px #f1cf98;
+  paint-order: stroke fill;
   background: linear-gradient(180deg, #fff6e9 0%, #f6dcb0 52%, #e7ba7f 100%);
   -webkit-background-clip: text;
           background-clip: text;
