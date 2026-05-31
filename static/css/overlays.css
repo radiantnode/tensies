@@ -64,6 +64,12 @@
 
 /* ── Winner overlay ── */
 #winner-overlay { background: rgba(6, 3, 1, 0.92); }
+/* Column layout: the content sits up top, the loader centers in the gap below
+   it (auto margins: top of box + both sides of the timer = 3 equal gaps). */
+#winner-overlay[open] {
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+}
 
 /* "─── Round X Winner ───" banner, right above the logo, centred. */
 .winner-banner {
@@ -145,6 +151,7 @@
      Full width so the banner rules can run edge to edge; perspective so the
      dice read as a 3D object flying toward the viewer. */
   width: 100%;
+  margin-top: auto;          /* push content up; loader centers in the gap below */
   padding: 2.5rem 0;
   text-align: center;
   perspective: 900px;
@@ -237,10 +244,7 @@
 /* Countdown to the next round — our amber progress bar + seconds (loading-text
    style) pinned at the bottom of the overlay. */
 .winner-timer {
-  position: absolute;
-  left: 50%;
-  bottom: calc(env(safe-area-inset-bottom) + 2.25rem);
-  transform: translateX(-50%);
+  margin: auto 0;            /* centered vertically in the space below the content */
   display: flex;
   flex-direction: column;
   align-items: center;
