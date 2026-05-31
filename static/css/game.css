@@ -15,15 +15,9 @@
    translucent surface so it belongs to the play area. */
 .round-status {
   flex-shrink: 0;
-  width: min(260px, 80%);
-  margin: 1.4rem auto 1.1rem;
-  padding: 0.85rem 1rem 0.9rem;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow:
-    inset 0 1px 0 rgba(220, 170, 70, 0.10),
-    0 4px 14px rgba(0, 0, 0, 0.5);
+  width: min(240px, 76%);
+  margin: 1.6rem auto 1.2rem;
+  /* No card surface — the stacked elements sit directly on the play area. */
   /* Stacked + centered: round label, die, locked count, progress bar. */
   display: flex;
   flex-direction: column;
