@@ -22,11 +22,26 @@
     <clipPath id="l-bot"><path d="M-70,80 L70,80 L70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3 Z"/></clipPath>
     <clipPath id="l-die-p"><rect x="-40" y="-40" width="80" height="80" rx="15"/></clipPath>
     <clipPath id="l-die-w"><rect x="-38" y="-38" width="76" height="76" rx="14"/></clipPath>
+    <!-- Fade the rim glow out at the right-side fracture junction (the bottom-right
+         of each top half), so the broken corner softly loses its halo instead of
+         glowing through. Black core = no glow, padding to white = full glow. -->
+    <radialGradient id="l-fade-p" cx="40" cy="2" r="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#000"/><stop offset="0.4" stop-color="#000"/><stop offset="1" stop-color="#fff"/>
+    </radialGradient>
+    <mask id="l-glowmask-p" maskUnits="userSpaceOnUse" x="-70" y="-70" width="140" height="140">
+      <rect x="-70" y="-70" width="140" height="140" fill="url(#l-fade-p)"/>
+    </mask>
+    <radialGradient id="l-fade-w" cx="38" cy="2" r="29" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#000"/><stop offset="0.4" stop-color="#000"/><stop offset="1" stop-color="#fff"/>
+    </radialGradient>
+    <mask id="l-glowmask-w" maskUnits="userSpaceOnUse" x="-70" y="-70" width="140" height="140">
+      <rect x="-70" y="-70" width="140" height="140" fill="url(#l-fade-w)"/>
+    </mask>
   </defs>
 
   <!-- Back die: pink, showing 6 -->
   <g transform="translate(74 80) rotate(-14)">
-    <rect x="-40" y="-40" width="80" height="80" rx="15" fill="none" stroke="url(#w-rimg)" stroke-width="6.5" filter="url(#w-rim)"/>
+    <rect x="-40" y="-40" width="80" height="80" rx="15" fill="none" stroke="url(#w-rimg)" stroke-width="6.5" filter="url(#w-rim)" mask="url(#l-glowmask-p)"/>
     <g transform="translate(-2 -5)">
       <g clip-path="url(#l-top)">
         <rect x="-40" y="-40" width="80" height="80" rx="15" fill="url(#l-pink)" stroke="url(#w-rimg)" stroke-width="2.2"/>
@@ -53,7 +68,7 @@
 
   <!-- Front die: white, showing 4 -->
   <g transform="translate(132 130) rotate(10)">
-    <rect x="-38" y="-38" width="76" height="76" rx="14" fill="none" stroke="url(#w-rimg)" stroke-width="6.5" filter="url(#w-rim)"/>
+    <rect x="-38" y="-38" width="76" height="76" rx="14" fill="none" stroke="url(#w-rimg)" stroke-width="6.5" filter="url(#w-rim)" mask="url(#l-glowmask-w)"/>
     <g transform="translate(-2 -5)">
       <g clip-path="url(#l-top)">
         <rect x="-38" y="-38" width="76" height="76" rx="14" fill="url(#l-white)" stroke="url(#w-rimg)" stroke-width="2.2"/>
