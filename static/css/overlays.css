@@ -68,7 +68,7 @@
 /* "─── Round X Winner ───" banner, right above the logo, centred. */
 .winner-banner {
   width: 100%;
-  margin: 0 auto 1.1rem;
+  margin: 0 auto -0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -153,7 +153,7 @@
 .winner-logo {
   width: clamp(250px, 74vw, 360px);
   height: auto;
-  margin-bottom: 1rem;
+  margin-bottom: -1.5rem;
   transform-origin: center;
   /* trophyShine drives the warm glow (filter); flyIn zooms the dice toward you
      from far away; float3d keeps a gentle 3D tilt/bob so they hang in space. */
@@ -203,7 +203,7 @@
   font-size: clamp(1.9rem, 7.5vw, 3rem);
   font-weight: 800;
   letter-spacing: 0.005em;
-  margin: 0.6rem 0 0;
+  margin: 0;
   background: linear-gradient(180deg, #fff6e9 0%, #f6dcb0 52%, #e7ba7f 100%);
   -webkit-background-clip: text;
           background-clip: text;
