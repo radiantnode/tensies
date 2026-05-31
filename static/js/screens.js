@@ -109,28 +109,44 @@ export function renderMyArea(snap) {
   const area = document.getElementById('my-area');
   area.innerHTML = '';
 
-  // Round + target die header
-  const roundHeader = document.createElement('div');
-  roundHeader.className = 'round-header';
+  // Round status card — groups the target die, round label, and my locked
+  // progress into one area. Echoes the scoreboard's card + progress-bar
+  // language while sitting in the warm play-area surface.
+  const total = player.dice.length;
+
+  const status = document.createElement('div');
+  status.className = 'round-status';
+
+  const statusTop = document.createElement('div');
+  statusTop.className = 'round-status-top';
+
+  const target = document.createElement('round-target');
+  target.setAttribute('value', snap.target);
+  statusTop.appendChild(target);
+
+  const statusText = document.createElement('div');
+  statusText.className = 'round-status-text';
   const roundLbl = document.createElement('div');
   roundLbl.className = 'round-label';
   roundLbl.textContent = `Round ${snap.round_num}`;
-  roundHeader.appendChild(roundLbl);
-  const target = document.createElement('round-target');
-  target.setAttribute('value', snap.target);
-  roundHeader.appendChild(target);
-  area.appendChild(roundHeader);
-
-  // Locked-count header
-  const header = document.createElement('div');
-  header.className = 'my-header';
+  statusText.appendChild(roundLbl);
   const lockedEl = document.createElement('div');
   lockedEl.className = 'my-locked';
-  lockedEl.innerHTML = matched.length > 0
-    ? `<span class="locked-count">${matched.length}</span>/${player.dice.length} locked`
-    : `0/${player.dice.length}`;
-  header.appendChild(lockedEl);
-  area.appendChild(header);
+  lockedEl.innerHTML = `<span class="locked-count">${matched.length}</span>/${total} locked`;
+  statusText.appendChild(lockedEl);
+  statusTop.appendChild(statusText);
+  status.appendChild(statusTop);
+
+  // Progress bar (matched / total), styled like the scoreboard mini-cards.
+  const prog = document.createElement('div');
+  prog.className = 'my-progress';
+  const fill = document.createElement('div');
+  fill.className = 'my-progress-fill';
+  fill.style.width = `${(matched.length / total) * 100}%`;
+  prog.appendChild(fill);
+  status.appendChild(prog);
+
+  area.appendChild(status);
 
   // Dice zones
   const zones = document.createElement('div');
