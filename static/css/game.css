@@ -16,7 +16,7 @@
 .round-status {
   flex-shrink: 0;
   width: min(240px, 76%);
-  margin: 1.6rem auto 1.2rem;
+  margin: 1.6rem auto 0.4rem;
   /* No card surface — the stacked elements sit directly on the play area. */
   /* Stacked + centered: round label, die, locked count, progress bar. */
   display: flex;
