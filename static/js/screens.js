@@ -109,12 +109,7 @@ export function renderMyArea(snap) {
   const area = document.getElementById('my-area');
   area.innerHTML = '';
 
-  // Round status card — groups the target die, round label, and my locked
-  // progress into one area. Echoes the scoreboard's card + progress-bar
-  // language while sitting in the warm play-area surface.
-  const total = player.dice.length;
-
-  // Stacked: round label, target die, locked count, then the progress bar.
+  // Round status — round label + target die, stacked over the play area.
   const status = document.createElement('div');
   status.className = 'round-status';
 
@@ -126,11 +121,6 @@ export function renderMyArea(snap) {
   const target = document.createElement('round-target');
   target.setAttribute('value', snap.target);
   status.appendChild(target);
-
-  const lockedEl = document.createElement('div');
-  lockedEl.className = 'my-locked';
-  lockedEl.innerHTML = `<span class="locked-count">${matched.length}</span>/${total} locked`;
-  status.appendChild(lockedEl);
 
   area.appendChild(status);
 

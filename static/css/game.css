@@ -121,16 +121,6 @@
   overflow: hidden;
 }
 
-.my-locked {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-warm);
-  font-variant-numeric: tabular-nums;
-  /* Stronger shadow so it reads clearly over the busy wood grain. */
-  text-shadow: var(--text-shadow-lg);
-}
-.my-locked .locked-count { color: var(--green); font-weight: 800; }
-
 /* ── Dice zones ── */
 .dice-zones {
   flex: 1;
