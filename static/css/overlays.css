@@ -72,12 +72,15 @@
   animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.winner-icon {
-  width: 46px;
-  height: 46px;
-  color: #f0b95e;                            /* warm gold trophy */
-  filter: drop-shadow(0 0 12px rgba(246, 152, 62, 0.55));
-  margin-bottom: 0.5rem;
+.winner-logo {
+  width: 76px;
+  height: auto;
+  margin-bottom: 0.6rem;
+  /* The dice logo, unmodified — lifted off the board with a soft drop shadow
+     and the brand's accent glow so it stands out. */
+  filter:
+    drop-shadow(0 8px 18px rgba(0, 0, 0, 0.7))
+    drop-shadow(0 0 28px rgba(255, 77, 109, 0.5));
 }
 
 .winner-label {
