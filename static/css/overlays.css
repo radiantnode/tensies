@@ -201,7 +201,7 @@
    the dice/round pill, NOT the brand's accent-red wordmark style. */
 .winner-name {
   font-size: clamp(2.4rem, 9.5vw, 3.8rem);
-  font-weight: 800;
+  font-weight: 900;
   letter-spacing: 0.005em;
   margin: 0;
   background: linear-gradient(180deg, #fff6e9 0%, #f6dcb0 52%, #e7ba7f 100%);
