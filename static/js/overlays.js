@@ -21,7 +21,7 @@ export function hidePaused() {
 
 export function showWinner(name, target, round) {
   const banner = document.getElementById('winner-round');
-  if (banner) banner.textContent = `Round ${round} Winner`;
+  if (banner) banner.textContent = round;
   if (winner && !winner.open) winner.showModal();
 }
 
