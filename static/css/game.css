@@ -13,17 +13,17 @@
 .round-header {
   text-align: center;
   flex-shrink: 0;
-  padding: 2.25rem 0;
+  padding: 1.75rem 0;
 }
 
 .round-label {
   font-size: 0.9rem;
   font-weight: 800;
-  color: rgba(240, 220, 200, 0.95);
-  letter-spacing: 0.2em;
+  color: var(--text-warm);
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   margin-bottom: 0.6rem;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.95), 0 1px 3px rgba(0,0,0,0.8);
+  text-shadow: var(--text-shadow-lg);
 }
 
 .round-target-die {
@@ -109,18 +109,18 @@
 
 .my-label {
   font-size: 0.72rem;
-  color: rgba(220, 200, 180, 0.75);
+  color: var(--label);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+  text-shadow: var(--text-shadow);
 }
 
 .my-locked {
   margin-left: auto;
   font-size: 0.8rem;
-  color: rgba(220, 200, 180, 0.75);
+  color: var(--label);
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+  text-shadow: var(--text-shadow);
 }
 .my-locked .locked-count { color: var(--green); font-weight: 700; }
 
@@ -175,7 +175,10 @@
 .btn-roll {
   font-size: 1.25rem;
   padding: 0.85rem 3.5rem;
-  background: rgba(30, 15, 5, 0.45);
+  /* Subtle leather sheen — lighter at the top edge, deepening toward the
+     bottom — so the button reads as a polished, tactile surface while keeping
+     its understated "casino felt" tone (no accent colour). */
+  background: linear-gradient(180deg, rgba(44, 24, 10, 0.5) 0%, rgba(22, 11, 3, 0.42) 100%);
   color: rgba(215, 180, 130, 0.82);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
   touch-action: manipulation;
@@ -191,15 +194,17 @@
   -webkit-backdrop-filter: blur(3px);
   transition: transform 0.07s ease, box-shadow 0.07s ease, background 0.07s ease;
   box-shadow:
-    inset 0 1px 0 rgba(220, 170, 70, 0.12),
+    inset 0 1px 0 rgba(230, 180, 80, 0.16),     /* crisper top highlight */
+    inset 0 5px 9px rgba(220, 170, 70, 0.05),    /* soft upper sheen */
     inset 0 -2px 5px rgba(0,0,0,0.45),
     0 5px 16px rgba(0,0,0,0.75),
     0 2px 5px rgba(0,0,0,0.55);
 }
 .btn-roll:hover:not(:disabled) {
-  background: rgba(40, 20, 6, 0.52);
+  background: linear-gradient(180deg, rgba(54, 30, 12, 0.56) 0%, rgba(30, 15, 5, 0.48) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 210, 90, 0.22),
+    inset 0 1px 0 rgba(255, 210, 90, 0.24),
+    inset 0 5px 9px rgba(230, 180, 80, 0.07),
     inset 0 -2px 5px rgba(0,0,0,0.45),
     0 7px 20px rgba(0,0,0,0.8),
     0 3px 6px rgba(0,0,0,0.6);
