@@ -1,31 +1,40 @@
-const entries = ['landing', 'join', 'lobby'].map(id => ({
-  btn:  document.getElementById(`${id}-menu-btn`),
-  menu: document.getElementById(`${id}-menu`),
-}));
+const navMenu = document.getElementById('nav-menu');
+const btns = ['landing', 'join', 'lobby'].map(id =>
+  document.getElementById(`${id}-menu-btn`)
+);
 
-function open({ btn, menu }) {
+let activeBtn = null;
+
+function open(btn) {
+  if (activeBtn && activeBtn !== btn) activeBtn.classList.remove('open');
+  activeBtn = btn;
   btn.classList.add('open');
-  menu.classList.add('open');
+  navMenu.classList.add('open');
   btn.setAttribute('aria-expanded', 'true');
   btn.setAttribute('aria-label', 'Close menu');
-  menu.setAttribute('aria-hidden', 'false');
+  navMenu.setAttribute('aria-hidden', 'false');
 }
 
-function close({ btn, menu }) {
-  btn.classList.remove('open');
-  menu.classList.remove('open');
-  menu.classList.remove('show-changelog');
-  btn.setAttribute('aria-expanded', 'false');
-  btn.setAttribute('aria-label', 'Open menu');
-  menu.setAttribute('aria-hidden', 'true');
+function close() {
+  if (activeBtn) {
+    activeBtn.classList.remove('open');
+    activeBtn.setAttribute('aria-expanded', 'false');
+    activeBtn.setAttribute('aria-label', 'Open menu');
+    activeBtn = null;
+  }
+  navMenu.classList.remove('open');
+  navMenu.classList.remove('show-changelog');
+  navMenu.setAttribute('aria-hidden', 'true');
 }
 
 export function closeAllNavMenus() {
-  entries.forEach(e => { if (e.btn.classList.contains('open')) close(e); });
+  close();
 }
 
-entries.forEach(e => {
-  e.btn.addEventListener('click', () => e.btn.classList.contains('open') ? close(e) : open(e));
+btns.forEach(btn => {
+  btn.addEventListener('click', () =>
+    btn.classList.contains('open') ? close() : open(btn)
+  );
 });
 
 function updateChangelogFades(body) {
@@ -34,23 +43,20 @@ function updateChangelogFades(body) {
   body.classList.toggle('can-scroll-down', scrollTop + clientHeight < scrollHeight - 1);
 }
 
-document.querySelectorAll('.menu-changelog-body').forEach(body => {
-  body.addEventListener('scroll', () => updateChangelogFades(body), { passive: true });
-});
+const changelogBody = navMenu.querySelector('.menu-changelog-body');
+changelogBody.addEventListener('scroll', () => updateChangelogFades(changelogBody), { passive: true });
 
 document.addEventListener('click', ev => {
   if (ev.target.closest('.menu-whats-new-btn')) {
-    const menu = ev.target.closest('.game-menu');
-    menu.classList.add('show-changelog');
-    const body = menu.querySelector('.menu-changelog-body');
-    body.scrollTop = 0;
-    requestAnimationFrame(() => updateChangelogFades(body));
+    navMenu.classList.add('show-changelog');
+    changelogBody.scrollTop = 0;
+    requestAnimationFrame(() => updateChangelogFades(changelogBody));
   }
   if (ev.target.closest('.menu-changelog-back-btn')) {
-    ev.target.closest('.game-menu').classList.remove('show-changelog');
+    navMenu.classList.remove('show-changelog');
   }
 });
 
 document.addEventListener('keydown', ev => {
-  if (ev.key === 'Escape') closeAllNavMenus();
+  if (ev.key === 'Escape') close();
 });

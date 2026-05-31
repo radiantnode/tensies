@@ -41,55 +41,12 @@ def _rewrite_js(source: str, version: str) -> str:
     return _JS_IMPORT.sub(lambda m: f"{m.group(1)}{m.group(2)}?v={version}{m.group(3)}", source)
 
 
-def _md_inline(text: str) -> str:
-    text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
-    text = re.sub(r'_(.+?)_', r'<em>\1</em>', text)
-    return text
-
-
-def _changelog_to_html() -> str:
-    md_path = Path("docs/CHANGELOG.md")
-    if not md_path.exists():
-        return ""
-    lines = md_path.read_text().splitlines()
-    parts: list[str] = []
-    in_ul = False
-    for line in lines:
-        if line.startswith("# "):
-            if in_ul:
-                parts.append("</ul>")
-                in_ul = False
-        elif line.startswith("## "):
-            if in_ul:
-                parts.append("</ul>")
-                in_ul = False
-            parts.append(f'<h2>{_md_inline(line[3:])}</h2>')
-        elif line.startswith("- "):
-            if not in_ul:
-                parts.append("<ul>")
-                in_ul = True
-            parts.append(f'<li>{_md_inline(line[2:])}</li>')
-        elif line.strip() == "":
-            if in_ul:
-                parts.append("</ul>")
-                in_ul = False
-        else:
-            if in_ul:
-                parts.append("</ul>")
-                in_ul = False
-            parts.append(f'<p>{_md_inline(line)}</p>')
-    if in_ul:
-        parts.append("</ul>")
-    return "\n".join(parts)
-
-
 def build_index_html() -> str:
     """Read index.html and append ?v=<hash> to every local CSS/JS reference."""
     html = (STATIC_DIR / "index.html").read_text()
     css, js, legacy = _collect_assets()
     version = asset_hash(css + js + legacy)
-    html = ASSET_REF.sub(lambda m: f'"{m.group(1)}?v={version}"', html)
-    return html.replace("<!-- CHANGELOG_CONTENT -->", _changelog_to_html())
+    return ASSET_REF.sub(lambda m: f'"{m.group(1)}?v={version}"', html)
 
 
 def build_js_cache() -> dict[str, str]:

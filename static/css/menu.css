@@ -120,10 +120,13 @@
   padding: calc(env(safe-area-inset-top) + 4.25rem) 1.25rem 2rem;
 }
 
-/* Single-row topbar (no players bar beneath) */
-#landing .menu-panel,
-#join .menu-panel,
-#lobby .menu-panel {
+/* Shared nav menu (landing/join/lobby) — fixed so it covers the viewport
+   regardless of which screen is active */
+#nav-menu {
+  position: fixed;
+}
+
+#nav-menu .menu-panel {
   padding-top: calc(env(safe-area-inset-top) + 5rem);
   padding-left: 2rem;
   padding-right: 2rem;

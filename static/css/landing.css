@@ -35,16 +35,16 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
-#landing:has(#landing-menu.open) .game-topbar { border-bottom-color: rgba(180, 100, 20, 0.25); }
+body:has(#nav-menu.open) #landing .game-topbar { border-bottom-color: rgba(180, 100, 20, 0.25); }
 
-#landing:has(#landing-menu.open) .topbar-title-row {
+body:has(#nav-menu.open) #landing .topbar-title-row {
   background: rgba(8, 4, 1, 0.58);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border-bottom-color: rgba(180, 100, 20, 0.2);
 }
 
-#landing:has(#landing-menu.open) .game-title { visibility: visible; }
+body:has(#nav-menu.open) #landing .game-title { visibility: visible; }
 
 .logo-mark {
   width: clamp(110px, 32vw, 160px);
@@ -156,16 +156,11 @@
   overflow: hidden;
 }
 
-/* "← Back" now lives at the right of the header bar, balancing the wordmark
-   the way the menu button does on the game page. */
-/* Back lives in the content area, pinned to its top-left, as a visible leather
-   pill. The body centres the form vertically; the button is absolute so it
-   doesn't shift that centring. */
 #join .screen-body { position: relative; }
 .join-back {
   position: absolute;
-  top: 0.75rem;
-  left: 0.5rem;
+  top: 1.25rem;
+  left: 2rem;
   color: var(--text-warm);
   font-size: 0.9rem;
   font-weight: 700;
