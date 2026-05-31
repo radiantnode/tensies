@@ -211,3 +211,123 @@
   color: rgba(235, 215, 195, 0.82);
   line-height: 1.4;
 }
+
+/* ── See What's New button ── */
+.menu-whats-new-btn {
+  width: 100%;
+  padding: 0.9rem 1.25rem;
+  margin-top: 1.5rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(180, 180, 220, 0.3);
+  background: rgba(30, 25, 50, 0.45);
+  color: rgba(210, 210, 255, 0.9);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.menu-whats-new-btn:hover {
+  background: rgba(45, 38, 70, 0.55);
+  border-color: rgba(200, 200, 255, 0.45);
+}
+
+/* ── Changelog sub-panel ── */
+.menu-changelog-panel {
+  display: none;
+  flex-direction: column;
+  position: absolute;
+  inset: 0;
+  padding: calc(env(safe-area-inset-top) + 5rem) 2rem 2.5rem;
+  overflow-y: auto;
+}
+
+.game-menu.show-changelog .menu-panel { display: none; }
+.game-menu.show-changelog .menu-changelog-panel { display: flex; }
+
+.menu-changelog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.menu-changelog-panel .join-back {
+  position: static;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.menu-changelog-heading {
+  font-size: clamp(1.3rem, 5.5vw, 1.65rem);
+  font-weight: 900;
+  letter-spacing: 0.005em;
+  margin-bottom: 1rem;
+  background: linear-gradient(180deg, #fff6e9 0%, #f6dcb0 52%, #e7ba7f 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+}
+
+.menu-changelog-body {
+  flex: 1;
+  overflow-y: auto;
+  color: rgba(235, 215, 195, 0.8);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  --fade-top: 0px;
+  --fade-bottom: 0px;
+  -webkit-mask-image: linear-gradient(to bottom,
+    transparent 0, #000 var(--fade-top),
+    #000 calc(100% - var(--fade-bottom)), transparent 100%);
+          mask-image: linear-gradient(to bottom,
+    transparent 0, #000 var(--fade-top),
+    #000 calc(100% - var(--fade-bottom)), transparent 100%);
+  transition: --fade-top 0.15s linear, --fade-bottom 0.15s linear;
+}
+.menu-changelog-body.can-scroll-up   { --fade-top: 24px; }
+.menu-changelog-body.can-scroll-down { --fade-bottom: 24px; }
+
+.menu-changelog-body h2 {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: rgba(255, 220, 130, 0.95);
+  margin: 1.5rem 0 0.1rem;
+}
+
+.menu-changelog-body h2:first-child {
+  margin-top: 0;
+}
+
+.menu-changelog-body p {
+  color: rgba(210, 195, 175, 0.65);
+  margin-bottom: 0.4rem;
+}
+
+.menu-changelog-body ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.menu-changelog-body li {
+  padding-left: 0.9rem;
+  position: relative;
+}
+
+.menu-changelog-body li::before {
+  content: "–";
+  position: absolute;
+  left: 0;
+  color: rgba(200, 170, 100, 0.5);
+}
+
+.menu-changelog-body li em {
+  color: rgba(200, 185, 160, 0.55);
+  font-style: normal;
+}
