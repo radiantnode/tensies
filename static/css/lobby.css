@@ -35,11 +35,14 @@
      glyphs render with system-ui instead of UA Arial. */
   font-family: inherit;
   font-size: clamp(2.5rem, 10vw, 4rem);
-  font-weight: 900;
+  font-weight: 800;
   /* Pad the trailing letter-spacing so the glyphs stay optically centred. */
   letter-spacing: 0.3em;
   text-indent: 0.3em;
-  color: var(--accent);
+  /* Warm white, NOT the brand accent — the bold all-caps red is the logo's
+     alone. The code earns prominence from scale + the recessed field, not
+     from borrowing the brand colour. */
+  color: var(--text);
   background: var(--field);
   border: 1px solid var(--border-strong);
   padding: 1rem 2rem;
@@ -47,21 +50,17 @@
   cursor: pointer;
   user-select: none;
   margin-bottom: 0.5rem;
-  /* The code is the hero of this screen: recessed into the bar surface and
-     lit with the same accent glow that drives the game board. */
-  text-shadow: 0 0 18px rgba(255, 77, 109, 0.35), 0 2px 4px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
   box-shadow:
     inset 0 2px 6px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(220, 170, 70, 0.08),
-    0 0 24px rgba(255, 77, 109, 0.16);
+    inset 0 1px 0 rgba(220, 170, 70, 0.08);
   transition: background 0.2s, box-shadow 0.2s;
 }
 .code-display:hover {
   background: rgba(30, 15, 5, 0.85);
   box-shadow:
-    inset 0 2px 6px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(220, 170, 70, 0.08),
-    0 0 30px rgba(255, 77, 109, 0.24);
+    inset 0 2px 6px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(220, 170, 70, 0.12);
 }
 
 .copy-hint { color: var(--muted); font-size: 0.8rem; text-shadow: var(--text-shadow); margin-bottom: 1rem; }
