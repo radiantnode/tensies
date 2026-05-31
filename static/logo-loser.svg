@@ -45,10 +45,9 @@
         <circle cx="-20" cy="-22" r="6" fill="#fff"/><circle cx="-20" cy="0" r="6" fill="#fff"/><circle cx="-20" cy="22" r="6" fill="#fff"/>
         <circle cx="20" cy="-22" r="6" fill="#fff"/><circle cx="20" cy="0" r="6" fill="#fff"/><circle cx="20" cy="22" r="6" fill="#fff"/>
       </g>
-      <!-- lower piece's top edge: raw fracture + faint lit lip (top-right light) -->
+      <!-- lower piece's top edge: raw fracture only (no lit lip) -->
       <g clip-path="url(#l-die-p)">
         <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#6a513c" stroke-width="1.5" stroke-linejoin="round" opacity="0.35"/>
-        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#ffcaa0" stroke-width="1" stroke-linejoin="round" opacity="0.3" transform="translate(0 -1.2)"/>
       </g>
     </g>
   </g>
@@ -74,7 +73,6 @@
       </g>
       <g clip-path="url(#l-die-w)">
         <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#6a513c" stroke-width="1.5" stroke-linejoin="round" opacity="0.35"/>
-        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#fff0dc" stroke-width="1" stroke-linejoin="round" opacity="0.3" transform="translate(0 -1.2)"/>
       </g>
     </g>
   </g>
