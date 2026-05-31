@@ -50,6 +50,16 @@
   max-width: 320px;
 }
 
+/* Helper line sitting just above the name field — warm muted, pulled close
+   to the input so it reads as that field's caption rather than a form row. */
+.field-hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  text-shadow: var(--text-shadow);
+  margin-bottom: -0.35rem;
+}
+
 #join {
   height: 100vh;
   height: 100dvh;
