@@ -9,6 +9,7 @@
   flex-direction: column;
   background: var(--panel-screen);
   overflow: hidden;
+  position: relative;
 }
 
 /* Lobby content sits top-aligned beneath the header (it's a tall screen with

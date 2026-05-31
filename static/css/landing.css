@@ -3,14 +3,48 @@
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  /* Safe area: push content away from notch and home bar */
-  padding: calc(2rem + env(safe-area-inset-top)) 2rem calc(2rem + env(safe-area-inset-bottom));
-  text-align: center;
   background: var(--panel-screen);
   overflow: hidden;
+  position: relative;
 }
+
+/* Header is out of flow so it doesn't affect layout. The button is always
+   clickable; only the header chrome (background + title) is hidden until
+   the menu opens. */
+#landing .app-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+#landing .game-topbar { border-bottom-color: transparent; }
+
+#landing .topbar-title-row {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom-color: transparent;
+}
+
+#landing .game-title { visibility: hidden; }
+
+#landing .game-menu-btn span {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+#landing:has(#landing-menu.open) .game-topbar { border-bottom-color: rgba(180, 100, 20, 0.25); }
+
+#landing:has(#landing-menu.open) .topbar-title-row {
+  background: rgba(8, 4, 1, 0.58);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom-color: rgba(180, 100, 20, 0.2);
+}
+
+#landing:has(#landing-menu.open) .game-title { visibility: visible; }
 
 .logo-mark {
   width: clamp(110px, 32vw, 160px);
@@ -102,6 +136,7 @@
   flex-direction: column;
   background: var(--panel-screen);
   overflow: hidden;
+  position: relative;
 }
 
 /* Shared post-landing shell: the branded header bar reuses the game's
