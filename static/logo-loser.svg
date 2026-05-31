@@ -2,7 +2,8 @@
   <!-- Lose-state variant: each die is broken in half along a jagged crack, the
        two halves pulled apart with a dark gap between them. Built by drawing the
        full die twice and clipping to a top / bottom region split by the same
-       jagged line, then offsetting the halves in opposite directions. -->
+       jagged line, then offsetting the halves in opposite directions. The break
+       edge is stroked to match the dice's outer edge. -->
   <defs>
     <linearGradient id="l-pink" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ff6b85"/>
@@ -24,11 +25,13 @@
       <rect x="-37" y="-37" width="74" height="20" rx="9" fill="#ffffff" opacity="0.12"/>
       <circle cx="-20" cy="-22" r="6" fill="#fff"/><circle cx="-20" cy="0" r="6" fill="#fff"/><circle cx="-20" cy="22" r="6" fill="#fff"/>
       <circle cx="20" cy="-22" r="6" fill="#fff"/><circle cx="20" cy="0" r="6" fill="#fff"/><circle cx="20" cy="22" r="6" fill="#fff"/>
+      <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#2a0a14" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
     </g></g>
     <g transform="translate(2 6)"><g clip-path="url(#l-bot)">
       <rect x="-40" y="-40" width="80" height="80" rx="15" fill="url(#l-pink)" stroke="#2a0a14" stroke-width="1.5"/>
       <circle cx="-20" cy="-22" r="6" fill="#fff"/><circle cx="-20" cy="0" r="6" fill="#fff"/><circle cx="-20" cy="22" r="6" fill="#fff"/>
       <circle cx="20" cy="-22" r="6" fill="#fff"/><circle cx="20" cy="0" r="6" fill="#fff"/><circle cx="20" cy="22" r="6" fill="#fff"/>
+      <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#2a0a14" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
     </g></g>
   </g>
 
@@ -39,11 +42,13 @@
       <rect x="-35" y="-35" width="70" height="18" rx="8" fill="#ffffff" opacity="0.6"/>
       <circle cx="-19" cy="-19" r="6" fill="#1a1a2e"/><circle cx="19" cy="-19" r="6" fill="#1a1a2e"/>
       <circle cx="-19" cy="19" r="6" fill="#1a1a2e"/><circle cx="19" cy="19" r="6" fill="#1a1a2e"/>
+      <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#1a1a2e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
     </g></g>
     <g transform="translate(2 6)"><g clip-path="url(#l-bot)">
       <rect x="-38" y="-38" width="76" height="76" rx="14" fill="url(#l-white)" stroke="#1a1a2e" stroke-width="1.5"/>
       <circle cx="-19" cy="-19" r="6" fill="#1a1a2e"/><circle cx="19" cy="-19" r="6" fill="#1a1a2e"/>
       <circle cx="-19" cy="19" r="6" fill="#1a1a2e"/><circle cx="19" cy="19" r="6" fill="#1a1a2e"/>
+      <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#1a1a2e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
     </g></g>
   </g>
 </svg>
