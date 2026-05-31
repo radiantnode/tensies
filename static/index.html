@@ -74,16 +74,26 @@
   </section>
 
   <section id="lobby" class="screen" aria-labelledby="lobby-title">
-    <h1 id="lobby-title" class="lobby-title">Waiting for players…</h1>
-    <p class="lobby-hint">Share this link to invite friends</p>
-    <button id="lobby-code" type="button" class="code-display" aria-label="Copy invite link">——</button>
-    <p class="copy-hint" id="copy-hint">click to copy link</p>
-    <button id="sms-btn" type="button" class="btn btn-sms">💬 Send Text Invite</button>
-    <ul class="player-list" id="lobby-players" aria-label="Players"></ul>
-    <button id="start-btn" type="button" class="btn btn-primary btn-block" hidden>
-      Start Game 🎲
-    </button>
-    <p id="waiting-msg"></p>
+    <header class="game-topbar app-header">
+      <div class="topbar-title-row">
+        <div class="game-title">
+          <img src="/static/logo.svg" class="game-title-mark" alt="">
+          <span>Tensies</span>
+        </div>
+      </div>
+    </header>
+    <div class="screen-body lobby-body">
+      <h1 id="lobby-title" class="lobby-title">Waiting for players…</h1>
+      <p class="lobby-hint">Share this link to invite friends</p>
+      <button id="lobby-code" type="button" class="code-display" aria-label="Copy invite link">——</button>
+      <p class="copy-hint" id="copy-hint">click to copy link</p>
+      <button id="sms-btn" type="button" class="btn btn-sms">💬 Send Text Invite</button>
+      <ul class="player-list" id="lobby-players" aria-label="Players"></ul>
+      <button id="start-btn" type="button" class="btn btn-primary btn-block" hidden>
+        Start Game 🎲
+      </button>
+      <p id="waiting-msg"></p>
+    </div>
   </section>
 
   <section id="game" class="screen" aria-labelledby="game-title">
