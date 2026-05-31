@@ -8,13 +8,14 @@
     <filter id="w-rim" x="-60%" y="-60%" width="220%" height="220%">
       <feGaussianBlur stdDeviation="3.5"/>
     </filter>
-    <!-- Rim glow gradient: bright at the top-right, fading to subtle toward the
-         bottom-left (per die — light source from the top-right). -->
-    <linearGradient id="w-rimg" x1="1" y1="0" x2="0" y2="1">
-      <stop offset="0"    stop-color="#fff1d6"/>
-      <stop offset="0.4"  stop-color="#ffb867"/>
-      <stop offset="1"    stop-color="#b9803f" stop-opacity="0.15"/>
-    </linearGradient>
+    <!-- Rim glow: brightest at the top-right corner, falling off toward the
+         rest of the edge (per die — light source from the top-right). -->
+    <radialGradient id="w-rimg" cx="1" cy="0" r="1.25">
+      <stop offset="0"    stop-color="#fff4dc"/>
+      <stop offset="0.32" stop-color="#ffc074"/>
+      <stop offset="0.7"  stop-color="#cf924c" stop-opacity="0.5"/>
+      <stop offset="1"    stop-color="#9c6a35" stop-opacity="0.12"/>
+    </radialGradient>
     <linearGradient id="w-pink" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ff6b85"/>
       <stop offset="1" stop-color="#e63a59"/>
@@ -24,22 +25,6 @@
       <stop offset="1" stop-color="#dcd9e8"/>
     </linearGradient>
   </defs>
-
-  <style>
-    /* Periodic shimmer glint on the red die's top-right corner. */
-    .shimmer      { transform-box: fill-box; transform-origin: center; animation: w-tw  2.6s ease-in-out infinite; }
-    .shimmer-glow { transform-box: fill-box; transform-origin: center; animation: w-twg 2.6s ease-in-out infinite; }
-    @keyframes w-tw {
-      0%, 50%, 100% { opacity: 0; transform: scale(0.25); }
-      66%           { opacity: 1; transform: scale(1); }
-      80%           { opacity: 0; transform: scale(0.5); }
-    }
-    @keyframes w-twg {
-      0%, 50%, 100% { opacity: 0; transform: scale(0.4); }
-      66%           { opacity: 0.6; transform: scale(1.35); }
-      80%           { opacity: 0; transform: scale(0.85); }
-    }
-  </style>
 
   <!-- Accent halo behind back die -->
   <g transform="translate(74 80) rotate(-14)" opacity="0.55">
@@ -58,12 +43,6 @@
     <circle cx="20"  cy="-22" r="6" fill="#fff"/>
     <circle cx="20"  cy="0"   r="6" fill="#fff"/>
     <circle cx="20"  cy="22"  r="6" fill="#fff"/>
-    <!-- shimmer glint, top-right corner -->
-    <g transform="translate(30 -30)">
-      <circle class="shimmer-glow" r="9" fill="#ffe9c8" filter="url(#w-rim)"/>
-      <path class="shimmer" fill="#ffffff"
-            d="M0,-10 C1.4,-2.8 2.8,-1.4 10,0 C2.8,1.4 1.4,2.8 0,10 C-1.4,2.8 -2.8,1.4 -10,0 C-2.8,-1.4 -1.4,-2.8 0,-10 Z"/>
-    </g>
   </g>
 
   <!-- Front die: white, showing 4 -->
