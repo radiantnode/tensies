@@ -32,6 +32,18 @@
   margin-bottom: 0.25rem;
 }
 
+/* Per-screen heading (e.g. "Join a Game"). Deliberately NOT the brand style:
+   the bold all-caps accent-red wordmark is reserved for the TENSIES logo only.
+   This is a warm-white heading grounded with the shared drop shadow. */
+.screen-title {
+  font-size: clamp(1.75rem, 8vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--text);
+  text-shadow: var(--text-shadow-lg);
+  margin-bottom: 0.5rem;
+}
+
 .tagline {
   color: var(--label);
   font-size: 0.95rem;
