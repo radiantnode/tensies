@@ -39,7 +39,10 @@
   background: var(--raised);
   border: 1px solid var(--border-strong);
   border-radius: 999px;
-  box-shadow: inset 0 1px 0 rgba(220, 170, 70, 0.12), 0 2px 8px rgba(0, 0, 0, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(220, 170, 70, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.45),
+    0 0 14px rgba(232, 188, 112, 0.25);   /* slight warm glow */
 }
 
 /* Die in the stack: drop the auto-centering margin (the flex column centers it). */
