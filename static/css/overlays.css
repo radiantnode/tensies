@@ -67,12 +67,12 @@
 
 /* "─── Round X Winner ───" banner, right above the logo, centred. */
 .winner-banner {
-  width: min(340px, 82%);
+  width: min(440px, 92%);
   margin: 0 auto 1.1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.85rem;
+  gap: 1rem;
   color: var(--text-warm);
   font-size: 0.95rem;
   font-weight: 800;
