@@ -20,10 +20,10 @@
     </linearGradient>
     <clipPath id="l-top"><path d="M-70,-80 L70,-80 L70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3 Z"/></clipPath>
     <clipPath id="l-bot"><path d="M-70,80 L70,80 L70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3 Z"/></clipPath>
-    <!-- White die gets its own distinct fracture: a sharper, deeper, irregular
-         shatter (uneven teeth) vs the black die's gentle even zigzag. -->
-    <clipPath id="l-top-w"><path d="M-70,-80 L70,-80 L70,4 L54,-8 L38,7 L20,-10 L4,5 L-14,-9 L-32,7 L-52,-6 L-70,3 Z"/></clipPath>
-    <clipPath id="l-bot-w"><path d="M-70,80 L70,80 L70,4 L54,-8 L38,7 L20,-10 L4,5 L-14,-9 L-32,7 L-52,-6 L-70,3 Z"/></clipPath>
+    <!-- White die gets its own distinct fracture (finer, differently-placed
+         zigzag) so the two broken dice don't read as mirror images. -->
+    <clipPath id="l-top-w"><path d="M-70,-80 L70,-80 L70,3 L48,9 L30,-5 L10,6 L-8,-4 L-30,8 L-50,-2 L-70,5 Z"/></clipPath>
+    <clipPath id="l-bot-w"><path d="M-70,80 L70,80 L70,3 L48,9 L30,-5 L10,6 L-8,-4 L-30,8 L-50,-2 L-70,5 Z"/></clipPath>
     <clipPath id="l-die-p"><rect x="-40" y="-40" width="80" height="80" rx="15"/></clipPath>
     <clipPath id="l-die-w"><rect x="-38" y="-38" width="76" height="76" rx="14"/></clipPath>
     <!-- Fade the rim glow out at the right-side fracture junction (the bottom-right
@@ -35,7 +35,7 @@
     <mask id="l-glowmask-p" maskUnits="userSpaceOnUse" x="-70" y="-70" width="140" height="140">
       <rect x="-70" y="-70" width="140" height="140" fill="url(#l-fade-p)"/>
     </mask>
-    <radialGradient id="l-fade-w" cx="38" cy="6" r="29" gradientUnits="userSpaceOnUse">
+    <radialGradient id="l-fade-w" cx="38" cy="2" r="29" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#000"/><stop offset="0.4" stop-color="#000"/><stop offset="1" stop-color="#fff"/>
     </radialGradient>
     <mask id="l-glowmask-w" maskUnits="userSpaceOnUse" x="-70" y="-70" width="140" height="140">
@@ -80,7 +80,7 @@
         <circle cx="-19" cy="-19" r="6" fill="#1a1a2e"/><circle cx="19" cy="-19" r="6" fill="#1a1a2e"/>
         <circle cx="-19" cy="19" r="6" fill="#1a1a2e"/><circle cx="19" cy="19" r="6" fill="#1a1a2e"/>
       </g>
-      <g clip-path="url(#l-die-w)"><path d="M70,4 L54,-8 L38,7 L20,-10 L4,5 L-14,-9 L-32,7 L-52,-6 L-70,3" fill="none" stroke="#6a513c" stroke-width="1.6" stroke-linejoin="round" opacity="0.35"/></g>
+      <g clip-path="url(#l-die-w)"><path d="M70,3 L48,9 L30,-5 L10,6 L-8,-4 L-30,8 L-50,-2 L-70,5" fill="none" stroke="#6a513c" stroke-width="1.6" stroke-linejoin="round" opacity="0.35"/></g>
     </g>
     <g transform="translate(2 6)">
       <g clip-path="url(#l-bot-w)">
@@ -89,7 +89,7 @@
         <circle cx="-19" cy="19" r="6" fill="#1a1a2e"/><circle cx="19" cy="19" r="6" fill="#1a1a2e"/>
       </g>
       <g clip-path="url(#l-die-w)">
-        <path d="M70,4 L54,-8 L38,7 L20,-10 L4,5 L-14,-9 L-32,7 L-52,-6 L-70,3" fill="none" stroke="#6a513c" stroke-width="1.5" stroke-linejoin="round" opacity="0.35"/>
+        <path d="M70,3 L48,9 L30,-5 L10,6 L-8,-4 L-30,8 L-50,-2 L-70,5" fill="none" stroke="#6a513c" stroke-width="1.5" stroke-linejoin="round" opacity="0.35"/>
       </g>
     </g>
   </g>
