@@ -66,7 +66,7 @@ def deal_round(game: dict) -> None:
 def new_game(host_id: str, host_name: str) -> tuple[str, dict]:
     code = make_code()
     games[code] = {
-        "target": 6,
+        "target": 1,
         "round_num": 1,
         "started": False,
         "round_over": False,
@@ -85,8 +85,8 @@ def new_game(host_id: str, host_name: str) -> tuple[str, dict]:
 
 
 def next_target(t: int) -> int:
-    # cycles 6 → 5 → 4 → 3 → 2 → 1 → 6 → …
-    return (t - 2) % 6 + 1
+    # cycles 1 → 2 → 3 → 4 → 5 → 6 → 1 → …
+    return t % 6 + 1
 
 
 def apply_roll(player: dict, target: int) -> dict:
