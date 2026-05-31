@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Tensies — broken">
-  <!-- Lose-state variant: dice broken in half. The outer (original) edges keep
-       the win-state warm rim glow + top-right corner halo. The break edges are
-       raw fracture: a dark crevice line, with a faint lit lip on the lower half's
-       top edge (it faces the top-right light) — no glow on the broken parts. -->
+  <!-- Lose-state variant: dice broken in half. Each die gets ONE continuous rim
+       glow behind both pieces (not split at the fracture) so the warm halo wraps
+       the outer edge without being knife-cut where the crack meets the edge. The
+       break itself is a raw fracture: a dark crevice line, no glow on it. -->
   <defs>
     <filter id="w-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
     <filter id="w-rim" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3.5"/></filter>
@@ -26,9 +26,9 @@
 
   <!-- Back die: pink, showing 6 -->
   <g transform="translate(74 80) rotate(-14)">
+    <rect x="-40" y="-40" width="80" height="80" rx="15" fill="none" stroke="url(#w-rimg)" stroke-width="6.5" filter="url(#w-rim)"/>
     <g transform="translate(-2 -5)">
       <g clip-path="url(#l-top)">
-        <rect x="-40" y="-40" width="80" height="80" rx="15" fill="none" stroke="url(#w-rimg)" stroke-width="6.5" filter="url(#w-rim)"/>
         <rect x="-40" y="-40" width="80" height="80" rx="15" fill="url(#l-pink)" stroke="url(#w-rimg)" stroke-width="2.2"/>
         <circle cx="34" cy="-34" r="15" fill="#ffe7c2" opacity="0.65" filter="url(#w-glow)"/>
         <rect x="-37" y="-37" width="74" height="20" rx="9" fill="#ffffff" opacity="0.12"/>
@@ -40,7 +40,6 @@
     </g>
     <g transform="translate(2 6)">
       <g clip-path="url(#l-bot)">
-        <rect x="-40" y="-40" width="80" height="80" rx="15" fill="none" stroke="url(#w-rimg)" stroke-width="6.5" filter="url(#w-rim)"/>
         <rect x="-40" y="-40" width="80" height="80" rx="15" fill="url(#l-pink)" stroke="url(#w-rimg)" stroke-width="2.2"/>
         <circle cx="-20" cy="-22" r="6" fill="#fff"/><circle cx="-20" cy="0" r="6" fill="#fff"/><circle cx="-20" cy="22" r="6" fill="#fff"/>
         <circle cx="20" cy="-22" r="6" fill="#fff"/><circle cx="20" cy="0" r="6" fill="#fff"/><circle cx="20" cy="22" r="6" fill="#fff"/>
@@ -54,9 +53,9 @@
 
   <!-- Front die: white, showing 4 -->
   <g transform="translate(132 130) rotate(10)">
+    <rect x="-38" y="-38" width="76" height="76" rx="14" fill="none" stroke="url(#w-rimg)" stroke-width="6.5" filter="url(#w-rim)"/>
     <g transform="translate(-2 -5)">
       <g clip-path="url(#l-top)">
-        <rect x="-38" y="-38" width="76" height="76" rx="14" fill="none" stroke="url(#w-rimg)" stroke-width="6.5" filter="url(#w-rim)"/>
         <rect x="-38" y="-38" width="76" height="76" rx="14" fill="url(#l-white)" stroke="url(#w-rimg)" stroke-width="2.2"/>
         <rect x="-35" y="-35" width="70" height="18" rx="8" fill="#ffffff" opacity="0.6"/>
         <circle cx="-19" cy="-19" r="6" fill="#1a1a2e"/><circle cx="19" cy="-19" r="6" fill="#1a1a2e"/>
@@ -66,7 +65,6 @@
     </g>
     <g transform="translate(2 6)">
       <g clip-path="url(#l-bot)">
-        <rect x="-38" y="-38" width="76" height="76" rx="14" fill="none" stroke="url(#w-rimg)" stroke-width="6.5" filter="url(#w-rim)"/>
         <rect x="-38" y="-38" width="76" height="76" rx="14" fill="url(#l-white)" stroke="url(#w-rimg)" stroke-width="2.2"/>
         <circle cx="-19" cy="-19" r="6" fill="#1a1a2e"/><circle cx="19" cy="-19" r="6" fill="#1a1a2e"/>
         <circle cx="-19" cy="19" r="6" fill="#1a1a2e"/><circle cx="19" cy="19" r="6" fill="#1a1a2e"/>
