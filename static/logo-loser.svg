@@ -1,9 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Tensies — broken">
-  <!-- Lose-state variant: dice broken in half along a jagged crack, halves pulled
-       apart, with the SAME warm rim glow as the win state (gradient rim, brighter
-       top-right, + a corner halo). Each die is drawn twice, clipped to a top /
-       bottom region split by a shared jagged line, then offset. The break edge
-       gets a warm glowing stroke (clipped to the die outline) to match the rim. -->
+  <!-- Lose-state variant: dice broken in half. The outer (original) edges keep
+       the win-state warm rim glow + top-right corner halo. The break edges are
+       raw fracture: a dark crevice line, with a faint lit lip on the lower half's
+       top edge (it faces the top-right light) — no glow on the broken parts. -->
   <defs>
     <filter id="w-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
     <filter id="w-rim" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3.5"/></filter>
@@ -36,10 +35,8 @@
         <circle cx="-20" cy="-22" r="6" fill="#fff"/><circle cx="-20" cy="0" r="6" fill="#fff"/><circle cx="-20" cy="22" r="6" fill="#fff"/>
         <circle cx="20" cy="-22" r="6" fill="#fff"/><circle cx="20" cy="0" r="6" fill="#fff"/><circle cx="20" cy="22" r="6" fill="#fff"/>
       </g>
-      <g clip-path="url(#l-die-p)">
-        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#f2bd7a" stroke-width="5" filter="url(#w-rim)" opacity="0.8"/>
-        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#f6c98c" stroke-width="2.2" stroke-linejoin="round"/>
-      </g>
+      <!-- upper piece's bottom edge: shadowed raw fracture -->
+      <g clip-path="url(#l-die-p)"><path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#23070f" stroke-width="2.6" stroke-linejoin="round"/></g>
     </g>
     <g transform="translate(2 6)">
       <g clip-path="url(#l-bot)">
@@ -48,9 +45,10 @@
         <circle cx="-20" cy="-22" r="6" fill="#fff"/><circle cx="-20" cy="0" r="6" fill="#fff"/><circle cx="-20" cy="22" r="6" fill="#fff"/>
         <circle cx="20" cy="-22" r="6" fill="#fff"/><circle cx="20" cy="0" r="6" fill="#fff"/><circle cx="20" cy="22" r="6" fill="#fff"/>
       </g>
+      <!-- lower piece's top edge: raw fracture + faint lit lip (top-right light) -->
       <g clip-path="url(#l-die-p)">
-        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#f2bd7a" stroke-width="5" filter="url(#w-rim)" opacity="0.8"/>
-        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#f6c98c" stroke-width="2.2" stroke-linejoin="round"/>
+        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#2a0a14" stroke-width="2.2" stroke-linejoin="round"/>
+        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#ffcaa0" stroke-width="1" stroke-linejoin="round" opacity="0.45" transform="translate(0 -1.2)"/>
       </g>
     </g>
   </g>
@@ -65,10 +63,7 @@
         <circle cx="-19" cy="-19" r="6" fill="#1a1a2e"/><circle cx="19" cy="-19" r="6" fill="#1a1a2e"/>
         <circle cx="-19" cy="19" r="6" fill="#1a1a2e"/><circle cx="19" cy="19" r="6" fill="#1a1a2e"/>
       </g>
-      <g clip-path="url(#l-die-w)">
-        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#f2bd7a" stroke-width="5" filter="url(#w-rim)" opacity="0.8"/>
-        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#f6c98c" stroke-width="2.2" stroke-linejoin="round"/>
-      </g>
+      <g clip-path="url(#l-die-w)"><path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#15151f" stroke-width="2.6" stroke-linejoin="round"/></g>
     </g>
     <g transform="translate(2 6)">
       <g clip-path="url(#l-bot)">
@@ -78,8 +73,8 @@
         <circle cx="-19" cy="19" r="6" fill="#1a1a2e"/><circle cx="19" cy="19" r="6" fill="#1a1a2e"/>
       </g>
       <g clip-path="url(#l-die-w)">
-        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#f2bd7a" stroke-width="5" filter="url(#w-rim)" opacity="0.8"/>
-        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#f6c98c" stroke-width="2.2" stroke-linejoin="round"/>
+        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#1a1a2e" stroke-width="2.2" stroke-linejoin="round"/>
+        <path d="M70,1 L34,7 L18,-4 L2,6 L-14,-3 L-32,8 L-70,3" fill="none" stroke="#fff0dc" stroke-width="1" stroke-linejoin="round" opacity="0.5" transform="translate(0 -1.2)"/>
       </g>
     </g>
   </g>
