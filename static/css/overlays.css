@@ -67,7 +67,7 @@
 
 /* "─── Round X Winner ───" banner, right above the logo, centred. */
 .winner-banner {
-  width: min(440px, 92%);
+  width: min(480px, 100%);
   margin: 0 auto 1.1rem;
   display: flex;
   align-items: center;
@@ -115,7 +115,7 @@
 .winner-box {
   /* No card surface — the content sits directly on the dimmed board.
      Perspective so the dice read as a 3D object flying toward the viewer. */
-  padding: 2.5rem 3rem;
+  padding: 2.5rem 1.25rem;
   text-align: center;
   perspective: 900px;
 }
