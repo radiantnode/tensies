@@ -153,7 +153,7 @@
 .winner-logo {
   width: clamp(250px, 74vw, 360px);
   height: auto;
-  margin-bottom: -4.2rem;
+  margin-bottom: -3.9rem;
   position: relative;
   z-index: 2;               /* dice overlap on top of the name */
   transform-origin: center;
