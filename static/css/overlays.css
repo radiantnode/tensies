@@ -114,7 +114,9 @@
 
 .winner-box {
   /* No card surface — the content sits directly on the dimmed board.
-     Perspective so the dice read as a 3D object flying toward the viewer. */
+     Full width so the banner rules can run edge to edge; perspective so the
+     dice read as a 3D object flying toward the viewer. */
+  width: 100%;
   padding: 2.5rem 0.25rem;
   text-align: center;
   perspective: 900px;
