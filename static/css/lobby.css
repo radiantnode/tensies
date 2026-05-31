@@ -83,11 +83,23 @@
   width: 100%;
   max-width: 400px;
   margin-bottom: 1.5rem;
-  text-align: center;
+  /* Inline icon + label, centred together. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
 }
 .btn-sms:hover:not(:disabled) {
   background: var(--raised-hover);
   border-color: rgba(190, 130, 55, 0.45);
+}
+
+.btn-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  /* Match the warm-amber tone of the label rather than full white. */
+  opacity: 0.85;
 }
 
 .player-list {
