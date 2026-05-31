@@ -14,6 +14,15 @@
   padding: 2rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
 }
 
+/* The shared .or-divider stretches to its container on landing (the form
+   stack), but the centred lobby column won't stretch it — give it an explicit
+   width so the flanking rules have room to grow. Match the invite button. */
+.lobby-body .or-divider {
+  width: 100%;
+  max-width: 400px;
+  margin: 0.4rem 0 1rem;
+}
+
 .lobby-title {
   font-size: 1.5rem;
   font-weight: 800;
