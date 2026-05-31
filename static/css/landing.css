@@ -100,27 +100,43 @@
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: calc(2rem + env(safe-area-inset-top)) 2rem calc(2rem + env(safe-area-inset-bottom));
-  text-align: center;
   background: var(--panel-screen);
   overflow: hidden;
 }
 
+/* Shared post-landing shell: the branded header bar reuses the game's
+   .game-topbar / .game-title styling verbatim (single source of truth), and
+   .screen-body centres the screen's own content in the space beneath it. */
+.app-header { flex-shrink: 0; }
+
+.screen-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem 2rem calc(2rem + env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+
+/* "← Back" now lives at the right of the header bar, balancing the wordmark
+   the way the menu button does on the game page. */
 .join-back {
-  position: absolute;
-  top: calc(1.25rem + env(safe-area-inset-top));
-  left: 1.5rem;
+  margin-left: auto;
+  flex-shrink: 0;
   color: var(--muted);
   /* As a button it inherits Arial from UA; the prior <div> used system-ui
      from body — restore that to preserve the "← Back" glyph rendering. */
   font-family: inherit;
-  font-size: 1rem;
+  font-size: 0.95rem;
   letter-spacing: 0.03em;
+  text-shadow: var(--text-shadow);
   transition: color 0.15s;
   cursor: pointer;
-  padding: 0;
+  padding: 0.5rem 0.85rem;
+  min-height: 44px;
 }
 .join-back:hover { color: var(--text); }
 

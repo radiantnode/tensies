@@ -52,15 +52,25 @@
   </section>
 
   <section id="join" class="screen" aria-labelledby="join-title">
-    <button id="back-btn" type="button" class="join-back">← Back</button>
-    <h1 id="join-title" class="screen-title">Join a Game</h1>
-    <p class="tagline">Enter your name and game code</p>
-    <form id="join-form" class="form-stack" autocomplete="off" novalidate>
-      <input id="join-name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20">
-      <input id="code-input" name="code" class="code-input" type="text" aria-label="Game code" inputmode="latin" placeholder="ABCDE" maxlength="5" autocapitalize="characters">
-      <button type="submit" class="btn btn-primary">Join Game</button>
-      <p class="error-msg" id="join-error" role="alert" aria-live="polite"></p>
-    </form>
+    <header class="game-topbar app-header">
+      <div class="topbar-title-row">
+        <div class="game-title">
+          <img src="/static/logo.svg" class="game-title-mark" alt="">
+          <span>Tensies</span>
+        </div>
+        <button id="back-btn" type="button" class="join-back">← Back</button>
+      </div>
+    </header>
+    <div class="screen-body">
+      <h1 id="join-title" class="screen-title">Join a Game</h1>
+      <p class="tagline">Enter your name and game code</p>
+      <form id="join-form" class="form-stack" autocomplete="off" novalidate>
+        <input id="join-name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20">
+        <input id="code-input" name="code" class="code-input" type="text" aria-label="Game code" inputmode="latin" placeholder="ABCDE" maxlength="5" autocapitalize="characters">
+        <button type="submit" class="btn btn-primary">Join Game</button>
+        <p class="error-msg" id="join-error" role="alert" aria-live="polite"></p>
+      </form>
+    </div>
   </section>
 
   <section id="lobby" class="screen" aria-labelledby="lobby-title">
