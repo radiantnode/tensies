@@ -32,7 +32,10 @@ function startWinTimer() {
   const tick = () => {
     const remaining = Math.max(0, end - Date.now());
     if (fill) fill.style.width = `${(remaining / WIN_OVERLAY_MS) * 100}%`;
-    if (secs) secs.textContent = `${Math.ceil(remaining / 1000)}s`;
+    if (secs) {
+      const s = String(Math.ceil(remaining / 1000)).padStart(2, '0');
+      secs.textContent = `Next round starts in: ${s}s`;
+    }
     if (remaining <= 0) clearInterval(winTimer);
   };
   tick();
