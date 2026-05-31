@@ -127,20 +127,28 @@
   margin-left: auto;
   flex-shrink: 0;
   color: var(--text-warm);
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 700;
   letter-spacing: 0.03em;
   text-shadow: var(--text-shadow);
-  transition: color 0.15s;
   cursor: pointer;
-  padding: 0.5rem 0.85rem;
-  min-height: 44px;
-  /* Chevron + label on one baseline. */
+  /* A visible leather pill so it clearly reads as a tappable control rather
+     than disappearing into the header. */
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.25rem;
+  padding: 0.45rem 0.9rem 0.45rem 0.7rem;
+  background: var(--raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(220, 170, 70, 0.12), 0 2px 8px rgba(0, 0, 0, 0.45);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.join-back:hover { color: #fff; }
+.join-back:hover {
+  color: #fff;
+  background: var(--raised-hover);
+  border-color: rgba(190, 130, 55, 0.45);
+}
 
 .back-chevron {
   width: 17px;
