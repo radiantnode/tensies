@@ -11,9 +11,9 @@
     <!-- Rim glow gradient: bright at the top-right, fading to subtle toward the
          bottom-left (per die — light source from the top-right). -->
     <linearGradient id="w-rimg" x1="1" y1="0" x2="0" y2="1">
-      <stop offset="0"    stop-color="#ffdca8"/>
-      <stop offset="0.45" stop-color="#f6ad60"/>
-      <stop offset="1"    stop-color="#b9803f" stop-opacity="0.18"/>
+      <stop offset="0"    stop-color="#fff1d6"/>
+      <stop offset="0.4"  stop-color="#ffb867"/>
+      <stop offset="1"    stop-color="#b9803f" stop-opacity="0.15"/>
     </linearGradient>
     <linearGradient id="w-pink" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ff6b85"/>
