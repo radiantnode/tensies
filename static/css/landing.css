@@ -123,17 +123,20 @@
 
 /* "← Back" now lives at the right of the header bar, balancing the wordmark
    the way the menu button does on the game page. */
+/* Back lives in the content area, pinned to its top-left, as a visible leather
+   pill. The body centres the form vertically; the button is absolute so it
+   doesn't shift that centring. */
+#join .screen-body { position: relative; }
 .join-back {
-  margin-left: auto;
-  flex-shrink: 0;
+  position: absolute;
+  top: 0.75rem;
+  left: 0.5rem;
   color: var(--text-warm);
   font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.03em;
   text-shadow: var(--text-shadow);
   cursor: pointer;
-  /* A visible leather pill so it clearly reads as a tappable control rather
-     than disappearing into the header. */
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
