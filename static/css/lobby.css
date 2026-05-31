@@ -1,3 +1,7 @@
+/* Animatable custom props for the player-list edge fades (below). */
+@property --fade-top    { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@property --fade-bottom { syntax: '<length>'; inherits: false; initial-value: 0px; }
+
 #lobby {
   height: 100vh;
   height: 100dvh;
@@ -150,7 +154,21 @@
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  /* Edge fades as a scroll affordance. The fade widths are 0 by default (no
+     fade) and grow only when there's content to scroll toward — JS toggles
+     .can-scroll-up / .can-scroll-down. */
+  --fade-top: 0px;
+  --fade-bottom: 0px;
+  -webkit-mask-image: linear-gradient(to bottom,
+    transparent 0, #000 var(--fade-top),
+    #000 calc(100% - var(--fade-bottom)), transparent 100%);
+          mask-image: linear-gradient(to bottom,
+    transparent 0, #000 var(--fade-top),
+    #000 calc(100% - var(--fade-bottom)), transparent 100%);
+  transition: --fade-top 0.15s linear, --fade-bottom 0.15s linear;
 }
+.player-list.can-scroll-up    { --fade-top: 24px; }
+.player-list.can-scroll-down  { --fade-bottom: 24px; }
 .player-list::-webkit-scrollbar { display: none; }
 
 .player-list-item {

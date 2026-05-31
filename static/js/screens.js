@@ -8,6 +8,19 @@ function maxWins(snap) {
   return Math.max(0, ...Object.values(snap.players).map(p => p.wins));
 }
 
+// Toggle the player-list edge fades based on how far it's scrolled, so they
+// only show when there's content to scroll toward. Attached once; re-run after
+// each lobby render and on resize.
+const lobbyList = document.getElementById('lobby-players');
+function updateLobbyFades() {
+  if (!lobbyList) return;
+  const { scrollTop, scrollHeight, clientHeight } = lobbyList;
+  lobbyList.classList.toggle('can-scroll-up', scrollTop > 1);
+  lobbyList.classList.toggle('can-scroll-down', scrollTop + clientHeight < scrollHeight - 1);
+}
+lobbyList?.addEventListener('scroll', updateLobbyFades, { passive: true });
+window.addEventListener('resize', updateLobbyFades);
+
 export function renderLobby(snap) {
   state.gameCode = snap.code;
   document.getElementById('lobby-code').textContent = snap.code;
@@ -35,6 +48,7 @@ export function renderLobby(snap) {
     startBtn.hidden = true;
     waitMsg.textContent = 'Waiting for the host to start…';
   }
+  requestAnimationFrame(updateLobbyFades);
 }
 
 function setAttr(el, name, present, value) {
