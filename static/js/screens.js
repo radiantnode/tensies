@@ -114,28 +114,23 @@ export function renderMyArea(snap) {
   // language while sitting in the warm play-area surface.
   const total = player.dice.length;
 
+  // Stacked: round label, target die, locked count, then the progress bar.
   const status = document.createElement('div');
   status.className = 'round-status';
 
-  const statusTop = document.createElement('div');
-  statusTop.className = 'round-status-top';
-
-  const target = document.createElement('round-target');
-  target.setAttribute('value', snap.target);
-  statusTop.appendChild(target);
-
-  const statusText = document.createElement('div');
-  statusText.className = 'round-status-text';
   const roundLbl = document.createElement('div');
   roundLbl.className = 'round-label';
   roundLbl.textContent = `Round ${snap.round_num}`;
-  statusText.appendChild(roundLbl);
+  status.appendChild(roundLbl);
+
+  const target = document.createElement('round-target');
+  target.setAttribute('value', snap.target);
+  status.appendChild(target);
+
   const lockedEl = document.createElement('div');
   lockedEl.className = 'my-locked';
   lockedEl.innerHTML = `<span class="locked-count">${matched.length}</span>/${total} locked`;
-  statusText.appendChild(lockedEl);
-  statusTop.appendChild(statusText);
-  status.appendChild(statusTop);
+  status.appendChild(lockedEl);
 
   // Progress bar (matched / total), styled like the scoreboard mini-cards.
   const prog = document.createElement('div');
