@@ -126,8 +126,9 @@
 .join-back {
   margin-left: auto;
   flex-shrink: 0;
-  color: var(--muted);
+  color: var(--text-warm);
   font-size: 0.95rem;
+  font-weight: 600;
   letter-spacing: 0.03em;
   text-shadow: var(--text-shadow);
   transition: color 0.15s;
@@ -139,7 +140,7 @@
   align-items: center;
   gap: 0.2rem;
 }
-.join-back:hover { color: var(--text); }
+.join-back:hover { color: #fff; }
 
 .back-chevron {
   width: 17px;
