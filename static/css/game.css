@@ -36,14 +36,14 @@
   text-shadow: var(--text-shadow);
   /* Leather pill, matching the back chip / menu-item surface. */
   padding: 0.34rem 0.9rem;
-  background: rgba(32, 16, 6, 0.72);
+  background: rgba(30, 15, 6, 0.9);
   border: 1px solid var(--border-strong);
   border-radius: 999px;
   box-shadow:
     inset 0 1px 0 rgba(255, 210, 140, 0.22),
     0 2px 8px rgba(0, 0, 0, 0.4),
-    0 0 16px rgba(255, 178, 86, 0.55),     /* warm amber ember glow — */
-    0 0 36px rgba(240, 148, 58, 0.38);     /* like the lit glass/ashtray in the bg */
+    0 0 20px rgba(255, 178, 86, 0.75),     /* warm amber ember glow — */
+    0 0 48px rgba(242, 150, 60, 0.55);     /* like the lit glass/ashtray in the bg */
 }
 
 /* Die in the stack: drop the auto-centering margin (the flex column centers it). */
