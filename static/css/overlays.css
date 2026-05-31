@@ -153,7 +153,7 @@
 .winner-logo {
   width: clamp(250px, 74vw, 360px);
   height: auto;
-  margin-bottom: -2.6rem;
+  margin-bottom: -4.2rem;
   transform-origin: center;
   /* trophyShine drives the warm glow (filter); flyIn zooms the dice toward you
      from far away; float3d keeps a gentle 3D tilt/bob so they hang in space. */
