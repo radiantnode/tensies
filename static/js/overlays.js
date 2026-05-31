@@ -1,4 +1,4 @@
-import { nextTarget, showScreen } from './util.js';
+import { showScreen } from './util.js';
 
 // Winner and pause are dialog overlays — they sit on top of the still-visible
 // game board. Loading is a screen (see #loading in index.html), not a dialog,
@@ -20,8 +20,6 @@ export function hidePaused() {
 }
 
 export function showWinner(name, target) {
-  document.getElementById('winner-name').textContent = name;
-  document.getElementById('winner-sub').textContent = `Next up: roll for ${nextTarget(target)}s`;
   if (winner && !winner.open) winner.showModal();
 }
 
