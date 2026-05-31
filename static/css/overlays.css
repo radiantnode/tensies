@@ -154,6 +154,8 @@
   width: clamp(250px, 74vw, 360px);
   height: auto;
   margin-bottom: -4.2rem;
+  position: relative;
+  z-index: 2;               /* dice overlap on top of the name */
   transform-origin: center;
   /* trophyShine drives the warm glow (filter); flyIn zooms the dice toward you
      from far away; float3d keeps a gentle 3D tilt/bob so they hang in space. */
@@ -204,6 +206,8 @@
   font-weight: 900;
   letter-spacing: 0.005em;
   margin: 0;
+  position: relative;
+  z-index: 1;               /* sits behind the dice */
   /* Inter caps at 900, so add a warm-gold stroke (painted behind the fill) to
      thicken the glyphs further. */
   -webkit-text-stroke: 1.4px #f1cf98;
