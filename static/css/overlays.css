@@ -233,3 +233,43 @@
 @media (max-width: 480px) {
   .winner-box { padding: 2rem 2.25rem; }
 }
+
+/* Countdown to the next round — our amber progress bar + seconds (loading-text
+   style) pinned at the bottom of the overlay. */
+.winner-timer {
+  position: absolute;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 2.25rem);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+}
+.winner-timer-bar {
+  width: min(220px, 62vw);
+  height: 6px;
+  background: rgba(90, 55, 22, 0.75);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.45);
+}
+.winner-timer-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg,
+    rgba(180, 130, 55, 0.85) 0%,
+    rgba(225, 180, 100, 0.95) 70%,
+    rgba(250, 220, 155, 1) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.18);
+}
+/* Seconds remaining — matches #loading-msg. */
+.winner-timer-secs {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: var(--text-shadow);
+}

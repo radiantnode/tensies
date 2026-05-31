@@ -19,15 +19,37 @@ export function hidePaused() {
   if (pauseOverlay && pauseOverlay.open) pauseOverlay.close();
 }
 
+// The server holds the winner overlay for ROUND_WIN_DELAY (server/config.py)
+// before advancing the round — mirror it here to drive the countdown.
+const WIN_OVERLAY_MS = 3000;
+let winTimer = null;
+
+function startWinTimer() {
+  const fill = document.getElementById('winner-timer-fill');
+  const secs = document.getElementById('winner-timer-secs');
+  const end = Date.now() + WIN_OVERLAY_MS;
+  clearInterval(winTimer);
+  const tick = () => {
+    const remaining = Math.max(0, end - Date.now());
+    if (fill) fill.style.width = `${(remaining / WIN_OVERLAY_MS) * 100}%`;
+    if (secs) secs.textContent = `${Math.ceil(remaining / 1000)}s`;
+    if (remaining <= 0) clearInterval(winTimer);
+  };
+  tick();
+  winTimer = setInterval(tick, 50);
+}
+
 export function showWinner(name, target, round) {
   const banner = document.getElementById('winner-round');
   if (banner) banner.textContent = round;
   const nameEl = document.getElementById('winner-name');
   if (nameEl) nameEl.textContent = name;
+  startWinTimer();
   if (winner && !winner.open) winner.showModal();
 }
 
 export function hideWinner() {
+  clearInterval(winTimer);
   if (winner && winner.open) winner.close();
 }
 
