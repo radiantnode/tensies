@@ -66,20 +66,35 @@
 #winner-overlay { background: rgba(6, 3, 1, 0.92); }
 
 .winner-box {
-  /* No card surface — the content sits directly on the dimmed board. */
+  /* No card surface — the content sits directly on the dimmed board.
+     Perspective so the dice read as a 3D object flying toward the viewer. */
   padding: 2.5rem 3rem;
   text-align: center;
-  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  perspective: 900px;
 }
 
 .winner-logo {
   width: clamp(250px, 74vw, 360px);
   height: auto;
   margin-bottom: 1rem;
-  /* The dice logo held up in the sunlight: a hot inner shine, a warm amber
-     glow, and a broad golden halo radiating off the dice — like the round
-     pill's ember light, scaled up. A slow shimmer keeps it "shiny". */
-  animation: trophyShine 3.2s ease-in-out infinite;
+  transform-origin: center;
+  /* trophyShine drives the warm glow (filter); flyIn zooms the dice toward you
+     from far away; float3d keeps a gentle 3D tilt/bob so they hang in space. */
+  animation:
+    trophyShine 3.2s ease-in-out infinite,
+    flyIn 0.85s cubic-bezier(0.18, 0.7, 0.2, 1) both,
+    float3d 5s ease-in-out 0.85s infinite;
+}
+
+@keyframes flyIn {
+  0%   { opacity: 0; transform: translateZ(-820px) rotateX(36deg) scale(0.96); }
+  55%  { opacity: 1; }
+  100% { opacity: 1; transform: translateZ(0) rotateX(7deg) rotateY(-9deg); }
+}
+
+@keyframes float3d {
+  0%, 100% { transform: translateZ(0)   rotateX(7deg)  rotateY(-9deg); }
+  50%      { transform: translateZ(38px) rotateX(-5deg) rotateY(10deg); }
 }
 
 @keyframes trophyShine {
