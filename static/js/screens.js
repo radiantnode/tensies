@@ -132,15 +132,6 @@ export function renderMyArea(snap) {
   lockedEl.innerHTML = `<span class="locked-count">${matched.length}</span>/${total} locked`;
   status.appendChild(lockedEl);
 
-  // Progress bar (matched / total), styled like the scoreboard mini-cards.
-  const prog = document.createElement('div');
-  prog.className = 'my-progress';
-  const fill = document.createElement('div');
-  fill.className = 'my-progress-fill';
-  fill.style.width = `${(matched.length / total) * 100}%`;
-  prog.appendChild(fill);
-  status.appendChild(prog);
-
   area.appendChild(status);
 
   // Dice zones

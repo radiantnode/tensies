@@ -104,13 +104,11 @@ export function updateDiceInPlace(snap, onComplete) {
       // transform already has final translate + rotate from scatter — nothing to set
     });
 
-    // Update locked-count label + progress bar
+    // Update locked-count label
     const lockedEl = document.querySelector('.my-locked');
     if (lockedEl) {
       lockedEl.innerHTML = `<span class="locked-count">${newMatched.length}</span>/${player.dice.length} locked`;
     }
-    const fillEl = document.querySelector('.my-progress-fill');
-    if (fillEl) fillEl.style.width = `${(newMatched.length / player.dice.length) * 100}%`;
 
     // Unmatched dice: ease from mid-tumble into face value (no snap, no bounce)
     newUnmatched.forEach((v, i) => {
