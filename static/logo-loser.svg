@@ -12,8 +12,8 @@
       <stop offset="0.7"  stop-color="#cf924c" stop-opacity="0.5"/>
       <stop offset="1"    stop-color="#9c6a35" stop-opacity="0.12"/>
     </radialGradient>
-    <linearGradient id="l-pink" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ff6b85"/><stop offset="1" stop-color="#e63a59"/>
+    <linearGradient id="l-black" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a3a42"/><stop offset="1" stop-color="#141418"/>
     </linearGradient>
     <linearGradient id="l-white" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dcd9e8"/>
@@ -39,12 +39,12 @@
     </mask>
   </defs>
 
-  <!-- Back die: pink, showing 6 -->
+  <!-- Back die: black, showing 6 -->
   <g transform="translate(74 80) rotate(-14)">
     <rect x="-40" y="-40" width="80" height="80" rx="15" fill="none" stroke="url(#w-rimg)" stroke-width="8.5" filter="url(#w-rim)" mask="url(#l-glowmask-p)"/>
     <g transform="translate(-2 -5)">
       <g clip-path="url(#l-top)">
-        <rect x="-40" y="-40" width="80" height="80" rx="15" fill="url(#l-pink)" stroke="url(#w-rimg)" stroke-width="2.2"/>
+        <rect x="-40" y="-40" width="80" height="80" rx="15" fill="url(#l-black)" stroke="url(#w-rimg)" stroke-width="2.2"/>
         <circle cx="34" cy="-34" r="15" fill="#ffe7c2" opacity="0.65" filter="url(#w-glow)"/>
         <rect x="-37" y="-37" width="74" height="20" rx="9" fill="#ffffff" opacity="0.12"/>
         <circle cx="-20" cy="-22" r="6" fill="#fff"/><circle cx="-20" cy="0" r="6" fill="#fff"/><circle cx="-20" cy="22" r="6" fill="#fff"/>
@@ -55,7 +55,7 @@
     </g>
     <g transform="translate(2 6)">
       <g clip-path="url(#l-bot)">
-        <rect x="-40" y="-40" width="80" height="80" rx="15" fill="url(#l-pink)" stroke="url(#w-rimg)" stroke-width="2.2"/>
+        <rect x="-40" y="-40" width="80" height="80" rx="15" fill="url(#l-black)" stroke="url(#w-rimg)" stroke-width="2.2"/>
         <circle cx="-20" cy="-22" r="6" fill="#fff"/><circle cx="-20" cy="0" r="6" fill="#fff"/><circle cx="-20" cy="22" r="6" fill="#fff"/>
         <circle cx="20" cy="-22" r="6" fill="#fff"/><circle cx="20" cy="0" r="6" fill="#fff"/><circle cx="20" cy="22" r="6" fill="#fff"/>
       </g>
