@@ -50,6 +50,29 @@
   max-width: 320px;
 }
 
+/* "or" divider between Create and Join — warm rules that fade out toward the
+   centre label, matching the leather border tone used across the app. */
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: var(--text-shadow);
+  margin: 0.15rem 0;
+}
+.or-divider::before,
+.or-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-strong);
+}
+.or-divider::before { background: linear-gradient(90deg, transparent, var(--border-strong)); }
+.or-divider::after  { background: linear-gradient(90deg, var(--border-strong), transparent); }
+
 /* Helper line sitting just above the name field — warm muted, pulled close
    to the input so it reads as that field's caption rather than a form row. */
 .field-hint {
