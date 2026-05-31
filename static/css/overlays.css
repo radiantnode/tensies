@@ -200,7 +200,7 @@
 /* Winner name: a warm cream→gold gradient with a soft amber glow — lit like
    the dice/round pill, NOT the brand's accent-red wordmark style. */
 .winner-name {
-  font-size: clamp(1.9rem, 7.5vw, 3rem);
+  font-size: clamp(2.4rem, 9.5vw, 3.8rem);
   font-weight: 800;
   letter-spacing: 0.005em;
   margin: 0;
