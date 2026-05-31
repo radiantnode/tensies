@@ -30,19 +30,29 @@
   --sz: 56px;
   width: var(--sz);
   height: var(--sz);
-  background: var(--accent);
-  border-radius: 11px;
+  /* Same material technique as the play dice, kept red: a top-left key light
+     across the accent face, a beveled (rounded-edge) surface, and engraved
+     pips — plus the accent glow that marks it as the round's target. */
+  background: radial-gradient(130% 130% at 30% 26%, #ff7e95 0%, #ff4d6d 55%, #e23457 100%);
+  border-radius: 13px;
   display: grid;
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   padding: 8px;
   gap: 3px;
   margin: 0 auto;
   transform: rotate(-8deg);
-  box-shadow: 0 0 24px rgba(255,77,109,0.45);
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.42),    /* top edge catches the light */
+    inset 0 -3px 6px rgba(150, 12, 42, 0.42),       /* deeper-red lower bevel */
+    0 0 24px rgba(255, 77, 109, 0.45);              /* accent glow (kept) */
   filter: drop-shadow(4px 7px 12px rgba(0,0,0,0.95)) drop-shadow(2px 3px 4px rgba(0,0,0,0.8));
 }
 .round-target-die .dot { border-radius: 50%; }
-.round-target-die .dot.active { background: #fff; }
+.round-target-die .dot.active {
+  /* Engraved white pip, domed by an off-centre highlight. */
+  background: radial-gradient(circle at 42% 34%, #ffffff 0%, #ffe6ec 80%);
+  box-shadow: inset 0 1px 1.5px rgba(130, 12, 38, 0.5), inset 0 -1px 1px rgba(255, 255, 255, 0.5);
+}
 
 /* ── Top bar ── */
 .game-topbar {
