@@ -73,7 +73,7 @@
 }
 
 .winner-logo {
-  width: clamp(210px, 62vw, 310px);
+  width: clamp(250px, 74vw, 360px);
   height: auto;
   margin-bottom: 1rem;
   /* The dice logo held up in the sunlight: a hot inner shine, a warm amber
