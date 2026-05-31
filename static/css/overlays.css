@@ -95,7 +95,7 @@
 .winner-banner-label {
   display: inline-flex;
   align-items: center;
-  gap: 0.4em;
+  gap: 0.7rem;
   flex-shrink: 0;
 }
 /* Round number in a small glowing leather pill, echoing the board's round pill. */
