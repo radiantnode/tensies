@@ -54,6 +54,10 @@ export function joinGame() {
   connectWS(() => send('join', { name, code }));
 }
 
+export function startGame() {
+  send('start');
+}
+
 function handleMessage(msg) {
   switch (msg.type) {
     case 'ping':
@@ -103,7 +107,14 @@ function showFor(msg) {
     state.gameCode = msg.code;
     localStorage.setItem('tensies_code', msg.code);
   }
-  // Lobby and game rendering arrive with their views; until then a successful
-  // create/join holds on the loading screen.
+  if (!msg.started) {
+    leaveLoading(() => {
+      showScreen('lobby');
+      document.getElementById('lobby').render(msg);
+    });
+    return;
+  }
+  // Game / paused / winner rendering arrive with their views; until then a
+  // started game holds on the loading screen.
   showLoading('Loading…');
 }
