@@ -80,6 +80,17 @@ pins client RNG/time, `settle` waits on fonts and freezes animation, and
 `pinWebSocket` rewrites server `state` frames so dice/roster are fixed for
 server-driven views. Details in `harness/determinism.js`.
 
+**Read `harness/NOTES.md` before capturing anything.** It is the field guide
+from building the current baseline set: the one-host frame-synthesis technique
+(synthesize any view by rewriting the post-create frame — no need to play a real
+game), exactly what `seedPage` pins and why, the `has_rolled` requirement for
+started games, the confirmed WS frame shapes, a selector cheat-sheet, the
+time-sink gotchas (the `showScreen` View-Transition race, pause status hidden
+inside the menu, `pkill -f uvicorn` self-kill), the full 17-state catalog with
+the approach for each, and a known latent app bug to preserve-or-fix. The
+running specs (`stateful.spec.js`, `extras.spec.js`, `views.spec.js`) are the
+worked references; copy their patterns.
+
 ---
 
 ## Phase 1 — The user defines every view that matters
@@ -89,18 +100,19 @@ of the guarantee. In plan mode, work with the user to enumerate every view and
 every meaningful state of each. Do not start from your own guess — ask them, then
 cross-check against the codebase so nothing is missed.
 
-Seed the conversation from `static/index.html` screens and `CLAUDE.md`, which
-list at least: `#loading` (initial / "waiting for host to resume" / reconnecting),
-landing, join (empty + `.error-msg`), lobby (solo / many players / host vs
-non-host / SMS button), game board (my-area, matched/unmatched dice zones, roll
-button enabled/disabled/mid-shake, paused), players bar (varied roll counts / win
-badges / progress), winner overlay, the in-game menu (open, pause countdown), and
-fatal-error → landing.
+A complete, **already-built** 17-state catalog exists — see the table in
+`harness/NOTES.md` and the committed baselines in `harness/baselines/`. Start the
+conversation from that inventory (landing, join, join-error, nav-menu, changelog,
+lobby solo/3p/guest/5p, game board, in-game menu, paused host/guest, winner,
+loser, disconnect-waiting, fatal-error) rather than from a blank page, then
+confirm with the user whether anything is missing or any new state matters. Also
+cross-check `static/index.html` and `CLAUDE.md` so nothing slipped.
 
 For each state record: a short **name**, the **URL/route**, the **viewport(s)**
-it matters at, and how to **reach** it (clicks/fills, or multi-player driving).
-Capture this into `harness/states.json` (single-page states; copy the shape from
-`states.example.json`) and note which states need a hand-written multiplayer spec.
+it matters at, and how to **reach** it. The catalog is encoded in three places to
+copy from: `harness/states.json` (single-page "static" states), `stateful.spec.js`
+(synthesized server-driven states), and `extras.spec.js` (real-interaction
+states). Note which approach each new state needs — `NOTES.md` explains all three.
 
 **Confirm the catalog with the user before leaving this phase.** Adding a missed
 state later is cheap; shipping a view that was never protected is the failure mode

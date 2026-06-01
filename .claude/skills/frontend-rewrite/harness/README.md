@@ -77,12 +77,15 @@ devices being targeted — pixel-perfect is meaningless without a fixed viewport
 
 | file | role |
 |------|------|
+| **`NOTES.md`** | **field guide — read first: synthesis technique, determinism, gotchas, frame shapes, selectors, full state catalog, known bug** |
 | `playwright.config.js` | viewports, zero-tolerance compare, OS-agnostic baseline paths |
 | `determinism.js` | `seedPage` (RNG/time), `settle` (fonts + freeze animation), `pinWebSocket` (server-driven frames) |
-| `states.json` | catalog of single-page states (copy from `states.example.json`) |
+| `states.json` | catalog of single-page "static" states (copy from `states.example.json`) |
 | `views.spec.js` | data-driven specs for every `type:"static"` state |
-| `multiplayer.example.spec.js` | template for lobby / game-board / overlay states |
-| `baselines/` | committed ground-truth PNGs |
+| `stateful.spec.js` | worked reference: synthesized server-driven states (lobby/board/pause/winner/disconnect/fatal) |
+| `extras.spec.js` | real-interaction states (join-error, changelog) |
+| `multiplayer.example.spec.js` | minimal copy-me template (superseded by `stateful.spec.js`) |
+| `baselines/` | committed ground-truth PNGs (17 states × mobile/desktop) |
 | `results/`, `report/` | diff artifacts (gitignored) |
 
 ## Why it constrains the rewrite
