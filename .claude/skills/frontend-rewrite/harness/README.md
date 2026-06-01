@@ -14,6 +14,31 @@ npm install
 npx playwright install chromium
 ```
 
+If the environment cannot download a browser (sandbox / blocked CDN), point at
+an already-installed Chromium of a matching major instead — the wire protocol is
+stable across adjacent builds:
+
+```bash
+export PW_EXECUTABLE_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome
+```
+
+## Running the app to capture against
+
+**Normal:** `docker compose up -d` (web on :8888), then use `TENSIES_URL=http://localhost:8888`.
+
+**No Docker / blocked image registry:** run the real app without the
+Postgres+Grafana stack via the bundled wrapper (telemetry's DB boot is stubbed;
+the production `/` route and cache-busting are unchanged):
+
+```bash
+pip install -r ../../../../requirements.txt
+PYTHONPATH=.:$PWD setsid uvicorn run_without_db:app --host 127.0.0.1 --port 8888 \
+  > /tmp/uv.log 2>&1 < /dev/null &   # run from the repo root
+```
+
+(If `docker compose` itself fails with no socket, the daemon just isn't started:
+`dockerd >/tmp/dockerd.log 2>&1 &` — but image pulls still need registry access.)
+
 ## 1. Capture baselines from the CURRENT app
 
 Point the harness at the running old app and record. Commit the result so the
