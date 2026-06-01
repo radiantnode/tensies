@@ -5,12 +5,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Running the server
 
 ```bash
-docker compose up -d          # start (auto-reloads on file changes via uvicorn --reload)
+docker compose up -d          # local dev: starts web + redis + the telemetry stack
 docker compose logs -f        # tail server logs
 docker compose down           # stop
 ```
 
-The volume mount in `docker-compose.yml` means edits to any file are live immediately — no rebuild needed unless `requirements.txt` changes.
+The volume mount in `docker-compose.yml` means edits to any file are live immediately — no rebuild needed unless `requirements.txt` changes. **`docker-compose.yml` is local-dev-only** (default creds, published admin ports, bind mount, `--reload`). For any shared/public deploy use **`docker-compose.prod.yml`** (built image, non-root, internal network, secrets from env, gated `/metrics`+`/stats`). See `.env.prod.example`.
+
+**Redis is required** — game state and cross-instance fan-out live in Redis (`REDIS_URL`), so the app can run as multiple instances behind a plain round-robin load balancer (no sticky sessions). Postgres/Grafana telemetry is **optional**: set `TELEMETRY_ENABLED=0` for a lightweight run (Prometheus `/metrics` still works in-process).
+
+```bash
+# scale to N instances (they share Redis; any instance serves any game)
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --scale web=3
+```
 
 ## Git submodules
 
@@ -25,31 +32,44 @@ If `.claude/skills/humanizer/SKILL.md` is missing, the skill won't load — run 
 
 ## Architecture overview
 
-Tensies is a real-time multiplayer dice game. There is no database — game state lives in two in-memory dicts defined in `server/state.py`:
+Tensies is a real-time multiplayer dice game. Game state lives in **Redis** (`server/gamestore.py`) so any instance can serve any game. Per-process state in `server/state.py` is strictly local: the sockets this instance terminates plus registries of live asyncio objects that can't be serialised.
 
 ```python
-games: dict[str, dict]               # game_code → game state
-connections: dict[str, dict[str, WebSocket]]  # game_code → {player_id: ws}
+# Redis (shared across instances) — server/gamestore.py
+#   game:{code}      hash: game scalars + namespaced per-player fields (p:{pid}:*)
+#   games:index      set of live codes (reaper + active-games gauge)
+# Process-local — server/state.py
+connections: dict[str, dict[str, WebSocket]]  # local sockets only; cross-instance
+                                              # fan-out via server/fanout.py (Redis pub/sub)
+sessions, ack_events, drop_tasks, pause_tasks # live asyncio objects, owned by this instance
 ```
 
-Games are destroyed when the last player disconnects.
+Games are destroyed when the last player disconnects. Distinct players write distinct hash fields (atomic `HSET`/`HINCRBY`, no contention), so simultaneous rolling stays parallel; the one contended write — crowning the round winner — is an atomic Lua compare-and-set (`try_finish_round`). A periodic **reaper** (`server/reaper.py`) is the cross-instance backstop for grace-drops / pause-caps whose owning instance died, and publishes the global active-games gauge (aggregate it with `max()` across instances, not `sum()`).
+
+Key env vars (`server/config.py`): `REDIS_URL`, `TELEMETRY_ENABLED`, `ALLOWED_ORIGINS` (WS origin allowlist), `METRICS_TOKEN`/`STATS_TOKEN` (bearer-gate `/metrics`+`/stats`), `MAX_GAMES`, `MAX_PLAYERS_PER_GAME`, `MAX_CONNECTIONS_PER_IP`, `CREATE_RATE_*`/`JOIN_RATE_*`, `MAX_WS_MESSAGE_BYTES`.
 
 ### Code layout
 
 ```
-main.py                  six-line FastAPI entry — wires the routers together
+main.py                  FastAPI entry — lifespan boots gamestore + fanout +
+                         telemetry + reaper, then wires the routers together
 server/
-  config.py              constants (MIN_ROLL_INTERVAL, ROLL_ACK_TIMEOUT,
-                         DISCONNECT_GRACE, ROUND_WIN_DELAY) and logging setup
-  state.py               module-level games & connections dicts
+  config.py              constants (gameplay, Redis, abuse caps, origin
+                         allowlist, endpoint tokens, telemetry flag) + logging
+  state.py               process-local connections + sessions + ack/timer registries
+  gamestore.py           Redis-backed game state: pool, Lua (create/join/finish/
+                         drop), snapshot rebuild, abuse limiters, make_code
+  fanout.py              cross-instance broadcast over Redis pub/sub (bcast:*)
+  reaper.py              periodic backstop for grace-drops/pause-caps + active gauge
   assets.py              cache-busting: globs static/css and static/js, appends
                          ?v=<sha1[:8]> to every /static/*.css|js href in index.html
-  game.py                pure game logic — new_game, fresh_player, apply_roll,
-                         deal_round, next_target, state_msg
-  broadcast.py           broadcast, delayed_broadcast, drop_player
-  routes.py              GET /  (the only HTTP route — everything else is /ws)
-  ws.py                  @app.websocket("/ws") — Session class plus one
-                         handle_<action>() per action, dispatched via ACTIONS dict
+  game.py                pure game logic — apply_roll, next_target, state_msg,
+                         sanitize_name, reconnect-token mint/verify
+  broadcast.py           send, broadcast (→ fanout), delayed_broadcast,
+                         advance_round, drop_player/do_drop, pause_timeout
+  routes.py              GET / + bearer-gated /metrics and /stats/*
+  ws.py                  @app.websocket("/ws") — Session, security guards
+                         (origin/size/caps/rate-limit), handle_<action>() dispatch
 
 static/
   index.html             screens + winner-overlay markup, loads CSS and main.js.
