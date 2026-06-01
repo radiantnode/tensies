@@ -7,6 +7,7 @@ import { state } from './state.js';
 import { setError, setJoinError } from './util.js';
 import { showScreen, showLoading, leaveLoading } from './transitions.js';
 import { myDiceKey } from './dice.js';
+import { showPaused, hidePaused, pausedText, hideWinner, RESUME_CLOSE_DELAY_MS } from './overlays.js';
 
 function wsUrl() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -124,16 +125,44 @@ export function showFor(msg) {
   }
   if (!msg.started) {
     leaveLoading(() => {
+      hidePaused();
       showScreen('lobby');
       document.getElementById('lobby').render(msg);
     });
     return;
   }
-  // Paused (non-host wait overlay / host board) and disconnect-waiting branches
-  // land with the pause and reconnect views; for now every started frame routes
-  // to the board.
+
+  // Paused. Non-host: keep the board under a wait dialog so dice stay in place.
+  // Host: stay on the board with the menu open (countdown + resume toggle).
+  if (msg.paused) {
+    const game = document.getElementById('game');
+    if (msg.host !== state.myId) {
+      hideWinner();
+      leaveLoading(() => { showScreen('game'); game.render(msg); showPaused(pausedText(msg)); });
+      return;
+    }
+    // A host returning from reconnect lands on #loading — pop the menu open on
+    // the swap so the resume toggle is right there.
+    const fromLoading = document.getElementById('loading').classList.contains('active');
+    leaveLoading(() => {
+      hideWinner();
+      hidePaused();
+      showScreen('game');
+      game.render(msg);
+      if (fromLoading) game.openMenu();
+    });
+    return;
+  }
+
+  // (disconnect-waiting branch lands with the reconnect view)
   leaveLoading(() => {
+    const game = document.getElementById('game');
+    hideWinner();
     showScreen('game');
-    document.getElementById('game').render(msg);
+    game.render(msg);
+    // Just resumed: drop the pause overlay after the toggle's slide-off.
+    const overlay = document.getElementById('pause-overlay');
+    if (overlay?.open) setTimeout(hidePaused, RESUME_CLOSE_DELAY_MS);
+    else hidePaused();
   });
 }

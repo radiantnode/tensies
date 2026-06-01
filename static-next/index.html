@@ -186,6 +186,8 @@
   <link rel="preload" href="/static/css/game.css"        as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="/static/css/players-bar.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="/static/css/dice.css"        as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="/static/css/menu.css"        as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="/static/css/overlays.css"    as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript>
     <link rel="stylesheet" href="/static/css/controls.css">
     <link rel="stylesheet" href="/static/css/shell.css">
@@ -194,6 +196,8 @@
     <link rel="stylesheet" href="/static/css/game.css">
     <link rel="stylesheet" href="/static/css/players-bar.css">
     <link rel="stylesheet" href="/static/css/dice.css">
+    <link rel="stylesheet" href="/static/css/menu.css">
+    <link rel="stylesheet" href="/static/css/overlays.css">
   </noscript>
 
   <!-- Preload the whole module graph so it fetches in parallel instead of
@@ -243,6 +247,15 @@
 </main>
 
 <nav-menu></nav-menu>
+
+<!-- Non-host wait screen while the game is paused. Body-level <dialog> so the
+     board stays live underneath; visually mirrors #loading. -->
+<dialog id="pause-overlay" class="overlay-dialog" aria-labelledby="pause-overlay-msg">
+  <img src="/static/logo.svg" class="logo-mark" alt="">
+  <h1 class="logo">TENSIES</h1>
+  <div class="loading-bar" aria-hidden="true"><div class="loading-bar-fill"></div></div>
+  <p id="pause-overlay-msg"></p>
+</dialog>
 
 </body>
 </html>
