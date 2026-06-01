@@ -14,6 +14,8 @@ const MAX_DIFF = Number(process.env.PIXEL_TOLERANCE || 0);
 
 module.exports = defineConfig({
   testDir: __dirname,
+  // *.example.spec.js are copy-me templates, not runnable specs.
+  testIgnore: '**/*.example.spec.js',
   snapshotDir: path.join(__dirname, 'baselines'),
   outputDir: path.join(__dirname, 'results'),
   // <state-name>-<project>.png — stable across machines, one file per viewport.
@@ -29,7 +31,13 @@ module.exports = defineConfig({
     locale: 'en-US',
     colorScheme: 'light',
     // Belt-and-suspenders determinism; per-test seedPage() also runs.
-    launchOptions: { args: ['--font-render-hinting=none', '--disable-skia-runtime-opts'] },
+    // PW_EXECUTABLE_PATH is an escape hatch for sandboxes that cannot download
+    // browsers — point it at an already-installed Chromium of a matching
+    // Chromium major (the wire protocol is stable across adjacent builds).
+    launchOptions: {
+      args: ['--font-render-hinting=none', '--disable-skia-runtime-opts'],
+      executablePath: process.env.PW_EXECUTABLE_PATH || undefined,
+    },
   },
   expect: {
     toHaveScreenshot: {
