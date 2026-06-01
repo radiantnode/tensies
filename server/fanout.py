@@ -51,20 +51,26 @@ async def publish(code: str, message: dict, exclude: str | None = None) -> None:
 
 
 async def _run() -> None:
-    try:
-        async for m in _pubsub.listen():
-            if m.get("type") != "pmessage":
-                continue
-            code = m["channel"][len(CHANNEL_PREFIX):]
-            try:
-                env = json.loads(m["data"])
-            except (ValueError, TypeError):
-                continue
-            await _deliver(code, env.get("msg"), env.get("exclude"))
-    except asyncio.CancelledError:
-        return
-    except Exception:
-        log.exception("fanout subscriber loop error")
+    # Poll with get_message(timeout) rather than the listen() async-iterator:
+    # listen() leaves a blocking read with no timeout, which redis-py surfaces
+    # as a spurious TimeoutError on idle. get_message returns None on idle.
+    while True:
+        try:
+            m = await _pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+        except asyncio.CancelledError:
+            return
+        except Exception:
+            log.exception("fanout get_message error")
+            await asyncio.sleep(0.5)
+            continue
+        if not m or m.get("type") != "pmessage":
+            continue
+        code = m["channel"][len(CHANNEL_PREFIX):]
+        try:
+            env = json.loads(m["data"])
+        except (ValueError, TypeError):
+            continue
+        await _deliver(code, env.get("msg"), env.get("exclude"))
 
 
 async def _deliver(code: str, message: dict, exclude: str | None) -> None:
