@@ -187,21 +187,33 @@ SMS / Beer links.
   so it verifies the panel chrome without false-diffing every changelog update.
 - **Courtesy screenshots must wait for animations; verification already does.**
   `toHaveScreenshot` (verify/baseline) auto-retries until two consecutive frames
-  match, so it waits out the loading↔landing view-transition morph and captures
-  the settled state. A raw `page.screenshot()` — what you'd use to *show the user*
-  a view — has NO such wait and will fire mid-morph (e.g. the TENSIES logo still
-  sliding up from its loading position, the tagline mid-fade). Before any manual
-  screenshot you send, await every animation including the `::view-transition`
-  pseudo, then `settle()`:
+  match, so it waits out the loading↔landing/screen view-transition morph and
+  captures the settled state. A raw `page.screenshot()` — what you'd use to *show
+  the user* a view — has NO such wait and will fire mid-morph (e.g. the loading
+  screen cross-fading into join). A **single** `document.getAnimations()` read is
+  NOT enough: if the capture trigger fires at the *start* of a transition (e.g.
+  the join-error text is set synchronously as `showScreen('join')` begins), the
+  view-transition pseudo animations haven't registered yet, so `getAnimations()`
+  returns nothing and you still shoot mid-cross-fade. Let the transition
+  **register** (a couple of rAFs) before awaiting, and loop for chained ones:
   ```js
-  await page.waitForSelector('#landing.active');
-  await page.evaluate(() => Promise.all(
-    document.getAnimations().map(a => a.finished.catch(() => {}))));  // incl. view transition
+  async function transitionDone(page) {
+    await page.evaluate(async () => {
+      const twoFrames = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      for (let i = 0; i < 3; i++) {                       // register → await → repeat
+        await twoFrames();
+        await Promise.all(document.getAnimations().map(a => a.finished.catch(() => {})));
+      }
+    });
+  }
+  // ... reach the state, then:
+  await transitionDone(page);
   await settle(page);
+  // sanity: document.getAnimations().filter(a => a.playState==='running').length === 0
   await page.screenshot({ path: out });
   ```
   The verified baseline is unaffected by this — only the image you hand the user
-  is, and a mid-morph image makes a correct rewrite look wrong.
+  is, and a mid-transition image makes a correct rewrite look wrong.
 
 ## Observing a real game (discovery)
 
