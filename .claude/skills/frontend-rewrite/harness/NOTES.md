@@ -185,6 +185,23 @@ SMS / Beer links.
 - **Volatile content gets masked.** `nav-menu-changelog` masks
   `.menu-changelog-body` (regenerated prose) via `toHaveScreenshot({mask:[…]})`,
   so it verifies the panel chrome without false-diffing every changelog update.
+- **Courtesy screenshots must wait for animations; verification already does.**
+  `toHaveScreenshot` (verify/baseline) auto-retries until two consecutive frames
+  match, so it waits out the loading↔landing view-transition morph and captures
+  the settled state. A raw `page.screenshot()` — what you'd use to *show the user*
+  a view — has NO such wait and will fire mid-morph (e.g. the TENSIES logo still
+  sliding up from its loading position, the tagline mid-fade). Before any manual
+  screenshot you send, await every animation including the `::view-transition`
+  pseudo, then `settle()`:
+  ```js
+  await page.waitForSelector('#landing.active');
+  await page.evaluate(() => Promise.all(
+    document.getAnimations().map(a => a.finished.catch(() => {}))));  // incl. view transition
+  await settle(page);
+  await page.screenshot({ path: out });
+  ```
+  The verified baseline is unaffected by this — only the image you hand the user
+  is, and a mid-morph image makes a correct rewrite look wrong.
 
 ## Observing a real game (discovery)
 
