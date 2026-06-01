@@ -258,5 +258,18 @@
   <p id="pause-overlay-msg"></p>
 </dialog>
 
+<!-- Round winner/loser celebration. Body-level <dialog> over the live board. -->
+<dialog id="winner-overlay" class="overlay-dialog" aria-label="Round winner">
+  <div class="winner-box">
+    <div class="winner-banner"><span class="winner-banner-label">Round <span class="winner-round-pill" id="winner-round"></span> <span id="winner-banner-suffix">Winner</span></span></div>
+    <img src="/static/logo-winner.svg" class="winner-logo" alt="" aria-hidden="true">
+    <p class="winner-name" id="winner-name"></p>
+  </div>
+  <div class="winner-timer" aria-hidden="true">
+    <div class="winner-timer-bar"><div class="winner-timer-fill" id="winner-timer-fill"></div></div>
+    <p class="winner-timer-secs" id="winner-timer-secs"></p>
+  </div>
+</dialog>
+
 </body>
 </html>

@@ -7,7 +7,8 @@ import { state } from './state.js';
 import { setError, setJoinError } from './util.js';
 import { showScreen, showLoading, leaveLoading } from './transitions.js';
 import { myDiceKey } from './dice.js';
-import { showPaused, hidePaused, pausedText, hideWinner, RESUME_CLOSE_DELAY_MS } from './overlays.js';
+import { renderPlayersBar, renderMyArea } from './game-render.js';
+import { showPaused, hidePaused, pausedText, hideWinner, showWinner, RESUME_CLOSE_DELAY_MS } from './overlays.js';
 
 function wsUrl() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -85,11 +86,32 @@ function handleMessage(msg) {
         showFor(msg);
       }
       return;
-    case 'round_won':
-      // Winner overlay + the mid-roll win choreography land with the winner
-      // view; for now route the final board.
-      showFor(msg);
+    case 'round_won': {
+      const me = msg.players[state.myId];
+      const myName = me ? me.name : (msg.winner_name || '?');
+      const iWon = !!me && me.dice.every((d) => d === msg.target);
+      if (state.awaitingAck && myDiceKey(msg) !== state.lastMyDiceKey) {
+        // Mid-roll win: animate my reveal first, then tryReveal shows the overlay.
+        state.pendingRollState = msg;
+        state.pendingWinName = myName;
+        state.pendingWinTarget = msg.target;
+        state.pendingWinRound = msg.round_num;
+        state.pendingWinIsLoser = !iWon;
+      } else {
+        state.pendingRollTimeouts.forEach(clearTimeout);
+        state.pendingRollTimeouts = [];
+        state.awaitingAck = false;
+        state.rolling = false;
+        state.pendingRollState = null;
+        state.currentState = msg;
+        state.lastMyDiceKey = myDiceKey(msg);
+        showScreen('game');
+        renderPlayersBar(msg);
+        renderMyArea(msg);
+        showWinner(myName, msg.target, msg.round_num, !iWon);
+      }
       return;
+    }
     case 'error':
       handleError(msg);
       return;
