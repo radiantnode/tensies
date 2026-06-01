@@ -44,6 +44,17 @@ no build step) — the user chose this for smallest payload and fastest load, an
 it matches the existing `<player-card>` / `<round-target>` custom elements.
 Hold to these throughout:
 
+**Architecture (decided in build):** every screen is its own custom element
+(`<loading-screen>`, `<landing-screen>`, `<join-screen>`, `<lobby-screen>`,
+`<game-screen>`, plus `<nav-menu>`, overlays, etc.) rendering into **light DOM**
+— the host element *is* the `#id.screen` so the existing global CSS applies
+unchanged. Light DOM (not shadow) is required here because the design leans on
+cross-screen selectors (`#landing .game-menu-btn`, `body:has(#nav-menu.open) …`)
+and the loading↔landing `view-transition-name` morph, none of which survive a
+shadow boundary. `index.html` is a thin shell that just lists the components;
+each component owns its own markup, events, and behaviour. The shared top bar is
+one `<app-header>`, not copied per screen.
+
 - **Best practices, everywhere.** Semantic HTML, accessible roles, modern CSS
   (custom properties, logical properties, container/media queries as needed),
   ES modules.
