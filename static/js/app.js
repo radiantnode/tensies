@@ -6,6 +6,7 @@ import './components/join-screen.js';
 import './components/lobby-screen.js';
 import './components/game-screen.js';
 import './components/nav-menu.js';
+import './touch.js'; // iOS double-tap zoom prevention (side-effect)
 
 import { makeName } from './names.js';
 import { bootstrap } from './router.js';
