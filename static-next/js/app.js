@@ -1,7 +1,6 @@
 // Entry point: register the screen components, set the shared random-name
-// placeholder, and bootstrap the router. Screen behaviour lives in the
-// components themselves; this file is just composition + app-level glue.
-import './components/loading-screen.js';
+// placeholder, and bootstrap the router. The loading screen is inline HTML in
+// index.html (paints before this module runs); the rest are components.
 import './components/landing-screen.js';
 import './components/join-screen.js';
 import './components/nav-menu.js';

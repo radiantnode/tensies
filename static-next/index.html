@@ -15,10 +15,11 @@
   <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/static/logo.svg">
 
-  <!-- Preload first-paint critical resources before the loading bar animates. -->
-  <link rel="preload" href="/static/fonts/inter-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+  <!-- First-paint critical resources: the loading screen below is plain HTML, so
+       it renders as soon as these land — no JavaScript in the path. -->
+  <link rel="preload" href="/static/logo.svg" as="image">
   <link rel="preload" href="/static/bar-top.png" as="image">
-  <link rel="modulepreload" href="/static/js/app.js">
+  <link rel="preload" href="/static/fonts/inter-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 
   <link rel="stylesheet" href="/static/css/tokens.css">
   <link rel="stylesheet" href="/static/css/base.css">
@@ -26,14 +27,27 @@
   <link rel="stylesheet" href="/static/css/loading.css">
   <link rel="stylesheet" href="/static/css/landing.css">
 
+  <!-- The app (screen components + router) hydrates after first paint. -->
+  <link rel="modulepreload" href="/static/js/app.js">
   <script type="module" src="/static/js/app.js"></script>
 </head>
 <body>
 
 <main>
-  <loading-screen></loading-screen>
+
+  <!-- Loading screen is inline HTML (not a component) so it paints immediately,
+       before app.js runs. The app swaps it for landing/join/lobby/game once the
+       router boots. -->
+  <section id="loading" class="screen active" aria-labelledby="loading-msg">
+    <img src="/static/logo.svg" class="logo-mark" alt="">
+    <h1 class="logo">TENSIES</h1>
+    <div class="loading-bar" aria-hidden="true"><div class="loading-bar-fill"></div></div>
+    <p id="loading-msg">Loading…</p>
+  </section>
+
   <landing-screen></landing-screen>
   <join-screen></join-screen>
+
 </main>
 
 <nav-menu></nav-menu>
