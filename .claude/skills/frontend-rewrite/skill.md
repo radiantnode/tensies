@@ -67,7 +67,16 @@ one `<app-header>`, not copied per screen.
   scripts, no heavy dependencies. Inline only what must paint first.
 - **Preload everything.** `<link rel="preload">` / `modulepreload` for fonts,
   CSS, and the JS the first paint needs; warm the rest so view transitions are
-  instant.
+  instant. Preload the **whole module graph** (not just the entry) so it fetches
+  in parallel instead of waterfalling.
+- **Render once for static screens, update in place for dynamic ones.** A
+  component's `connectedCallback` builds its markup once (guard re-entry). For
+  state-driven views (lobby list, players bar, game board) do NOT re-`innerHTML`
+  on every WS frame — that re-parses HTML and resets dice scatter, focus, and
+  in-flight animations, and is slow at ~60fps. Reuse keyed elements (a
+  `<player-card>` per player id), fingerprint with `myDiceKey()` to skip
+  needless renders, and event-delegate rebuilt controls (the roll button). Use
+  `<template>.cloneNode(true)` over `innerHTML` for repeated nodes.
 - **Smooth transitions.** Use the View Transitions API (already in use) for
   screen changes; respect `prefers-reduced-motion`.
 - **Permalinkable pages.** Every view has a real URL via the History API; deep

@@ -174,7 +174,19 @@
     <link rel="stylesheet" href="/static/css/landing.css">
   </noscript>
 
+  <!-- Preload the whole module graph so it fetches in parallel instead of
+       waterfalling app -> router/net -> components. -->
   <link rel="modulepreload" href="/static/js/app.js">
+  <link rel="modulepreload" href="/static/js/state.js">
+  <link rel="modulepreload" href="/static/js/util.js">
+  <link rel="modulepreload" href="/static/js/names.js">
+  <link rel="modulepreload" href="/static/js/transitions.js">
+  <link rel="modulepreload" href="/static/js/router.js">
+  <link rel="modulepreload" href="/static/js/net.js">
+  <link rel="modulepreload" href="/static/js/components/app-header.js">
+  <link rel="modulepreload" href="/static/js/components/landing-screen.js">
+  <link rel="modulepreload" href="/static/js/components/join-screen.js">
+  <link rel="modulepreload" href="/static/js/components/nav-menu.js">
   <script type="module" src="/static/js/app.js"></script>
 </head>
 <body>
