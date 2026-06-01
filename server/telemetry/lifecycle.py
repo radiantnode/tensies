@@ -2,6 +2,7 @@
 import asyncio
 import logging
 
+from server.config import TELEMETRY_ENABLED
 from server.telemetry import live, metrics, store, writer
 from server.telemetry.bus import bus
 
@@ -9,20 +10,25 @@ log = logging.getLogger("tensies.telemetry")
 
 _depth_task: asyncio.Task | None = None
 _partition_task: asyncio.Task | None = None
+_enabled = False
 
 PARTITION_CHECK_INTERVAL_S = 6 * 60 * 60  # every 6 hours
 
 
 async def start() -> None:
+    # Redis is required; the Postgres/Grafana telemetry stack is optional.
+    # When disabled, emit() still runs (its bounded queues simply drain to
+    # nowhere) and Prometheus /metrics still works in-process.
+    global _enabled
+    if not TELEMETRY_ENABLED:
+        log.info("telemetry disabled (TELEMETRY_ENABLED=0) — /metrics still served")
+        return
+    _enabled = True
     await store.init()
-    # In-memory game state doesn't survive an app restart, so any live_*
-    # rows we see at boot are orphans from a previous process. Truncate
-    # them so dashboards don't show ghost games until the 30 s grace
-    # eventually times them out.
-    async with store.pool().acquire() as con:
-        await con.execute(
-            "TRUNCATE live_games, live_players, live_sessions"
-        )
+    # NOTE: this used to TRUNCATE live_* on boot, assuming game state died with
+    # the process. State now lives in Redis and is shared by every instance, so
+    # a boot-time truncate would wipe peers' live rows. Stale rows age out via
+    # the telemetry grace instead.
     await writer.start()
     await live.start()
     global _depth_task, _partition_task
@@ -32,6 +38,8 @@ async def start() -> None:
 
 
 async def stop() -> None:
+    if not _enabled:
+        return
     for t in (_depth_task, _partition_task):
         if t is not None:
             t.cancel()

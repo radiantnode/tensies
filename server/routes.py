@@ -1,12 +1,30 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import HTMLResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from .assets import build_index_html
+from .config import METRICS_TOKEN, STATS_TOKEN, TELEMETRY_ENABLED
 
 router = APIRouter()
 
 _index_html = build_index_html()
+
+
+def _bearer_guard(expected: str | None):
+    """Dependency factory (audit M2). When `expected` is set, require
+    `Authorization: Bearer <expected>`. When unset, the endpoint stays open —
+    rely on a network ACL (the prod compose keeps these off the public net)."""
+    async def _dep(authorization: str | None = Header(default=None)) -> None:
+        if expected is None:
+            return
+        if authorization != f"Bearer {expected}":
+            raise HTTPException(status_code=401, detail="unauthorized")
+    return _dep
+
+
+def _require_telemetry() -> None:
+    if not TELEMETRY_ENABLED:
+        raise HTTPException(status_code=503, detail="telemetry disabled")
 
 
 @router.get("/")
@@ -14,13 +32,14 @@ async def root() -> HTMLResponse:
     return HTMLResponse(_index_html)
 
 
-@router.get("/metrics")
+@router.get("/metrics", dependencies=[Depends(_bearer_guard(METRICS_TOKEN))])
 async def metrics_endpoint() -> Response:
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
-@router.get("/stats/leaderboard")
+@router.get("/stats/leaderboard", dependencies=[Depends(_bearer_guard(STATS_TOKEN))])
 async def stats_leaderboard(limit: int = 25) -> dict:
+    _require_telemetry()
     """Top players by wins. Cheap query against the player_stats rollup."""
     from server.telemetry import store
     limit = max(1, min(limit, 100))
@@ -38,9 +57,10 @@ async def stats_leaderboard(limit: int = 25) -> dict:
     return {"leaderboard": [dict(r) for r in rows]}
 
 
-@router.get("/stats/player/{user_id}")
+@router.get("/stats/player/{user_id}", dependencies=[Depends(_bearer_guard(STATS_TOKEN))])
 async def stats_player(user_id: str) -> dict:
     """Lifetime stats for one player plus their recent rounds."""
+    _require_telemetry()
     from server.telemetry import store
     async with store.pool().acquire() as con:
         row = await con.fetchrow(
@@ -65,9 +85,10 @@ async def stats_player(user_id: str) -> dict:
     }
 
 
-@router.get("/stats/game/{game_code}")
+@router.get("/stats/game/{game_code}", dependencies=[Depends(_bearer_guard(STATS_TOKEN))])
 async def stats_game(game_code: str) -> dict:
     """Summary of one game with per-round and per-player breakdowns."""
+    _require_telemetry()
     from server.telemetry import store
     code = game_code.upper().strip()
     async with store.pool().acquire() as con:

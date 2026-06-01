@@ -1,17 +1,15 @@
 import hashlib
 import random
+import re
 import secrets
-import string
 import time
-
-from .state import games
 
 
 def make_reconnect_token() -> tuple[str, str]:
     """Mint an opaque reconnect token; return (raw_token, sha256_hex).
 
     The raw token is sent only to the owning player. We store the hash on
-    the player dict so a leaked game snapshot (which carries pids) can't be
+    the player record so a leaked game snapshot (which carries pids) can't be
     used to hijack a disconnected slot — reconnect requires the raw token.
     """
     token = secrets.token_urlsafe(32)
@@ -26,62 +24,22 @@ def verify_token(token_hash: str | None, token: str) -> bool:
     return secrets.compare_digest(presented, token_hash)
 
 
-def make_code() -> str:
-    while True:
-        code = "".join(random.choices(string.ascii_uppercase, k=5))
-        if code not in games:
-            return code
+# HTML-significant + control characters. Player names flow into telemetry and
+# are rendered on Grafana dashboards (which run with HTML sanitization off), so
+# we neutralise markup at intake — defense-in-depth for the stored-XSS path
+# (audit M1). The client already renders names via textContent.
+_UNSAFE_NAME = re.compile(r"""[<>&"'`\x00-\x1f\x7f]""")
+
+
+def sanitize_name(raw: str) -> str:
+    """Strip markup/control chars, collapse whitespace, cap at 20 chars."""
+    cleaned = _UNSAFE_NAME.sub("", raw or "")
+    cleaned = " ".join(cleaned.split())
+    return cleaned[:20]
 
 
 def fresh_dice() -> list[int]:
     return [random.randint(1, 6) for _ in range(10)]
-
-
-def fresh_player(name: str) -> dict:
-    return {
-        "name": name,
-        "dice": [],
-        "locked": [False] * 10,
-        "wins": 0,
-        "has_rolled": False,
-        "last_roll": 0.0,
-        "roll_count": 0,
-        "disconnected": False,
-        "token_hash": None,
-    }
-
-
-def deal_round(game: dict) -> None:
-    """Reset every player's dice for a new round and stamp the round start."""
-    for p in game["players"].values():
-        p["dice"] = fresh_dice()
-        p["locked"] = [False] * 10
-        p["has_rolled"] = False
-        p["last_roll"] = 0.0
-        p["roll_count"] = 0
-    game["round_start_mono"] = time.monotonic()
-    game["round_seq"] = 0
-
-
-def new_game(host_id: str, host_name: str) -> tuple[str, dict]:
-    code = make_code()
-    games[code] = {
-        "target": 1,
-        "round_num": 1,
-        "started": False,
-        "round_over": False,
-        "paused": False,
-        "host": host_id,
-        "players": {host_id: fresh_player(host_name)},
-        # Telemetry bookkeeping — monotonic timers + counters. Consumed by
-        # ws.py / broadcast.py when emitting events.
-        "created_mono": time.monotonic(),
-        "round_start_mono": None,
-        "round_seq": 0,
-        "total_rolls": 0,
-        "round_count": 0,
-    }
-    return code, games[code]
 
 
 def next_target(t: int) -> int:
@@ -92,9 +50,9 @@ def next_target(t: int) -> int:
 def apply_roll(player: dict, target: int) -> dict:
     """Re-randomise unlocked dice, then lock any matching `target`.
 
-    Returns the per-roll detail dict the roll handler consumes — a single
-    source of truth for `matched`, `newly_locked`, and full before/after
-    snapshots used for telemetry.
+    Pure: mutates the passed-in player dict only. Returns the per-roll detail
+    dict the roll handler consumes — a single source of truth for `matched`,
+    `newly_locked`, and full before/after snapshots used for telemetry.
     """
     dice = player["dice"]
     locked = player["locked"]
@@ -149,8 +107,9 @@ def state_msg(game: dict, code: str, msg_type: str = "state", **extra) -> dict:
         **extra,
     }
     # While paused, hand the host a live countdown to the abandonment cap.
-    if game.get("paused") and game.get("pause_deadline_mono") is not None:
+    # pause_deadline_ms is wall-clock (cross-instance comparable).
+    if game.get("paused") and game.get("pause_deadline_ms") is not None:
         msg["pause_remaining_ms"] = max(
-            0, int((game["pause_deadline_mono"] - time.monotonic()) * 1000)
+            0, int(game["pause_deadline_ms"] - time.time() * 1000)
         )
     return msg

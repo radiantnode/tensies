@@ -5,18 +5,22 @@ import uuid
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from . import gamestore, state
 from .broadcast import advance_round, broadcast, delayed_broadcast, drop_player, pause_timeout, send
-from .config import MIN_ROLL_INTERVAL, PAUSE_MAX, log
-from .game import (
-    apply_roll,
-    deal_round,
-    fresh_player,
-    make_reconnect_token,
-    new_game,
-    state_msg,
-    verify_token,
+from .config import (
+    ALLOWED_ORIGINS,
+    CREATE_RATE_MAX,
+    CREATE_RATE_WINDOW,
+    JOIN_RATE_MAX,
+    JOIN_RATE_WINDOW,
+    MAX_CONNECTIONS_PER_IP,
+    MAX_WS_MESSAGE_BYTES,
+    MIN_ROLL_INTERVAL,
+    PAUSE_MAX,
+    log,
 )
-from .state import connections, games, sessions
+from .game import apply_roll, make_reconnect_token, sanitize_name, state_msg, verify_token
+from .state import connections, sessions
 from .telemetry import emit, metrics
 from .telemetry.pinger import Pinger
 
@@ -26,7 +30,7 @@ router = APIRouter()
 class Session:
     """Mutable per-connection state shared between the receive loop and action handlers."""
     __slots__ = (
-        "ws", "pid", "code", "name",
+        "ws", "pid", "code", "name", "ip",
         # Telemetry meta — populated on connect, used by send() and the
         # disconnect finally block to attribute counters and emit lifecycle
         # events. Cheap (one allocation per WS), no global maps required.
@@ -43,6 +47,7 @@ class Session:
         self.pid = pid
         self.code: str | None = None
         self.name: str = "?"
+        self.ip: str = ws.client.host if ws.client else "?"
         self.session_id = str(uuid.uuid4())
         self.peer = f"{ws.client.host}:{ws.client.port}" if ws.client else None
         self.user_agent = ws.headers.get("user-agent", "")
@@ -74,79 +79,96 @@ def _ensure_session_started(session: Session) -> None:
 
 
 async def handle_create(session: Session, msg: dict) -> None:
-    name = (msg.get("name") or "Player")[:20].strip() or "Player"
+    name = sanitize_name(msg.get("name") or "Player") or "Player"
     session.name = name
-    code, game = new_game(session.pid, name)
+    if not await gamestore.rate_allow("create", session.ip, CREATE_RATE_MAX, CREATE_RATE_WINDOW):
+        log.warning("create   ip=%s  RATE LIMIT", session.ip)
+        metrics.rate_limits_total.inc()
+        await _error(session.ws, "Too many games created — slow down")
+        return
     token, token_hash = make_reconnect_token()
-    game["players"][session.pid]["token_hash"] = token_hash
+    code = await gamestore.create_game(session.pid, name, token_hash)
+    if code is None:
+        await _error(session.ws, "Server is at capacity — try again shortly")
+        return
     connections[code] = {session.pid: session.ws}
     session.code = code
     session.games_joined += 1
     _ensure_session_started(session)
-    metrics.games_active.inc()
     log.info("create   game=%s  host=%s", code, name)
     emit("game_created", game_code=code, user_id=session.pid, name=name,
          session_id=session.session_id)
     emit("player_joined", game_code=code, user_id=session.pid, name=name,
          session_id=session.session_id, player_count=1)
     await send(session.ws, {"type": "reconnect_token", "token": token})
-    await broadcast(code, state_msg(game, code))
+    snap = await gamestore.snapshot(code)
+    if snap:
+        await broadcast(code, state_msg(snap, code))
 
 
 async def handle_join(session: Session, msg: dict) -> None:
     join_code = (msg.get("code") or "").upper().strip()
-    name = (msg.get("name") or "Player")[:20].strip() or "Player"
+    name = sanitize_name(msg.get("name") or "Player") or "Player"
     session.name = name
-    if join_code not in games:
+    if not await gamestore.rate_allow("join", session.ip, JOIN_RATE_MAX, JOIN_RATE_WINDOW):
+        log.warning("join     ip=%s  RATE LIMIT", session.ip)
+        metrics.rate_limits_total.inc()
+        await _error(session.ws, "Too many attempts — slow down")
+        return
+    token, token_hash = make_reconnect_token()
+    res = await gamestore.add_player(join_code, session.pid, name, token_hash)
+    if res == -1:
         log.info("join     game=%s  player=%s  GAME NOT FOUND", join_code, name)
         await _error(session.ws, "Game not found")
         return
-    game = games[join_code]
-    if game["started"]:
+    if res == -2:
         log.info("join     game=%s  player=%s  ALREADY STARTED", join_code, name)
         await _error(session.ws, "Game already in progress")
         return
+    if res == -3:
+        log.info("join     game=%s  player=%s  FULL", join_code, name)
+        await _error(session.ws, "Game is full")
+        return
     session.code = join_code
-    token, token_hash = make_reconnect_token()
-    game["players"][session.pid] = fresh_player(name)
-    game["players"][session.pid]["token_hash"] = token_hash
-    connections[join_code][session.pid] = session.ws
+    connections.setdefault(join_code, {})[session.pid] = session.ws
     session.games_joined += 1
     _ensure_session_started(session)
-    log.info("join     game=%s  player=%s  players=%d", join_code, name, len(game["players"]))
+    log.info("join     game=%s  player=%s  players=%d", join_code, name, res)
     emit("player_joined", game_code=join_code, user_id=session.pid, name=name,
-         session_id=session.session_id, player_count=len(game["players"]))
+         session_id=session.session_id, player_count=res)
     await send(session.ws, {"type": "reconnect_token", "token": token})
-    await broadcast(join_code, state_msg(game, join_code))
+    snap = await gamestore.snapshot(join_code)
+    if snap:
+        await broadcast(join_code, state_msg(snap, join_code))
 
 
 async def handle_start(session: Session, msg: dict) -> None:
     code = session.code
-    if not code or code not in games:
+    if not code:
         return
-    game = games[code]
-    if game["host"] != session.pid:
+    meta = await gamestore.get_meta(code)
+    if meta is None or meta["host"] != session.pid or meta["started"]:
         return
-    game["started"] = True
-    deal_round(game)
-    game["round_count"] = 1
-    log.info("start    game=%s  players=%d  target=%d", code, len(game["players"]), game["target"])
+    await gamestore.start_game(code)
+    snap = await gamestore.snapshot(code)
+    if snap is None:
+        return
+    pc = len(snap["players"])
+    log.info("start    game=%s  players=%d  target=%d", code, pc, snap["target"])
     metrics.games_started_total.inc()
-    metrics.players_per_game.observe(len(game["players"]))
-    metrics.rounds_started_total.labels(target=str(game["target"])).inc()
-    emit("game_started", game_code=code, target=game["target"],
-         player_count=len(game["players"]))
-    emit("round_started", game_code=code, round_num=game["round_num"],
-         target=game["target"])
-    await broadcast(code, state_msg(game, code))
+    metrics.players_per_game.observe(pc)
+    metrics.rounds_started_total.labels(target=str(snap["target"])).inc()
+    emit("game_started", game_code=code, target=snap["target"], player_count=pc)
+    emit("round_started", game_code=code, round_num=snap["round_num"],
+         target=snap["target"])
+    await broadcast(code, state_msg(snap, code))
 
 
 async def handle_reconnect(session: Session, msg: dict) -> None:
     old_pid = msg.get("player_id", "").strip()
     join_code = (msg.get("game_code") or "").upper().strip()
     token = msg.get("token", "")
-    game = games.get(join_code)
-    player = game["players"].get(old_pid) if game else None
+    player = await gamestore.get_player(join_code, old_pid)
     # A leaked snapshot reveals every pid + the host pid, so pid alone can't
     # be the credential. Require the private reconnect token (constant-time
     # compared) and that the slot is actually awaiting reconnect.
@@ -155,53 +177,67 @@ async def handle_reconnect(session: Session, msg: dict) -> None:
             or not verify_token(player.get("token_hash"), token)):
         await _error(session.ws, "Game not found")
         return
-    task = player.pop("disconnect_task", None)
-    if task:
-        task.cancel()
+    # Cancel a local grace task if this instance owns it. If the task lives on
+    # another instance, mark_connected below makes its drop a no-op anyway.
+    t = state.drop_tasks.pop((join_code, old_pid), None)
+    if t:
+        t.cancel()
     session.pid = old_pid
     session.code = join_code
     session.name = player["name"]
-    player["disconnected"] = False
-    connections[join_code][old_pid] = session.ws
+    await gamestore.mark_connected(join_code, old_pid)
+    connections.setdefault(join_code, {})[old_pid] = session.ws
     _ensure_session_started(session)
     metrics.reconnects_total.inc()
     log.info("reconnect  game=%s  player=%s", join_code, session.name)
     emit("reconnected", game_code=join_code, user_id=session.pid,
          name=session.name, session_id=session.session_id)
-    await broadcast(join_code, state_msg(game, join_code))
+    snap = await gamestore.snapshot(join_code)
+    if snap:
+        await broadcast(join_code, state_msg(snap, join_code))
 
 
 async def handle_roll(session: Session, msg: dict) -> None:
     code = session.code
-    if not code or code not in games:
+    if not code:
         return
-    game = games[code]
-    if not game["started"] or game["round_over"]:
+    meta = await gamestore.get_meta(code)
+    if meta is None or not meta["started"] or meta["round_over"]:
         return
-    if game.get("paused"):
+    if meta["paused"]:
         await _error(session.ws, "Game is paused")
         return
-    player = game["players"].get(session.pid)
+    player = await gamestore.get_player(code, session.pid)
     if not player:
         return
 
-    now_mono = time.monotonic()
-    if now_mono - player["last_roll"] < MIN_ROLL_INTERVAL:
+    now_ms = gamestore.now_ms()
+    last_ms = player["last_roll_ms"] or 0
+    if last_ms and (now_ms - last_ms) < MIN_ROLL_INTERVAL * 1000:
         log.warning("roll     game=%s  player=%s  RATE LIMIT", code, session.name)
         metrics.rate_limits_total.inc()
         emit("rate_limited", game_code=code, user_id=session.pid,
-             dt_ms=int((now_mono - player["last_roll"]) * 1000))
+             dt_ms=now_ms - last_ms)
         await _error(session.ws, "Slow down")
         return
-    prev_last_mono = player["last_roll"]
-    player["last_roll"] = now_mono
-    dt_ms = int((now_mono - prev_last_mono) * 1000) if prev_last_mono > 0 else None
+    dt_ms = (now_ms - last_ms) if last_ms else None
 
-    target = game["target"]
-    result = apply_roll(player, target)
+    target = meta["target"]
+    # apply_roll mutates this local copy; only this player ever writes these
+    # fields, so the write-back never contends with other rollers.
+    p = {
+        "dice": player["dice"],
+        "locked": player["locked"],
+        "has_rolled": player["has_rolled"],
+        "roll_count": player["roll_count"],
+    }
+    result = apply_roll(p, target)
     matched = result["matched"]
-    game["total_rolls"] += 1
-    game["round_seq"] += 1
+    await gamestore.set_player_after_roll(
+        code, session.pid, dice=p["dice"], locked=p["locked"],
+        roll_count=p["roll_count"], last_roll_ms=now_ms,
+    )
+    total_rolls, round_seq = await gamestore.incr_counters(code)
     session.rolls += 1
 
     metrics.rolls_total.inc()
@@ -212,13 +248,13 @@ async def handle_roll(session: Session, msg: dict) -> None:
         metrics.dice_value_total.labels(value=str(v)).inc()
 
     emit("roll",
-         game_code=code, round_num=game["round_num"], user_id=session.pid,
+         game_code=code, round_num=meta["round_num"], user_id=session.pid,
          session_id=session.session_id, name=session.name,
-         seq=game["round_seq"],
+         seq=round_seq,
          target=target,
          matched=matched,
          dt_ms=dt_ms,
-         round_roll_num=player["roll_count"],
+         round_roll_num=p["roll_count"],
          newly_locked=result["newly_locked"],
          rolled_values=result["rolled_values"],
          dice_before=result["dice_before"],
@@ -227,78 +263,90 @@ async def handle_roll(session: Session, msg: dict) -> None:
          locked_after=result["locked_after"])
 
     if matched == 10:
-        game["round_over"] = True
-        player["wins"] += 1
-        round_duration_ms = int(
-            (now_mono - (game.get("round_start_mono") or now_mono)) * 1000
-        )
+        # Atomic CAS: only the first finisher across all instances wins.
+        if not await gamestore.try_finish_round(code):
+            snap = await gamestore.snapshot(code)
+            if snap:
+                await send(session.ws, state_msg(snap, code))
+            return
+        wins = await gamestore.incr_wins(code, session.pid)
+        round_start_ms = meta["round_start_ms"] or now_ms
+        round_duration_ms = now_ms - round_start_ms
         log.info("win      game=%s  player=%s  round=%d  wins=%d",
-                 code, session.name, game["round_num"], player["wins"])
+                 code, session.name, meta["round_num"], wins)
         metrics.rounds_completed_total.labels(target=str(target)).inc()
         metrics.round_duration_seconds.observe(round_duration_ms / 1000.0)
-        metrics.rolls_per_round.observe(player["roll_count"])
-        metrics.round_winner_rolls.observe(player["roll_count"])
+        metrics.rolls_per_round.observe(p["roll_count"])
+        metrics.round_winner_rolls.observe(p["roll_count"])
         emit("round_won",
-             game_code=code, round_num=game["round_num"], user_id=session.pid,
+             game_code=code, round_num=meta["round_num"], user_id=session.pid,
              name=session.name, target=target,
-             roll_count=player["roll_count"],
+             roll_count=p["roll_count"],
              duration_ms=round_duration_ms,
-             final_dice=list(player["dice"]))
-        await send(session.ws, state_msg(game, code, "round_won", winner_name=player["name"]))
-        asyncio.create_task(delayed_broadcast(code, session.pid, True, winner_name=player["name"]))
+             final_dice=list(p["dice"]))
+        snap = await gamestore.snapshot(code)
+        if snap:
+            await send(session.ws, state_msg(snap, code, "round_won", winner_name=session.name))
+        asyncio.create_task(delayed_broadcast(code, session.pid, True, winner_name=session.name))
     else:
         log.info("roll     game=%s  player=%s  matched=%d/10  target=%d",
-                 code, session.name, matched, game["target"])
-        await send(session.ws, state_msg(game, code))
+                 code, session.name, matched, target)
+        snap = await gamestore.snapshot(code)
+        if snap:
+            await send(session.ws, state_msg(snap, code))
         asyncio.create_task(delayed_broadcast(code, session.pid, False, None))
 
 
 async def handle_pause(session: Session, msg: dict) -> None:
     """Host-only toggle that freezes/unfreezes rolling for everyone in the game."""
     code = session.code
-    if not code or code not in games:
+    if not code:
         return
-    game = games[code]
-    if game["host"] != session.pid or not game["started"]:
+    meta = await gamestore.get_meta(code)
+    if meta is None or meta["host"] != session.pid or not meta["started"]:
         return
-    game["paused"] = not game.get("paused", False)
-    log.info("pause    game=%s  paused=%s  by=%s", code, game["paused"], session.name)
-    emit("game_paused" if game["paused"] else "game_resumed",
+    new_paused = not meta["paused"]
+    log.info("pause    game=%s  paused=%s  by=%s", code, new_paused, session.name)
+    emit("game_paused" if new_paused else "game_resumed",
          game_code=code, user_id=session.pid, name=session.name,
-         round_num=game["round_num"])
-    if game["paused"]:
+         round_num=meta["round_num"])
+    if new_paused:
         # Hold the game open for up to PAUSE_MAX; drops are suspended meanwhile.
-        game["pause_deadline_mono"] = time.monotonic() + PAUSE_MAX
-        old = game.pop("pause_task", None)
+        deadline_ms = gamestore.now_ms() + int(PAUSE_MAX * 1000)
+        await gamestore.set_paused(code, True, deadline_ms)
+        old = state.pause_tasks.pop(code, None)
         if old:
             old.cancel()
-        game["pause_task"] = asyncio.create_task(pause_timeout(code))
-        await broadcast(code, state_msg(game, code))
+        state.pause_tasks[code] = asyncio.create_task(pause_timeout(code))
+        snap = await gamestore.snapshot(code)
+        if snap:
+            await broadcast(code, state_msg(snap, code))
     else:
-        game.pop("pause_deadline_mono", None)
-        t = game.pop("pause_task", None)
+        await gamestore.set_paused(code, False, None)
+        t = state.pause_tasks.pop(code, None)
         if t:
             t.cancel()
+        snap = await gamestore.snapshot(code)
+        if snap is None:
+            return
         # Players who went offline during the pause were never dropped. Now
         # that we're live again, give each one the normal grace to return.
-        for pid, p in game["players"].items():
-            if p.get("disconnected"):
-                p["disconnect_task"] = asyncio.create_task(drop_player(code, pid))
+        for pid, pl in snap["players"].items():
+            if pl.get("disconnected"):
+                key = (code, pid)
+                old = state.drop_tasks.pop(key, None)
+                if old:
+                    old.cancel()
+                state.drop_tasks[key] = asyncio.create_task(drop_player(code, pid))
         # A round win deferred during the pause (delayed_broadcast) advances now.
-        if game.pop("round_advance_pending", False):
+        if await gamestore.pop_round_advance_pending(code):
             await advance_round(code)  # broadcasts the fresh round itself
         else:
-            await broadcast(code, state_msg(game, code))
+            await broadcast(code, state_msg(snap, code))
 
 
 async def handle_roll_done(session: Session, msg: dict) -> None:
-    code = session.code
-    if not code or code not in games:
-        return
-    player = games[code]["players"].get(session.pid)
-    if player is None:
-        return
-    ev = player.get("ack_event")
+    ev = state.ack_events.get(session.pid)
     if ev is not None:
         ev.set()
 
@@ -320,9 +368,34 @@ ACTIONS = {
 }
 
 
+def _origin_allowed(ws: WebSocket) -> bool:
+    """WS Origin allowlist (audit M3). '*' disables the check (dev default).
+    A missing Origin (non-browser client) is allowed — CSWSH is a browser
+    threat, and browsers always send Origin."""
+    if "*" in ALLOWED_ORIGINS:
+        return True
+    origin = ws.headers.get("origin")
+    if origin is None:
+        return True
+    return origin in ALLOWED_ORIGINS
+
+
 @router.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket) -> None:
+    if not _origin_allowed(ws):
+        log.warning("ws reject  bad origin=%s", ws.headers.get("origin"))
+        await ws.close(code=1008)
+        return
     await ws.accept()
+    ip = ws.client.host if ws.client else "?"
+    # Per-IP connection cap (audit H1) — bound concurrent sockets / pinger tasks.
+    conn_n = await gamestore.conn_incr(ip)
+    if conn_n > MAX_CONNECTIONS_PER_IP:
+        await gamestore.conn_decr(ip)
+        log.warning("ws reject  ip=%s  too many connections (%d)", ip, conn_n)
+        await ws.close(code=1013)  # try again later
+        return
+
     session = Session(ws, str(uuid.uuid4()))
     sessions[id(ws)] = session
 
@@ -344,10 +417,20 @@ async def websocket_endpoint(ws: WebSocket) -> None:
     try:
         while True:
             text = await ws.receive_text()
+            # Reject oversized frames before parsing (audit L2).
+            if len(text) > MAX_WS_MESSAGE_BYTES:
+                log.warning("ws oversize pid=%s  bytes=%d", session.pid[:8], len(text))
+                await _error(ws, "Message too large")
+                continue
             session.msgs_in += 1
             session.bytes_in += len(text)
             metrics.ws_bytes_in_total.inc(len(text))
-            msg = json.loads(text)
+            try:
+                msg = json.loads(text)
+            except (ValueError, TypeError):
+                continue
+            if not isinstance(msg, dict):
+                continue
             action = msg.get("action")
             metrics.ws_messages_in_total.labels(action=str(action or "?")).inc()
             handler = ACTIONS.get(action)
@@ -380,19 +463,24 @@ async def websocket_endpoint(ws: WebSocket) -> None:
                  rolls=session.rolls, games_joined=session.games_joined)
 
         sessions.pop(id(ws), None)
+        await gamestore.conn_decr(ip)
 
         code = session.code
-        if code and code in games:
-            connections[code].pop(session.pid, None)
-            game = games[code]
-            player = game["players"].get(session.pid)
-            if player:
-                player["disconnected"] = True
+        if code:
+            local = connections.get(code)
+            if local:
+                local.pop(session.pid, None)
+            player = await gamestore.get_player(code, session.pid)
+            if player is not None and not player.get("disconnected"):
+                await gamestore.mark_disconnected(code, session.pid)
                 emit("player_left", game_code=code, user_id=session.pid,
                      name=session.name, reason="disconnect",
-                     player_count=len(game["players"]))
-                player["disconnect_task"] = asyncio.create_task(
-                    drop_player(code, session.pid)
-                )
-                if connections.get(code):
-                    await broadcast(code, state_msg(game, code))
+                     player_count=None)
+                key = (code, session.pid)
+                old = state.drop_tasks.pop(key, None)
+                if old:
+                    old.cancel()
+                state.drop_tasks[key] = asyncio.create_task(drop_player(code, session.pid))
+                snap = await gamestore.snapshot(code)
+                if snap:
+                    await broadcast(code, state_msg(snap, code))

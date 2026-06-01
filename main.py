@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
-from server import telemetry
+from server import fanout, gamestore, reaper, telemetry
 from server.assets import build_js_cache
 from server.routes import router as http_router
 from server.ws import router as ws_router
@@ -12,11 +12,20 @@ from server.ws import router as ws_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Redis-backed shared state + cross-instance fan-out come up first (both
+    # required); telemetry (Postgres/Grafana) is optional; the reaper backstops
+    # per-game timers across instances.
+    await gamestore.init()
+    await fanout.start()
     await telemetry.start()
+    await reaper.start()
     try:
         yield
     finally:
+        await reaper.stop()
         await telemetry.stop()
+        await fanout.stop()
+        await gamestore.close()
 
 
 app = FastAPI(lifespan=lifespan)
