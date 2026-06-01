@@ -41,24 +41,7 @@ body:has(#nav-menu.open) #landing .topbar-title-row {
 }
 body:has(#nav-menu.open) #landing .game-title { visibility: visible; }
 
-.logo-mark {
-  width: clamp(110px, 32vw, 160px);
-  height: auto;
-  display: block;
-  margin-bottom: -2.5rem;
-  position: relative;
-  z-index: 2;
-  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.75))
-          drop-shadow(0 0 32px rgba(255, 77, 109, 0.35));
-}
-.logo {
-  font-size: clamp(3rem, 12vw, 6rem);
-  font-weight: 900;
-  letter-spacing: 0.15em;
-  color: var(--accent);
-  text-shadow: var(--text-shadow);
-  margin-bottom: 0.25rem;
-}
+/* .logo-mark and .logo are in the inline critical CSS (shared with loading). */
 
 /* Per-screen heading (e.g. "Join a Game") — warm white, NOT the brand wordmark. */
 .screen-title {

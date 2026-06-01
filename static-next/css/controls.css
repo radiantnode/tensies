@@ -1,12 +1,9 @@
-/* ── Reset, document, shared form controls ── */
-* { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
-
+/* ── Form controls ──
+   Buttons, inputs, the code field, error text. (Document reset, tokens, and the
+   loading screen live in the inline critical CSS in index.html.) */
 button, input, textarea, select { font-family: inherit; }
 button { color: inherit; background: none; border: none; cursor: pointer; }
-ul, ol { list-style: none; }
-h1, h2, h3, p { font-weight: inherit; font-size: inherit; }
 dialog { color: inherit; }
-[hidden] { display: none !important; }
 
 .sr-only {
   position: absolute;
@@ -18,28 +15,6 @@ dialog { color: inherit; }
   border: 0;
 }
 
-html {
-  height: 100%;
-  overflow: hidden;
-  overscroll-behavior: none;
-}
-
-body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background: #1a0e08 url('/static/bar-top.png') center 10% / cover no-repeat;
-  color: var(--text);
-  position: fixed;
-  width: 100%;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-  overscroll-behavior: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.screen:not(.active) { display: none !important; }
-
-/* ── Inputs ── */
 input {
   padding: 0.85rem 1rem;
   border: 1px solid var(--border-strong);
@@ -60,7 +35,6 @@ input:focus {
 }
 input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight: 700; font-size: 1.3rem; }
 
-/* ── Buttons ── */
 .btn {
   padding: 0.85rem 1.5rem;
   border: 1px solid transparent;
