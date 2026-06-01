@@ -1,14 +1,5 @@
 import { state } from './state.js';
-
-const DOTS = {
-  0: [],
-  1: [4],
-  2: [2, 6],
-  3: [2, 4, 6],
-  4: [0, 2, 6, 8],
-  5: [0, 2, 4, 6, 8],
-  6: [0, 2, 3, 5, 6, 8],
-};
+import { PIP_POSITIONS } from './pips.js';
 
 // Cube rotation (applied to .die-3d) to bring each face value to the front
 export const FACE_ROTATIONS = {
@@ -33,7 +24,7 @@ export function makeDie(value, target) {
     face.className = 'face face-' + fv;
     for (let i = 0; i < 9; i++) {
       const dot = document.createElement('span');
-      dot.className = 'dot' + (DOTS[fv].includes(i) ? ' active' : '');
+      dot.className = 'dot' + (PIP_POSITIONS[fv].includes(i) ? ' active' : '');
       face.appendChild(dot);
     }
     cube.appendChild(face);
