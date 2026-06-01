@@ -1,6 +1,7 @@
 // <join-screen> — enter name + game code. Light DOM; host is #join.screen.
 import './app-header.js';
-import { navigate } from '../router.js';
+import { showLanding } from '../router.js';
+import { joinGame } from '../net.js';
 
 class JoinScreen extends HTMLElement {
   connectedCallback() {
@@ -27,9 +28,15 @@ class JoinScreen extends HTMLElement {
           <p class="error-msg" id="join-error" role="alert" aria-live="polite"></p>
         </form>
       </div>`;
-    this.querySelector('#back-btn').addEventListener('click', () => navigate('/'));
-    // Join flow (WebSocket) is wired when the lobby view is built.
-    this.querySelector('#join-form').addEventListener('submit', (e) => e.preventDefault());
+    this.querySelector('#back-btn').addEventListener('click', () => showLanding());
+    // Uppercase the code as it's typed (matches the old behaviour).
+    this.querySelector('#code-input').addEventListener('input', (e) => {
+      e.target.value = e.target.value.toUpperCase();
+    });
+    this.querySelector('#join-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      joinGame();
+    });
   }
 }
 customElements.define('join-screen', JoinScreen);

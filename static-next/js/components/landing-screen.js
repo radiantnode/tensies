@@ -1,7 +1,8 @@
 // <landing-screen> — create-or-join entry. Light DOM; the host element *is*
 // #landing.screen so the existing #landing CSS applies unchanged.
 import './app-header.js';
-import { navigate } from '../router.js';
+import { showJoin } from '../router.js';
+import { createGame } from '../net.js';
 
 class LandingScreen extends HTMLElement {
   connectedCallback() {
@@ -25,9 +26,11 @@ class LandingScreen extends HTMLElement {
           <p class="error-msg" id="landing-error" role="alert" aria-live="polite"></p>
         </form>
       </div>`;
-    this.querySelector('#show-join-btn').addEventListener('click', () => navigate('/join'));
-    // Create flow (WebSocket) is wired when the lobby view is built.
-    this.querySelector('#landing-form').addEventListener('submit', (e) => e.preventDefault());
+    this.querySelector('#show-join-btn').addEventListener('click', () => showJoin());
+    this.querySelector('#landing-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      createGame();
+    });
   }
 }
 customElements.define('landing-screen', LandingScreen);
