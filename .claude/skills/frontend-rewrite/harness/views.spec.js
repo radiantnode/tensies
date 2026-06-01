@@ -2,7 +2,7 @@
 // Each produces one byte-exact snapshot per viewport project. Complex,
 // server-driven, or multi-player states get their own hand-written spec
 // (see multiplayer.example.spec.js) — do NOT try to force them into this file.
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures');
 const fs = require('fs');
 const path = require('path');
 const { seedPage, settle } = require('./determinism');

@@ -4,7 +4,7 @@
 // whatever view we want, with a fixed code, roster, dice, and target — byte
 // stable regardless of server randomness. seedPage() pins Math.random (dice
 // scatter) and Date.now (winner countdown), so no values drift between runs.
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures');
 const { seedPage, settle, pinWebSocket } = require('./determinism');
 
 // Fixed roster. The host key is the real player_id from the `welcome` frame
@@ -236,3 +236,71 @@ test('fatal-error', async ({ page }) => {
   await settle(page);
   await expect(page).toHaveScreenshot('fatal-error.png');
 });
+
+// ── Sub-states: player-card variants, paused roll button, every target die ──
+
+// A closed menu (#game-menu without .open) is display:none, so a default
+// (visible) waitForSelector on it never resolves — wait on the class instead.
+const menuClosed = (p) =>
+  p.waitForFunction(() => !document.getElementById('game-menu')?.classList.contains('open'));
+
+test('players-bar-variants', async ({ page }) => {
+  // One bar that exercises all distinct player-card renders at once:
+  //   leading (most wins) · hot (>=7 matched, not me) · disconnected · is-me.
+  // It must be PAUSED: in a non-paused game a disconnected peer routes the
+  // viewer to the loading screen, so the board (and bar) wouldn't be visible.
+  await host(page, (msg, myPid) => ({
+    ...msg, type: 'state', code: 'AYBD', started: true, paused: true, host: myPid,
+    round_num: 4, target: 1, pause_remaining_ms: 3600000,
+    players: {
+      [myPid]: mk('Alpha', [1, 1, 1, 2, 3, 4, 5, 6, 1, 2], { wins: 1 }),     // is-me
+      g_lead: mk('Bravo', [1, 1, 2, 3, 4, 5, 6, 1, 2, 3], { wins: 3 }),       // leading (top wins)
+      g_hot: mk('Cosmo', [1, 1, 1, 1, 1, 1, 1, 1, 2, 3], { wins: 0 }),        // hot (8 matched)
+      g_disc: mk('Delta', [], { wins: 0, disconnected: true }),               // disconnected
+    },
+  }), '#game.active', async (p) => {
+    if (await p.isVisible('#game-menu.open')) await p.click('#game-menu-btn');
+    await menuClosed(p);
+  });
+  await settle(page);
+  // Clip to the bar so dice scatter below doesn't enter the frame.
+  await expect(page.locator('#players-bar')).toHaveScreenshot('players-bar-variants.png');
+});
+
+test('paused-board', async ({ page }) => {
+  // Host paused, menu CLOSED: the board itself with the roll button reading
+  // "Paused" (every player's roll button reflects the pause).
+  await host(page, (msg, myPid) => ({
+    ...msg, type: 'state', code: 'AYBD', started: true, paused: true, host: myPid,
+    round_num: 1, target: 1, pause_remaining_ms: 3600000,
+    players: roster(myPid, {
+      alpha: [1, 1, 1, 1, 2, 3, 4, 1, 5, 6], bravo: [1, 2, 1, 3, 1, 4, 5, 6, 1, 2],
+      cosmo: [1, 1, 1, 1, 1, 1, 1, 1, 2, 3],
+    }),
+  }), '#game.active', async (p) => {
+    if (await p.isVisible('#game-menu.open')) await p.click('#game-menu-btn'); // close auto-opened menu
+    await menuClosed(p);
+    await p.waitForFunction(() => document.getElementById('roll-btn')?.textContent?.trim() === 'Paused');
+  });
+  await settle(page);
+  await expect(page).toHaveScreenshot('paused-board.png');
+});
+
+for (const target of [1, 2, 3, 4, 5, 6]) {
+  test(`target-die-${target}`, async ({ page }) => {
+    // The round-target die for each value. Clipped to the element, so it's a
+    // tiny, focused baseline independent of board scatter.
+    await host(page, (msg, myPid) => ({
+      ...msg, type: 'state', code: 'AYBD', started: true, paused: false, host: myPid,
+      round_num: target, target,
+      players: roster(myPid, {
+        alpha: [target, target, 1, 2, 3, 4, 5, 6, target, 2],
+        bravo: [1, 2, 3, 4, 5, 6, 1, 2, 3, 4], cosmo: [target, target, target, 1, 2, 3, 4, 5, 6, 1],
+      }),
+    }), '#game.active');
+    const die = page.locator('round-target');
+    await die.waitFor();
+    await settle(page);
+    await expect(die).toHaveScreenshot(`target-die-${target}.png`);
+  });
+}

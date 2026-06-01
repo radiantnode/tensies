@@ -14,6 +14,9 @@ const MAX_DIFF = Number(process.env.PIXEL_TOLERANCE || 0);
 
 module.exports = defineConfig({
   testDir: __dirname,
+  // Refuse to run against a Chromium build other than the baseline one — a
+  // browser upgrade would otherwise masquerade as a rewrite regression.
+  globalSetup: require.resolve('./browser-guard.js'),
   // *.example.spec.js are copy-me templates, not runnable specs.
   testIgnore: '**/*.example.spec.js',
   snapshotDir: path.join(__dirname, 'baselines'),

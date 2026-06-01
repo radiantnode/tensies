@@ -78,7 +78,10 @@ devices being targeted — pixel-perfect is meaningless without a fixed viewport
 | file | role |
 |------|------|
 | **`NOTES.md`** | **field guide — read first: synthesis technique, determinism, gotchas, frame shapes, selectors, full state catalog, known bug** |
-| `playwright.config.js` | viewports, zero-tolerance compare, OS-agnostic baseline paths |
+| `playwright.config.js` | viewports, zero-tolerance compare, OS-agnostic baseline paths, `globalSetup` |
+| `browser-guard.js` | `globalSetup` — refuses to run on a Chromium build other than the baseline one |
+| `fixtures.js` | extended `test` — fails any capture whose page logged a JS error (import `test` from here) |
+| `baselines/CAPTURE-ENV.txt` | the exact browser/viewport/flags the baselines were captured with |
 | `determinism.js` | `seedPage` (RNG/time), `settle` (fonts + freeze animation), `pinWebSocket` (server-driven frames) |
 | `states.json` | catalog of single-page "static" states (copy from `states.example.json`) |
 | `views.spec.js` | data-driven specs for every `type:"static"` state |

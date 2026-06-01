@@ -1,6 +1,6 @@
 // States reached through real interaction against the live app (no frame
 // synthesis needed — the outcomes are already deterministic).
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures');
 const { seedPage, settle } = require('./determinism');
 
 test('join-error', async ({ page }) => {
@@ -27,5 +27,10 @@ test('nav-menu-changelog', async ({ page }) => {
   await page.click('.menu-whats-new-btn');
   await page.waitForSelector('#nav-menu.show-changelog');
   await settle(page);
-  await expect(page).toHaveScreenshot('nav-menu-changelog.png');
+  // The changelog prose is regenerated over time; masking the body keeps this
+  // baseline about the panel chrome (header, Back button) and avoids a false
+  // diff every time the changelog content changes.
+  await expect(page).toHaveScreenshot('nav-menu-changelog.png', {
+    mask: [page.locator('.menu-changelog-body')],
+  });
 });

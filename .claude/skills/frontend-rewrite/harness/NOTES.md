@@ -117,6 +117,15 @@ Confirmed by observing a real game (`page.on('websocket')` → `framereceived`):
 - **Fresh load needs no backend for static views.** With empty `localStorage` and
   no `?join=`, `main.js` transitions `#loading → #landing` client-side. So
   landing / join / nav-menu / changelog capture against the served files alone.
+- **A disconnected peer routes a non-paused board to loading.** `showFor` sends
+  the viewer to the "waiting to reconnect" loading screen when any player is
+  `disconnected:true` — *unless* the game is paused (the paused branch runs
+  first). So to show a disconnected player-*card* in the bar, the frame must be
+  `paused:true` (that's why `players-bar-variants` is a paused board).
+- **`waitForSelector` on a closed/hidden element hangs.** A closed menu
+  (`#game-menu:not(.open)`) is `display:none`; `waitForSelector` waits for
+  *visible* by default and times out. Wait on the class with `waitForFunction`,
+  or pass `{ state: 'hidden' }`.
 - **`pkill -f uvicorn` kills your own shell** (its command line contains
   "uvicorn"). Launch with `setsid … &` and kill by port, not by an `-f` pattern
   that matches the launcher.
@@ -145,12 +154,37 @@ Use as the reference inventory. Approach: **static** = served files only;
 | winner-lose | synth | `round_won`, my dice NOT all == target |
 | disconnect-waiting | synth | a peer `disconnected:true` → loading "waiting to reconnect" |
 | fatal-error | synth | delayed terminal `error` → landing + reason |
+| players-bar-variants | synth | clipped to `#players-bar`; one **paused** board showing leading + hot + disconnected + is-me cards |
+| paused-board | synth | host paused, menu closed → board with the "Paused" roll button |
+| target-die-1..6 | synth | element-clipped `round-target` die for each target value |
 
 **Deliberately not captured** (transient / external, no stable frame): the
 initial `#loading` flash, the mid-roll shake animation (frozen by
 `animations:disabled` anyway), the "Reconnecting…" text variant (same `#loading`
 screen as disconnect), the 2-second "link copied!" toast, and the external
 SMS / Beer links.
+
+## Capture integrity (don't trust a baseline you didn't earn)
+
+- **Browser is pinned.** `browser-guard.js` (a `globalSetup`) refuses to run on
+  any Chromium build other than the one in `baselines/CAPTURE-ENV.txt`
+  (currently 141.0.7390.37). At `maxDiffPixels:0`, sub-pixel font hinting differs
+  between builds, so an accidental upgrade would read as a rewrite regression.
+  Re-baselining on a new build is a deliberate act: bump `EXPECTED` in
+  `browser-guard.js` **and** `CAPTURE-ENV.txt` together. `@playwright/test` is
+  pinned exact (not `^`) for the same reason.
+- **JS errors fail the capture.** Every spec imports `test` from `fixtures.js`,
+  which fails any test whose page logged a `console.error` or threw — the guard
+  against baking a *wrong* baseline (a mis-rendered state often still screenshots
+  something; see the fatal-error trap). Extend the `IGNORE` list in `fixtures.js`
+  only for genuinely benign noise.
+- **Gate the screenshot on a state-unique selector**, never just `#screen.active`
+  — assert on something only the intended state shows (`#winner-overlay[open]`,
+  the pause status text, the error text). This is what catches a state that
+  silently fell back to loading or landing.
+- **Volatile content gets masked.** `nav-menu-changelog` masks
+  `.menu-changelog-body` (regenerated prose) via `toHaveScreenshot({mask:[…]})`,
+  so it verifies the panel chrome without false-diffing every changelog update.
 
 ## Observing a real game (discovery)
 
