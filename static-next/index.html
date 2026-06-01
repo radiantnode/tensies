@@ -179,15 +179,21 @@
   <!-- Non-critical CSS — loaded async so it never blocks the loading paint.
        Applied well before the interactive screens appear (after the loading
        min-duration). <noscript> keeps it working with JS disabled. -->
-  <link rel="preload" href="/static/css/controls.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="/static/css/shell.css"    as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="/static/css/landing.css"  as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="/static/css/lobby.css"    as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="/static/css/controls.css"    as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="/static/css/shell.css"       as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="/static/css/landing.css"     as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="/static/css/lobby.css"       as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="/static/css/game.css"        as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="/static/css/players-bar.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="/static/css/dice.css"        as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript>
     <link rel="stylesheet" href="/static/css/controls.css">
     <link rel="stylesheet" href="/static/css/shell.css">
     <link rel="stylesheet" href="/static/css/landing.css">
     <link rel="stylesheet" href="/static/css/lobby.css">
+    <link rel="stylesheet" href="/static/css/game.css">
+    <link rel="stylesheet" href="/static/css/players-bar.css">
+    <link rel="stylesheet" href="/static/css/dice.css">
   </noscript>
 
   <!-- Preload the whole module graph so it fetches in parallel instead of
@@ -200,9 +206,19 @@
   <link rel="modulepreload" href="/static/js/router.js">
   <link rel="modulepreload" href="/static/js/net.js">
   <link rel="modulepreload" href="/static/js/components/app-header.js">
+  <link rel="modulepreload" href="/static/js/dice.js">
+  <link rel="modulepreload" href="/static/js/dice-positions.js">
+  <link rel="modulepreload" href="/static/js/game-render.js">
+  <link rel="modulepreload" href="/static/js/animations.js">
+  <link rel="modulepreload" href="/static/js/roll.js">
+  <link rel="modulepreload" href="/static/js/overlays.js">
+  <link rel="modulepreload" href="/static/js/title-row.js">
   <link rel="modulepreload" href="/static/js/components/landing-screen.js">
   <link rel="modulepreload" href="/static/js/components/join-screen.js">
   <link rel="modulepreload" href="/static/js/components/lobby-screen.js">
+  <link rel="modulepreload" href="/static/js/components/game-screen.js">
+  <link rel="modulepreload" href="/static/js/components/player-card.js">
+  <link rel="modulepreload" href="/static/js/components/round-target.js">
   <link rel="modulepreload" href="/static/js/components/nav-menu.js">
   <script type="module" src="/static/js/app.js"></script>
 </head>
@@ -222,6 +238,7 @@
   <landing-screen></landing-screen>
   <join-screen></join-screen>
   <lobby-screen></lobby-screen>
+  <game-screen></game-screen>
 
 </main>
 

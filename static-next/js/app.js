@@ -4,6 +4,7 @@
 import './components/landing-screen.js';
 import './components/join-screen.js';
 import './components/lobby-screen.js';
+import './components/game-screen.js';
 import './components/nav-menu.js';
 
 import { makeName } from './names.js';

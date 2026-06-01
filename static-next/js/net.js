@@ -6,6 +6,7 @@
 import { state } from './state.js';
 import { setError, setJoinError } from './util.js';
 import { showScreen, showLoading, leaveLoading } from './transitions.js';
+import { myDiceKey } from './dice.js';
 
 function wsUrl() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -71,7 +72,21 @@ function handleMessage(msg) {
       localStorage.setItem('tensies_token', msg.token);
       return;
     case 'state':
+      if (msg.code) localStorage.setItem('tensies_code', msg.code);
+      // My own roll response (private, pre-broadcast): hold it for tryReveal so
+      // the shake/reveal animation drives the change instead of a hard re-render.
+      if (state.awaitingAck && msg.started && myDiceKey(msg) !== state.lastMyDiceKey && !state.pendingRollState) {
+        state.pendingRollState = msg;
+      } else if (state.awaitingAck && state.pendingRollState) {
+        // A newer broadcast landed mid-reveal — hold it, apply after the reveal.
+        state.postRevealState = msg;
+      } else {
+        showFor(msg);
+      }
+      return;
     case 'round_won':
+      // Winner overlay + the mid-roll win choreography land with the winner
+      // view; for now route the final board.
       showFor(msg);
       return;
     case 'error':
@@ -100,7 +115,7 @@ function handleError(msg) {
   // (In-game errors are handled once the game view exists.)
 }
 
-function showFor(msg) {
+export function showFor(msg) {
   state.currentState = msg;
   state.pendingOrigin = null;
   if (msg.code) {
@@ -114,7 +129,11 @@ function showFor(msg) {
     });
     return;
   }
-  // Game / paused / winner rendering arrive with their views; until then a
-  // started game holds on the loading screen.
-  showLoading('Loading…');
+  // Paused (non-host wait overlay / host board) and disconnect-waiting branches
+  // land with the pause and reconnect views; for now every started frame routes
+  // to the board.
+  leaveLoading(() => {
+    showScreen('game');
+    document.getElementById('game').render(msg);
+  });
 }
