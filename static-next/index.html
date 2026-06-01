@@ -15,8 +15,7 @@
   <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/static/logo.svg">
 
-  <!-- Preload the first-paint critical resources so the bar surface and type
-       are ready before the loading bar even animates. -->
+  <!-- Preload first-paint critical resources before the loading bar animates. -->
   <link rel="preload" href="/static/fonts/inter-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/static/bar-top.png" as="image">
   <link rel="modulepreload" href="/static/js/app.js">
@@ -32,54 +31,12 @@
 <body>
 
 <main>
-
-  <section id="loading" class="screen active" aria-labelledby="loading-msg">
-    <img src="/static/logo.svg" class="logo-mark" alt="">
-    <h1 class="logo">TENSIES</h1>
-    <div class="loading-bar" aria-hidden="true"><div class="loading-bar-fill"></div></div>
-    <p id="loading-msg">Loading…</p>
-  </section>
-
-  <section id="landing" class="screen" aria-labelledby="landing-title">
-    <app-header></app-header>
-    <div class="screen-body">
-      <img src="/static/logo.svg" class="logo-mark" alt="">
-      <h1 id="landing-title" class="logo">TENSIES</h1>
-      <p class="tagline">Roll all ten to win</p>
-      <form id="landing-form" class="form-stack" autocomplete="off" novalidate>
-        <label class="field-hint" for="name-input">Enter a player name or go with it</label>
-        <input id="name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20">
-        <button type="submit" class="btn btn-primary">Create Game</button>
-        <div class="or-divider" aria-hidden="true"><span>or</span></div>
-        <button id="show-join-btn" type="button" class="btn btn-secondary">Join Game with Code</button>
-        <p class="error-msg" id="landing-error" role="alert" aria-live="polite"></p>
-      </form>
-    </div>
-  </section>
-
-  <section id="join" class="screen" aria-labelledby="join-title">
-    <app-header></app-header>
-    <div class="screen-body">
-      <button id="back-btn" type="button" class="join-back">
-        <svg class="back-chevron" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M15 18 9 12l6-6"/>
-        </svg>
-        <span>Back</span>
-      </button>
-      <h1 id="join-title" class="screen-title">Join a Game</h1>
-      <p class="tagline">Enter your name and game code</p>
-      <form id="join-form" class="form-stack" autocomplete="off" novalidate>
-        <input id="join-name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20">
-        <input id="code-input" name="code" class="code-input" type="text" aria-label="Game code" inputmode="latin" placeholder="ABCDE" maxlength="5" autocapitalize="characters">
-        <button type="submit" class="btn btn-primary">Join Game</button>
-        <p class="error-msg" id="join-error" role="alert" aria-live="polite"></p>
-      </form>
-    </div>
-  </section>
-
+  <loading-screen></loading-screen>
+  <landing-screen></landing-screen>
+  <join-screen></join-screen>
 </main>
 
-<div id="nav-menu" class="game-menu" hidden></div>
+<nav-menu></nav-menu>
 
 </body>
 </html>
