@@ -1,0 +1,45 @@
+/* ── Design tokens + embedded font ──
+   Single source of truth for the Tensies "speakeasy bar" system: frosted warm
+   surfaces over the bar-top photo, amber/leather borders, a warm-white type
+   ramp, one pink accent. Every screen draws from these. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/static/fonts/inter-latin-variable.woff2') format('woff2');
+}
+
+:root {
+  /* Brand accent */
+  --accent: #ff4d6d;
+  --accent-soft: rgba(255, 77, 109, 0.4);
+  --green: #2ecc71;
+
+  /* Warm bar surfaces (translucent, sit over the photographic background) */
+  --bg: #1a0e08;
+  --panel: rgba(8, 4, 1, 0.58);          /* frosted bar panel — topbar/players-bar */
+  --panel-screen: rgba(6, 3, 1, 0.72);   /* full-screen scrim — landing/lobby/loading */
+  --field: rgba(20, 10, 5, 0.7);         /* inset field / code display */
+  --raised: rgba(30, 15, 5, 0.5);        /* tactile leather control */
+  --raised-hover: rgba(40, 20, 6, 0.6);
+
+  /* Warm leather borders */
+  --border: rgba(180, 100, 20, 0.25);
+  --border-strong: rgba(170, 115, 45, 0.3);
+
+  /* Warm type ramp */
+  --text: #efe3d4;
+  --text-warm: rgba(235, 215, 195, 0.92);
+  --muted: rgba(214, 188, 158, 0.62);
+  --label: rgba(220, 200, 180, 0.72);
+
+  /* Amber fill (progress bars, highlights) */
+  --amber: rgba(225, 180, 100, 0.95);
+
+  /* Depth */
+  --text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  --text-shadow-lg: 0 2px 8px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.8);
+
+  --radius: 12px;
+}
