@@ -196,3 +196,43 @@ test('disconnect-waiting', async ({ page }) => {
   await settle(page);
   await expect(page).toHaveScreenshot('disconnect-waiting.png');
 });
+
+test('fatal-error', async ({ page }) => {
+  // A terminal `error` frame (the pause cap is the only producer) drops the
+  // session and bounces back to landing with the reason shown inline.
+  //
+  // The error must arrive AFTER the create->loading View Transition settles.
+  // showScreen() early-returns when its target is already the active screen, so
+  // an instant error (while landing is still active mid-transition) no-ops and
+  // we get stranded on loading. In production the pause cap fires long after the
+  // user has settled, so it never races; the delay reproduces that timing.
+  await seedPage(page);
+  await page.routeWebSocket(/\/ws$/, (ws) => {
+    const server = ws.connectToServer();
+    server.onMessage((raw) => {
+      let m; try { m = JSON.parse(raw); } catch { return ws.send(raw); }
+      if (m.type === 'state') {
+        setTimeout(() => ws.send(JSON.stringify({
+          type: 'error', fatal: true, msg: 'Game ended — it was paused too long.',
+        })), 900);
+        return;
+      }
+      ws.send(raw);
+    });
+    ws.onMessage((raw) => server.send(raw));
+  });
+  await page.goto('/');
+  await page.waitForSelector('#landing.active');
+  await page.fill('#name-input', 'Alpha');
+  await page.click('#landing-form button[type="submit"]');
+  await page.waitForFunction(() => {
+    const landing = document.getElementById('landing');
+    const loading = document.getElementById('loading');
+    const err = document.getElementById('landing-error');
+    return landing?.classList.contains('active') &&
+      !loading?.classList.contains('active') &&
+      (err?.textContent || '').trim().length > 0;
+  });
+  await settle(page);
+  await expect(page).toHaveScreenshot('fatal-error.png');
+});
