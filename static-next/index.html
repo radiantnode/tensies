@@ -160,6 +160,20 @@
       0%   { left: -35%; }
       100% { left: 100%; }
     }
+
+    /* Honour reduced-motion: cut transitions/animations (incl. the indeterminate
+       loading bar and the view-transition morph). Only affects users who ask for
+       it, so default-motion pixel baselines are unchanged. */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+      ::view-transition-group(*),
+      ::view-transition-old(*),
+      ::view-transition-new(*) { animation: none !important; }
+    }
   </style>
 
   <!-- Non-critical CSS — loaded async so it never blocks the loading paint.

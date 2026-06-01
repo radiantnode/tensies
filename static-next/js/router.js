@@ -14,11 +14,16 @@ export function navigate(path, { replace = false } = {}) {
 // Carry the typed name across to the join screen, then focus the field the user
 // still needs (code if a name's set, else the name). Focus runs after the DOM
 // swap (updateCallbackDone) — focus() during the view-transition gets dropped.
-export function showJoin() {
+// `handle` is the showScreen()/navigate() transition for the join swap.
+function carryNameAndFocus(handle) {
   const name = document.getElementById('name-input').value.trim();
   document.getElementById('join-name-input').value = name;
   const focusId = name ? 'code-input' : 'join-name-input';
-  navigate('/join').updateCallbackDone.then(() => document.getElementById(focusId).focus());
+  handle.updateCallbackDone.then(() => document.getElementById(focusId).focus());
+}
+
+export function showJoin() {
+  carryNameAndFocus(navigate('/join'));
 }
 
 export function showLanding() {
@@ -36,11 +41,7 @@ export function bootstrap() {
   if (join) {
     history.replaceState({ id: 'join' }, '', '/');
     document.getElementById('code-input').value = join.toUpperCase();
-    const name = document.getElementById('name-input').value.trim();
-    document.getElementById('join-name-input').value = name;
-    const focusId = name ? 'code-input' : 'join-name-input';
-    leaveLoading(() =>
-      showScreen('join').updateCallbackDone.then(() => document.getElementById(focusId).focus()));
+    leaveLoading(() => carryNameAndFocus(showScreen('join')));
   } else {
     leaveLoading(() => showScreen('landing'));
   }
