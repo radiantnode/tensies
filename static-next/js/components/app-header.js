@@ -10,7 +10,15 @@ class AppHeader extends HTMLElement {
     this._rendered = true;
     this.className = 'game-topbar app-header';
     this.innerHTML = titleRowHTML;
-    this.querySelector('.game-menu-btn').addEventListener('click', () => {
+    const btn = this.querySelector('.game-menu-btn');
+    // Per-screen id (landing-menu-btn / join-menu-btn / lobby-menu-btn) — the
+    // host screen sets its own id before rendering this header.
+    const screenId = this.parentElement?.id;
+    if (screenId) {
+      btn.id = `${screenId}-menu-btn`;
+      btn.setAttribute('aria-controls', 'nav-menu');
+    }
+    btn.addEventListener('click', () => {
       this.dispatchEvent(new CustomEvent('menu-toggle', { bubbles: true }));
     });
   }
