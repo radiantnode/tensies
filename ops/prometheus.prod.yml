@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: tensies
+    static_configs:
+      - targets: ['web:8000']
+    metrics_path: /metrics
+    # /metrics is bearer-gated in prod (audit M2). Prometheus reads the same
+    # token from a mounted file (write it with:
+    #   echo -n "$METRICS_TOKEN" > ops/secrets/metrics_token).
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/metrics_token
+
+  - job_name: postgres
+    static_configs:
+      - targets: ['postgres_exporter:9187']
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']

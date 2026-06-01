@@ -1,6 +1,8 @@
 __pycache__/
 *.pyc
 .env
+.env.prod
+ops/secrets/
 .playwright-mcp/
 
 .DS_Store
