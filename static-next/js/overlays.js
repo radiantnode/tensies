@@ -24,6 +24,13 @@ export function pausedText(msg) {
   return `Waiting for ${host} to resume the game`;
 }
 
+// "Waiting for A and B to reconnect…" from a list of dropped player names.
+export function waitingText(names) {
+  if (names.length === 0) return '';
+  if (names.length === 1) return `Waiting for ${names[0]} to reconnect…`;
+  return `Waiting for ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} to reconnect…`;
+}
+
 // ── Winner / loser overlay ──
 // The server holds the overlay for ROUND_WIN_DELAY (server/config.py) before
 // advancing the round — mirror it here to drive the countdown.

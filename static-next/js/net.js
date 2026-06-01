@@ -8,7 +8,7 @@ import { setError, setJoinError } from './util.js';
 import { showScreen, showLoading, leaveLoading } from './transitions.js';
 import { myDiceKey } from './dice.js';
 import { renderPlayersBar, renderMyArea } from './game-render.js';
-import { showPaused, hidePaused, pausedText, hideWinner, showWinner, RESUME_CLOSE_DELAY_MS } from './overlays.js';
+import { showPaused, hidePaused, pausedText, hideWinner, showWinner, waitingText, RESUME_CLOSE_DELAY_MS } from './overlays.js';
 
 function wsUrl() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -176,7 +176,16 @@ export function showFor(msg) {
     return;
   }
 
-  // (disconnect-waiting branch lands with the reconnect view)
+  // A peer dropped (and we're not paused): everyone else watches the loading
+  // screen until they reconnect or the grace window elapses.
+  const downNames = Object.values(msg.players).filter((p) => p.disconnected).map((p) => p.name);
+  if (downNames.length > 0) {
+    hideWinner();
+    hidePaused();
+    showLoading(waitingText(downNames));
+    return;
+  }
+
   leaveLoading(() => {
     const game = document.getElementById('game');
     hideWinner();
