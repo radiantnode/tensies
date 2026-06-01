@@ -1,0 +1,16 @@
+.git
+.gitignore
+.github
+__pycache__/
+*.pyc
+.env
+.env.*
+.venv
+venv/
+.playwright-mcp/
+.DS_Store
+docs/
+ops/grafana/dashboards/*.png
+tests/
+*.md
+!docs/CHANGELOG.md
