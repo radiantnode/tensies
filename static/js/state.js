@@ -23,3 +23,16 @@ export const state = {
   pendingWinRound: null,
   pendingWinIsLoser: false,
 };
+
+export function resetRollState() {
+  state.pendingRollTimeouts.forEach(clearTimeout);
+  state.pendingRollTimeouts = [];
+  state.rolling = false;
+  state.awaitingAck = false;
+  state.pendingRollState = null;
+  state.postRevealState = null;
+  state.pendingWinName = null;
+  state.pendingWinTarget = null;
+  state.pendingWinRound = null;
+  state.pendingWinIsLoser = false;
+}

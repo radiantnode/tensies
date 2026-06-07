@@ -1,25 +1,14 @@
 // Roll choreography: gather → 3-D tumble → reveal faces → scatter, with newly
 // matched dice lifting off into the matched zone. Ported from the original; the
 // only changes are import paths (game-render / overlays / net).
-import { state } from './state.js';
+import { state, resetRollState } from './state.js';
 import { FACE_ROTATIONS, makeDie, myDiceKey, placeGrid } from './dice.js';
 import { saveDicePositions } from './dice-positions.js';
 import { renderMyArea, renderPlayersBar } from './game-render.js';
 import { hideWinner, showWinner } from './overlays.js';
 import { showFor } from './net.js';
 
-export function resetRollState() {
-  state.pendingRollTimeouts.forEach(clearTimeout);
-  state.pendingRollTimeouts = [];
-  state.rolling = false;
-  state.awaitingAck = false;
-  state.pendingRollState = null;
-  state.postRevealState = null;
-  state.pendingWinName = null;
-  state.pendingWinTarget = null;
-  state.pendingWinRound = null;
-  state.pendingWinIsLoser = false;
-}
+export { resetRollState };
 
 export function startShake() {
   const gatherMs = 200;

@@ -2,6 +2,7 @@
 // Game screens (lobby/board) are driven by live state and get their routes as
 // those views are built.
 import { showScreen, leaveLoading } from './transitions.js';
+import { maybeReconnect } from './net.js';
 
 const ROUTES = { '/': 'landing', '/join': 'join' };
 
@@ -35,8 +36,12 @@ window.addEventListener('popstate', () => {
 });
 
 // First paint is the inline #loading screen; decide what to show next without a
-// landing flash. /<CODE> and legacy ?join=CODE deep links go straight to join.
+// landing flash. Saved session → reconnect. /<CODE> or ?join= → join screen.
 export function bootstrap() {
+  if (localStorage.getItem('tensies_pid') && localStorage.getItem('tensies_code')) {
+    maybeReconnect();
+    return;
+  }
   const pathCode = location.pathname.match(/^\/([A-Z]{5})$/i)?.[1];
   const join = pathCode || new URLSearchParams(location.search).get('join');
   if (join) {

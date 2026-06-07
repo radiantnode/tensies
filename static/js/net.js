@@ -3,8 +3,12 @@
 // handles the connection handshake and the error paths (join "Game not found",
 // fatal end), and routes successful snapshots to showFor() — which gains its
 // lobby/game rendering as those views are built.
-import { state } from './state.js';
+import { state, resetRollState } from './state.js';
 import { setError, setJoinError } from './util.js';
+
+const RECONNECT_WINDOW_MS = 60_000;
+const PAUSED_RECONNECT_WINDOW_MS = 61 * 60 * 1000;
+const RETRY_DELAY_MS = 2000;
 import { showScreen, showLoading, leaveLoading } from './transitions.js';
 import { myDiceKey } from './dice.js';
 import { renderPlayersBar, renderMyArea } from './game-render.js';
@@ -21,11 +25,58 @@ export function clearSession() {
   localStorage.removeItem('tensies_token');
 }
 
+function expireSession() {
+  state.reconnecting = false;
+  clearSession();
+  state.currentState = null;
+  leaveLoading(() => { showScreen('landing'); setError('Connection failed'); });
+}
+
+function handleWsClose() {
+  if (state.reconnecting) return;
+  const pid = localStorage.getItem('tensies_pid');
+  const code = localStorage.getItem('tensies_code');
+  if (pid && code) maybeReconnect();
+}
+
+export function maybeReconnect() {
+  if (state.reconnecting) return;
+  const pid = localStorage.getItem('tensies_pid');
+  const code = localStorage.getItem('tensies_code');
+  if (!pid || !code) return;
+  state.myId = pid;
+  state.reconnecting = true;
+  showLoading('Reconnecting…');
+  const windowMs = state.currentState?.paused ? PAUSED_RECONNECT_WINDOW_MS : RECONNECT_WINDOW_MS;
+  attemptReconnect(pid, code, Date.now() + windowMs);
+}
+
+function attemptReconnect(pid, code, deadline) {
+  if (Date.now() > deadline) { expireSession(); return; }
+  const token = localStorage.getItem('tensies_token') || '';
+  state.ws = new WebSocket(wsUrl());
+  state.ws.onopen = () => state.ws.send(JSON.stringify({ action: 'reconnect', player_id: pid, game_code: code, token }));
+  state.ws.onerror = () => {};
+  state.ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'welcome') return;
+    if (msg.type === 'error') { state.ws.close(); expireSession(); return; }
+    state.reconnecting = false;
+    resetRollState();
+    state.ws.onmessage = (e2) => handleMessage(JSON.parse(e2.data));
+    state.ws.onclose = handleWsClose;
+    handleMessage(msg);
+  };
+  state.ws.onclose = () => {
+    if (state.reconnecting) setTimeout(() => attemptReconnect(pid, code, deadline), RETRY_DELAY_MS);
+  };
+}
+
 export function connectWS(afterConnect) {
   state.ws = new WebSocket(wsUrl());
   state.ws.onopen = () => afterConnect();
   state.ws.onmessage = (e) => handleMessage(JSON.parse(e.data));
-  state.ws.onclose = () => {}; // reconnect handling lands with the reconnect view
+  state.ws.onclose = handleWsClose;
 }
 
 function send(action, extra = {}) {
