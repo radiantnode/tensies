@@ -7,6 +7,7 @@ loop across two isolated Playwright instances.
 
 | Date | Scope | Result | Passed | Total | Highlight |
 |------|-------|--------|--------|-------|-----------|
+| [2026-06-07T10:55:45](2026-06-07T10-55-45.md) | Game | ✅ PASS | 23 | 23 | Full suite incl. multi-round overlay-flash check (14 overlays all ~3000ms, zero flashes); fixed 3 stale skill assertions (`#winner-sub`, target-cycle direction, `ws.close()` auto-reconnect) |
 | [2026-06-01T04:14:00](2026-06-01T04-14-00-multi-instance.md) | Game (multi-instance) | ✅ PASS | 12 | 12 | 3 servers · 1 game · 6 players · 10+ rounds; cross-instance fan-out + single-winner Lua CAS + live reconnect; 0 server exceptions / console errors |
 | [2026-05-30T20:35:00](2026-05-30T20-35-00.md) | Game | ✅ PASS | 22 | 22 | Reconnect-token feature verified; Steps 05/07 stuck-loading regressions cleared |
 | [2026-05-30T15:55:00](2026-05-30T15-55-00.md) | Game | ✅ PASS | 22 | 22 | Pause overlay updated (`<dialog>` UX); skill assertions refreshed |

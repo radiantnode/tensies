@@ -10,6 +10,7 @@ You are about to run a full integration test of the Tensies multiplayer dice gam
 - Server health
 - Full gameplay loop (create → lobby → start → roll → win → next round)
 - Multiplayer synchronisation (two **separate** browser instances)
+- Winner/loser overlay consistency across multiple rounds (round-end flash regression)
 - Every specific bug that was previously fixed
 - Animation-integrity spot checks via screenshots and console errors
 
@@ -335,7 +336,8 @@ new MutationObserver(() => {
   if (overlay.open && !window._winnerCapture) {
     window._winnerCapture = {
       winnerName: document.getElementById('winner-name')?.textContent.trim(),
-      winnerSub: document.getElementById('winner-sub')?.textContent.trim(),
+      bannerSuffix: document.getElementById('winner-banner-suffix')?.textContent.trim(), // "Winner" | "Loser"
+      winnerRound: document.getElementById('winner-round')?.textContent.trim(),
       capturedAt: Date.now()
     };
   }
@@ -349,7 +351,10 @@ Then roll in a loop:
 
 When the loop exits, read `window._winnerCapture`. Verify:
 - `winnerName` contains "Alpha"
-- `winnerSub` mentions the next target number (one step down from current; wraps 1→6)
+- `bannerSuffix` is `Winner` (the winner sees the Winner banner; losers see `Loser`)
+- `winnerRound` matches the round that was just won
+
+(The overlay markup is a banner — `Round <#winner-round> <#winner-banner-suffix>` — plus `#winner-name`. There is **no** `#winner-sub` next-target text in the current design; the next target shows in the round header after the auto-advance.)
 
 Take screenshot **`.playwright-mcp/12-winner.png`** (will show post-advance state; the MutationObserver data is the authoritative overlay check).
 
@@ -440,7 +445,7 @@ After the winner overlay appears, wait (up to 4 seconds, less if Step 13 already
 Verify on both tabs:
 - Winner overlay is closed — `document.getElementById('winner-overlay').open === false`
 - `round_num` has incremented by 1
-- `target` has changed and matches the cycle **6→5→4→3→2→1→6** (one step down, wrapping 1→6). This is the live check of `next_target`; confirm the new `target` is exactly the predecessor in that cycle.
+- `target` has changed and matches the cycle **1→2→3→4→5→6→1** (one step up, wrapping 6→1). This is the live check of `next_target` (`t % 6 + 1` in `server/game.py`); confirm the new `target` is exactly the successor in that cycle.
 - All dice are unlocked (new fresh dice dealt)
 - `has_rolled` is `false` for all players
 - Roll button is enabled on Tab 1
@@ -491,6 +496,13 @@ On **Tab 1** (still paused, menu open), verify `#menu-pause-status` is visible a
 
 Reload **Tab 2** to bring Beta back; verify it returns to the pause overlay (`document.getElementById('pause-overlay').open === true`, `#pause-overlay-msg` = `Waiting for Alpha to resume the game`) and Tab 1's `#pause-players` returns to `Everyone is here! Let's go!`.
 
+**If Beta lands on the landing screen instead** (no state, `tensies_pid`/`tensies_code`/`tensies_token` all `null`): the earlier throwaway edge-case tabs (Steps 5/7) shared instance #2's persistent profile and cleared Beta's session keys on their own failed bootstrap-reconnect. This is a harness artifact, not a game bug — re-seed before the reload exactly as Step 19 does, then reload:
+```js
+localStorage.setItem('tensies_pid', BETA_PID);
+localStorage.setItem('tensies_code', GAME_CODE);
+localStorage.setItem('tensies_token', BETA_TOKEN);
+```
+
 Take screenshot **`.playwright-mcp/16-pause-status.png`** (Tab 1, status panel with countdown + player count).
 
 ---
@@ -510,7 +522,11 @@ Confirm play resumes: roll once on Tab 1 and verify `roll_count` increments (the
 
 ## Step 18 — Player disconnect mid-game
 
-On Tab 2, run `_state.ws.close()` via `evaluate` to simulate Beta dropping (close the socket, not the browser, so the page state stays inspectable). On Tab 1, verify (within ~2 seconds):
+On Tab 2, drop Beta by closing the socket **without triggering the client's auto-reconnect**: a bare `_state.ws.close()` on a live page fires `handleWsClose` → `maybeReconnect()` immediately (the creds are still in localStorage), so Beta reappears within a frame and Tab 1 never reaches the loading screen. Null the close handler first:
+```js
+() => { _state.reconnecting = false; _state.ws.onclose = null; _state.ws.close(); return 'closed without reconnect'; }
+```
+(Close the socket, not the browser, so the page state stays inspectable. The creds stay in localStorage for the Step 19 reload.) On Tab 1, verify (within ~2 seconds):
 - Tab 1 switches off the game screen entirely — `#loading.active` is true, `#game.active` is false
 - `#loading-msg` reads `Waiting for Beta to reconnect…`
 - `_state.currentState` shows Beta with `disconnected: true` (state is preserved underneath; only the screen swapped)
@@ -608,7 +624,56 @@ All should be `false` / `null` at rest.
 
 ---
 
-## Step 22 — Console error audit
+## Step 22 — Winner/loser overlay consistency across rounds (flash regression)
+
+Steps 12–13 check the winner overlay for a **single** round with only one roller. They miss a **cross-player timing race** that only surfaces after several rounds: the **winner's** overlay can open and then be hidden again within a frame.
+
+> When another player's `state` broadcast lands during the winner's roll reveal, it's stashed in `state.postRevealState`. `tryReveal`'s completion used to route that through `showFor()`, which calls `hideWinner()` — so the winner's overlay flashed for ~1–5 ms while losers (who render the overlay directly) always showed the full ~3 s. It's probabilistic, worse when the opponent rolls fast, and reported as "the win state stops appearing for the winner after several rounds." Fixed 2026-06-07 in `static/js/animations.js` (when a win is shown, the stashed broadcast is **dropped** instead of routed through `showFor()`).
+
+**This bug is invisible to a "did the overlay open?" check** — it opens every round; it just closes instantly. You must measure how **long** it stays open. Instrument `#winner-overlay`'s `open` attribute with a `MutationObserver` that records each open→close cycle's **duration** (`performance.now()` delta), plus the banner state (`#winner-banner-suffix` = `Winner`/`Loser`) and round (`#winner-round`).
+
+Both instances are connected and in-game after the reconnect steps. On **both** Tab 1 and Tab 2 install the recorder + an auto-roller, with **staggered cadences** so one player's roll broadcasts routinely land inside the other's reveal window (the faster opponent maximises the race):
+
+```js
+// Tab 1: pass INTERVAL = 350 ; Tab 2: pass INTERVAL = 270
+() => {
+  const dlg = document.getElementById('winner-overlay');
+  window.__ovlog = []; let openAt = 0, st = null, rd = null;
+  new MutationObserver(() => {
+    if (dlg.open) {
+      openAt = performance.now();
+      st = document.getElementById('winner-banner-suffix')?.textContent;   // "Winner" | "Loser"
+      rd = document.getElementById('winner-round')?.textContent;
+    } else if (openAt) {
+      window.__ovlog.push({ round: rd, state: st, ms: Math.round(performance.now() - openAt) });
+      openAt = 0;
+    }
+  }).observe(dlg, { attributes: true, attributeFilter: ['open'] });
+  // auto-roller — respects the button.disabled + winner.open guards, so it
+  // naturally pauses during the 3 s overlay
+  window.__auto = setInterval(() => {
+    const b = document.getElementById('roll-btn');
+    if (b && !b.disabled && document.getElementById('game').classList.contains('active')) b.click();
+  }, INTERVAL);
+  return 'overlay recorder + roller installed';
+}
+```
+
+Let it run until `_state.currentState.round_num` has advanced by **at least 6** (poll it; ~90–150 s), then stop both rollers (`() => { clearInterval(window.__auto); window.__auto = null; }`) and read `window.__ovlog` from each instance.
+
+**Pass criteria** (across both logs):
+- **No flash:** every recorded overlay — Winner *and* Loser — stayed open **≥ 2500 ms** (server `ROUND_WIN_DELAY = 3 s`). Any entry with `ms < 1000` is the flash regression.
+- **Winner-specific:** **zero** `state === 'Winner'` entries with `ms < 1000` — this is the exact reported symptom (the winning user's overlay vanishing).
+- **Per-round consistency:** join the two logs by `round`; in every completed round **exactly one** instance shows `Winner` and the other shows `Loser` (never two winners, never two losers, never a round where the winner saw nothing).
+- At least **6 rounds** observed, so the probabilistic race had chances to fire.
+
+If any `Winner` entry flashed (`ms < 1000`), the round-end flash regression is back — check `tryReveal` in `static/js/animations.js`: the `state.pendingWinName` branch must **drop** `state.postRevealState`, not fall through to `showFor(state.postRevealState)` (which hides the just-shown overlay).
+
+Take screenshot **`.playwright-mcp/22-overlay-consistency.png`** (a winner overlay mid-display).
+
+---
+
+## Step 23 — Console error audit
 
 At the end of all tests, collect all browser console messages from both instances. Flag any:
 - `Error:` or `Uncaught` entries
@@ -619,7 +684,7 @@ At the end of all tests, collect all browser console messages from both instance
 
 ## Reporting
 
-Print a summary table. Preflight (self-update, prior-run review) is reported as a one-line note, not a scored row. The 22 numbered rows map 1:1 to Steps 1–22.
+Print a summary table. Preflight (self-update, prior-run review) is reported as a one-line note, not a scored row. The 23 numbered rows map 1:1 to Steps 1–23.
 
 TENSIES TEST RESULTS
 
@@ -648,9 +713,10 @@ Preflight: self-update <ran|none>, prior-run review <ran|none> (not scored)
 | 19 | ✅ PASS | Player reconnect flow |
 | 20 | ✅ PASS | Host disconnect + reconnect |
 | 21 | ✅ PASS | Animation integrity (no tearing) |
-| 22 | ✅ PASS | Console clean (no JS errors) |
+| 22 | ✅ PASS | Winner/loser overlay consistency (multi-round, no flash) |
+| 23 | ✅ PASS | Console clean (no JS errors) |
 
-22/22 passed
+23/23 passed
 
 Replace `✅ PASS` with `❌ FAIL` or `📝 NOTE` and append a one-line description for any issue. If any test FAILs, describe exactly what went wrong and where to look.
 
