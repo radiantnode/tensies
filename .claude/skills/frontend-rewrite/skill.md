@@ -1,7 +1,7 @@
 ---
 name: frontend-rewrite
-description: "Rewrite the Tensies frontend (HTML, CSS, JavaScript) from a blank canvas, one view at a time, with every view verified pixel-perfect against the current frontend before moving on. Plan-mode driven: the user enumerates the views that matter, the skill orders the work, confirms every step, scaffolds a fresh vanilla-web-component canvas, then builds and pixel-verifies each view in turn. Use when the user asks to rewrite, rebuild, or modernise the frontend without changing how it looks."
-user_invocable: true
+description: "Governs all frontend work: full rewrites AND incremental design additions (new views, new components, visual changes). For a full rewrite: blank-canvas rebuild, pixel-perfect verified view by view. For design additions: baseline → build → verify loop, same engineering standard. Trigger on: rewrite/rebuild/modernise requests AND any new screen, component, or intentional visual change."
+user-invocable: true
 ---
 
 # Tensies Frontend Rewrite (pixel-perfect)
@@ -85,6 +85,24 @@ screens expose a `render(snap)` method that `net.js::showFor` calls.
 - **Permalinkable pages.** Every view has a real URL via the History API; deep
   links and refresh land on the right view (the app already deep-links join
   codes — preserve and extend that to all views).
+- **No inline styles — CSP is `style-src 'self'`.** The server sends a strict
+  Content Security Policy; inline `<style>` blocks and `onload` attribute
+  patterns are rejected at load time. All CSS lives in `static/css/`. The loading
+  screen is the one exception to "inline HTML in `index.html`" — but its styles
+  still go in the external `critical.css`, not in a `<style>` tag.
+- **`prefers-reduced-motion` must be respected in JS timer logic too.** CSS
+  `animation-duration: 0.001ms` suppresses visual animations but does nothing to
+  `setTimeout` delays driving the animation (shake window, reveal wait). Any JS
+  timing that exists only to pace an animation must check
+  `window.matchMedia('(prefers-reduced-motion: reduce)').matches` and skip or
+  collapse to zero.
+- **`disconnectedCallback` for every `document.addEventListener`.** Store the
+  bound handler on `this._handler` (or a named property) in `connectedCallback`;
+  call `document.removeEventListener` with the same reference in
+  `disconnectedCallback`. Components that skip cleanup accumulate listeners if
+  ever re-parented or reconnected.
+- **Images live in `static/images/`.** All raster and vector assets (PNG, SVG,
+  WebP) go in `static/images/`, not the `static/` root.
 
 ## The harness is the judge
 
@@ -116,6 +134,41 @@ worked references; copy their patterns.
 
 ---
 
+## Design additions (incremental changes)
+
+Every new screen, component, or intentional visual change — regardless of size —
+runs through this skill. A spacing tweak and a brand-new view follow the same
+discipline; only the scope differs. The phases below (1–6) are for a full
+rewrite; for incremental work, collapse them to this loop:
+
+1. **Baseline first, always.** Before touching any markup or CSS, capture the
+   current state of every view that could be affected:
+   `cd harness && TENSIES_URL=http://localhost:8888 npm run baseline:one <view>`
+   (or the full `npm run baseline` if the change touches shared structure).
+   Commit the baselines before any code change so the diff is attributable.
+
+2. **Plan before building (plan mode).** State what you're adding, which
+   existing components you'll reuse, what new shared pieces (if any) you'll
+   extract, and which harness views you'll need to re-verify. Get approval before
+   writing a line.
+
+3. **Build to the engineering standard.** Same rules as a full rewrite: no
+   creative liberties, no inline styles, no duplicated code, no skipped
+   `disconnectedCallback`, no un-gated JS animation timers. New markup → extract
+   shared pieces; new CSS → tokens first.
+
+4. **Verify every affected view.** Run `npm run verify:one <view>` for each
+   view in the blast radius. Zero diff = done. Any diff = fix the code, not the
+   baseline, and re-run.
+
+5. **Commit after the harness is green.** One logical commit per addition,
+   referencing which views were verified.
+
+The non-negotiables (no creative liberties, no MCP Playwright, plan-mode
+approval, zero tolerance) apply here exactly as they do in a full rewrite.
+
+---
+
 ## Phase 1 — The user defines every view that matters
 
 Pixel-perfect only covers states you capture, so this catalog **is** the boundary
@@ -131,8 +184,9 @@ loser, disconnect-waiting, fatal-error) rather than from a blank page, then
 confirm with the user whether anything is missing or any new state matters. Also
 cross-check `static/index.html` and `CLAUDE.md` so nothing slipped.
 
-For each state record: a short **name**, the **URL/route**, the **viewport(s)**
-it matters at, and how to **reach** it. The catalog is encoded in three places to
+For each state record: a short **name**, the **URL/route**, and how to **reach** it.
+All verification runs at the single mobile viewport (390×844, 2×dpr) — desktop
+is not tested. The catalog is encoded in three places to
 copy from: `harness/states.json` (single-page "static" states), `stateful.spec.js`
 (synthesized server-driven states), and `extras.spec.js` (real-interaction
 states). Note which approach each new state needs — `NOTES.md` explains all three.
@@ -243,3 +297,4 @@ When every catalogued view passes:
 - Plan and confirm every phase and every view. No running ahead.
 - No creative liberties, no duplicated code, no MCP Playwright.
 - A view with no baseline is unprotected — keep the catalog complete.
+- Every design addition (not just full rewrites) runs through this skill: baseline → plan → build → verify → commit.

@@ -52,10 +52,8 @@ module.exports = defineConfig({
       scale: 'css',
     },
   },
-  // Pin exact viewports. Edit these to the devices the user actually targets;
-  // pixel-perfect is meaningless without a fixed viewport + deviceScaleFactor.
+  // Mobile only — Tensies is a phone game. Desktop viewport is not tested.
   projects: [
     { name: 'mobile', use: { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true } },
-    { name: 'desktop', use: { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 } },
   ],
 });
