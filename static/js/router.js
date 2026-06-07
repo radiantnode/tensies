@@ -35,9 +35,10 @@ window.addEventListener('popstate', () => {
 });
 
 // First paint is the inline #loading screen; decide what to show next without a
-// landing flash. A ?join=CODE deep link goes straight to join with the code in.
+// landing flash. /<CODE> and legacy ?join=CODE deep links go straight to join.
 export function bootstrap() {
-  const join = new URLSearchParams(location.search).get('join');
+  const pathCode = location.pathname.match(/^\/([A-Z]{5})$/i)?.[1];
+  const join = pathCode || new URLSearchParams(location.search).get('join');
   if (join) {
     history.replaceState({ id: 'join' }, '', '/');
     document.getElementById('code-input').value = join.toUpperCase();

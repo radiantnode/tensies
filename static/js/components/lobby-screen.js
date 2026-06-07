@@ -6,7 +6,7 @@ import './app-header.js';
 import { state } from '../state.js';
 import { startGame } from '../net.js';
 
-const joinLink = () => `${location.origin}/?join=${state.gameCode}`;
+const joinLink = () => `${location.origin}/${state.gameCode}`;
 const COPY_HINT = 'Click to copy or show your friends or don’t.';
 
 class LobbyScreen extends HTMLElement {

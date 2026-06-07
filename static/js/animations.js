@@ -187,14 +187,18 @@ export function tryReveal() {
       state.pendingWinTarget = null;
       state.pendingWinRound = null;
       state.pendingWinIsLoser = false;
+      // Drop any mid-reveal broadcast stashed in postRevealState — it's a
+      // same-round snapshot that would call hideWinner() and close the overlay.
+      // The authoritative next-round state arrives after ROUND_WIN_DELAY.
+      state.postRevealState = null;
       showWinner(name, target, round, isLoser);
     } else {
       hideWinner();
-    }
-    if (state.postRevealState) {
-      const m = state.postRevealState;
-      state.postRevealState = null;
-      showFor(m);
+      if (state.postRevealState) {
+        const m = state.postRevealState;
+        state.postRevealState = null;
+        showFor(m);
+      }
     }
   });
 }
