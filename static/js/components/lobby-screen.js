@@ -1,10 +1,11 @@
 // <lobby-screen> — waiting room. Host is #lobby.screen (light DOM). State-driven:
 // render(snap) is called by net.js showFor() on each pre-start `state` frame.
-// The player list is small and updates only on join/leave, so rebuilding it per
-// render is fine (the per-frame in-place discipline is for the game board).
+// Player rows are keyed by pid so joins/leaves patch in place without resetting
+// scroll position or triggering layout thrash.
 import './app-header.js';
 import { state } from '../state.js';
 import { startGame } from '../net.js';
+import { updateScrollFades } from '../util.js';
 
 const joinLink = () => `${location.origin}/${state.gameCode}`;
 const COPY_HINT = 'Click to copy or show your friends or don’t.';
@@ -39,6 +40,7 @@ class LobbyScreen extends HTMLElement {
       </div>`;
 
     this.list = this.querySelector('#lobby-players');
+    this._rows = new Map(); // pid → <li>
     this.list.addEventListener('scroll', () => this.updateFades(), { passive: true });
     window.addEventListener('resize', () => this.updateFades());
 
@@ -51,10 +53,14 @@ class LobbyScreen extends HTMLElement {
     state.gameCode = snap.code;
     this.querySelector('#lobby-code').textContent = snap.code;
 
-    this.list.innerHTML = '';
     for (const [pid, p] of Object.entries(snap.players)) {
-      const li = document.createElement('li');
-      li.className = 'player-list-item';
+      let li = this._rows.get(pid);
+      if (!li) {
+        li = document.createElement('li');
+        li.className = 'player-list-item';
+        this._rows.set(pid, li);
+        this.list.appendChild(li);
+      }
       li.textContent = p.name;
       if (pid === snap.host) {
         const b = document.createElement('span'); b.className = 'host-badge'; b.textContent = 'HOST';
@@ -63,7 +69,9 @@ class LobbyScreen extends HTMLElement {
         const b = document.createElement('span'); b.className = 'you-badge'; b.textContent = 'you';
         li.appendChild(b);
       }
-      this.list.appendChild(li);
+    }
+    for (const pid of this._rows.keys()) {
+      if (!snap.players[pid]) { this._rows.get(pid).remove(); this._rows.delete(pid); }
     }
 
     const startBtn = this.querySelector('#start-btn');
@@ -78,12 +86,7 @@ class LobbyScreen extends HTMLElement {
     requestAnimationFrame(() => this.updateFades());
   }
 
-  // Edge fades as a scroll affordance — shown only when there's overflow.
-  updateFades() {
-    const { scrollTop, scrollHeight, clientHeight } = this.list;
-    this.list.classList.toggle('can-scroll-up', scrollTop > 1);
-    this.list.classList.toggle('can-scroll-down', scrollTop + clientHeight < scrollHeight - 1);
-  }
+  updateFades() { updateScrollFades(this.list); }
 
   copyCode() {
     if (!state.gameCode) return;

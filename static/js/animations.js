@@ -11,6 +11,10 @@ import { showFor } from './net.js';
 export { resetRollState };
 
 export function startShake() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    state.rollShakeEnd = Date.now();
+    return;
+  }
   const gatherMs = 200;
   const shakeMs = 300 + Math.random() * 400;
   state.rollShakeEnd = Date.now() + gatherMs + shakeMs;

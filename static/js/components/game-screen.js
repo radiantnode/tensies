@@ -46,7 +46,6 @@ class GameScreen extends HTMLElement {
 
     // Hamburger toggles the GAME menu (not the nav menu).
     this._menuBtn.addEventListener('click', () => (this.menuOpen() ? this.closeMenu() : this.openMenu()));
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.menuOpen()) this.closeMenu(); });
 
     // Pause/Resume — send intent; the broadcast flips the flag and renderMenu
     // reflects it. Resuming closes the menu after a beat (toggle slide-off).
@@ -61,12 +60,19 @@ class GameScreen extends HTMLElement {
     this.querySelector('#my-area').addEventListener('click', (e) => {
       if (e.target.id === 'roll-btn' && !e.target.disabled) roll();
     });
-    document.addEventListener('keydown', (e) => {
+
+    this._onKeydown = (e) => {
+      if (e.key === 'Escape' && this.menuOpen()) { this.closeMenu(); return; }
       if (e.code === 'Space' && state.currentState?.started && !state.rolling) {
         const btn = document.getElementById('roll-btn');
         if (btn && !btn.disabled) { e.preventDefault(); roll(); }
       }
-    });
+    };
+    document.addEventListener('keydown', this._onKeydown);
+  }
+
+  disconnectedCallback() {
+    document.removeEventListener('keydown', this._onKeydown);
   }
 
   menuOpen() { return this._menu.classList.contains('open'); }

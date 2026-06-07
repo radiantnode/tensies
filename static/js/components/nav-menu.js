@@ -3,6 +3,8 @@
 // menu.css and the body:has(#nav-menu.open) selectors apply. Toggled by the
 // bubbling `menu-toggle` event from <app-header>. The changelog body is baked
 // HTML (the changelog skill regenerates it).
+import { updateScrollFades } from '../util.js';
+import { backButtonHTML } from '../title-row.js';
 const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
 <h2>1.6.0 ("High Roller")</h2>
 <p>Sunday, May 31, 2026</p>
@@ -103,12 +105,7 @@ class NavMenu extends HTMLElement {
       <div class="menu-changelog-panel">
         <div class="menu-changelog-header">
           <h2 class="menu-changelog-heading">See What's New</h2>
-          <button type="button" class="menu-changelog-back-btn join-back">
-            <svg class="back-chevron" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M15 18 9 12l6-6"/>
-            </svg>
-            <span>Back</span>
-          </button>
+          <button type="button" class="menu-changelog-back-btn btn-back">${backButtonHTML}</button>
         </div>
         <div class="menu-changelog-body">${CHANGELOG}</div>
       </div>`;
@@ -116,7 +113,11 @@ class NavMenu extends HTMLElement {
     this._body = this.querySelector('.menu-changelog-body');
     this._body.addEventListener('scroll', () => this.updateFades(), { passive: true });
 
-    document.addEventListener('menu-toggle', () => this.toggle());
+    this._onMenuToggle = () => this.toggle();
+    this._onKeydown = (e) => { if (e.key === 'Escape' && this.menuOpen()) this.close(); };
+    document.addEventListener('menu-toggle', this._onMenuToggle);
+    document.addEventListener('keydown', this._onKeydown);
+
     this.querySelector('.menu-whats-new-btn').addEventListener('click', () => {
       this.classList.add('show-changelog');
       this._body.scrollTop = 0;
@@ -125,7 +126,11 @@ class NavMenu extends HTMLElement {
     this.querySelector('.menu-changelog-back-btn').addEventListener('click', () => {
       this.classList.remove('show-changelog');
     });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.menuOpen()) this.close(); });
+  }
+
+  disconnectedCallback() {
+    document.removeEventListener('menu-toggle', this._onMenuToggle);
+    document.removeEventListener('keydown', this._onKeydown);
   }
 
   menuOpen() { return this.classList.contains('open'); }
@@ -153,10 +158,6 @@ class NavMenu extends HTMLElement {
     });
   }
 
-  updateFades() {
-    const { scrollTop, scrollHeight, clientHeight } = this._body;
-    this._body.classList.toggle('can-scroll-up', scrollTop > 1);
-    this._body.classList.toggle('can-scroll-down', scrollTop + clientHeight < scrollHeight - 1);
-  }
+  updateFades() { updateScrollFades(this._body); }
 }
 customElements.define('nav-menu', NavMenu);

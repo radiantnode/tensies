@@ -94,9 +94,9 @@ body:has(#nav-menu.open) #landing .game-title { visibility: visible; }
   margin-bottom: 0.4rem;
 }
 
-/* Join back chip */
+/* Back chip (join screen + changelog panel) */
 #join .screen-body { position: relative; }
-.join-back {
+.btn-back {
   position: absolute;
   top: 1.25rem;
   left: 2rem;
@@ -116,7 +116,7 @@ body:has(#nav-menu.open) #landing .game-title { visibility: visible; }
   box-shadow: inset 0 1px 0 rgba(220, 170, 70, 0.12), 0 2px 8px rgba(0, 0, 0, 0.45);
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.join-back:hover { color: #fff; background: var(--raised-hover); border-color: rgba(190, 130, 55, 0.45); }
+.btn-back:hover { color: #fff; background: var(--raised-hover); border-color: rgba(190, 130, 55, 0.45); }
 .back-chevron { width: 17px; height: 17px; flex-shrink: 0; margin-left: -0.15rem; }
 
 @media (max-height: 700px) {
