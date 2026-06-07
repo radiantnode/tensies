@@ -50,7 +50,11 @@ loadRandomName();
 
 // HTML starts with #loading active (so first paint is the loading bar — no
 // landing flash before JS bootstraps). Decide now what to show next.
-const deepLinkCode = new URLSearchParams(location.search).get('join');
+// Clean join URLs: /<code>. (Legacy ?join=<code> links still work.)
+const pathCode = location.pathname.slice(1);
+const deepLinkCode = /^[A-Za-z]{5}$/.test(pathCode)
+  ? pathCode
+  : new URLSearchParams(location.search).get('join');
 
 if (deepLinkCode) {
   history.replaceState(null, '', '/');

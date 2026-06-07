@@ -52,7 +52,7 @@ export function joinGame() {
 }
 
 function joinLink() {
-  return `${location.origin}/?join=${state.gameCode}`;
+  return `${location.origin}/${state.gameCode}`;
 }
 
 export function copyCode() {
