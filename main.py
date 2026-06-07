@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from server import fanout, gamestore, reaper, telemetry
 from server.assets import build_js_cache
 from server.routes import router as http_router
+from server.security import SecurityHeadersMiddleware
 from server.ws import router as ws_router
 
 
@@ -29,6 +30,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+# Stamp CSP + HSTS onto every HTTP response (index page, /static, /metrics, …).
+app.add_middleware(SecurityHeadersMiddleware)
 
 # JS files are served from a rewritten cache that appends ?v=<hash> to every
 # relative `import './foo.js'` URL. Without this, the ?v= on the top-level

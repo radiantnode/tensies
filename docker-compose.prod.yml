@@ -43,6 +43,11 @@ services:
       # Set TRUSTED_PROXY_HOPS to the number of proxies that append to XFF.
       TRUST_PROXY_HEADERS: "1"
       TRUSTED_PROXY_HOPS: "${TRUSTED_PROXY_HOPS:-1}"
+      # Real HTTPS deploy: send HSTS and add upgrade-insecure-requests to the CSP.
+      # Opt into includeSubDomains/preload only once every subdomain is HTTPS.
+      HSTS_ENABLED: "1"
+      HSTS_INCLUDE_SUBDOMAINS: "${HSTS_INCLUDE_SUBDOMAINS:-0}"
+      HSTS_PRELOAD: "${HSTS_PRELOAD:-0}"
       TELEMETRY_ENABLED: "1"
     depends_on:
       postgres:

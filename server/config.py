@@ -88,6 +88,22 @@ TRUSTED_PROXY_HOPS = _int("TRUSTED_PROXY_HOPS", 1)
 METRICS_TOKEN = os.environ.get("METRICS_TOKEN") or None
 STATS_TOKEN = os.environ.get("STATS_TOKEN") or None
 
+# ─── Security response headers (HSTS + CSP) ──────────────────────────────
+# Master switch for the Content-Security-Policy header. On by default — the
+# frontend has no inline scripts/styles, so a strict CSP applies with no
+# exceptions and acts as a regression tripwire in dev too.
+SECURITY_HEADERS = _flag("SECURITY_HEADERS", True)
+# Optional full CSP override for advanced operators (e.g. adding a CDN). When
+# unset, a strict same-origin policy is built in code.
+CSP_OVERRIDE = os.environ.get("CONTENT_SECURITY_POLICY") or None
+# HSTS is only honoured by browsers over HTTPS, so it's off by default (plain
+# http dev) and turned on in docker-compose.prod.yml. Enabling it also adds
+# `upgrade-insecure-requests` to the CSP.
+HSTS_ENABLED = _flag("HSTS_ENABLED", False)
+HSTS_MAX_AGE = _int("HSTS_MAX_AGE", 63072000)  # 2 years
+HSTS_INCLUDE_SUBDOMAINS = _flag("HSTS_INCLUDE_SUBDOMAINS", False)
+HSTS_PRELOAD = _flag("HSTS_PRELOAD", False)
+
 # ─── Telemetry ───────────────────────────────────────────────────────────
 # Redis is required; the Postgres/Grafana telemetry stack is optional. Set
 # TELEMETRY_ENABLED=0 for a lightweight deploy (or local dev / CI) — Prometheus
