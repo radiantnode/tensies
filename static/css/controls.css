@@ -1,0 +1,97 @@
+/* ── Form controls ──
+   Buttons, inputs, the code field, error text. (Document reset, tokens, and the
+   loading screen live in the inline critical CSS in index.html.) */
+button, input, textarea, select { font-family: inherit; }
+button { color: inherit; background: none; border: none; cursor: pointer; }
+dialog { color: inherit; }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+input {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--field);
+  color: var(--text);
+  font-size: 1rem;
+  outline: none;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(220, 170, 70, 0.06);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+input::placeholder { color: var(--muted); letter-spacing: normal; }
+input:focus {
+  border-color: var(--accent);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45), 0 0 0 3px rgba(255, 77, 109, 0.18);
+}
+input.code-input { text-transform: uppercase; letter-spacing: 0.3em; font-weight: 700; font-size: 1.3rem; }
+
+.btn {
+  padding: 0.85rem 1.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.12s ease,
+              background 0.12s ease, border-color 0.12s ease, opacity 0.15s;
+  letter-spacing: 0.05em;
+  touch-action: manipulation;
+  text-decoration: none;
+  color: inherit;
+}
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+.btn:active:not(:disabled) { transform: translateY(0); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+.btn-primary {
+  background: linear-gradient(180deg, #ff6480 0%, var(--accent) 55%, #ef4263 100%);
+  color: #fff;
+  border-color: rgba(255, 160, 178, 0.5);
+  text-shadow: 0 1px 2px rgba(120, 0, 25, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 220, 226, 0.55),
+    inset 0 5px 9px rgba(255, 200, 210, 0.16),
+    inset 0 -3px 8px rgba(150, 10, 40, 0.3),
+    0 0 20px rgba(255, 77, 109, 0.32),
+    0 4px 14px rgba(0, 0, 0, 0.5);
+}
+.btn-primary:hover:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 230, 235, 0.65),
+    inset 0 5px 9px rgba(255, 205, 214, 0.2),
+    inset 0 -3px 8px rgba(150, 10, 40, 0.28),
+    0 0 26px rgba(255, 77, 109, 0.42),
+    0 6px 18px rgba(0, 0, 0, 0.55);
+}
+
+.btn-secondary {
+  background: var(--raised);
+  color: var(--text-warm);
+  border-color: var(--border-strong);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  box-shadow:
+    inset 0 1px 0 rgba(220, 170, 70, 0.12),
+    0 4px 14px rgba(0, 0, 0, 0.45);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--raised-hover);
+  border-color: rgba(190, 130, 55, 0.45);
+}
+.btn-block { display: block; width: 100%; max-width: 400px; }
+
+.error-msg {
+  color: var(--accent);
+  font-size: 0.9rem;
+  min-height: 1.4rem;
+  text-align: center;
+}

@@ -1,42 +1,25 @@
-// Single mutable bag shared across modules. Module-scope `let` exports are
-// read-only on the importing side, so a shared object is the simplest way for
-// every module to read and write the same client-side state.
+// Single mutable state bag shared across modules (mirrors the old state.js).
 export const state = {
   ws: null,
   myId: null,
   gameCode: null,
-  currentState: null,
+  pendingOrigin: null,        // 'landing' | 'join' — where a failed connect returns to
+  currentState: null,         // last server state snapshot
+  reconnecting: false,
+  randomNamePlaceholder: '',  // the seeded "Zesty Pickle" name
 
-  // Roll animation sequencing
-  rolling: false,
-  awaitingAck: false,
-  pendingRollState: null,    // server's response, held until shake animation ends
-  postRevealState: null,     // a newer broadcast (e.g. pause) that arrived mid-reveal,
-                             // re-routed via showFor once the reveal completes
-  pendingWinName: null,      // winner overlay info, held until reveal completes
+  // ── Game board / roll choreography ──
+  barCards: {},               // pid -> <player-card>, reused across renders
+  lastMyDiceKey: null,        // fingerprint to skip needless my-area re-renders
+  rolling: false,             // shake animation running
+  awaitingAck: false,         // waiting on the server's roll response
+  pendingRollState: null,     // held roll response until the shake finishes
+  postRevealState: null,      // a newer broadcast that arrived mid-reveal
+  pendingRollTimeouts: [],
+  prevMatchedCount: 0,        // matched dice before this roll (to find the new ones)
+  rollShakeEnd: 0,
+  pendingWinName: null,       // winner overlay, held until the reveal completes (view 6)
   pendingWinTarget: null,
   pendingWinRound: null,
   pendingWinIsLoser: false,
-  pendingRollTimeouts: [],
-  rollShakeEnd: 0,
-  prevMatchedCount: 0,
-  lastMyDiceKey: null,
-
-  // Players-bar cards persisted across rounds for in-place updates
-  barCards: {},
-
-  // Reconnection
-  reconnecting: false,
-
-  // Random-name placeholder (generated locally via static/js/names.js)
-  randomNamePlaceholder: 'Player',
-
-  // Which screen initiated the in-flight create/join. Set by landing.js so
-  // the error handler can route an error response back to that screen
-  // (instead of letting it land on the currently-active #loading screen
-  // and never being seen).
-  pendingOrigin: null,
 };
-
-// Exposed for the test-game skill (page.evaluate can't reach module locals).
-if (typeof window !== 'undefined') window._state = state;

@@ -1,0 +1,28 @@
+[
+  {
+    "name": "landing",
+    "type": "static",
+    "path": "/",
+    "steps": [{ "waitFor": "#landing.active" }]
+  },
+  {
+    "name": "join-empty",
+    "type": "static",
+    "path": "/",
+    "steps": [
+      { "waitFor": "#landing.active" },
+      { "click": "#show-join-btn" },
+      { "waitFor": "#join.active" }
+    ]
+  },
+  {
+    "name": "nav-menu-open",
+    "type": "static",
+    "path": "/",
+    "steps": [
+      { "waitFor": "#landing.active" },
+      { "click": "#landing-menu-btn" },
+      { "waitFor": "#nav-menu.open" }
+    ]
+  }
+]
