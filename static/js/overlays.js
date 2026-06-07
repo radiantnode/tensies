@@ -63,7 +63,7 @@ export function showWinner(name, target, round, isLoser = false) {
   const suffix = document.getElementById('winner-banner-suffix');
   if (suffix) suffix.textContent = isLoser ? 'Loser' : 'Winner';
   const logo = document.querySelector('.winner-logo');
-  if (logo) logo.src = isLoser ? '/static/logo-loser.svg' : '/static/logo-winner.svg';
+  if (logo) logo.src = isLoser ? '/static/images/logo-loser.svg' : '/static/images/logo-winner.svg';
   const nameEl = document.getElementById('winner-name');
   if (nameEl) nameEl.textContent = name;
   startWinTimer();

@@ -6,18 +6,18 @@
   <title>Tensies 🎲</title>
   <meta property="og:title" content="Come play Tensies!">
   <meta property="og:description" content="Roll all ten to win the round — real-time multiplayer dice game.">
-  <meta property="og:image" content="/static/come-play-teaser.png">
+  <meta property="og:image" content="/static/images/come-play-teaser.png">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Come play Tensies!">
   <meta name="twitter:description" content="Roll all ten to win the round — real-time multiplayer dice game.">
-  <meta name="twitter:image" content="/static/come-play-teaser.png">
-  <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/static/logo.svg">
+  <meta name="twitter:image" content="/static/images/come-play-teaser.png">
+  <link rel="icon" href="/static/images/logo.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/images/logo.svg">
 
   <!-- First-paint assets, warmed before anything blocks. -->
-  <link rel="preload" href="/static/logo.svg" as="image">
-  <link rel="preload" href="/static/bar-top.png" as="image">
+  <link rel="preload" href="/static/images/logo.svg" as="image">
+  <link rel="preload" href="/static/images/bar-top.png" as="image">
   <link rel="preload" href="/static/fonts/inter-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 
   <!-- Critical CSS: tokens, reset, loading screen, view-transition setup. -->
@@ -69,7 +69,7 @@
   <!-- Inline loading screen: paints from the critical CSS above with no JS.
        The router swaps it for landing/join/lobby/game once the app boots. -->
   <section id="loading" class="screen active" aria-labelledby="loading-msg">
-    <img src="/static/logo.svg" class="logo-mark" alt="">
+    <img src="/static/images/logo.svg" class="logo-mark" alt="">
     <h1 class="logo">TENSIES</h1>
     <div class="loading-bar" aria-hidden="true"><div class="loading-bar-fill"></div></div>
     <p id="loading-msg">Loading…</p>
@@ -87,7 +87,7 @@
 <!-- Non-host wait screen while the game is paused. Body-level <dialog> so the
      board stays live underneath; visually mirrors #loading. -->
 <dialog id="pause-overlay" class="overlay-dialog" aria-labelledby="pause-overlay-msg">
-  <img src="/static/logo.svg" class="logo-mark" alt="">
+  <img src="/static/images/logo.svg" class="logo-mark" alt="">
   <h1 class="logo">TENSIES</h1>
   <div class="loading-bar" aria-hidden="true"><div class="loading-bar-fill"></div></div>
   <p id="pause-overlay-msg"></p>
@@ -97,7 +97,7 @@
 <dialog id="winner-overlay" class="overlay-dialog" aria-label="Round winner">
   <div class="winner-box">
     <div class="winner-banner"><span class="winner-banner-label">Round <span class="winner-round-pill" id="winner-round"></span> <span id="winner-banner-suffix">Winner</span></span></div>
-    <img src="/static/logo-winner.svg" class="winner-logo" alt="" aria-hidden="true">
+    <img src="/static/images/logo-winner.svg" class="winner-logo" alt="" aria-hidden="true">
     <p class="winner-name" id="winner-name"></p>
   </div>
   <div class="winner-timer" aria-hidden="true">

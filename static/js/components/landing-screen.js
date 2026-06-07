@@ -14,7 +14,7 @@ class LandingScreen extends HTMLElement {
     this.innerHTML = `
       <app-header></app-header>
       <div class="screen-body">
-        <img src="/static/logo.svg" class="logo-mark" alt="">
+        <img src="/static/images/logo.svg" class="logo-mark" alt="">
         <h1 id="landing-title" class="logo">TENSIES</h1>
         <p class="tagline">Roll all ten to win</p>
         <form id="landing-form" class="form-stack" autocomplete="off" novalidate>

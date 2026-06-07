@@ -6,3 +6,5 @@ ops/secrets/
 .playwright-mcp/
 
 .DS_Store
+
+graphify-out

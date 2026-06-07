@@ -36,7 +36,7 @@ h1, h2, h3, p { font-weight: inherit; font-size: inherit; }
 html { height: 100%; overflow: hidden; overscroll-behavior: none; }
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background: #1a0e08 url('/static/bar-top.png') center 10% / cover no-repeat;
+  background: #1a0e08 url('/static/images/bar-top.png') center 10% / cover no-repeat;
   color: var(--text);
   position: fixed;
   width: 100%;

@@ -58,7 +58,10 @@
       "Bash(node --check *)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Grafana', d.get\\('version','?'\\)\\)\")",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Grafana', d.get\\('version','?'\\), '-', 'OK' if d.get\\('database'\\)=='ok' else 'FAIL: db not ok'\\)\")",
-      "mcp__playwright-guest__browser_close"
+      "mcp__playwright-guest__browser_close",
+      "mcp__playwright-g2-host__browser_fill_form",
+      "mcp__playwright-g3-host__browser_fill_form",
+      "mcp__playwright-g3-host__browser_click"
     ]
   }
 }
