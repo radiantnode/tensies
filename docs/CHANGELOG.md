@@ -8,6 +8,7 @@ Sunday, June 7, 2026
 
 - Fixed a maddening one. Every so often your win screen would blink and vanish while everyone else's stuck around just fine. Now your victory lap holds the full three seconds, like it should. 🎲
 - Locked the doors a little tighter, so the game behaves on real networks and only the right people can wander into the back room.
+- Scroll to the bottom of these notes and you can pop the whole game open on GitHub, free for anyone to read or build on.
 - _Behind the scenes: tightened up security and tidied the engine room so the game stays trustworthy as more people pile in._
 
 ## 1.7.0 ("Open Bar")
