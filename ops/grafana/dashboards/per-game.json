@@ -1,8 +1,7 @@
 {
   "uid": "tensies-game",
-  "title": "Tensies \u2014 Per-Game Drilldown",
+  "title": "Per-Game Drilldown",
   "tags": [
-    "tensies",
     "game"
   ],
   "schemaVersion": 39,
@@ -677,8 +676,14 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "transparent", "value": null },
-              { "color": "gray", "value": 0 }
+              {
+                "color": "transparent",
+                "value": null
+              },
+              {
+                "color": "gray",
+                "value": 0
+              }
             ]
           }
         }
