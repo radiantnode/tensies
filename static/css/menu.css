@@ -334,3 +334,52 @@
   color: rgba(200, 185, 160, 0.55);
   font-style: normal;
 }
+
+.menu-changelog-footer {
+  margin-top: 1.8rem;
+  padding: 1.05rem 1.15rem 1.2rem;
+  border: 1px solid rgba(200, 170, 100, 0.16);
+  border-radius: var(--radius);
+  background: rgba(120, 90, 45, 0.08);
+  text-align: center;
+}
+
+.menu-changelog-footer p {
+  margin: 0 0 0.85rem;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: rgba(210, 195, 170, 0.6);
+}
+
+.menu-changelog-footer-lead {
+  font-weight: 700;
+  color: rgba(225, 210, 185, 0.78);
+}
+
+.menu-changelog-ghlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 220, 130, 0.35);
+  background: rgba(255, 220, 130, 0.08);
+  color: rgba(255, 226, 150, 0.95);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.menu-changelog-ghlink:hover {
+  background: rgba(255, 220, 130, 0.14);
+  border-color: rgba(255, 232, 165, 0.55);
+  transform: translateY(-1px);
+}
+
+.menu-changelog-ghlink svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
