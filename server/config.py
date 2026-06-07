@@ -40,6 +40,12 @@ def _float(name: str, default: float) -> float:
         return default
 
 
+def _list(name: str) -> list[str]:
+    """Parse a space- or comma-separated env var into a list (empty when unset)."""
+    raw = os.environ.get(name, "")
+    return [item for item in raw.replace(",", " ").split() if item]
+
+
 # ─── Gameplay ────────────────────────────────────────────────────────────
 MIN_ROLL_INTERVAL = 0.25     # min seconds between a player's rolls (rate limit)
 ROLL_ACK_TIMEOUT = 2.0       # wait for the roller's reveal ack before broadcasting
@@ -118,6 +124,15 @@ SECURITY_HEADERS = _flag("SECURITY_HEADERS", True)
 # Optional full CSP override for advanced operators (e.g. adding a CDN). When
 # unset, a strict same-origin policy is built in server/security.py.
 CSP_OVERRIDE = os.environ.get("CONTENT_SECURITY_POLICY") or None
+
+# Append extra sources to individual CSP directives without rewriting the whole
+# policy. Each is a space- or comma-separated host list. Example: a Cloudflare
+# Web Analytics beacon needs its script host on script-src and its collector on
+# connect-src (CSP_EXTRA_SCRIPT_SRC="https://static.cloudflareinsights.com",
+# CSP_EXTRA_CONNECT_SRC="https://cloudflareinsights.com"). Ignored when the full
+# CONTENT_SECURITY_POLICY override above is set.
+CSP_EXTRA_SCRIPT_SRC = _list("CSP_EXTRA_SCRIPT_SRC")
+CSP_EXTRA_CONNECT_SRC = _list("CSP_EXTRA_CONNECT_SRC")
 
 # HSTS is only honoured by browsers over HTTPS, so it's off by default (plain
 # http dev) and turned on in docker-compose.prod.yml. Enabling it also adds

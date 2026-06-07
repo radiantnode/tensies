@@ -13,6 +13,8 @@ real HTTPS deploy), so plain-http dev isn't forced to upgrade to https.
 from starlette.datastructures import MutableHeaders
 
 from .config import (
+    CSP_EXTRA_CONNECT_SRC,
+    CSP_EXTRA_SCRIPT_SRC,
     CSP_OVERRIDE,
     HSTS_ENABLED,
     HSTS_INCLUDE_SUBDOMAINS,
@@ -21,24 +23,29 @@ from .config import (
     SECURITY_HEADERS,
 )
 
-_CSP_DIRECTIVES = [
-    "default-src 'self'",
-    "script-src 'self'",
-    "style-src 'self'",
-    "img-src 'self' data:",
-    "font-src 'self'",
-    "connect-src 'self'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'none'",
-    "object-src 'none'",
-]
+
+def _directive(name: str, *sources: str) -> str:
+    """Join a directive name with its sources into one CSP directive string."""
+    return " ".join((name, *sources))
 
 
 def build_csp() -> str:
     if CSP_OVERRIDE:
         return CSP_OVERRIDE
-    directives = list(_CSP_DIRECTIVES)
+    # script-src / connect-src can be extended with extra hosts (e.g. an
+    # analytics beacon) via env, without rewriting the whole policy.
+    directives = [
+        "default-src 'self'",
+        _directive("script-src", "'self'", *CSP_EXTRA_SCRIPT_SRC),
+        "style-src 'self'",
+        "img-src 'self' data:",
+        "font-src 'self'",
+        _directive("connect-src", "'self'", *CSP_EXTRA_CONNECT_SRC),
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+        "object-src 'none'",
+    ]
     if HSTS_ENABLED:
         # Only meaningful (and safe) on a real HTTPS deploy.
         directives.append("upgrade-insecure-requests")

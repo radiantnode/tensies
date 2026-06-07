@@ -49,6 +49,10 @@ services:
       HSTS_ENABLED: "1"
       HSTS_INCLUDE_SUBDOMAINS: "${HSTS_INCLUDE_SUBDOMAINS:-0}"
       HSTS_PRELOAD: "${HSTS_PRELOAD:-0}"
+      # Allowlist extra hosts on specific CSP directives without rewriting the
+      # whole policy (e.g. a Cloudflare Web Analytics beacon). Space/comma list.
+      CSP_EXTRA_SCRIPT_SRC: "${CSP_EXTRA_SCRIPT_SRC:-}"
+      CSP_EXTRA_CONNECT_SRC: "${CSP_EXTRA_CONNECT_SRC:-}"
       TELEMETRY_ENABLED: "1"
     depends_on:
       postgres:
