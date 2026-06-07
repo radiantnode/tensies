@@ -45,6 +45,15 @@ Keep these rules in mind:
 - **Warm and a little funny.** A light joke is welcome; a groan-worthy pun in
   moderation is on-brand. Never sarcastic, never mean, never forced. Bar-night
   humor, the kind that lands with friends mid-round.
+- **Show the voice, never name it.** Don't describe the changelog's own
+  personality. No "a friendly log of...", no "here's a fun rundown", no "a
+  light-hearted look at what's new". A real person doesn't announce that they're
+  about to be friendly or funny, they just are. The tone has to live in the
+  actual words, not in a label stuck on the front. Same goes for canned bullet
+  prefaces: no "Fun fact:", no "Pro tip:", no "True story:", no "Did you know".
+  Just say the thing. (For the file's subtitle under the title, write a plain or
+  in-setting line like "Newest stuff up top" or "Pull up a stool.", not a
+  self-description of the writing.)
 - **No emojis, no em dashes.** The humanizer pass (Phase 5) cuts both, so don't
   add them in the first place. Use commas, periods, colons, or parentheses where
   you'd reach for a dash.
@@ -228,7 +237,7 @@ Structure, **newest day first** (a changelog is read top-down for "what's new"):
 ```markdown
 # What's New in Tensies
 
-A friendly log of everything that's changed. Newest stuff up top.
+Pull up a stool. Newest stuff up top.
 
 ## <Version> ("<Drink codename>")
 
