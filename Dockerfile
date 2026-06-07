@@ -1,7 +1,6 @@
-# Pinned to a specific patch tag rather than a floating `python:3.12-slim`.
-# For full supply-chain reproducibility, pin by digest instead, e.g.:
-#   FROM python:3.12.8-slim-bookworm@sha256:<digest>
-# (resolve with `docker buildx imagetools inspect python:3.12.8-slim-bookworm`).
+# Pinned to a specific patch tag (intentionally NOT a digest) so local dev
+# builds still pick up base-image patch updates. The prod *service* images are
+# digest-pinned in docker-compose.prod.yml instead.
 FROM python:3.12.8-slim-bookworm
 
 # Don't write .pyc, unbuffered logs, no pip version chatter.

@@ -9,8 +9,9 @@
 #   - Anonymous Grafana is OFF; admin password from env; Live origins restricted.
 #   - /metrics and /stats/* are gated by bearer tokens (Prometheus scrapes with
 #     a mounted token file over the internal network).
-#   - Images are pinned to specific versions (pin by @sha256 digest for full
-#     reproducibility once you've resolved them in your registry).
+#   - Images are pinned by @sha256 digest (multi-arch index digest) for full
+#     reproducibility; the tag is kept alongside for readability. Re-resolve
+#     after a bump with: docker buildx imagetools inspect <image:tag>.
 #
 # Usage:
 #   cp .env.prod.example .env.prod && edit it
@@ -58,7 +59,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:7.4.1-alpine
+    image: redis:7.4.1-alpine@sha256:c1e88455c85225310bbea54816e9c3f4b5295815e6dbf80c34d40afc6df28275
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD}",
               "--save", "", "--appendonly", "no"]
     healthcheck:
@@ -70,7 +71,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:16.4-alpine
+    image: postgres:16.4-alpine@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c
     environment:
       POSTGRES_USER: tensies
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}"
@@ -86,7 +87,7 @@ services:
     restart: unless-stopped
 
   prometheus:
-    image: prom/prometheus:v2.54.1
+    image: prom/prometheus:v2.54.1@sha256:f6639335d34a77d9d9db382b92eeb7fc00934be8eae81dbc03b31cfe90411a94
     volumes:
       - ./ops/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
       - ./ops/secrets/metrics_token:/etc/prometheus/metrics_token:ro
@@ -99,7 +100,7 @@ services:
     restart: unless-stopped
 
   postgres_exporter:
-    image: prometheuscommunity/postgres-exporter:v0.15.0
+    image: prometheuscommunity/postgres-exporter:v0.15.0@sha256:386b12d19eab2a37d7cd8ca8b4c7491cc7a830d9581f49af6c98a393da9605e6
     environment:
       DATA_SOURCE_NAME: "postgresql://tensies:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/tensies?sslmode=disable"
     depends_on:
@@ -109,7 +110,7 @@ services:
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:11.2.0
+    image: grafana/grafana:11.2.0@sha256:408afb9726de5122b00a2576763a8a57a3c86d5b0eff5305bc994ceb3eb96c3f
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}"
