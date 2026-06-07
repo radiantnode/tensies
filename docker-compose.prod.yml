@@ -149,8 +149,12 @@ services:
       - ./ops/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./ops/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
-    # Publish only if you need direct Grafana access; otherwise reach it via the
-    # reverse proxy. Default keeps it internal.
+    # Direct Grafana access on the host. Defaults to loopback (reach it via an
+    # SSH tunnel: `ssh -L 8889:127.0.0.1:8889 user@host`). To expose it on the
+    # box's network set GRAFANA_PUBLISH to e.g. 0.0.0.0:8889 — but Grafana's
+    # admin UI shouldn't face the public internet; tunnel or firewall it.
+    ports:
+      - "${GRAFANA_PUBLISH:-127.0.0.1:8889}:3000"
     networks: [internal]
     depends_on:
       - prometheus
