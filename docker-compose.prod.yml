@@ -18,18 +18,22 @@
 #   echo -n "$METRICS_TOKEN" > ops/secrets/metrics_token
 #   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 #
-# To run multiple app instances behind your own load balancer, scale `web`:
+# The `nginx` service is the single published port and round-robins across the
+# `web` replicas (they share Redis, so any instance serves any game; no sticky
+# sessions). To run multiple app instances, scale `web` then reload nginx so it
+# re-resolves the new set:
 #   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --scale web=3
-# (They share Redis, so any instance can serve any game. Put a round-robin LB
-#  in front — no sticky sessions required.)
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod exec nginx nginx -s reload
 
 services:
   web:
     build: .
     image: tensies:latest
-    # Publish only the app. Front this with a TLS-terminating reverse proxy / LB.
-    ports:
-      - "${WEB_PUBLISH:-127.0.0.1:8000}:8000"
+    # Internal only. The nginx service below is the single published port and
+    # load-balances across web replicas (scale with --scale web=N). Reaching web
+    # directly isn't needed; nginx talks to it over the internal network.
+    expose:
+      - "8000"
     environment:
       REDIS_URL: "redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379/0"
       POSTGRES_DSN: "postgresql://tensies:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/tensies"
@@ -59,6 +63,20 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks: [internal]
+    restart: unless-stopped
+
+  # Single published port + load balancer across the web replicas. Host
+  # cloudflared keeps pointing at ${WEB_PUBLISH} (this), unchanged. Config +
+  # scaling notes live in ops/nginx.conf. After `--scale web=N`, reload nginx:
+  #   docker compose -f docker-compose.prod.yml --env-file .env.prod exec nginx nginx -s reload
+  nginx:
+    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+    ports:
+      - "${WEB_PUBLISH:-127.0.0.1:8000}:80"
+    volumes:
+      - ./ops/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on: [web]
     networks: [internal]
     restart: unless-stopped
 
