@@ -70,9 +70,21 @@ ALLOWED_ORIGINS = [
     o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "*").split(",") if o.strip()
 ]
 
+# ─── Proxy / real client IP ──────────────────────────────────────────────
+# Behind a TLS-terminating reverse proxy / load balancer, the transport peer is
+# the proxy, not the user — so the per-IP connection cap and create/join rate
+# limits (audit H1) must read the real client from X-Forwarded-For. Enable this
+# ONLY when a trusted proxy sits in front (otherwise XFF is client-spoofable).
+TRUST_PROXY_HEADERS = _flag("TRUST_PROXY_HEADERS", False)
+# Number of trusted proxies that append to X-Forwarded-For. The real client is
+# taken this many entries from the right, so client-supplied (left) values are
+# ignored. Default 1 = a single LB you control.
+TRUSTED_PROXY_HOPS = _int("TRUSTED_PROXY_HOPS", 1)
+
 # ─── Endpoint auth (audit M2) ────────────────────────────────────────────
 # If set, /metrics and /stats/* require `Authorization: Bearer <token>`.
-# Unset (default) leaves them open — rely on a network ACL in that case.
+# Unset leaves them open — both compose files now set tokens so dev and prod
+# are authenticated; a clear warning is logged when either is left unset.
 METRICS_TOKEN = os.environ.get("METRICS_TOKEN") or None
 STATS_TOKEN = os.environ.get("STATS_TOKEN") or None
 

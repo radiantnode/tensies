@@ -7,6 +7,11 @@ scrape_configs:
     static_configs:
       - targets: ['web:8000']
     metrics_path: /metrics
+    # /metrics is bearer-gated in dev too (audit M2). Inline dev token must
+    # match METRICS_TOKEN in docker-compose.yml (default: devmetrics).
+    authorization:
+      type: Bearer
+      credentials: devmetrics
 
   - job_name: postgres
     static_configs:

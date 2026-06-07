@@ -3,11 +3,19 @@ from fastapi.responses import HTMLResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from .assets import build_index_html
-from .config import METRICS_TOKEN, STATS_TOKEN, TELEMETRY_ENABLED
+from .config import METRICS_TOKEN, STATS_TOKEN, TELEMETRY_ENABLED, log
 
 router = APIRouter()
 
 _index_html = build_index_html()
+
+# Fail loud, not closed: a bare `uvicorn` run stays usable, but warn so an
+# operator never unknowingly exposes these on a public port. Both compose files
+# set tokens, so dev and prod are authenticated by default.
+if METRICS_TOKEN is None:
+    log.warning("/metrics is UNAUTHENTICATED (set METRICS_TOKEN to require a bearer token)")
+if TELEMETRY_ENABLED and STATS_TOKEN is None:
+    log.warning("/stats/* is UNAUTHENTICATED (set STATS_TOKEN to require a bearer token)")
 
 
 def _bearer_guard(expected: str | None):

@@ -15,6 +15,10 @@ services:
       GRAFANA_LIVE_URL: http://grafana:3000/api/live/push
       GRAFANA_USER: admin
       GRAFANA_PASS: admin
+      # Dev also runs /metrics + /stats authenticated (audit M2). These are
+      # local-only dev tokens; Prometheus sends METRICS_TOKEN (see ops/prometheus.yml).
+      METRICS_TOKEN: ${METRICS_TOKEN:-devmetrics}
+      STATS_TOKEN: ${STATS_TOKEN:-devstats}
     depends_on:
       postgres:
         condition: service_healthy

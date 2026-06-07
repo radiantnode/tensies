@@ -17,6 +17,8 @@ from .config import (
     MAX_WS_MESSAGE_BYTES,
     MIN_ROLL_INTERVAL,
     PAUSE_MAX,
+    TRUST_PROXY_HEADERS,
+    TRUSTED_PROXY_HOPS,
     log,
 )
 from .game import apply_roll, make_reconnect_token, sanitize_name, state_msg, verify_token
@@ -47,7 +49,7 @@ class Session:
         self.pid = pid
         self.code: str | None = None
         self.name: str = "?"
-        self.ip: str = ws.client.host if ws.client else "?"
+        self.ip: str = _client_ip(ws)
         self.session_id = str(uuid.uuid4())
         self.peer = f"{ws.client.host}:{ws.client.port}" if ws.client else None
         self.user_agent = ws.headers.get("user-agent", "")
@@ -368,6 +370,24 @@ ACTIONS = {
 }
 
 
+def _client_ip(ws: WebSocket) -> str:
+    """Real client IP for abuse limits (audit H1). Behind a trusted proxy the
+    transport peer is the proxy, so read X-Forwarded-For; otherwise use the
+    peer. Taking the entry TRUSTED_PROXY_HOPS from the right ignores any
+    client-spoofed values prepended on the left."""
+    peer = ws.client.host if ws.client else "?"
+    if not TRUST_PROXY_HEADERS:
+        return peer
+    xff = ws.headers.get("x-forwarded-for")
+    if not xff:
+        return peer
+    parts = [p.strip() for p in xff.split(",") if p.strip()]
+    if not parts:
+        return peer
+    idx = min(max(TRUSTED_PROXY_HOPS, 1), len(parts))
+    return parts[-idx]
+
+
 def _origin_allowed(ws: WebSocket) -> bool:
     """WS Origin allowlist (audit M3). '*' disables the check (dev default).
     A missing Origin (non-browser client) is allowed — CSWSH is a browser
@@ -387,7 +407,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
         await ws.close(code=1008)
         return
     await ws.accept()
-    ip = ws.client.host if ws.client else "?"
+    ip = _client_ip(ws)
     # Per-IP connection cap (audit H1) — bound concurrent sockets / pinger tasks.
     conn_n = await gamestore.conn_incr(ip)
     if conn_n > MAX_CONNECTIONS_PER_IP:

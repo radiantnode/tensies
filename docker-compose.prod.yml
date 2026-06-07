@@ -38,6 +38,11 @@ services:
       METRICS_TOKEN: "${METRICS_TOKEN:?set METRICS_TOKEN}"
       STATS_TOKEN: "${STATS_TOKEN:?set STATS_TOKEN}"
       ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS}"
+      # Behind the TLS proxy / LB: derive the real client IP from X-Forwarded-For
+      # so per-IP caps + rate limits (audit H1) key on the user, not the proxy.
+      # Set TRUSTED_PROXY_HOPS to the number of proxies that append to XFF.
+      TRUST_PROXY_HEADERS: "1"
+      TRUSTED_PROXY_HOPS: "${TRUSTED_PROXY_HOPS:-1}"
       TELEMETRY_ENABLED: "1"
     depends_on:
       postgres:
