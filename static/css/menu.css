@@ -1,5 +1,13 @@
 /* ── Menu overlay ──
    (The hamburger button itself — .game-menu-btn — lives in shell.css.) */
+
+/* Pre-initialize the custom element so when connectedCallback adds .game-menu
+   the computed transform/visibility don't change — no transition fires. */
+nav-menu {
+  transform: translateY(-100%);
+  visibility: hidden;
+}
+
 .game-menu {
   position: absolute;
   inset: 0;
