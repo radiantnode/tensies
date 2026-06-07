@@ -7,11 +7,14 @@ scrape_configs:
     static_configs:
       - targets: ['web:8000']
     metrics_path: /metrics
-    # /metrics is bearer-gated in dev too (audit M2). Inline dev token must
-    # match METRICS_TOKEN in docker-compose.yml (default: devmetrics).
+    # /metrics is bearer-gated in dev too (audit M2). The token is read from a
+    # mounted file (gitignored) so any METRICS_TOKEN works without committing a
+    # secret. Create/refresh it to match your .env:
+    #   mkdir -p ops/secrets
+    #   printf '%s' "${METRICS_TOKEN:-devmetrics}" > ops/secrets/metrics_token
     authorization:
       type: Bearer
-      credentials: devmetrics
+      credentials_file: /etc/prometheus/metrics_token
 
   - job_name: postgres
     static_configs:

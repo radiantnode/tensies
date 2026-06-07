@@ -57,6 +57,9 @@ services:
     image: prom/prometheus:latest
     volumes:
       - ./ops/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Bearer token for the /metrics scrape — must match METRICS_TOKEN. Create
+      # with: printf '%s' "${METRICS_TOKEN:-devmetrics}" > ops/secrets/metrics_token
+      - ./ops/secrets/metrics_token:/etc/prometheus/metrics_token:ro
       - prom_data:/prometheus
     ports:
       - "9090:9090"
