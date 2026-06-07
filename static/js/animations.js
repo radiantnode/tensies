@@ -200,19 +200,26 @@ export function tryReveal() {
       state.pendingWinRound = null;
       state.pendingWinIsLoser = false;
       showWinner(name, target, round, isLoser);
+      // A broadcast that landed mid-reveal (e.g. another player's roll) was
+      // stashed in postRevealState. Routing it through showFor() here would
+      // immediately hideWinner() and the win overlay would only flash for a
+      // frame — the round-end bug. It's a stale same-round state anyway: drop
+      // it. The authoritative next-round state arrives after ROUND_WIN_DELAY
+      // (and on a pause, when the host resumes) and drives the screen.
+      state.postRevealState = null;
     } else {
       // Defensive: if a stale winner overlay is still open here (e.g. a
       // spurious roll attempt during a round-end trapped the next-round state
       // in pendingRollState), close it now.
       hideWinner();
-    }
-    // A newer broadcast (e.g. the host paused) arrived mid-reveal — apply its
-    // screen decision now that the animation is done, so a paused non-host
-    // lands on the wait screen instead of being stranded on the board.
-    if (state.postRevealState) {
-      const m = state.postRevealState;
-      state.postRevealState = null;
-      showFor(m);
+      // A newer broadcast (e.g. the host paused) arrived mid-reveal — apply its
+      // screen decision now that the animation is done, so a paused non-host
+      // lands on the wait screen instead of being stranded on the board.
+      if (state.postRevealState) {
+        const m = state.postRevealState;
+        state.postRevealState = null;
+        showFor(m);
+      }
     }
   });
 }
