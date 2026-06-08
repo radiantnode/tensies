@@ -3,10 +3,9 @@ Pixel verification at maxDiffPixels:0 is only valid against the same Chromium
 build: sub-pixel font hinting differs across builds and will cause false diffs.
 browser-guard.js enforces the Chromium version at run time.
 
-Chromium:          141.0.7390.37   (Playwright browser build 1194)
+Chromium:          140.0.7339.16   (Playwright browser build 1187)
 @playwright/test:  1.55.0          (pinned exact in package.json)
 Viewports:         mobile  390x844  deviceScaleFactor 2  (isMobile)
-                   desktop 1280x800 deviceScaleFactor 1
 Launch flags:      --font-render-hinting=none --disable-skia-runtime-opts
 Compare:           maxDiffPixels 0, animations disabled, caret hidden, scale css
 App under test:    served at TENSIES_URL (default http://localhost:8888),

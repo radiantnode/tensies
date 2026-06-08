@@ -33,6 +33,9 @@ module.exports = defineConfig({
     timezoneId: 'UTC',
     locale: 'en-US',
     colorScheme: 'light',
+    // The app's style-src 'self' CSP blocks settle()'s page.addStyleTag injection.
+    // Bypass CSP for the test context only — it's a harness, not a real browser.
+    bypassCSP: true,
     // Belt-and-suspenders determinism; per-test seedPage() also runs.
     // PW_EXECUTABLE_PATH is an escape hatch for sandboxes that cannot download
     // browsers — point it at an already-installed Chromium of a matching

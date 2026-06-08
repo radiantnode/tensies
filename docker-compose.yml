@@ -19,6 +19,7 @@ services:
       # local-only dev tokens; Prometheus sends METRICS_TOKEN (see ops/prometheus.yml).
       METRICS_TOKEN: ${METRICS_TOKEN:-devmetrics}
       STATS_TOKEN: ${STATS_TOKEN:-devstats}
+      CREATE_RATE_MAX: ${CREATE_RATE_MAX:-10}
     depends_on:
       postgres:
         condition: service_healthy
