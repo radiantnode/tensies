@@ -99,6 +99,23 @@ If no logs exist yet, skip this step.
 
 ---
 
+## Accessing module state from `evaluate`
+
+The JS app uses ES modules with cache-busting (`state.js?v=<hash>`). The `state` object is **not** globally exposed — `_state` will throw `ReferenceError`. To access module state from any `evaluate` call, use a versioned dynamic import:
+
+```js
+const stateUrl = performance.getEntriesByType('resource').find(r => r.name.includes('state.js'))?.name;
+const url = new URL(stateUrl);
+const m = await import(url.pathname + url.search);
+const s = m.state;  // use s instead of _state throughout
+```
+
+This works in dev (separate ES module files). In prod the bundled `app.js` replaces `state.js` as a separate resource — use DOM-based checks instead when running against the prod build.
+
+**Dev stack required for WebSocket testing.** Prod `.env.prod` has `ALLOWED_ORIGINS` set to the deploy domain, which blocks WS connections from localhost. Always use `docker compose up -d` (dev) for local Playwright tests.
+
+---
+
 ## Step 1 — Server health
 
 Bring the server up. **Do not `pkill` browser/playwright processes** — that would kill the MCP-managed browser instances this skill drives. Each Playwright MCP instance manages its own browser lifecycle; just navigate them.
@@ -156,13 +173,13 @@ Take screenshot **`.playwright-mcp/03-lobby-host.png`**.
 In **instance #2** (`mcp__playwright-guest__*`), navigate to:
 
 ```
-http://localhost:8888/?join=<GAME_CODE>
+http://localhost:8888/<GAME_CODE>
 ```
 
 Verify:
 - The join screen (`#join`) is active
-- `#code-input` is pre-filled with `GAME_CODE` (deep-link works)
-- The URL has been cleaned to `/` (no `?join=` in the address bar)
+- `#code-input` is pre-filled with `GAME_CODE` (deep-link works — `/<CODE>` is the primary format; the legacy `?join=<CODE>` still works as a fallback)
+- The URL has been cleaned to `/` (no code remains in the address bar)
 
 Type `Beta` into `#join-name-input`, then submit the join form (`#join-form button[type="submit"]`).
 
@@ -318,7 +335,7 @@ This checks that other players don't see a roll before the roller's reveal anima
 
 **Pass criteria:**
 - `detectedAt` is set (broadcast arrived) — if null after 3s, the pipeline is broken
-- `msAfterRollClick` is **between 1000ms and 2000ms** — this is the expected animation window (gather + shake + reveal). The broadcast timing has measured 1491ms and 1589ms across runs.
+- `msAfterRollClick` is **between 800ms and 2000ms** — this is the expected animation window (gather + shake + reveal). The broadcast timing has measured 877ms, 934ms, 988ms, 1491ms, and 1589ms across runs; runs with many dice already locked produce shorter reveals.
 - If `msAfterRollClick` < 200ms, the broadcast went out before the roller's animation finished — **regression**.
 
 ---
@@ -668,6 +685,8 @@ Let it run until `_state.currentState.round_num` has advanced by **at least 6** 
 - At least **6 rounds** observed, so the probabilistic race had chances to fire.
 
 If any `Winner` entry flashed (`ms < 1000`), the round-end flash regression is back — check `tryReveal` in `static/js/animations.js`: the `state.pendingWinName` branch must **drop** `state.postRevealState`, not fall through to `showFor(state.postRevealState)` (which hides the just-shown overlay).
+
+**Known related bug (2026-06-08):** `showFor()` in `static/js/net.js` calls `hideWinner()` unconditionally. If a `state` broadcast from another player's roll arrives after the winner's reveal is complete (awaitingAck=false) but while the overlay is still open, `handleMessage` routes it to `showFor()` → `hideWinner()`, closing it early (observed 1153ms). The fix is to guard `handleMessage`: when `document.getElementById('winner-overlay').open === true` and a `state` frame arrives with the same round_num, stash it instead of calling `showFor()`. If this is unfixed, look for one `Winner` entry significantly shorter than 3000ms but above 1000ms — that's the symptom.
 
 Take screenshot **`.playwright-mcp/22-overlay-consistency.png`** (a winner overlay mid-display).
 
