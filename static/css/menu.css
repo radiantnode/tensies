@@ -33,11 +33,11 @@ nav-menu {
 
 /* ── Nav menu about section ── */
 .menu-about { padding-bottom: 0.75rem; }
-.menu-about-heading {
-  font-size: clamp(1.3rem, 5.5vw, 1.65rem);
+.menu-about-heading,
+.menu-changelog-heading {
+  font-size: clamp(1.4rem, 5.5vw, 1.75rem);
   font-weight: 900;
   letter-spacing: 0.005em;
-  margin-bottom: 0.75rem;
   line-height: 1.5;
   -webkit-text-stroke: 1px #f1cf98;
   paint-order: stroke fill;
@@ -46,8 +46,9 @@ nav-menu {
           background-clip: text;
   color: transparent;
 }
+.menu-about-heading { margin-bottom: 0.75rem; }
 .menu-about-body {
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 500;
   line-height: 1.9;
   color: rgba(235, 215, 195, 0.72);
@@ -210,21 +211,12 @@ nav-menu {
   margin-bottom: 1.25rem;
 }
 .menu-changelog-panel .btn-back { position: static; flex-shrink: 0; align-self: flex-start; }
-.menu-changelog-heading {
-  font-size: clamp(1.3rem, 5.5vw, 1.65rem);
-  font-weight: 900;
-  letter-spacing: 0.005em;
-  margin-bottom: 1rem;
-  background: linear-gradient(180deg, #fff6e9 0%, #f6dcb0 52%, #e7ba7f 100%);
-  -webkit-background-clip: text;
-          background-clip: text;
-  color: transparent;
-}
+.menu-changelog-heading { margin-bottom: 1rem; }
 .menu-changelog-body {
   flex: 1;
   overflow-y: auto;
   color: rgba(235, 215, 195, 0.8);
-  font-size: 0.9rem;
+  font-size: 1rem;
   line-height: 1.7;
   --fade-top: 0px;
   --fade-bottom: 0px;
@@ -239,7 +231,7 @@ nav-menu {
 .menu-changelog-body.can-scroll-up   { --fade-top: 24px; }
 .menu-changelog-body.can-scroll-down { --fade-bottom: 24px; }
 .menu-changelog-body h2 {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 800;
   letter-spacing: 0.03em;
   color: rgba(255, 220, 130, 0.95);
@@ -262,4 +254,44 @@ nav-menu {
   left: 0;
   color: rgba(200, 170, 100, 0.5);
 }
-.menu-changelog-body li em { color: rgba(200, 185, 160, 0.55); font-style: normal; }
+.menu-changelog-body li em { color: rgba(210, 195, 175, 0.65); font-style: italic; }
+
+.menu-changelog-footer {
+  margin-top: 1.8rem;
+  padding: 1.05rem 1.15rem 1.2rem;
+  border: 1px solid rgba(200, 170, 100, 0.16);
+  border-radius: var(--radius);
+  background: rgba(120, 90, 45, 0.08);
+  text-align: center;
+}
+.menu-changelog-footer p {
+  margin: 0 0 0.85rem;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: rgba(210, 195, 170, 0.6);
+}
+.menu-changelog-footer-lead {
+  font-weight: 700;
+  color: rgba(225, 210, 185, 0.78);
+}
+.menu-changelog-ghlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 220, 130, 0.35);
+  background: rgba(255, 220, 130, 0.08);
+  color: rgba(255, 226, 150, 0.95);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+.menu-changelog-ghlink:hover {
+  background: rgba(255, 220, 130, 0.14);
+  border-color: rgba(255, 232, 165, 0.55);
+  transform: translateY(-1px);
+}
+.menu-changelog-ghlink svg { width: 1rem; height: 1rem; flex-shrink: 0; }
