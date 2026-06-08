@@ -72,12 +72,12 @@ export function updateDiceInPlace(snap, onComplete, winForMe = false) {
 
   const zone = document.querySelector('.zone-unmatched');
   const sz = window.innerWidth <= 480 ? 50 : 56;
-  // The winner short-circuits straight to the overlay, so skip the scatter to a
-  // fresh grid — reveal their dice where they are, no move into the locked zone.
-  const scatterMs = winForMe ? 0 : 320;
+  const scatterMs = 320;
   const finalPositions = [];
 
-  if (zone && !winForMe) {
+  // The winner still scatters and reveals their dice on the target — only the
+  // subsequent move into the locked zone is skipped (see winForMe below).
+  if (zone) {
     const rect = zone.getBoundingClientRect();
     const grid = placeGrid(rect, wrappers.length, sz);
     grid.forEach((p) => finalPositions.push(p));
