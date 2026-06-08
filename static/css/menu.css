@@ -1,35 +1,13 @@
-/* ── Hamburger / × button ── */
-.game-menu-btn {
-  margin-left: auto;
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem 0.75rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  min-width: 44px;
-  min-height: 44px;
+/* ── Menu overlay ──
+   (The hamburger button itself — .game-menu-btn — lives in shell.css.) */
+
+/* Pre-initialize the custom element so when connectedCallback adds .game-menu
+   the computed transform/visibility don't change — no transition fires. */
+nav-menu {
+  transform: translateY(-100%);
+  visibility: hidden;
 }
 
-.game-menu-btn span {
-  display: block;
-  width: 18px;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.65);
-  border-radius: 2px;
-  transition: transform 0.25s ease, opacity 0.2s ease;
-  transform-origin: center;
-}
-
-.game-menu-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-.game-menu-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
-.game-menu-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-
-/* ── Menu overlay ── */
 .game-menu {
   position: absolute;
   inset: 0;
@@ -43,8 +21,6 @@
               visibility 0s linear 0.28s;
   pointer-events: none;
 }
-
-
 .game-menu.open {
   transform: translateY(0);
   visibility: visible;
@@ -56,10 +32,7 @@
 }
 
 /* ── Nav menu about section ── */
-.menu-about {
-  padding-bottom: 0.75rem;
-}
-
+.menu-about { padding-bottom: 0.75rem; }
 .menu-about-heading {
   font-size: clamp(1.3rem, 5.5vw, 1.65rem);
   font-weight: 900;
@@ -73,19 +46,13 @@
           background-clip: text;
   color: transparent;
 }
-
 .menu-about-body {
   font-size: 0.9rem;
   font-weight: 500;
   line-height: 1.9;
   color: rgba(235, 215, 195, 0.72);
 }
-
-.menu-about-body strong {
-  color: rgba(255, 240, 220, 0.95);
-  font-weight: 700;
-}
-
+.menu-about-body strong { color: rgba(255, 240, 220, 0.95); font-weight: 700; }
 .menu-beer-btn {
   display: flex;
   align-items: center;
@@ -105,7 +72,6 @@
   text-decoration: none;
   transition: background 0.15s, border-color 0.15s;
 }
-
 .menu-beer-btn:hover {
   background: linear-gradient(160deg, rgba(180, 110, 20, 0.5) 0%, rgba(120, 70, 10, 0.5) 100%);
   border-color: rgba(230, 170, 55, 0.7);
@@ -116,16 +82,12 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  /* clear the title row (it sits above the overlay) + safe-area notch */
   padding: calc(env(safe-area-inset-top) + 4.25rem) 1.25rem 2rem;
 }
 
 /* Shared nav menu (landing/join/lobby) — fixed so it covers the viewport
-   regardless of which screen is active */
-#nav-menu {
-  position: fixed;
-}
-
+   regardless of which screen is active. */
+#nav-menu { position: fixed; }
 #nav-menu .menu-panel {
   padding-top: calc(env(safe-area-inset-top) + 5rem);
   padding-left: 2rem;
@@ -180,11 +142,8 @@
 .menu-toggle.active .menu-switch::after { transform: translateX(20px); }
 
 /* ── Pause status (host, while paused) ── */
-.menu-status {
-  padding: 0.25rem 1.1rem 0;
-}
+.menu-status { padding: 0.25rem 1.1rem 0; }
 .menu-status[hidden] { display: none; }
-
 .menu-status-row {
   display: flex;
   align-items: baseline;
@@ -192,21 +151,18 @@
   gap: 0.75rem;
   padding: 0.15rem 0;
 }
-
 .menu-status-label {
   font-size: 0.8rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: rgba(220, 200, 180, 0.7);
 }
-
 .menu-status-value {
   font-size: 1.05rem;
   font-weight: 800;
   color: rgba(235, 215, 195, 0.95);
   font-variant-numeric: tabular-nums;
 }
-
 .menu-status-players {
   margin-top: 0.3rem;
   font-size: 0.88rem;
@@ -244,10 +200,8 @@
   padding: calc(env(safe-area-inset-top) + 5rem) 2rem 2.5rem;
   overflow-y: auto;
 }
-
 .game-menu.show-changelog .menu-panel { display: none; }
 .game-menu.show-changelog .menu-changelog-panel { display: flex; }
-
 .menu-changelog-header {
   display: flex;
   align-items: center;
@@ -255,13 +209,7 @@
   gap: 1rem;
   margin-bottom: 1.25rem;
 }
-
-.menu-changelog-panel .join-back {
-  position: static;
-  flex-shrink: 0;
-  align-self: flex-start;
-}
-
+.menu-changelog-panel .btn-back { position: static; flex-shrink: 0; align-self: flex-start; }
 .menu-changelog-heading {
   font-size: clamp(1.3rem, 5.5vw, 1.65rem);
   font-weight: 900;
@@ -272,7 +220,6 @@
           background-clip: text;
   color: transparent;
 }
-
 .menu-changelog-body {
   flex: 1;
   overflow-y: auto;
@@ -291,7 +238,6 @@
 }
 .menu-changelog-body.can-scroll-up   { --fade-top: 24px; }
 .menu-changelog-body.can-scroll-down { --fade-bottom: 24px; }
-
 .menu-changelog-body h2 {
   font-size: 1rem;
   font-weight: 800;
@@ -299,16 +245,8 @@
   color: rgba(255, 220, 130, 0.95);
   margin: 1.5rem 0 0.1rem;
 }
-
-.menu-changelog-body h2:first-child {
-  margin-top: 0;
-}
-
-.menu-changelog-body p {
-  color: rgba(210, 195, 175, 0.65);
-  margin-bottom: 0.4rem;
-}
-
+.menu-changelog-body h2:first-child { margin-top: 0; }
+.menu-changelog-body p { color: rgba(210, 195, 175, 0.65); margin-bottom: 0.4rem; }
 .menu-changelog-body ul {
   list-style: none;
   padding: 0;
@@ -317,69 +255,11 @@
   flex-direction: column;
   gap: 0.35rem;
 }
-
-.menu-changelog-body li {
-  padding-left: 0.9rem;
-  position: relative;
-}
-
+.menu-changelog-body li { padding-left: 0.9rem; position: relative; }
 .menu-changelog-body li::before {
   content: "–";
   position: absolute;
   left: 0;
   color: rgba(200, 170, 100, 0.5);
 }
-
-.menu-changelog-body li em {
-  color: rgba(200, 185, 160, 0.55);
-  font-style: normal;
-}
-
-.menu-changelog-footer {
-  margin-top: 1.8rem;
-  padding: 1.05rem 1.15rem 1.2rem;
-  border: 1px solid rgba(200, 170, 100, 0.16);
-  border-radius: var(--radius);
-  background: rgba(120, 90, 45, 0.08);
-  text-align: center;
-}
-
-.menu-changelog-footer p {
-  margin: 0 0 0.85rem;
-  font-size: 0.8rem;
-  line-height: 1.6;
-  color: rgba(210, 195, 170, 0.6);
-}
-
-.menu-changelog-footer-lead {
-  font-weight: 700;
-  color: rgba(225, 210, 185, 0.78);
-}
-
-.menu-changelog-ghlink {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.95rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 220, 130, 0.35);
-  background: rgba(255, 220, 130, 0.08);
-  color: rgba(255, 226, 150, 0.95);
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-decoration: none;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
-}
-
-.menu-changelog-ghlink:hover {
-  background: rgba(255, 220, 130, 0.14);
-  border-color: rgba(255, 232, 165, 0.55);
-  transform: translateY(-1px);
-}
-
-.menu-changelog-ghlink svg {
-  width: 1rem;
-  height: 1rem;
-  flex-shrink: 0;
-}
+.menu-changelog-body li em { color: rgba(200, 185, 160, 0.55); font-style: normal; }

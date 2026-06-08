@@ -1,26 +1,39 @@
-import { showScreen } from './util.js';
-
-// Winner and pause are dialog overlays — they sit on top of the still-visible
-// game board. Loading is a screen (see #loading in index.html), not a dialog,
-// and is driven via showLoading().
-
+// Dialog overlays — winner/loser and the non-host pause wait screen. Both sit
+// on top of the still-visible game board. (Loading is a screen, not a dialog.)
 const winner = document.getElementById('winner-overlay');
-if (winner) winner.addEventListener('cancel', e => e.preventDefault());
+if (winner) winner.addEventListener('cancel', (e) => e.preventDefault());
 
 const pauseOverlay = document.getElementById('pause-overlay');
-if (pauseOverlay) pauseOverlay.addEventListener('cancel', e => e.preventDefault());
+if (pauseOverlay) pauseOverlay.addEventListener('cancel', (e) => e.preventDefault());
 
+// On resume, hold the pause overlay / menu a beat so the toggle's slide-off is
+// visible before things close.
+export const RESUME_CLOSE_DELAY_MS = 600;
+
+// ── Pause overlay (non-host) ──
 export function showPaused(text) {
   document.getElementById('pause-overlay-msg').textContent = text;
   if (pauseOverlay && !pauseOverlay.open) pauseOverlay.showModal();
 }
-
 export function hidePaused() {
   if (pauseOverlay && pauseOverlay.open) pauseOverlay.close();
 }
+// "Waiting for <Host> to resume the game"
+export function pausedText(msg) {
+  const host = msg.players[msg.host]?.name || 'the host';
+  return `Waiting for ${host} to resume the game`;
+}
 
-// The server holds the winner overlay for ROUND_WIN_DELAY (server/config.py)
-// before advancing the round — mirror it here to drive the countdown.
+// "Waiting for A and B to reconnect…" from a list of dropped player names.
+export function waitingText(names) {
+  if (names.length === 0) return '';
+  if (names.length === 1) return `Waiting for ${names[0]} to reconnect…`;
+  return `Waiting for ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} to reconnect…`;
+}
+
+// ── Winner / loser overlay ──
+// The server holds the overlay for ROUND_WIN_DELAY (server/config.py) before
+// advancing the round — mirror it here to drive the countdown.
 const WIN_OVERLAY_MS = 3000;
 let winTimer = null;
 
@@ -42,15 +55,15 @@ function startWinTimer() {
   winTimer = setInterval(tick, 50);
 }
 
-// `name` is the name shown under the dice (the winner's name on a win, the
-// viewer's own name on a loss); isLoser flips the banner word Winner→Loser.
+// `name` is shown under the dice (the winner's name to the winner; the viewer's
+// own name to everyone else). `isLoser` flips the banner suffix + logo.
 export function showWinner(name, target, round, isLoser = false) {
   const pill = document.getElementById('winner-round');
   if (pill) pill.textContent = round;
   const suffix = document.getElementById('winner-banner-suffix');
   if (suffix) suffix.textContent = isLoser ? 'Loser' : 'Winner';
   const logo = document.querySelector('.winner-logo');
-  if (logo) logo.src = isLoser ? '/static/logo-loser.svg' : '/static/logo-winner.svg';
+  if (logo) logo.src = isLoser ? '/static/images/logo-loser.svg' : '/static/images/logo-winner.svg';
   const nameEl = document.getElementById('winner-name');
   if (nameEl) nameEl.textContent = name;
   startWinTimer();
@@ -60,40 +73,4 @@ export function showWinner(name, target, round, isLoser = false) {
 export function hideWinner() {
   clearInterval(winTimer);
   if (winner && winner.open) winner.close();
-}
-
-// Minimum time #loading stays on screen before the next swap. Stops the bar
-// from flashing in and out on fast connections (especially local dev).
-const MIN_LOADING_MS = 600;
-// Start counting from module load — covers the initial HTML paint, which
-// happens before any showLoading() call.
-let loadingShownAt = Date.now();
-
-export function showLoading(text = 'Loading…') {
-  document.getElementById('loading-msg').textContent = text;
-  loadingShownAt = Date.now();
-  showScreen('loading');
-}
-
-// Run `action` after #loading has been visible for at least MIN_LOADING_MS,
-// measured from the most recent showLoading() (or module load, which is
-// effectively the initial HTML paint of #loading). If enough time has
-// already passed, just runs on the next animation frame.
-export function leaveLoading(action) {
-  const remaining = Math.max(0, MIN_LOADING_MS - (Date.now() - loadingShownAt));
-  if (remaining === 0) requestAnimationFrame(action);
-  else setTimeout(action, remaining);
-}
-
-// Non-host waiting screen while the game is paused.
-export function pausedText(msg) {
-  const host = msg.players[msg.host]?.name || 'the host';
-  return `Waiting for ${host} to resume the game`;
-}
-
-// Build the "Waiting for A and B to reconnect…" text from a name list.
-export function waitingText(names) {
-  if (names.length === 0) return '';
-  if (names.length === 1) return `Waiting for ${names[0]} to reconnect…`;
-  return `Waiting for ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} to reconnect…`;
 }

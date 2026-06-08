@@ -4,12 +4,22 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import HTMLResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+from pathlib import Path
+
 from .assets import build_index_html
-from .config import METRICS_TOKEN, STATS_TOKEN, TELEMETRY_ENABLED, log
+from .config import FRONTEND_DIST, METRICS_TOKEN, STATS_TOKEN, TELEMETRY_ENABLED, log
 
 router = APIRouter()
 
-_index_html = build_index_html()
+# In prod (FRONTEND_DIST set) serve the prebuilt, fingerprinted index.html that
+# the build step produced — it references the hashed bundles nginx serves under
+# /static. In dev, build the document from the raw source on the fly. Either way
+# it's read once here; the document still flows through SecurityHeadersMiddleware
+# so the CSP stays single-sourced in server/security.py.
+if FRONTEND_DIST:
+    _index_html = (Path(FRONTEND_DIST) / "index.html").read_text()
+else:
+    _index_html = build_index_html()
 
 # Fail loud, not closed: a bare `uvicorn` run stays usable, but warn so an
 # operator never unknowingly exposes these on a public port. Both compose files

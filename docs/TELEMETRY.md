@@ -359,7 +359,7 @@ SELECT seq, ts, type, user_id, payload
  ORDER BY ts, seq;
 ```
 
-Replay this stream into the existing client renderer (`static/js/screens.js`) and the round plays back frame-by-frame. The UI for that doesn't exist yet — the data does.
+Replay this stream into the client renderer components in `static/js/components/` and the round plays back frame-by-frame. The UI for that doesn't exist yet — the data does.
 
 ---
 

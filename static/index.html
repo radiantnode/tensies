@@ -6,290 +6,98 @@
   <title>Tensies 🎲</title>
   <meta property="og:title" content="Come play Tensies!">
   <meta property="og:description" content="Roll all ten to win the round — real-time multiplayer dice game.">
-  <meta property="og:image" content="/static/come-play-teaser.png">
+  <meta property="og:image" content="/static/images/come-play-teaser.png">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Come play Tensies!">
   <meta name="twitter:description" content="Roll all ten to win the round — real-time multiplayer dice game.">
-  <meta name="twitter:image" content="/static/come-play-teaser.png">
-  <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/static/logo.svg">
+  <meta name="twitter:image" content="/static/images/come-play-teaser.png">
+  <link rel="icon" href="/static/images/logo.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/images/logo.svg">
+
+  <!-- First-paint assets, warmed before anything blocks. -->
+  <link rel="preload" href="/static/images/logo.svg" as="image">
+  <link rel="preload" href="/static/images/bar-top.webp" as="image" type="image/webp">
   <link rel="preload" href="/static/fonts/inter-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/static/css/base.css">
-  <link rel="stylesheet" href="/static/css/loading.css">
+
+  <!-- Critical CSS: tokens, reset, loading screen, view-transition setup. -->
+  <link rel="stylesheet" href="/static/css/critical.css">
+
+  <!-- Non-critical CSS — all downloaded in parallel by the browser. -->
+  <link rel="stylesheet" href="/static/css/controls.css">
+  <link rel="stylesheet" href="/static/css/shell.css">
   <link rel="stylesheet" href="/static/css/landing.css">
   <link rel="stylesheet" href="/static/css/lobby.css">
   <link rel="stylesheet" href="/static/css/game.css">
   <link rel="stylesheet" href="/static/css/players-bar.css">
   <link rel="stylesheet" href="/static/css/dice.css">
-  <link rel="stylesheet" href="/static/css/overlays.css">
   <link rel="stylesheet" href="/static/css/menu.css">
+  <link rel="stylesheet" href="/static/css/overlays.css">
+
+  <!-- Preload the whole module graph so it fetches in parallel instead of
+       waterfalling app -> router/net -> components. -->
+  <link rel="modulepreload" href="/static/js/app.js">
+  <link rel="modulepreload" href="/static/js/state.js">
+  <link rel="modulepreload" href="/static/js/util.js">
+  <link rel="modulepreload" href="/static/js/names.js">
+  <link rel="modulepreload" href="/static/js/transitions.js">
+  <link rel="modulepreload" href="/static/js/router.js">
+  <link rel="modulepreload" href="/static/js/net.js">
+  <link rel="modulepreload" href="/static/js/components/app-header.js">
+  <link rel="modulepreload" href="/static/js/pips.js">
+  <link rel="modulepreload" href="/static/js/dice.js">
+  <link rel="modulepreload" href="/static/js/dice-positions.js">
+  <link rel="modulepreload" href="/static/js/game-render.js">
+  <link rel="modulepreload" href="/static/js/animations.js">
+  <link rel="modulepreload" href="/static/js/roll.js">
+  <link rel="modulepreload" href="/static/js/overlays.js">
+  <link rel="modulepreload" href="/static/js/title-row.js">
+  <link rel="modulepreload" href="/static/js/touch.js">
+  <link rel="modulepreload" href="/static/js/components/landing-screen.js">
+  <link rel="modulepreload" href="/static/js/components/join-screen.js">
+  <link rel="modulepreload" href="/static/js/components/lobby-screen.js">
+  <link rel="modulepreload" href="/static/js/components/game-screen.js">
+  <link rel="modulepreload" href="/static/js/components/player-card.js">
+  <link rel="modulepreload" href="/static/js/components/round-target.js">
+  <link rel="modulepreload" href="/static/js/components/nav-menu.js">
+  <script type="module" src="/static/js/app.js"></script>
 </head>
 <body>
 
 <main>
 
+  <!-- Inline loading screen: paints from the critical CSS above with no JS.
+       The router swaps it for landing/join/lobby/game once the app boots. -->
   <section id="loading" class="screen active" aria-labelledby="loading-msg">
-    <img src="/static/logo.svg" class="logo-mark" alt="">
+    <img src="/static/images/logo.svg" class="logo-mark" alt="">
     <h1 class="logo">TENSIES</h1>
-    <div class="loading-bar" aria-hidden="true">
-      <div class="loading-bar-fill"></div>
-    </div>
+    <div class="loading-bar" aria-hidden="true"><div class="loading-bar-fill"></div></div>
     <p id="loading-msg">Loading…</p>
   </section>
 
-  <section id="landing" class="screen" aria-labelledby="landing-title">
-    <header class="game-topbar app-header">
-      <div class="topbar-title-row">
-        <div class="game-title">
-          <img src="/static/logo.svg" class="game-title-mark" alt="">
-          <span>Tensies</span>
-        </div>
-        <button id="landing-menu-btn" class="game-menu-btn"
-                aria-label="Open menu" aria-expanded="false" aria-controls="nav-menu">
-          <span></span><span></span><span></span>
-        </button>
-      </div>
-    </header>
-    <div class="screen-body">
-      <img src="/static/logo.svg" class="logo-mark" alt="">
-      <h1 id="landing-title" class="logo">TENSIES</h1>
-      <p class="tagline">Roll all ten to win</p>
-      <form id="landing-form" class="form-stack" autocomplete="off" novalidate>
-        <label class="field-hint" for="name-input">Enter a player name or go with it</label>
-        <input id="name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20">
-        <button type="submit" class="btn btn-primary">Create Game</button>
-        <div class="or-divider" aria-hidden="true"><span>or</span></div>
-        <button id="show-join-btn" type="button" class="btn btn-secondary">Join Game with Code</button>
-        <p class="error-msg" id="landing-error" role="alert" aria-live="polite"></p>
-      </form>
-    </div>
-  </section>
-
-  <section id="join" class="screen" aria-labelledby="join-title">
-    <header class="game-topbar app-header">
-      <div class="topbar-title-row">
-        <div class="game-title">
-          <img src="/static/logo.svg" class="game-title-mark" alt="">
-          <span>Tensies</span>
-        </div>
-        <button id="join-menu-btn" class="game-menu-btn"
-                aria-label="Open menu" aria-expanded="false" aria-controls="nav-menu">
-          <span></span><span></span><span></span>
-        </button>
-      </div>
-    </header>
-    <div class="screen-body">
-      <button id="back-btn" type="button" class="join-back">
-        <svg class="back-chevron" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M15 18 9 12l6-6"/>
-        </svg>
-        <span>Back</span>
-      </button>
-      <h1 id="join-title" class="screen-title">Join a Game</h1>
-      <p class="tagline">Enter your name and game code</p>
-      <form id="join-form" class="form-stack" autocomplete="off" novalidate>
-        <input id="join-name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20">
-        <input id="code-input" name="code" class="code-input" type="text" aria-label="Game code" inputmode="latin" placeholder="ABCDE" maxlength="5" autocapitalize="characters">
-        <button type="submit" class="btn btn-primary">Join Game</button>
-        <p class="error-msg" id="join-error" role="alert" aria-live="polite"></p>
-      </form>
-    </div>
-  </section>
-
-  <section id="lobby" class="screen" aria-labelledby="lobby-title">
-    <header class="game-topbar app-header">
-      <div class="topbar-title-row">
-        <div class="game-title">
-          <img src="/static/logo.svg" class="game-title-mark" alt="">
-          <span>Tensies</span>
-        </div>
-        <button id="lobby-menu-btn" class="game-menu-btn"
-                aria-label="Open menu" aria-expanded="false" aria-controls="nav-menu">
-          <span></span><span></span><span></span>
-        </button>
-      </div>
-    </header>
-    <div class="screen-body lobby-body">
-      <h1 id="lobby-title" class="lobby-title">Waiting for players…</h1>
-      <p class="lobby-hint">Share this link to invite friends</p>
-      <button id="lobby-code" type="button" class="code-display" aria-label="Copy invite link">——</button>
-      <p class="copy-hint" id="copy-hint">Click to copy or show your friends or don’t.</p>
-      <div class="or-divider" aria-hidden="true"><span>or</span></div>
-      <button id="sms-btn" type="button" class="btn btn-sms">
-        <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
-        </svg>
-        <span>Send Message</span>
-      </button>
-      <section class="lobby-players-section" aria-labelledby="players-label">
-        <h2 id="players-label" class="section-label">Fellow Bar Rats</h2>
-        <ul class="player-list" id="lobby-players" aria-label="Players"></ul>
-      </section>
-      <button id="start-btn" type="button" class="btn btn-primary btn-block" hidden>
-        Start Game
-      </button>
-      <p id="waiting-msg"></p>
-    </div>
-  </section>
-
-  <section id="game" class="screen" aria-labelledby="game-title">
-    <header class="game-topbar">
-      <div class="topbar-title-row">
-        <h1 id="game-title" class="game-title">
-          <img src="/static/logo.svg" class="game-title-mark" alt="">
-          <span>Tensies</span>
-        </h1>
-        <button id="game-menu-btn" class="game-menu-btn"
-                aria-label="Open menu" aria-expanded="false" aria-controls="game-menu">
-          <span></span><span></span><span></span>
-        </button>
-      </div>
-      <div class="players-bar" id="players-bar" role="list" aria-label="Players"></div>
-    </header>
-    <div id="game-menu" class="game-menu" aria-hidden="true">
-      <nav class="menu-panel" aria-label="Game menu">
-        <button id="menu-pause-btn" type="button" class="menu-item menu-toggle"
-                aria-pressed="false" hidden>
-          <span class="menu-item-label">Pause Game</span>
-          <span class="menu-switch" aria-hidden="true"></span>
-        </button>
-        <div id="menu-pause-status" class="menu-status" aria-live="polite" hidden>
-          <div class="menu-status-row">
-            <span class="menu-status-label">Time remaining</span>
-            <span class="menu-status-value" id="pause-remaining">—</span>
-          </div>
-          <p id="pause-players" class="menu-status-players"></p>
-        </div>
-      </nav>
-    </div>
-    <div class="my-area" id="my-area"></div>
-  </section>
+  <landing-screen></landing-screen>
+  <join-screen></join-screen>
+  <lobby-screen></lobby-screen>
+  <game-screen></game-screen>
 
 </main>
 
-<div id="nav-menu" class="game-menu" aria-hidden="true">
-  <nav class="menu-panel" aria-label="Menu">
-    <div class="menu-about">
-      <h2 class="menu-about-heading">Built at the bar, because you don't have to go home but you can't stay there.</h2>
-      <p class="menu-about-body">Someone had the bright idea to build a bar game instead of just playing one. That someone was me, and the bar was very much open. <strong>Tensies</strong> is what came out of it: ten dice, one target number, everyone racing to lock all ten first. It runs in your browser, takes forty seconds to explain, and has absolutely no business being as competitive as it gets. Works best with real people in the same room — which, if you're reading this, hopefully describes the situation.</p>
-      <button type="button" class="menu-whats-new-btn">See What's New</button>
-      <a href="https://buymeacoffee.com/radiantnode" target="_blank" rel="noopener noreferrer" class="menu-beer-btn">
-        <svg viewBox="0 3 26 26" width="30" height="30" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="7" cy="9.5" r="2.5" fill="currentColor" stroke="none"/>
-          <circle cx="12" cy="7.5" r="3" fill="currentColor" stroke="none"/>
-          <circle cx="16.5" cy="9.5" r="2.2" fill="currentColor" stroke="none"/>
-          <circle cx="4.5" cy="11" r="1.5" fill="currentColor" stroke="none"/>
-          <path d="M4 11h14l-2 16H6L4 11z" fill="none" stroke-width="2"/>
-          <path d="M18 15h1a2.5 4.5 0 0 1 0 9H18" fill="none" stroke-width="2"/>
-        </svg>
-        Buy me a beer
-      </a>
-    </div>
-  </nav>
-  <div class="menu-changelog-panel">
-    <div class="menu-changelog-header">
-      <h2 class="menu-changelog-heading">See What's New</h2>
-      <button type="button" class="menu-changelog-back-btn join-back">
-        <svg class="back-chevron" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M15 18 9 12l6-6"/>
-        </svg>
-        <span>Back</span>
-      </button>
-    </div>
-    <div class="menu-changelog-body"><p>Pull up a stool. Newest stuff up top.</p>
-<h2>1.7.1 ("Savor the Win")</h2>
-<p>Sunday, June 7, 2026</p>
-<ul>
-<li>Fixed a maddening one. Every so often your win screen would blink and vanish while everyone else's stuck around just fine. Now your victory lap holds the full three seconds, like it should. 🎲</li>
-<li>Locked the doors a little tighter, so the game behaves on real networks and only the right people can wander into the back room.</li>
-<li>Scroll to the bottom of these notes and you can pop the whole game open on GitHub, free for anyone to read or build on.</li>
-<li><em>Behind the scenes: tightened up security and tidied the engine room so the game stays trustworthy as more people pile in.</em></li>
-</ul>
-<h2>1.7.0 ("Open Bar")</h2>
-<p>Monday, June 1, 2026</p>
-<ul>
-<li>The game can spread across a whole row of servers now. A big crowd can pile in and nobody gets bumped at the door. Bring the whole bar. 🍻</li>
-<li>Any server can pick up any game, so if one hiccups, your round just keeps rolling.</li>
-<li>Built this whole "bring the whole bar" upgrade from a beach chair in Cap Cana, Dominican Republic, ducking back to the pool between edits.</li>
-<li><em>Behind the scenes: moved every game onto a shared brain so matches stay fast and fair no matter how many people show up.</em></li>
-</ul>
-<h2>1.6.0 ("High Roller")</h2>
-<p>Sunday, May 31, 2026</p>
-<ul>
-<li>Gave the whole place a warm new look. The landing, the lobby, the board, all redone to feel like your favorite dim-lit watering hole.</li>
-<li>The winner screen got the star treatment. Glowing dice that fly in at you, your name spelled out in gold, and a little countdown to the next round. 🏆</li>
-<li>Lose the round? You get your own screen now too, complete with dramatically shattered dice.</li>
-<li>The target counts up now: 1, 2, 3, 4, 5, 6, then back around.</li>
-<li>Added a menu with a "See What's New" panel, so you can read these very notes without leaving the game.</li>
-</ul>
-<h2>1.5.0 ("Last Call")</h2>
-<p>Saturday, May 30, 2026</p>
-<ul>
-<li>Whoever's hosting can pause the game. Perfect for a bar run, a bathroom break, or sorting out who's buying the next round. ⏸️</li>
-<li>Paused games hang on for up to an hour, so a phone going dark mid-round won't end the night.</li>
-<li>If the host wanders off, someone still in their seat quietly takes over instead of the game freezing up.</li>
-<li><em>Behind the scenes: built a backstage view of every game so we can keep matches fair and catch trouble early.</em></li>
-</ul>
-<h2>1.4.0 ("Happy Hour")</h2>
-<p>Friday, May 29, 2026</p>
-<ul>
-<li>Added the start of an in-game menu, the little hamburger button that opens up your options. 🍔</li>
-<li><em>Behind the scenes: built a stress-test rig that crams in hundreds of pretend players, so the real ones never end up waiting.</em></li>
-</ul>
-<h2>1.3.0 ("On the Rocks")</h2>
-<p>Thursday, May 28, 2026</p>
-<ul>
-<li>Your dice stay put exactly where they landed, even if you refresh or your phone dozes off.</li>
-<li>Connecting feels smoother. One clean loading screen instead of jarring pop-ups when you join or come back. 🔌</li>
-<li>Random names get dreamed up right on your phone now, with a lot more goofy combos to go around.</li>
-<li>Squashed a winner screen that sometimes overstayed its welcome.</li>
-<li><em>Behind the scenes: reorganized the guts of the game so new stuff lands faster and breaks less.</em></li>
-</ul>
-<h2>1.2.0 ("Hold My Drink")</h2>
-<p>Wednesday, May 27, 2026</p>
-<ul>
-<li>Drop off and come right back. Lose your signal and you get a grace period to slide back into your seat.</li>
-<li>Fixed a sneaky freeze when your re-roll landed on the exact same numbers. Spooky, but no longer sticky. 👻</li>
-<li>Nobody sees your dice change until your roll animation finishes, so there's no peeking early.</li>
-<li>Cleaned up dice that could tear or smear in the middle of a roll.</li>
-</ul>
-<h2>1.1.0 ("House Rules")</h2>
-<p>Tuesday, May 26, 2026</p>
-<ul>
-<li>Tensies got its own dice logo and favicon, so the browser tab finally looks the part. 🎲</li>
-<li>Moved the dice rolls over to the server, so everyone's looking at the same honest roll.</li>
-</ul>
-<h2>1.0.0 ("Opening Tab")</h2>
-<p>Monday, May 25, 2026</p>
-<ul>
-<li>A bar regular and his friends love playing Tensies, the dice game. One night, a few heated rounds in and drinks down, he figured it'd be great to play anywhere, even on the nights you forget to bring the dice. So he started building it with Claude, sketched the very first board himself, and kept tinkering from his barstool between rounds. 🍺</li>
-<li>Invite your friends with a tap. Share a link or fire off a quick text.</li>
-<li>The dice came alive with real rolling physics. They gather, shake, scatter across the wood, and settle.</li>
-<li>Matched dice stick around. Only the leftovers re-roll, just like the real thing.</li>
-<li><em>Behind the scenes: the only reason this whole version is one giant first commit is that he forgot to start tracking the code until the game already worked.</em></li>
-</ul>
-<div class="menu-changelog-footer">
-<p class="menu-changelog-footer-lead">Still scrolling? Either you're into the nerdy bits or just doomscrolling between rounds.</p>
-<p>Tensies got built at the bar, and it stays open like one, anybody can wander in. The code's all there if you want to see how it works or check that the rolls are fair. We tested it the way we play it: friends crowded around one bar, or thousands of miles apart, everybody rolling at once and having a blast.</p>
-<a class="menu-changelog-ghlink" href="https://github.com/radiantnode/tensies" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>View on GitHub</a>
-</div></div>
-  </div>
-</div>
+<nav-menu></nav-menu>
 
+<!-- Non-host wait screen while the game is paused. Body-level <dialog> so the
+     board stays live underneath; visually mirrors #loading. -->
 <dialog id="pause-overlay" class="overlay-dialog" aria-labelledby="pause-overlay-msg">
-  <img src="/static/logo.svg" class="logo-mark" alt="">
+  <img src="/static/images/logo.svg" class="logo-mark" alt="">
   <h1 class="logo">TENSIES</h1>
-  <div class="loading-bar" aria-hidden="true">
-    <div class="loading-bar-fill"></div>
-  </div>
+  <div class="loading-bar" aria-hidden="true"><div class="loading-bar-fill"></div></div>
   <p id="pause-overlay-msg"></p>
 </dialog>
 
+<!-- Round winner/loser celebration. Body-level <dialog> over the live board. -->
 <dialog id="winner-overlay" class="overlay-dialog" aria-label="Round winner">
   <div class="winner-box">
     <div class="winner-banner"><span class="winner-banner-label">Round <span class="winner-round-pill" id="winner-round"></span> <span id="winner-banner-suffix">Winner</span></span></div>
-    <img src="/static/logo-winner.svg" class="winner-logo" alt="" aria-hidden="true">
+    <img src="/static/images/logo-winner.svg" class="winner-logo" alt="" aria-hidden="true">
     <p class="winner-name" id="winner-name"></p>
   </div>
   <div class="winner-timer" aria-hidden="true">
@@ -298,8 +106,5 @@
   </div>
 </dialog>
 
-<script type="module" src="/static/js/main.js"></script>
-<script type="module" src="/static/js/menu.js"></script>
-<script type="module" src="/static/js/nav-menu.js"></script>
 </body>
 </html>

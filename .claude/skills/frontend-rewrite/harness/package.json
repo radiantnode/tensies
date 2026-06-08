@@ -1,0 +1,15 @@
+{
+  "name": "tensies-pixel-harness",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Pixel-perfect verification harness for the Tensies frontend rewrite. Drives the app with the Playwright CLI (@playwright/test) and compares the rewritten views against byte-exact baselines captured from the current frontend.",
+  "scripts": {
+    "baseline": "playwright test --update-snapshots",
+    "verify": "playwright test",
+    "verify:one": "playwright test -g",
+    "report": "playwright show-report report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.0"
+  }
+}

@@ -1,3 +1,7 @@
+// Game-board rendering: players bar, my dice area, the pause-menu controls, and
+// the roll-button paused state. Updates IN PLACE — the players bar reuses keyed
+// <player-card> elements and myDiceKey() gates the my-area re-render — so a WS
+// frame doesn't re-parse markup or re-scatter dice.
 import { state } from './state.js';
 import { makeDie, myDiceKey, placeGrid } from './dice.js';
 import { loadDicePositions, saveDicePositions } from './dice-positions.js';
@@ -5,59 +9,12 @@ import './components/player-card.js';
 import './components/round-target.js';
 
 function maxWins(snap) {
-  return Math.max(0, ...Object.values(snap.players).map(p => p.wins));
+  return Math.max(0, ...Object.values(snap.players).map((p) => p.wins));
 }
 
-// Toggle the player-list edge fades based on how far it's scrolled, so they
-// only show when there's content to scroll toward. Attached once; re-run after
-// each lobby render and on resize.
-const lobbyList = document.getElementById('lobby-players');
-function updateLobbyFades() {
-  if (!lobbyList) return;
-  const { scrollTop, scrollHeight, clientHeight } = lobbyList;
-  lobbyList.classList.toggle('can-scroll-up', scrollTop > 1);
-  lobbyList.classList.toggle('can-scroll-down', scrollTop + clientHeight < scrollHeight - 1);
-}
-lobbyList?.addEventListener('scroll', updateLobbyFades, { passive: true });
-window.addEventListener('resize', updateLobbyFades);
-
-export function renderLobby(snap) {
-  state.gameCode = snap.code;
-  document.getElementById('lobby-code').textContent = snap.code;
-  const list = document.getElementById('lobby-players');
-  list.innerHTML = '';
-  Object.entries(snap.players).forEach(([pid, p]) => {
-    const li = document.createElement('li');
-    li.className = 'player-list-item';
-    li.textContent = p.name;
-    if (pid === snap.host) {
-      const b = document.createElement('span'); b.className = 'host-badge'; b.textContent = 'HOST';
-      li.appendChild(b);
-    } else if (pid === state.myId) {
-      const b = document.createElement('span'); b.className = 'you-badge'; b.textContent = 'you';
-      li.appendChild(b);
-    }
-    list.appendChild(li);
-  });
-  const startBtn = document.getElementById('start-btn');
-  const waitMsg  = document.getElementById('waiting-msg');
-  if (snap.host === state.myId) {
-    startBtn.hidden = false;
-    waitMsg.textContent = Object.keys(snap.players).length < 2 ? 'Invite friends — or start solo!' : '';
-  } else {
-    startBtn.hidden = true;
-    waitMsg.textContent = 'Waiting for the host to start…';
-  }
-  requestAnimationFrame(updateLobbyFades);
-}
-
-function setAttr(el, name, present, value) {
-  if (present) {
-    if (value !== undefined && el.getAttribute(name) !== String(value)) el.setAttribute(name, value);
-    else if (value === undefined && !el.hasAttribute(name)) el.setAttribute(name, '');
-  } else if (el.hasAttribute(name)) {
-    el.removeAttribute(name);
-  }
+function setAttr(el, name, present) {
+  if (present) { if (!el.hasAttribute(name)) el.setAttribute(name, ''); }
+  else if (el.hasAttribute(name)) el.removeAttribute(name);
 }
 
 export function renderPlayersBar(snap) {
@@ -66,14 +23,14 @@ export function renderPlayersBar(snap) {
 
   const sorted = Object.entries(snap.players).sort(([aId], [bId]) => {
     if (aId === state.myId) return -1;
-    if (bId === state.myId) return  1;
+    if (bId === state.myId) return 1;
     return snap.players[bId].wins - snap.players[aId].wins;
   });
 
-  sorted.forEach(([pid, p]) => {
-    const isMe    = pid === state.myId;
-    const matched = p.has_rolled ? p.dice.filter(d => d === snap.target).length : 0;
-    const hot     = !isMe && matched >= 7;
+  for (const [pid, p] of sorted) {
+    const isMe = pid === state.myId;
+    const matched = p.has_rolled ? p.dice.filter((d) => d === snap.target).length : 0;
+    const hot = !isMe && matched >= 7;
 
     let card = state.barCards[pid];
     if (!card) {
@@ -88,7 +45,7 @@ export function renderPlayersBar(snap) {
     setAttr(card, 'hot', hot);
     setAttr(card, 'disconnected', !!p.disconnected);
     bar.appendChild(card); // appendChild moves to preserve sort order
-  });
+  }
 
   for (const pid of Object.keys(state.barCards)) {
     if (!snap.players[pid]) {
@@ -103,40 +60,31 @@ export function renderMyArea(snap) {
   if (!player) return;
 
   const effectiveTarget = player.has_rolled ? snap.target : -1;
-  const matched   = player.dice.filter(d => d === effectiveTarget);
-  const unmatched = player.dice.filter(d => d !== effectiveTarget);
+  const matched = player.dice.filter((d) => d === effectiveTarget);
+  const unmatched = player.dice.filter((d) => d !== effectiveTarget);
 
   const area = document.getElementById('my-area');
   area.innerHTML = '';
 
-  // Round status — round label + target die, stacked over the play area.
   const status = document.createElement('div');
   status.className = 'round-status';
-
   const roundLbl = document.createElement('div');
   roundLbl.className = 'round-label';
   roundLbl.textContent = `Round ${snap.round_num}`;
   status.appendChild(roundLbl);
-
   const target = document.createElement('round-target');
   target.setAttribute('value', snap.target);
   status.appendChild(target);
-
   area.appendChild(status);
 
-  // Dice zones
   const zones = document.createElement('div');
   zones.className = 'dice-zones';
 
   const unmatchedZone = document.createElement('div');
   unmatchedZone.className = 'zone-unmatched';
-
   const diceToPlace = [...unmatched];
-  // Wait until the zone actually has dimensions before placing. When this
-  // render is triggered by a startViewTransition swap (new game, reconnect),
-  // the .active class hasn't yet been applied at the first rAF tick, so
-  // getBoundingClientRect returns 0×0 and placeGrid produces an empty array
-  // — every die would fall back to (8, 8) and pile up in the corner.
+  // Wait until the zone has dimensions before placing — on a view-transition
+  // swap the .active class isn't applied at the first rAF, so the rect is 0×0.
   const place = (attempts = 0) => {
     const rect = unmatchedZone.getBoundingClientRect();
     if ((rect.width <= 0 || rect.height <= 0) && attempts < 30) {
@@ -144,8 +92,6 @@ export function renderMyArea(snap) {
       return;
     }
     const sz = window.innerWidth <= 480 ? 50 : 56;
-    // Reuse last-known scatter (refresh / reconnect within the same round)
-    // if the count still matches; otherwise compute a fresh grid.
     const stored = loadDicePositions(snap.code, snap.round_num);
     const positions = (stored && stored.length === diceToPlace.length)
       ? stored
@@ -167,12 +113,10 @@ export function renderMyArea(snap) {
 
   const matchedZone = document.createElement('div');
   matchedZone.className = 'zone-matched';
-  matched.forEach(v => matchedZone.appendChild(makeDie(v, effectiveTarget)));
+  matched.forEach((v) => matchedZone.appendChild(makeDie(v, effectiveTarget)));
   zones.appendChild(matchedZone);
-
   area.appendChild(zones);
 
-  // Roll button — click delegated from #my-area in main.js
   const rollArea = document.createElement('div');
   rollArea.className = 'roll-area';
   const btn = document.createElement('button');
@@ -190,16 +134,11 @@ function fmtRemaining(ms) {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
 
-// Local 1 Hz ticker for the pause countdown — server broadcasts are too sparse
-// during a quiet pause to drive it, so we re-sync the deadline on each snapshot
-// and count down locally between them.
 let pauseTick = null;
-function stopPauseTick() {
-  if (pauseTick) { clearInterval(pauseTick); pauseTick = null; }
-}
+function stopPauseTick() { if (pauseTick) { clearInterval(pauseTick); pauseTick = null; } }
 
-// Host-only menu controls. Kept separate from renderMyArea so a pause toggle
-// (which doesn't change dice) refreshes the button without re-scattering dice.
+// Host-only pause controls (Pause/Resume toggle + countdown). Kept separate from
+// renderMyArea so a pause toggle refreshes the button without re-scattering dice.
 export function renderMenu(snap) {
   const btn = document.getElementById('menu-pause-btn');
   if (!btn) return;
@@ -213,30 +152,18 @@ export function renderMenu(snap) {
 
   const status = document.getElementById('menu-pause-status');
   if (!status) return;
-  if (!(isHost && paused)) {
-    status.hidden = true;
-    stopPauseTick();
-    return;
-  }
+  if (!(isHost && paused)) { status.hidden = true; stopPauseTick(); return; }
   status.hidden = false;
 
-  const players = Object.values(snap.players);
-  const downNames = players.filter(p => p.disconnected).map(p => p.name);
+  const downNames = Object.values(snap.players).filter((p) => p.disconnected).map((p) => p.name);
   const playersEl = document.getElementById('pause-players');
   if (playersEl) {
-    if (downNames.length === 0) {
-      playersEl.textContent = "Everyone is here! Let's go!";
-    } else if (downNames.length === 1) {
-      playersEl.textContent = `Waiting on ${downNames[0]}…`;
-    } else if (downNames.length === 2) {
-      playersEl.textContent = `Waiting on ${downNames[0]} and ${downNames[1]}…`;
-    } else {
-      playersEl.textContent = `Waiting on ${downNames.slice(0, -1).join(', ')}, and ${downNames.at(-1)}…`;
-    }
+    if (downNames.length === 0) playersEl.textContent = "Everyone is here! Let's go!";
+    else if (downNames.length === 1) playersEl.textContent = `Waiting on ${downNames[0]}…`;
+    else if (downNames.length === 2) playersEl.textContent = `Waiting on ${downNames[0]} and ${downNames[1]}…`;
+    else playersEl.textContent = `Waiting on ${downNames.slice(0, -1).join(', ')}, and ${downNames.at(-1)}…`;
   }
 
-  // Countdown to the abandonment cap. Re-anchor the deadline to this snapshot,
-  // then tick locally every second.
   const remEl = document.getElementById('pause-remaining');
   if (remEl && typeof snap.pause_remaining_ms === 'number') {
     const deadline = Date.now() + snap.pause_remaining_ms;
@@ -247,9 +174,8 @@ export function renderMenu(snap) {
   }
 }
 
-// Reflect the paused flag on the roll button for every player. A pause toggle
-// leaves myDiceKey unchanged, so renderMyArea won't run — sync here instead.
-function syncPaused(snap) {
+// Reflect the paused flag on the roll button for every player.
+export function syncPaused(snap) {
   const btn = document.getElementById('roll-btn');
   if (!btn) return;
   if (snap.paused) {
@@ -264,7 +190,6 @@ function syncPaused(snap) {
 export function renderGame(snap) {
   state.currentState = snap;
   const key = myDiceKey(snap);
-
   if (key !== state.lastMyDiceKey) {
     state.lastMyDiceKey = key;
     state.rolling = false;

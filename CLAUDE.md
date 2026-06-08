@@ -71,42 +71,65 @@ server/
   ws.py                  @app.websocket("/ws") — Session, security guards
                          (origin/size/caps/rate-limit), handle_<action>() dispatch
 
+The frontend is vanilla **web components + a native History-API router**, no
+build step. Each screen is a light-DOM custom element whose host element *is*
+the `#id.screen` (so global CSS applies); `index.html` is a thin shell. First
+paint is the inline `#loading` section, which renders from inline critical CSS
+with no JS in the path.
+
+**Tensies is mobile-only — always test the frontend at a mobile resolution**
+(the pixel harness baselines are **390×844** @2× dpr). When driving the app in a
+browser (Playwright/manual), set a mobile viewport first; never validate a
+frontend change at desktop width.
+
+```
 static/
-  index.html             screens + winner-overlay markup, loads CSS and main.js.
-                         First-paint screen is #loading (hardcoded .active);
-                         JS bootstrap decides what to show next so there's no
-                         landing flash before reconnect kicks in.
-  css/
-    base.css             vars, reset, html/body, .screen, input, .btn, .error-msg
-    loading.css          #loading fullscreen + indeterminate progress bar
-                         (matches .player-mini-progress aesthetic)
+  index.html             thin shell: inline critical CSS (tokens + reset + logo +
+                         the #loading screen), async-loaded CSS, the <*-screen>
+                         component tags, and the pause/winner <dialog> overlays.
+  css/                   (tokens, document reset, and #loading are inline-critical
+                         in index.html; the rest load async, non-render-blocking)
+    controls.css         inputs, .btn variants, .error-msg
+    shell.css            shared .game-topbar / app-header / .screen-body
     landing.css          landing + join screens, logo, tagline, form-stack
     lobby.css            #lobby, code display, SMS button, player list, badges
     game.css             #game layout, round header, my-area, dice zones, roll button
     players-bar.css      top-bar mini cards (.player-mini-*)
     dice.css             .die-scene / .die-3d / .face / tumble + pop animations
-    overlays.css         winner <dialog> only (disconnect/reconnect dialogs
-                         became the #loading screen)
+    menu.css             game menu + nav menu (about / changelog) + pause status
+    overlays.css         winner + pause <dialog> styling
   js/
-    main.js              entry: button + keyboard wiring, deep-link, auto-reconnect
+    app.js               entry: register components, seed name, bootstrap router
+    router.js            History-API router (permalinks), bootstrap, showJoin
+    transitions.js       showScreen (View Transitions), showLoading, leaveLoading
     state.js             single mutable bag shared across modules
-    util.js              esc, showScreen (View Transitions wrapper),
-                         nextTarget, setError, setJoinError
-    names.js             ADJECTIVES (50) × NOUNS (50) → makeName() — client-side
+    util.js              esc, nextTarget, setError, setJoinError
+    net.js               WebSocket: connect, dispatch, create/join/start intents,
+                         showFor (lobby / game / pause / disconnect routing)
+    names.js             ADJECTIVES (50) × NOUNS (50) → makeName()
+    pips.js              PIP_POSITIONS — die-face pip layout (shared by the dice)
     dice.js              FACE_ROTATIONS, makeDie, placeGrid, myDiceKey
     dice-positions.js    localStorage persistence for the unmatched-zone layout
-    overlays.js          winner <dialog> + showLoading + waitingText helper
-    screens.js           renderLobby, renderPlayersBar, renderMyArea, renderGame
+    game-render.js       renderGame / renderPlayersBar / renderMyArea / renderMenu
     animations.js        startShake, updateDiceInPlace, tryReveal, resetRollState
     roll.js              roll() — send intent, shake, schedule reveal
-    landing.js           create/join/lobby actions, random-name placeholder
-    ws.js                connect, reconnect loop, handleMessage dispatch
-                         (showFor centralizes lobby / loading / game routing)
-    touch.js             iOS double-tap zoom prevention (side-effect import)
-    components/
-      player-card.js     <player-card> custom element for the players bar
-      round-target.js    <round-target> custom element for the round header die
+    overlays.js          winner + pause dialogs (showWinner / showPaused / …)
+    title-row.js         shared top-bar title row markup (app-header + game header)
+    components/          light-DOM custom elements; the host IS the #id.screen
+      app-header.js      <app-header> shared top bar (hamburger → nav menu)
+      landing-screen.js  <landing-screen>  (#landing)
+      join-screen.js     <join-screen>     (#join)
+      lobby-screen.js    <lobby-screen>    (#lobby) — render(snap)
+      game-screen.js     <game-screen>     (#game) + in-game pause menu
+      nav-menu.js        <nav-menu> about blurb + "What's New" changelog
+      player-card.js     <player-card> players-bar mini card
+      round-target.js    <round-target> round-header die
 ```
+
+(The loading screen is inline HTML in `index.html`, not a component, so it
+paints before JS. The old single-file modules — `main.js`, `ws.js`, `screens.js`,
+`menu.js`, `landing.js`, `loading.css`, `base.css` — were replaced in the
+component rewrite; behaviour is unchanged.)
 
 ### WebSocket message protocol
 
@@ -134,7 +157,7 @@ A terminal `error` frame carries `fatal: true` (the only producer today is the p
 
 ### Pause (host-only)
 
-The host toggles `pause` (first feature in the in-game menu, `static/js/menu.js`). `handle_pause` flips `game["paused"]` and broadcasts. While paused:
+The host toggles `pause` (first feature in the in-game menu, `static/js/components/game-screen.js`). `handle_pause` flips `game["paused"]` and broadcasts. While paused:
 
 - **Rolls are rejected** (`handle_roll` guards on `paused`; the client also disables the roll button and guards `roll()`).
 - **Non-host players see the `#loading` screen** ("Waiting for &lt;Host&gt; to resume the game") via `showFor()`; the host keeps the board — even with players offline — so the menu stays reachable. The paused branch in `showFor` precedes the disconnect-loading branch precisely so a paused host isn't bounced to a "waiting to reconnect" screen.
@@ -171,7 +194,7 @@ The roll animation is sequenced across several flags on the shared `state` objec
 
 `myDiceKey()` (in `dice.js`) includes `roll_count` in its fingerprint so a re-roll that lands on identical values still triggers a re-render (fixes a hang where the client couldn't detect that a new roll had arrived).
 
-The roll button is rebuilt by `renderMyArea()` on every render, so its click handler is attached via event delegation on `#my-area` in `main.js` rather than per-render.
+The roll button is rebuilt by `renderMyArea()` on every render, so its click handler is attached via event delegation on `#my-area` in `components/game-screen.js` rather than per-render.
 
 ### Host transfer
 

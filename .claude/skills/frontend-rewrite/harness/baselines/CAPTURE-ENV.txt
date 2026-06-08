@@ -1,0 +1,18 @@
+Baselines in this directory were captured with the EXACT environment below.
+Pixel verification at maxDiffPixels:0 is only valid against the same Chromium
+build: sub-pixel font hinting differs across builds and will cause false diffs.
+browser-guard.js enforces the Chromium version at run time.
+
+Chromium:          140.0.7339.16   (Playwright browser build 1187)
+@playwright/test:  1.55.0          (pinned exact in package.json)
+Viewports:         mobile  390x844  deviceScaleFactor 2  (isMobile)
+Launch flags:      --font-render-hinting=none --disable-skia-runtime-opts
+Compare:           maxDiffPixels 0, animations disabled, caret hidden, scale css
+App under test:    served at TENSIES_URL (default http://localhost:8888),
+                   production "/" route + assets.py cache-busting
+
+To verify on another machine: install the matching browser
+(`npx playwright install chromium` with @playwright/test 1.55.0) or point
+PW_EXECUTABLE_PATH at a Chromium of the same build. A different build may
+require re-baselining — do that deliberately, never to silence a real diff.
+Re-baselining? Update EXPECTED in browser-guard.js and this file together.
