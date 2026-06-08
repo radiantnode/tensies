@@ -5,6 +5,7 @@
 | Document | Description |
 |----------|-------------|
 | [Feedback](feedback/README.md) | External code review transcripts — verified second opinions, implementation decisions, and open item tracking |
+| [Asset Pipeline](ASSET_PIPELINE.md) | Prod build pipeline — esbuild bundle/minify, asset fingerprinting, pre-compression, and before/after benchmarks |
 | [Telemetry](TELEMETRY.md) | Telemetry architecture — event flow, Postgres schema, Prometheus metrics, Grafana Live channels, and how to extend them |
 
 ## Test runs

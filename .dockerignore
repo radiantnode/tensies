@@ -9,6 +9,10 @@ __pycache__/
 venv/
 .playwright-mcp/
 .DS_Store
+# Frontend build: node_modules is reinstalled (npm ci) and dist is rebuilt
+# inside the `assets` stage; never ship the host copies into the build context.
+node_modules/
+dist/
 docs/
 ops/grafana/dashboards/*.png
 tests/

@@ -1,0 +1,13 @@
+{
+  "name": "tensies-assets",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Build-time frontend asset pipeline (bundle + minify + fingerprint). Not a runtime dependency — only used to produce dist/ in the Docker build.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build_assets.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.0"
+  }
+}

@@ -58,6 +58,10 @@ services:
       CSP_EXTRA_SCRIPT_SRC: "${CSP_EXTRA_SCRIPT_SRC:-}"
       CSP_EXTRA_CONNECT_SRC: "${CSP_EXTRA_CONNECT_SRC:-}"
       TELEMETRY_ENABLED: "1"
+      # Prod static-asset mode: serve the prebuilt, fingerprinted index.html that
+      # the build baked into the image (nginx serves everything under /static).
+      # The app does zero asset work — no in-process JS cache, no StaticFiles.
+      FRONTEND_DIST: /app/dist
     depends_on:
       postgres:
         condition: service_healthy
@@ -66,16 +70,21 @@ services:
     networks: [internal]
     restart: unless-stopped
 
-  # Single published port + load balancer across the web replicas. Host
-  # cloudflared keeps pointing at ${WEB_PUBLISH} (this), unchanged. Config +
-  # scaling notes live in ops/nginx.conf. After `--scale web=N`, reload nginx:
+  # Single published port + load balancer across the web replicas, and the
+  # static file server for /static. Host cloudflared keeps pointing at
+  # ${WEB_PUBLISH} (this), unchanged. Built from the `nginx` stage in
+  # ./Dockerfile: stock nginx with ops/nginx.conf and the prebuilt, fingerprinted
+  # frontend bundle (dist/static) baked in — so /static is served straight from
+  # disk with no runtime volume. Config + scaling notes live in ops/nginx.conf.
+  # After `--scale web=N`, reload nginx:
   #   docker compose -f docker-compose.prod.yml --env-file .env.prod exec nginx nginx -s reload
   nginx:
-    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+    build:
+      context: .
+      target: nginx
+    image: tensies-nginx:latest
     ports:
       - "${WEB_PUBLISH:-127.0.0.1:8000}:80"
-    volumes:
-      - ./ops/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on: [web]
     networks: [internal]
     restart: unless-stopped

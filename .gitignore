@@ -8,3 +8,7 @@ ops/secrets/
 .DS_Store
 
 graphify-out
+
+# Frontend asset pipeline (Phase 1): build tooling + generated output
+node_modules/
+dist/
