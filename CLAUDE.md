@@ -77,6 +77,11 @@ the `#id.screen` (so global CSS applies); `index.html` is a thin shell. First
 paint is the inline `#loading` section, which renders from inline critical CSS
 with no JS in the path.
 
+**Tensies is mobile-only — always test the frontend at a mobile resolution**
+(the pixel harness baselines are **390×844** @2× dpr). When driving the app in a
+browser (Playwright/manual), set a mobile viewport first; never validate a
+frontend change at desktop width.
+
 ```
 static/
   index.html             thin shell: inline critical CSS (tokens + reset + logo +
