@@ -82,7 +82,9 @@ for (const sub of ['images', 'fonts']) {
     bundle: true, minify: true, format: 'esm', target: 'es2020',
     write: false, legalComments: 'none',
   });
-  const js = rewriteRefs(res.outputFiles[0].text);
+  const js = rewriteRefs(
+    res.outputFiles[0].text.replace(/[ \t]*\n[ \t]*/g, ' ').replace(/ {2,}/g, ' '),
+  );
   manifest.set('/static/js/app.js', writeHashed('js', 'app', '.js', js));
 }
 
@@ -117,6 +119,7 @@ html = html.replace(/  <!-- Preload the whole module graph[^]*?nav-menu\.js">\n/
 // point the entry script at the hashed bundle
 html = html.replace('/static/js/app.js', manifest.get('/static/js/app.js'));
 
+html = html.replace(/<!--[\s\S]*?-->/g, '').split('\n').map((l) => l.trim()).filter(Boolean).join('');
 writeFileSync(join(DIST, 'index.html'), html);
 
 // ── 6. Pre-compress text assets for nginx gzip_static ─────────────────────────

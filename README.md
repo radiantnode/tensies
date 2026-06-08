@@ -62,7 +62,7 @@ Python + [FastAPI](https://fastapi.tiangolo.com/) for the async WebSocket server
 
 ### Client
 
-Vanilla JavaScript loaded directly as ES modules, split by concern across `static/js/`. There's no framework, bundler, or build step. Cache-busting is a content hash appended at server startup, so nothing in CI needs to rerun when a static file changes.
+Vanilla JavaScript split by concern across `static/js/`, loaded as ES modules with no framework. In dev it loads straight from the browser with no build step; cache-busting is a content hash appended at server startup. In prod an esbuild pipeline bundles and minifies everything into a single JS file and a single CSS file, fingerprints all assets, and pre-compresses them for nginx: 39 requests down to 7, 132 KB of JS+CSS+HTML down to 21 KB on the wire. Details in [`docs/ASSET_PIPELINE.md`](docs/ASSET_PIPELINE.md).
 
 The dice are pure CSS 3D transforms on `.die-3d` faces. The bar-top background is a photo.
 
