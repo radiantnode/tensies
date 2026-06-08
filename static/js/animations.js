@@ -50,7 +50,7 @@ export function startShake() {
   state.pendingRollTimeouts.push(gatherT);
 }
 
-export function updateDiceInPlace(snap, onComplete) {
+export function updateDiceInPlace(snap, onComplete, winForMe = false) {
   state.pendingRollTimeouts.forEach(clearTimeout);
   state.pendingRollTimeouts = [];
   document.querySelectorAll('.zone-unmatched .die-wrapper.lifting').forEach((w) => w.remove());
@@ -75,6 +75,8 @@ export function updateDiceInPlace(snap, onComplete) {
   const scatterMs = 320;
   const finalPositions = [];
 
+  // The winner still scatters and reveals their dice on the target — only the
+  // subsequent move into the locked zone is skipped (see winForMe below).
   if (zone) {
     const rect = zone.getBoundingClientRect();
     const grid = placeGrid(rect, wrappers.length, sz);
@@ -123,12 +125,24 @@ export function updateDiceInPlace(snap, onComplete) {
         cube.style.transform = FACE_ROTATIONS[v] || 'rotateY(0deg)';
         cube.addEventListener('transitionend', () => { cube.style.transition = ''; }, { once: true });
       }
+      // The winner doesn't watch their final dice fly into the locked zone — the
+      // overlay takes over. Everyone else's progress still lifts as usual.
+      if (winForMe) continue;
       const liftT = setTimeout(() => {
         wrapper.classList.add('lifting');
         const removeT = setTimeout(() => wrapper.remove(), 280);
         state.pendingRollTimeouts.push(removeT);
       }, 400);
       state.pendingRollTimeouts.push(liftT);
+    }
+
+    // Winning roll: the scatter above has revealed the winning dice on the
+    // target. Show the win state immediately — no lift/pop into the locked zone,
+    // no post-landing dwell. The faces finish settling live under the overlay.
+    if (winForMe) {
+      renderPlayersBar(snap);
+      if (onComplete) onComplete();
+      return;
     }
 
     const matchedZone = document.querySelector('.zone-matched');
@@ -166,6 +180,9 @@ export function tryReveal() {
   state.awaitingAck = false;
   state.currentState = snap;
   state.lastMyDiceKey = myDiceKey(snap);
+  // The completing roll is mine: skip the move-to-locked choreography and pop
+  // the winner overlay as the dice land — you don't watch your own win migrate.
+  const winForMe = !!state.pendingWinName && !state.pendingWinIsLoser;
   updateDiceInPlace(snap, () => {
     state.rolling = false;
     const btn = document.getElementById('roll-btn');
@@ -193,5 +210,5 @@ export function tryReveal() {
         showFor(m);
       }
     }
-  });
+  }, winForMe);
 }
