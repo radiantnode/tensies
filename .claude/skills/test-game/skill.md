@@ -701,9 +701,194 @@ At the end of all tests, collect all browser console messages from both instance
 
 ---
 
+## Steps 24–28 — Asset pipeline smoketest (prod build)
+
+These steps switch to the prod Docker stack, verify the esbuild pipeline produced correct bundle outputs, then play a 3-round game to confirm the prod build is functionally identical to dev. Run these after Step 23.
+
+---
+
+## Step 24 — Switch to prod build
+
+The dev stack uses unbundled modules served by FastAPI's `StaticFiles`. The prod stack runs the esbuild pipeline in a Docker builder stage, then serves pre-compressed content-hashed bundles from nginx. These five steps exercise that pipeline.
+
+Stop the dev stack and start the prod build. The `.env.prod` file already sets `WEB_PUBLISH=0.0.0.0:8888`, so nginx lands on the same port. Override `ALLOWED_ORIGINS` so Playwright's localhost WebSocket connections are accepted:
+
+```bash
+docker compose down
+
+ALLOWED_ORIGINS=http://localhost:8888 \
+  docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+
+The `--build` flag runs the full asset pipeline (esbuild bundle + hash + gzip). This takes 30–90 seconds on a cold build. Poll until nginx responds:
+
+```bash
+for i in $(seq 1 30); do
+  curl -sf http://localhost:8888/ | grep -q "TENSIES" && echo "OK" && break
+  echo "waiting ($i)..."
+  sleep 3
+done
+```
+
+If the loop exits without printing "OK", stop and report FAIL with the last few lines of `docker compose -f docker-compose.prod.yml --env-file .env.prod logs nginx web`.
+
+Take screenshot **`.playwright-mcp/24-prod-landing.png`** after navigating instance #1 to `http://localhost:8888/`.
+
+---
+
+## Step 25 — Bundle structure check
+
+Verify the build produced hashed bundles and not unbundled module trees. Run these checks with `curl` — no browser needed.
+
+```bash
+PROD_HTML=$(curl -sf http://localhost:8888/)
+
+# 1. Exactly one hashed JS bundle entry point
+echo "$PROD_HTML" | grep -o 'src="/static/js/app-[a-f0-9]*\.js"'
+# Expected output: src="/static/js/app-<8 hex chars>.js" (exactly one line)
+
+# 2. No individual module paths in HTML
+echo "$PROD_HTML" | grep -E '/static/js/(net|state|router|game-render|animations|roll|dice)\.js' \
+  && echo "FAIL: individual modules found in HTML" || echo "OK: no individual modules"
+
+# 3. No modulepreload links (these are dropped by the build)
+echo "$PROD_HTML" | grep 'modulepreload' \
+  && echo "FAIL: modulepreload found" || echo "OK: no modulepreload"
+
+# 4. Hashed CSS bundles present
+echo "$PROD_HTML" | grep -o 'href="/static/css/app-[a-f0-9]*\.css"'
+echo "$PROD_HTML" | grep -o 'href="/static/css/critical-[a-f0-9]*\.css"'
+
+# 5. JS bundle: gzip encoding + immutable cache header
+JS_URL=$(echo "$PROD_HTML" | grep -o '/static/js/app-[a-f0-9]*\.js' | head -1)
+echo "JS bundle: $JS_URL"
+curl -sI "http://localhost:8888${JS_URL}" | grep -iE 'content-encoding|cache-control'
+# Expected:
+#   Content-Encoding: gzip
+#   Cache-Control: public, max-age=31536000, immutable
+
+# 6. CSS bundle: same headers
+CSS_URL=$(echo "$PROD_HTML" | grep -o '/static/css/app-[a-f0-9]*\.css' | head -1)
+echo "CSS bundle: $CSS_URL"
+curl -sI "http://localhost:8888${CSS_URL}" | grep -iE 'content-encoding|cache-control'
+```
+
+**Pass criteria:**
+- `src="/static/js/app-<hash>.js"` appears exactly once in the HTML
+- No individual module filenames (`net.js`, `state.js`, etc.) in HTML
+- No `modulepreload` in HTML
+- Both `app-<hash>.css` and `critical-<hash>.css` present in HTML
+- JS bundle headers: `Content-Encoding: gzip` and `Cache-Control: … immutable`
+- CSS bundle headers: same
+
+---
+
+## Step 26 — Browser resource count
+
+In prod, all JS loads as one bundle (vs. ~24 modules + 24 modulepreload entries in dev), and 9 CSS files merge to one. The total resource count from `performance.getEntriesByType('resource')` should be well under 15 — typically ~7–9.
+
+Navigate both instances to `http://localhost:8888/`. Clear localStorage first on both:
+
+```js
+() => { localStorage.clear(); return true; }
+```
+
+Then re-navigate and read the resource list:
+
+```js
+() => {
+  const all = performance.getEntriesByType('resource');
+  return {
+    total: all.length,
+    jsFiles: all.filter(r => r.name.includes('/js/')).map(r => r.name.split('/').pop()),
+    cssFiles: all.filter(r => r.name.includes('/css/')).map(r => r.name.split('/').pop()),
+    hasIndividualModules: all.some(r =>
+      /\/static\/js\/(net|state|router|game-render|animations|roll|dice|app-screen|lobby-screen)\.js/.test(r.name)
+    ),
+    hasBundledJs: all.some(r => /\/static\/js\/app-[a-f0-9]+\.js/.test(r.name)),
+  };
+}
+```
+
+**Pass criteria:**
+- `total` ≤ 15 (dev loads 39+)
+- `hasIndividualModules` = `false`
+- `hasBundledJs` = `true`
+- `jsFiles` contains exactly one entry matching `app-*.js`
+- `cssFiles` contains at most two entries (`app-*.css` and `critical-*.css`)
+
+---
+
+## Step 27 — 3-round game on prod build
+
+With both instances on the prod build at `http://localhost:8888/`, play a full 3-round game to confirm the bundle is functionally correct. Use the same pattern as Steps 3–14, but abbreviated: just get through 3 complete rounds.
+
+1. **Clear and setup** — localStorage is already cleared from Step 26. In Tab 1, create a game:
+   - Type `Alpha` → submit landing form
+   - Store game code from `#lobby-code`
+
+2. **Join** — In Tab 2, navigate to `http://localhost:8888/<GAME_CODE>`, type `Beta`, submit join form.
+
+3. **Start** — In Tab 1, click `#start-btn`. Verify both tabs land on `#game`.
+
+4. **Roll 3 rounds.** For each round, install a winner overlay capture on both tabs before rolling:
+
+   ```js
+   window.__winRound = null;
+   const ov = document.getElementById('winner-overlay');
+   new MutationObserver(() => {
+     if (ov.open && !window.__winRound) {
+       window.__winRound = {
+         name: document.getElementById('winner-name')?.textContent.trim(),
+         banner: document.getElementById('winner-banner-suffix')?.textContent.trim(),
+         round: document.getElementById('winner-round')?.textContent.trim(),
+         openedAt: Date.now(),
+       };
+     }
+   }).observe(ov, { attributes: true, attributeFilter: ['open'] });
+   ```
+
+   Then auto-roll both tabs using the `setInterval` pattern from Step 22 until the overlay fires. Read `window.__winRound` on both; verify:
+   - At least one tab shows `banner === 'Winner'` and the other shows `'Loser'`
+   - The round field matches the current round number
+
+   Reset `window.__winRound = null` before each round. Use `document.querySelector('.round-header')?.textContent` to track which round you're in.
+
+5. After 3 complete rounds, stop rolling. Check:
+   - No `Error:` or `Uncaught` in console messages on either instance
+   - `document.getElementById('game').classList.contains('active')` = `true`
+
+Take screenshot **`.playwright-mcp/27-prod-game-r3.png`** after round 3 completes.
+
+**Pass criteria:**
+- 3 rounds played to completion
+- Winner overlay appeared on both tabs for each round
+- No console errors
+
+---
+
+## Step 28 — Restore dev stack
+
+Stop the prod stack and restart the dev stack so the session ends in the normal state.
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod down
+docker compose up -d
+sleep 3
+curl -sf http://localhost:8888/ | grep -q "TENSIES" && echo "Dev stack restored" || echo "FAIL: dev not up"
+```
+
+Navigate both instances to `http://localhost:8888/` to confirm dev assets are serving (the HTML will contain modulepreload links again, not the hashed bundle):
+
+```bash
+curl -sf http://localhost:8888/ | grep -q 'modulepreload' && echo "OK: dev HTML" || echo "FAIL: not dev HTML"
+```
+
+---
+
 ## Reporting
 
-Print a summary table. Preflight (self-update, prior-run review) is reported as a one-line note, not a scored row. The 23 numbered rows map 1:1 to Steps 1–23.
+Print a summary table. Preflight (self-update, prior-run review) is reported as a one-line note, not a scored row. The 28 numbered rows map 1:1 to Steps 1–28.
 
 TENSIES TEST RESULTS
 
@@ -734,8 +919,13 @@ Preflight: self-update <ran|none>, prior-run review <ran|none> (not scored)
 | 21 | ✅ PASS | Animation integrity (no tearing) |
 | 22 | ✅ PASS | Winner/loser overlay consistency (multi-round, no flash) |
 | 23 | ✅ PASS | Console clean (no JS errors) |
+| 24 | ✅ PASS | Switch to prod build |
+| 25 | ✅ PASS | Bundle structure (hashed URLs, gzip, immutable) |
+| 26 | ✅ PASS | Browser resource count (bundled, no individual modules) |
+| 27 | ✅ PASS | 3-round game on prod build |
+| 28 | ✅ PASS | Restore dev stack |
 
-23/23 passed
+28/28 passed
 
 Replace `✅ PASS` with `❌ FAIL` or `📝 NOTE` and append a one-line description for any issue. If any test FAILs, describe exactly what went wrong and where to look.
 

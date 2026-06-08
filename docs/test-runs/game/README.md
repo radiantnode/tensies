@@ -7,6 +7,7 @@ loop across two isolated Playwright instances.
 
 | Date | Scope | Result | Passed | Total | Highlight |
 |------|-------|--------|--------|-------|-----------|
+| [2026-06-08T17:15:00](2026-06-08T17-15-00.md) | Game + Asset Pipeline | ✅ PASS | 28 | 28 | First 28-step run incl. asset pipeline smoketest; Step 22 prior FAIL cleared (all overlays 3002–3040ms); prod build: 7 resources, 12.2KB JS gz, gzip+immutable |
 | [2026-06-08T11:35:00](2026-06-08T11-35-00.md) | Game | 🔴 FAIL | 22 | 23 | Step 22: Alpha Winner R8 overlay closed at 1153ms — post-reveal `showFor()` closes live overlay when opponent rolls; widened by 5916a72 (overlay now opens ~350ms sooner) |
 | [2026-06-07T10:55:45](2026-06-07T10-55-45.md) | Game | ✅ PASS | 23 | 23 | Full suite incl. multi-round overlay-flash check (14 overlays all ~3000ms, zero flashes); fixed 3 stale skill assertions (`#winner-sub`, target-cycle direction, `ws.close()` auto-reconnect) |
 | [2026-06-01T04:14:00](2026-06-01T04-14-00-multi-instance.md) | Game (multi-instance) | ✅ PASS | 12 | 12 | 3 servers · 1 game · 6 players · 10+ rounds; cross-instance fan-out + single-winner Lua CAS + live reconnect; 0 server exceptions / console errors |
