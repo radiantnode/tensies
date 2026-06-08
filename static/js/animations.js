@@ -136,14 +136,12 @@ export function updateDiceInPlace(snap, onComplete, winForMe = false) {
       state.pendingRollTimeouts.push(liftT);
     }
 
-    // Winning roll: let the dice settle on the target, then go straight to the
-    // winner overlay — no lift/pop into the locked zone.
+    // Winning roll: the scatter above has revealed the winning dice on the
+    // target. Show the win state immediately — no lift/pop into the locked zone,
+    // no post-landing dwell. The faces finish settling live under the overlay.
     if (winForMe) {
-      const winT = setTimeout(() => {
-        renderPlayersBar(snap);
-        if (onComplete) onComplete();
-      }, 350);
-      state.pendingRollTimeouts.push(winT);
+      renderPlayersBar(snap);
+      if (onComplete) onComplete();
       return;
     }
 
