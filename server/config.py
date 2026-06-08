@@ -115,6 +115,17 @@ METRICS_TOKEN = os.environ.get("METRICS_TOKEN") or None
 STATS_TOKEN = os.environ.get("STATS_TOKEN") or None
 
 
+# ─── Frontend asset serving ──────────────────────────────────────────────
+# In prod the frontend is bundled + fingerprinted into a static dist/ at
+# image-build time (scripts/build_assets.mjs) and served straight from disk by
+# nginx. When FRONTEND_DIST points at that directory the app does ZERO asset
+# work: it skips the in-process JS cache + StaticFiles mount and serves only the
+# prebuilt dist/index.html document (nginx owns everything under /static).
+# Unset (dev): the app serves the raw, unbundled ES modules itself so the
+# edit-and-reload loop needs no build step.
+FRONTEND_DIST = os.environ.get("FRONTEND_DIST", "").strip()
+
+
 # ─── Security response headers: HSTS + CSP (audit L4) ────────────────────
 # Master switch for the Content-Security-Policy header. On by default — the
 # frontend has no inline scripts/styles, so a strict CSP applies with no
