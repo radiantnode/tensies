@@ -10,7 +10,7 @@ The pipeline runs during the Docker image build. It takes the source tree and pr
 
 All of it runs in `scripts/build_assets.mjs`, in the Docker builder stage, before either service image assembles.
 
-1. Images and fonts get a content hash baked into the filename (`logo-eae59c27.svg`). A manifest maps the original paths to the hashed ones so everything downstream can find them.
+1. SVGs get comments stripped and whitespace collapsed, then a content hash baked into the filename (`logo-eae59c27.svg`). Other binary assets (PNG, woff2) are fingerprinted as-is. A manifest maps the original paths to the hashed ones so everything downstream can find them.
 
 2. The 24 JS modules get bundled into a single file with esbuild. `minify: true` handles identifier mangling, syntax compression, and whitespace removal, including collapsing the newlines in HTML template strings that esbuild normally leaves alone. Asset references get rewritten, then the whole thing gets content-hashed.
 
@@ -44,19 +44,20 @@ Prod ███████                                    7 requests
 | Images  | 3                      | 3            |
 | **Total** | **39**               | **7**        |
 
-### Transfer size (JS + CSS + HTML, excluding images)
+### Transfer size (JS + CSS + HTML + SVGs, excluding bar-top.png)
 
 ```
-Dev  ████████████████████████████████████████████████████  ~132 KB
-Prod █████████                                             ~21 KB
+Dev  ████████████████████████████████████████████████████  ~144 KB
+Prod █████████                                             ~23 KB
 ```
 
-| Asset | Dev      | Prod              | Ratio |
-|-------|----------|-------------------|-------|
-| JS    | 76.4 KB  | 12.5 KB (gzipped) | 6x    |
-| CSS   | 49.9 KB  | 7.9 KB (gzipped)  | 6x    |
-| HTML  | 6.1 KB   | 0.6 KB (gzipped)  | 10x   |
-| **Total** | **~132 KB** | **~21 KB**   | **6x** |
+| Asset | Dev       | Prod              | Ratio |
+|-------|-----------|-------------------|-------|
+| JS    | 76.4 KB   | 12.5 KB (gzipped) | 6x    |
+| CSS   | 49.9 KB   | 7.9 KB (gzipped)  | 6x    |
+| HTML  | 6.1 KB    | 0.6 KB (gzipped)  | 10x   |
+| SVGs  | ~12.1 KB  | 2.3 KB (gzipped)  | 5x    |
+| **Total** | **~144 KB** | **~23 KB**  | **~6x** |
 
 Dev's JS transfer (76.4 KB) is actually larger than its decoded size (69.3 KB). The Performance API includes HTTP response headers in `transferSize`, so 24 separate module requests adds a few KB of overhead before a single byte of application code moves.
 

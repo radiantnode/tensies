@@ -65,12 +65,20 @@ function walk(dir) {
 }
 
 // ── 1. Fingerprint leaf binary assets (images, fonts) ─────────────────────────
+const minifySvg = (text) => text
+  .replace(/<!--[\s\S]*?-->/g, '')
+  .replace(/[ \t]*\n[ \t]*/g, '')
+  .replace(/ {2,}/g, ' ')
+  .trim();
+
 for (const sub of ['images', 'fonts']) {
   const dir = join(SRC, sub);
   for (const file of walk(dir)) {
     const ext = extname(file);
     const name = basename(file, ext);
-    const url = writeHashed(sub, name, ext, readFileSync(file));
+    const raw = readFileSync(file);
+    const contents = ext === '.svg' ? minifySvg(raw.toString()) : raw;
+    const url = writeHashed(sub, name, ext, contents);
     manifest.set(`/static/${sub}/${basename(file)}`, url);
   }
 }
