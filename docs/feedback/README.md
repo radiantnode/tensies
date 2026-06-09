@@ -6,15 +6,21 @@ External code reviews, second opinions, and the decisions that followed. Each en
 
 | Date | Source | Topic | Outcome |
 |------|--------|-------|---------|
+| [2026-06-09](2026-06-09-chatgpt-feedback-review.md) | ChatGPT static review | Reliability/edge-case review — roll state machine, fire-and-forget tasks, Pub/Sub delivery, telemetry consistency | Verified all claims; H1 (roll-UI wedge) confirmed as the one new high-value fix, H2 confirmed but softened, M4/M5 re-confirmed as still-open debts. **Owner chose review only — nothing implemented.** |
 | [2026-05-30](2026-05-30-tensies-code-review.md) | ChatGPT share link | Full repo analysis — security, deployment, telemetry correctness | Agreed on reconnect token (→ shipped), Grafana XSS, telemetry transaction split; pushed back on multi-worker framing |
 | [2026-06-01](2026-06-01-security-audit.md) | Security audit | Deployment creds, DoS caps, dep CVEs, WS origin/size, name XSS | Folded into the multi-instance (Redis) change: C1/H1/H2/H3/M1/M2/M3/L1/L2/I1/I2/I4 addressed; L3/L4 deferred |
 
 ## Open items
 
-*Last checked: 2026-06-01*
+*Last checked: 2026-06-09*
 
 | Feedback | Item | Status | Commit | What changed |
 |----------|------|--------|--------|--------------|
+| [2026-06-09](2026-06-09-chatgpt-feedback-review.md) | H1 — in-game error wedges roll UI | ⏳ open | — | — |
+| [2026-06-09](2026-06-09-chatgpt-feedback-review.md) | H2 — round-advance recovery (reaper) | ⏳ open | — | — |
+| [2026-06-09](2026-06-09-chatgpt-feedback-review.md) | M1 / M2 / M3 — Pub/Sub resync, `send()` timeout, token rotation | ⏳ open | — | — |
+| [2026-06-09](2026-06-09-chatgpt-feedback-review.md) | M7 — CI / Dependabot (no `.github/`) | ⏳ open | — | — |
+| [2026-06-09](2026-06-09-chatgpt-feedback-review.md) | L1 / L2 — README drift, env-parser fail-fast | ⏳ open | — | — |
 | [2026-05-30](2026-05-30-tensies-code-review.md) | Reconnect token | ✅ addressed | [bb7bb11](https://github.com/radiantnode/tensies/commit/bb7bb1105e7aa113deb2006d2f623b0a7a236f57) | Minted a per-player `secrets.token_urlsafe(32)` on create/join, stored its SHA-256 hash on the player record, sent the raw token privately to the owning client, and required it (constant-time) in `handle_reconnect`. Token never appears in state snapshots. |
 | [2026-05-30](2026-05-30-tensies-code-review.md) | Grafana XSS exposure | ✅ addressed (server-side) | — | Names sanitized at intake (`sanitize_name`), closing the stored-XSS vector at the source. Grafana sanitization flag left as-is per the earlier owner decision. See the [2026-06-01 audit](2026-06-01-security-audit.md) (M1). |
 | [2026-05-30](2026-05-30-tensies-code-review.md) | Writer transaction split | ⏳ open | — | — |
