@@ -44,6 +44,10 @@ class Client:
 
     async def __aenter__(self):
         self.ws = await websockets.connect(self.url)
+        # Create the frame queue here, before spawning the pump task — otherwise
+        # wait() below can race the (not-yet-scheduled) pump and hit a missing
+        # self._q.
+        self._q = asyncio.Queue()
         self._task = asyncio.create_task(self._pump())
         await self.wait("welcome")
         return self
@@ -53,7 +57,6 @@ class Client:
         await self.ws.close()
 
     async def _pump(self):
-        self._q = asyncio.Queue()
         async for raw in self.ws:
             m = json.loads(raw)
             if m.get("type") == "ping":
