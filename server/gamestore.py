@@ -301,7 +301,7 @@ async def get_meta(code: str) -> dict | None:
     if all(v is None for v in vals):
         return None
     out = {}
-    for f, v in zip(fields, vals):
+    for f, v in zip(fields, vals, strict=True):
         out[f] = None if v is None else _coerce_game(f, v)
     return out
 
@@ -314,7 +314,7 @@ async def get_player(code: str, pid: str) -> dict | None:
     if vals[0] is None:  # no name => no such player
         return None
     return {f: (None if v is None else _coerce_player(f, v))
-            for f, v in zip(fields, vals)}
+            for f, v in zip(fields, vals, strict=True)}
 
 
 # ─── Mutations ──────────────────────────────────────────────────────────────

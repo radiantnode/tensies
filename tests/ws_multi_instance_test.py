@@ -82,7 +82,7 @@ class Client:
         try:
             while True:
                 await asyncio.wait_for(self._q.get(), secs)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pass
 
 

@@ -5,9 +5,8 @@ serve any game. What stays here is strictly per-process: the sockets this
 instance terminates, plus registries of live asyncio objects that can't be
 serialised and are only ever touched by the instance that owns the connection.
 """
-from typing import TYPE_CHECKING
-
 import asyncio
+from typing import TYPE_CHECKING
 
 from fastapi import WebSocket
 

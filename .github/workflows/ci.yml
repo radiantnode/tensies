@@ -1,0 +1,131 @@
+# Core CI gate (plan phase 1 — see docs/CI_PLAN.md).
+#   lint        — ruff over the app source (no infra)
+#   frontend    — real esbuild bundle + asset invariants (Node + Python)
+#   integration — two app instances on a shared Redis, live WS protocol
+#   docker      — the web + nginx image targets build
+#
+# Action versions are major-tag pinned here; SHA-pinning is a follow-up handled
+# with the phase-3 security layer.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff==0.14.3
+      - run: ruff check .
+
+  frontend:
+    # assets_test.py shells out to the real Node build (scripts/build_assets.mjs)
+    # and then asserts the dist/ invariants in Python — so it needs both runtimes.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - run: python tests/assets_test.py
+
+  integration:
+    # The multi-instance WS test is the point of the suite: two app processes
+    # sharing one Redis, exercising cross-instance fan-out / reconnect / host
+    # transfer. Telemetry is off so Redis is the only service needed.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      REDIS_URL: redis://localhost:6379/0
+      TELEMETRY_ENABLED: "0"
+      ALLOWED_ORIGINS: "*"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        # The lock carries websockets (the test's only third-party import).
+        run: pip install -r requirements.lock
+      - name: Boot two app instances on a shared Redis
+        run: |
+          INSTANCE_ID=a uvicorn main:app --host 127.0.0.1 --port 8101 \
+            > /tmp/web-a.log 2>&1 &
+          INSTANCE_ID=b uvicorn main:app --host 127.0.0.1 --port 8102 \
+            > /tmp/web-b.log 2>&1 &
+      - name: Wait for both instances to be ready
+        run: |
+          for port in 8101 8102; do
+            for i in $(seq 1 30); do
+              if curl -fsS "http://127.0.0.1:${port}/" -o /dev/null; then
+                echo "instance on :${port} ready"; break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "instance on :${port} never came up"; exit 1
+              fi
+              sleep 1
+            done
+          done
+      - name: Run multi-instance WS test
+        run: python tests/ws_multi_instance_test.py
+      - name: Dump server logs on failure
+        if: failure()
+        run: |
+          echo "===== instance A (:8101) ====="; cat /tmp/web-a.log || true
+          echo "===== instance B (:8102) ====="; cat /tmp/web-b.log || true
+
+  docker:
+    # Build-only (no push) — validates the Dockerfile every PR. GHCR publishing
+    # on main is a deferred decision (see docs/CI_PLAN.md).
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build app image (web stage)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: web
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Build nginx image (assets + nginx stages)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: nginx
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

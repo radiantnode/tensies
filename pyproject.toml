@@ -1,0 +1,22 @@
+# Tooling config. The app itself is not packaged (run via `uvicorn main:app`);
+# this file exists for the linter so CI and local dev share one ruff source.
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+# loadtest.py is a throwaway dev load-driver written in a deliberately terse
+# style (compact imports, inline statements); not worth reflowing to lint rules.
+# .claude holds vendored skill harnesses (incl. the humanizer submodule) — not
+# project source, so keep it out of the app's lint scope.
+extend-exclude = ["loadtest.py", ".claude"]
+
+[tool.ruff.lint]
+# A pragmatic, low-noise set: pycodestyle (E/W), pyflakes (F), import sorting
+# (I), bugbear (B), and pyupgrade (UP). Deliberately NOT enforcing `ruff format`
+# in CI — the codebase is hand-formatted (aligned SQL, intentional wrapping) and
+# a blanket reformat would bury real diffs.
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# Telemetry modules embed multi-line SQL and Prometheus help strings that read
+# better unwrapped than reflowed to fit the column limit.
+"server/telemetry/*" = ["E501"]
