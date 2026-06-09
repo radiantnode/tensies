@@ -34,6 +34,13 @@ h1, h2, h3, p { font-weight: inherit; font-size: inherit; }
 [hidden] { display: none !important; }
 
 html { height: 100%; overflow: hidden; overscroll-behavior: none; }
+main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: #1a0e08 url('/static/images/bar-top.webp') center 10% / cover no-repeat;
@@ -70,8 +77,8 @@ body {
 
 /* Loading screen */
 #loading {
-  height: 100vh;
-  height: 100dvh;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;

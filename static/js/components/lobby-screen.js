@@ -2,7 +2,6 @@
 // render(snap) is called by net.js showFor() on each pre-start `state` frame.
 // Player rows are keyed by pid so joins/leaves patch in place without resetting
 // scroll position or triggering layout thrash.
-import './app-header.js';
 import { state } from '../state.js';
 import { startGame } from '../net.js';
 import { updateScrollFades } from '../util.js';
@@ -18,7 +17,6 @@ class LobbyScreen extends HTMLElement {
     this.className = 'screen';
     this.setAttribute('aria-labelledby', 'lobby-title');
     this.innerHTML = `
-      <app-header></app-header>
       <div class="screen-body lobby-body">
         <h1 id="lobby-title" class="lobby-title">Waiting for players…</h1>
         <p class="lobby-hint">Share this link to invite friends</p>

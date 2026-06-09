@@ -1,6 +1,5 @@
 // <landing-screen> — create-or-join entry. Light DOM; the host element *is*
 // #landing.screen so the existing #landing CSS applies unchanged.
-import './app-header.js';
 import { showJoin } from '../router.js';
 import { createGame } from '../net.js';
 
@@ -12,7 +11,6 @@ class LandingScreen extends HTMLElement {
     this.className = 'screen';
     this.setAttribute('aria-labelledby', 'landing-title');
     this.innerHTML = `
-      <app-header></app-header>
       <div class="screen-body">
         <img src="/static/images/logo.svg" class="logo-mark" alt="">
         <h1 id="landing-title" class="logo">TENSIES</h1>

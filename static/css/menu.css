@@ -9,7 +9,7 @@ nav-menu {
 }
 
 .game-menu {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 50;
   background: rgba(8, 4, 1, 0.88);

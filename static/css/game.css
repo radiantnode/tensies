@@ -1,13 +1,16 @@
 /* ── Game board ──
    (The top bar — .game-topbar/.topbar-title-row/.game-title — lives in
    shell.css, shared with the pre-game screens.) */
+
+/* In game context the outer border on app-header is not needed — the
+   players-bar provides the separator below it. */
+main:has(#game.active) > app-header { border-bottom: none; }
+
 #game {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
-  max-height: 100vh;
-  max-height: 100dvh;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   position: relative;
 }

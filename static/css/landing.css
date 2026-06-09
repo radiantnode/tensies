@@ -2,8 +2,8 @@
    Two full-screen scrims over the bar photo. They share the logo/heading/form
    vocabulary; the header chrome is hidden on landing until the nav menu opens. */
 #landing, #join {
-  height: 100vh;
-  height: 100dvh;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--panel-screen);
@@ -13,33 +13,33 @@
 
 /* Landing header floats out of flow; only its chrome hides until the menu opens
    (the hamburger itself stays clickable). */
-#landing .app-header {
+main:has(#landing.active) > app-header {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   z-index: 100;
 }
-#landing .game-topbar { border-bottom-color: transparent; }
-#landing .topbar-title-row {
+main:has(#landing.active) > app-header { border-bottom-color: transparent; }
+main:has(#landing.active) > app-header .topbar-title-row {
   background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border-bottom-color: transparent;
 }
-#landing .game-title { visibility: hidden; }
-#landing .game-menu-btn span {
+main:has(#landing.active) > app-header .game-title { visibility: hidden; }
+main:has(#landing.active) > app-header .game-menu-btn span {
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
-body:has(#nav-menu.open) #landing .game-topbar { border-bottom-color: rgba(180, 100, 20, 0.25); }
-body:has(#nav-menu.open) #landing .topbar-title-row {
+body:has(#nav-menu.open) main:has(#landing.active) > app-header { border-bottom-color: rgba(180, 100, 20, 0.25); }
+body:has(#nav-menu.open) main:has(#landing.active) > app-header .topbar-title-row {
   background: rgba(8, 4, 1, 0.58);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border-bottom-color: rgba(180, 100, 20, 0.2);
 }
-body:has(#nav-menu.open) #landing .game-title { visibility: visible; }
+body:has(#nav-menu.open) main:has(#landing.active) > app-header .game-title { visibility: visible; }
 
 /* .logo-mark and .logo are in the inline critical CSS (shared with loading). */
 

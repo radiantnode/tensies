@@ -136,7 +136,7 @@ test('game-menu-open', async ({ page }) => {
       cosmo: [1, 1, 1, 1, 1, 1, 1, 1, 2, 3],
     }),
   }), '#game.active', async (p) => {
-    await p.click('#game-menu-btn');
+    await p.click('#app-header-menu-btn');
     await p.waitForSelector('#game-menu.open');
   });
   await settle(page);
@@ -156,7 +156,7 @@ test('paused-host', async ({ page }) => {
   }), '#game.active', async (p) => {
     // The pause status lives inside the menu panel, so it's only visible once
     // the menu is open. Open it ourselves rather than rely on the auto-open.
-    if (!(await p.isVisible('#game-menu.open'))) await p.click('#game-menu-btn');
+    if (!(await p.isVisible('#game-menu.open'))) await p.click('#app-header-menu-btn');
     await p.waitForSelector('#menu-pause-status:not([hidden])');
   });
   await settle(page);
@@ -259,7 +259,7 @@ test('players-bar-variants', async ({ page }) => {
       g_disc: mk('Delta', [], { wins: 0, disconnected: true }),               // disconnected
     },
   }), '#game.active', async (p) => {
-    if (await p.isVisible('#game-menu.open')) await p.click('#game-menu-btn');
+    if (await p.isVisible('#game-menu.open')) await p.click('#app-header-menu-btn');
     await menuClosed(p);
   });
   await settle(page);
@@ -278,7 +278,7 @@ test('paused-board', async ({ page }) => {
       cosmo: [1, 1, 1, 1, 1, 1, 1, 1, 2, 3],
     }),
   }), '#game.active', async (p) => {
-    if (await p.isVisible('#game-menu.open')) await p.click('#game-menu-btn'); // close auto-opened menu
+    if (await p.isVisible('#game-menu.open')) await p.click('#app-header-menu-btn'); // close auto-opened menu
     await menuClosed(p);
     await p.waitForFunction(() => document.getElementById('roll-btn')?.textContent?.trim() === 'Paused');
   });

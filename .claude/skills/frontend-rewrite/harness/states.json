@@ -21,7 +21,7 @@
     "path": "/",
     "steps": [
       { "waitFor": "#landing.active" },
-      { "click": "#landing-menu-btn" },
+      { "click": "#app-header-menu-btn" },
       { "waitFor": "#nav-menu.open" }
     ]
   }

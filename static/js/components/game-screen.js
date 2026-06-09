@@ -2,8 +2,9 @@
 // (light DOM). State-driven: render(snap) is called by net.js showFor() on each
 // started `state` frame and patches in place. Owns the game-menu open/close and
 // the Pause/Resume toggle (server flips the flag; renderMenu reflects it).
+// The top bar is the global <app-header>; the players-bar sits as the first
+// child of this screen, visually just below the header.
 import { state } from '../state.js';
-import { titleRowHTML } from '../title-row.js';
 import { renderGame } from '../game-render.js';
 import { roll } from '../roll.js';
 import { RESUME_CLOSE_DELAY_MS } from '../overlays.js';
@@ -16,10 +17,7 @@ class GameScreen extends HTMLElement {
     this.className = 'screen';
     this.setAttribute('aria-labelledby', 'game-title');
     this.innerHTML = `
-      <header class="game-topbar">
-        ${titleRowHTML}
-        <div class="players-bar" id="players-bar" role="list" aria-label="Players"></div>
-      </header>
+      <div class="players-bar" id="players-bar" role="list" aria-label="Players"></div>
       <div id="game-menu" class="game-menu" aria-hidden="true">
         <nav class="menu-panel" aria-label="Game menu">
           <button id="menu-pause-btn" type="button" class="menu-item menu-toggle" aria-pressed="false" hidden>
@@ -37,15 +35,14 @@ class GameScreen extends HTMLElement {
       </div>
       <div class="my-area" id="my-area"></div>`;
 
-    this._menuBtn = this.querySelector('.game-menu-btn');
     this._menu = this.querySelector('#game-menu');
-    // The shared title-row gives the hamburger a class; the game's needs the id
-    // the rest of the app (and tooling) references.
-    this._menuBtn.id = 'game-menu-btn';
-    this._menuBtn.setAttribute('aria-controls', 'game-menu');
 
-    // Hamburger toggles the GAME menu (not the nav menu).
-    this._menuBtn.addEventListener('click', () => (this.menuOpen() ? this.closeMenu() : this.openMenu()));
+    // Intercept the global hamburger's menu-toggle when this screen is active.
+    this._onMenuToggle = () => {
+      if (!this.classList.contains('active')) return;
+      this.menuOpen() ? this.closeMenu() : this.openMenu();
+    };
+    document.addEventListener('menu-toggle', this._onMenuToggle);
 
     // Pause/Resume — send intent; the broadcast flips the flag and renderMenu
     // reflects it. Resuming closes the menu after a beat (toggle slide-off).
@@ -72,23 +69,22 @@ class GameScreen extends HTMLElement {
   }
 
   disconnectedCallback() {
+    document.removeEventListener('menu-toggle', this._onMenuToggle);
     document.removeEventListener('keydown', this._onKeydown);
   }
 
   menuOpen() { return this._menu.classList.contains('open'); }
+
   openMenu() {
     this._menu.classList.add('open');
-    this._menuBtn.classList.add('open');
-    this._menuBtn.setAttribute('aria-expanded', 'true');
-    this._menuBtn.setAttribute('aria-label', 'Close menu');
     this._menu.setAttribute('aria-hidden', 'false');
+    document.querySelector('app-header')?.setOpen(true);
   }
+
   closeMenu() {
     this._menu.classList.remove('open');
-    this._menuBtn.classList.remove('open');
-    this._menuBtn.setAttribute('aria-expanded', 'false');
-    this._menuBtn.setAttribute('aria-label', 'Open menu');
     this._menu.setAttribute('aria-hidden', 'true');
+    document.querySelector('app-header')?.setOpen(false);
   }
 
   render(snap) {

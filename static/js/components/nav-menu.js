@@ -133,7 +133,10 @@ class NavMenu extends HTMLElement {
     this._body = this.querySelector('.menu-changelog-body');
     this._body.addEventListener('scroll', () => this.updateFades(), { passive: true });
 
-    this._onMenuToggle = () => this.toggle();
+    this._onMenuToggle = () => {
+      if (document.querySelector('#game.active')) return;
+      this.toggle();
+    };
     this._onKeydown = (e) => { if (e.key === 'Escape' && this.menuOpen()) this.close(); };
     document.addEventListener('menu-toggle', this._onMenuToggle);
     document.addEventListener('keydown', this._onKeydown);
@@ -169,13 +172,8 @@ class NavMenu extends HTMLElement {
     this.syncButtons(false);
   }
 
-  // Reflect open state on whichever pre-game hamburger triggered it.
   syncButtons(open) {
-    document.querySelectorAll('.app-header .game-menu-btn').forEach((b) => {
-      b.classList.toggle('open', open);
-      b.setAttribute('aria-expanded', String(open));
-      b.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
-    });
+    document.querySelector('app-header')?.setOpen(open);
   }
 
   updateFades() { updateScrollFades(this._body); }

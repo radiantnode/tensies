@@ -22,7 +22,7 @@ test('nav-menu-changelog', async ({ page }) => {
   await seedPage(page);
   await page.goto('/');
   await page.waitForSelector('#landing.active');
-  await page.click('#landing-menu-btn');
+  await page.click('#app-header-menu-btn');
   await page.waitForSelector('#nav-menu.open');
   await page.click('.menu-whats-new-btn');
   await page.waitForSelector('#nav-menu.show-changelog');

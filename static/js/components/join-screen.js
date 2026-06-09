@@ -1,5 +1,4 @@
 // <join-screen> — enter name + game code. Light DOM; host is #join.screen.
-import './app-header.js';
 import { showLanding } from '../router.js';
 import { joinGame } from '../net.js';
 import { backButtonHTML } from '../title-row.js';
@@ -12,7 +11,6 @@ class JoinScreen extends HTMLElement {
     this.className = 'screen';
     this.setAttribute('aria-labelledby', 'join-title');
     this.innerHTML = `
-      <app-header></app-header>
       <div class="screen-body">
         <button id="back-btn" type="button" class="btn-back">${backButtonHTML}</button>
         <h1 id="join-title" class="screen-title">Join a Game</h1>

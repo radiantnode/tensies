@@ -8,6 +8,9 @@
   background: rgba(8, 4, 1, 0.58);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  flex-shrink: 0;
+  box-shadow: 0 1px 0 rgba(180, 100, 20, 0.25);
+  margin-bottom: 1px;
 }
 .players-bar::-webkit-scrollbar { display: none; }
 
