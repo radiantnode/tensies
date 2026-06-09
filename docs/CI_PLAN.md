@@ -99,11 +99,64 @@ Start non-blocking (`continue-on-error: true`), promote to required once clean:
 - **Dependabot** (`pip`, `npm`, `github-actions`, `docker`) via
   `.github/dependabot.yml`.
 
+## Testing — the suite needs a bottom layer
+
+This is the weakest part of the current setup, and CI should drive fixing it,
+not just run what exists.
+
+### What exists today
+
+Both test files are **heavy end-to-end integration tests**, and they are the
+*entire* suite — there is no unit layer:
+
+- `tests/assets_test.py` — spawns the real Node build, checks `dist/`. Needs Node.
+- `tests/ws_multi_instance_test.py` — two app processes + Redis, drives the live
+  WS protocol.
+
+So the cheapest, most deterministic code — the pure logic — has no dedicated
+coverage:
+
+| Module | LOC | Tested? | Notes |
+|--------|-----|---------|-------|
+| `game.py` | 115 | ❌ only indirectly | **Pure, no I/O** — `apply_roll`, `next_target` (6→5→4→3→2→1→6 cycle), `sanitize_name`, `make_reconnect_token`/`verify_token`. Trivially unit-testable; today only exercised as a side effect of the WS test. |
+| `gamestore.py` | 442 | ❌ only indirectly | Lua compare-and-set (`try_finish_round`), abuse limiters, `make_code`, snapshot rebuild. The single-round-winner invariant lives here and is only proven by the racy WS test. |
+| `security.py` | 87 | ⚠️ partial | Origin allowlist + CSP middleware. The WS test hits the size/sanitize guards but not origin rejection or the CSP header. |
+| `broadcast.py` / `reaper.py` | 207 / 61 | ⚠️ partial | Delayed-broadcast ack handshake, host transfer, grace-drop backstop — timing-sensitive, only covered E2E. |
+
+### The two real gaps
+
+1. **No bottom of the pyramid.** Everything is slow and infra-dependent. There's
+   no fast `pytest tests/unit/` a dev (or CI's first gate) can run in seconds
+   with no Redis/Node. Highest-value single addition: a unit-test file for
+   `game.py` — the round-cycle, the `apply_roll` result dict (a contract CLAUDE.md
+   calls out), the constant-time token verify, and `sanitize_name` against XSS
+   payloads.
+
+2. **The integration test is timing-based and will flake on shared runners.**
+   `drive_win` rolls for up to 60s backing off on rate-limits; the
+   "simultaneous roll" check is `check(True, ...)` after `sleep`s — it asserts
+   nothing beyond "didn't crash". On a slow/loaded Actions runner the win-loop or
+   the cross-instance `wait(...)` timeouts (5–6s) can expire spuriously.
+
+### Additions to the plan
+
+- **New `unit` job** (Python only, no services, runs first/fast): add
+  `tests/unit/test_game.py` covering `game.py` in full, plus `security.py`
+  origin/CSP logic. Natural place to introduce a thin **pytest** layer so CI
+  gets per-assertion annotations instead of a script exit code.
+- **A `gamestore` test against the real Redis** the integration job already
+  provides, asserting the `try_finish_round` single-winner CAS *directly* —
+  far more reliable than inferring it from six racing rollers.
+- **Coverage reporting** (`pytest-cov`/`coverage.py`) surfaced on PRs,
+  non-blocking at first — useful given how much currently rides on one flaky E2E.
+- **Harden the WS job:** `timeout-minutes`, an `if: failure()` log dump of both
+  servers, and one automatic retry scoped to this job.
+
 ## Branch protection — the part that makes it "proper"
 
 Workflows are decoration until they gate merges. On `main`:
 
-- Require `lint`, `frontend`, `integration`, `docker` as **status checks**.
+- Require `unit`, `lint`, `frontend`, `integration`, `docker` as **status checks**.
 - Require PRs, and require branches be up to date before merge.
 - Promote `security`/CodeQL to required once they run clean.
 
@@ -111,13 +164,16 @@ Workflows are decoration until they gate merges. On `main`:
 
 1. **PR 1 — core gate:** `ci.yml` with jobs 1–4 + the `pyproject.toml` ruff
    config. Mark the four jobs required.
-2. **PR 2 — security layer:** the `security` job, CodeQL workflow, and
+2. **PR 2 — test floor:** the `unit` job + `tests/unit/test_game.py` (pytest),
+   the direct `gamestore`/`try_finish_round` test, and WS-job hardening
+   (timeout/log-dump/retry). This is where the suite gains a bottom layer.
+3. **PR 3 — security layer:** the `security` job, CodeQL workflow, and
    Dependabot config (scanners non-blocking at first so findings surface without
-   wedging merges).
+   wedging merges). Coverage reporting can ride along here, also non-blocking.
 
 ## Open questions / decisions deferred
 
 - **GHCR publishing on `main`** — yes/no, and tagging scheme (`sha`, `latest`)?
-- **pytest wrapper** for the two script tests — nicer CI annotations vs. leaving
-  them as-is?
-- **Required-check promotion** timing for the security scanners.
+- **Required-check promotion** timing for the security scanners and coverage.
+- **Coverage threshold** — report-only, or fail under a floor once the unit
+  layer exists?
