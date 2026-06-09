@@ -6,7 +6,7 @@ External code reviews, second opinions, and the decisions that followed. Each en
 
 | Date | Source | Topic | Outcome |
 |------|--------|-------|---------|
-| [2026-06-09](2026-06-09-chatgpt-feedback-review.md) | ChatGPT static review | Reliability/edge-case review — roll state machine, fire-and-forget tasks, Pub/Sub delivery, telemetry consistency | Verified all claims; H1 (roll-UI wedge) confirmed as the one new high-value fix, H2 confirmed but softened, M4/M5 re-confirmed as still-open debts. **Owner chose review only — nothing implemented.** |
+| [2026-06-09](2026-06-09-chatgpt-feedback-review.md) | ChatGPT static review + self-review | Reliability/edge-case review — roll state machine, fire-and-forget tasks, Pub/Sub delivery, telemetry consistency | Verified all claims; ChatGPT's self-review then converged on the second opinion (H2 escalated to terminal, fan-out reframed, M1/M3/M6 → backlog). Agreed plan: H1 → README → H2 → telemetry → CI. **Owner chose review only — nothing implemented.** |
 | [2026-05-30](2026-05-30-tensies-code-review.md) | ChatGPT share link | Full repo analysis — security, deployment, telemetry correctness | Agreed on reconnect token (→ shipped), Grafana XSS, telemetry transaction split; pushed back on multi-worker framing |
 | [2026-06-01](2026-06-01-security-audit.md) | Security audit | Deployment creds, DoS caps, dep CVEs, WS origin/size, name XSS | Folded into the multi-instance (Redis) change: C1/H1/H2/H3/M1/M2/M3/L1/L2/I1/I2/I4 addressed; L3/L4 deferred |
 

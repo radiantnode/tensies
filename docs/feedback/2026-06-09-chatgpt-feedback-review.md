@@ -309,3 +309,108 @@ Docker stack were not run this round, so no runtime claims are made.
 H1, H2, M1–M7, L1–L4 all remain open. Of these, M4 (writer transaction split) and
 M5 (`total_rounds`/`total_games`) were already open from 2026‑05‑30; this review
 re-confirms them rather than adding new ground.
+
+---
+
+## Turn 4 — ChatGPT (self-review / calibration)
+
+The standalone copy of Claude Code's review (`2026-06-09-claude-review-of-chatgpt.md`)
+was sent back to ChatGPT. ChatGPT returned this calibration pass over its own
+original feedback. Reproduced verbatim, blockquoted.
+
+> #### Feedback on ChatGPT's Prior Tensies Feedback
+>
+> **Reviewer:** ChatGPT self-review
+> **Date:** 2026-06-09
+> **Purpose:** Calibrate and correct the earlier ChatGPT review before using it as implementation guidance.
+> **Audience:** Claude Code / Tensies feedback-review loop.
+>
+> #### Summary
+>
+> The original feedback was broadly useful, but it should be tightened before implementation. The two strongest findings remain: **H1** (in-game nonfatal server errors can wedge the client roll state) and **H2** (round advancement can get stuck if the delayed round-advance task dies after a win). The biggest correction is that some items were over-prioritized. Redis Pub/Sub semantics, reconnect token storage, Compose secrets, and sequential fan-out are valid observations, but they are not the next things to fix unless they become directly tied to a real failure. The feedback should be interpreted as:
+>
+> > Fix the real gameplay liveness issues first. Then fix known telemetry correctness issues. Treat most security/deployment notes as hardening backlog, not urgent product work.
+>
+> #### What the original feedback got right
+>
+> **1. H1 is the best first fix.** The client enters a rolling/awaiting state; the server can return a nonfatal `error` such as `Slow down` or `Game is paused`; the client error handler does not recover in-game roll state; the reveal loop can keep waiting for a `pendingRollState` that never arrives. High-value because it is user-visible, likely reproducible, relatively small to fix, and testable with browser automation. Use the existing roll-state reset path if available, then make the in-game UI coherent: clear timers, clear `rolling`/`awaitingAck`, re-enable the roll button when appropriate, show an in-game-visible message. Do **not** route this through landing/join error UI.
+>
+> **2. H2 is real and more terminal than originally worded.** Once a winner is claimed the game can enter `round_over`; normal roll handling may return early while `round_over` is true; if the delayed task dies before advancing, normal gameplay may not self-heal. The original wording suggested another event might eventually correct the state — that was too optimistic. Better: "H2 is a low-frequency but high-impact game-liveness issue. If the delayed round-advance path dies after a round is marked over, the affected game can remain stuck until an explicit recovery path advances it." Do not solve this only with a process-local `background_tasks` set — that helps logging and weak-reference hygiene but does not solve process death. The robust fix is Redis-backed recovery through the reaper: persist a round-advance due marker in Redis when a win is claimed, keep the delayed task as the fast path, let the reaper advance overdue `round_over` games idempotently, and preserve pause-defer behavior.
+>
+> **3. Telemetry consistency concerns are valid.** Keep two issues separate: event durability (immutable events should not be rolled back or lost because a derived rollup handler fails) and rollup semantics (`total_rounds`, `total_wins`, `total_games` should mean exactly what their names imply). Do not let these become vague "telemetry is imperfect" notes — make them concrete tests or explicitly accept them as best-effort/non-authoritative.
+>
+> **4. README/config drift is a good cheap fix.** Simple, factual, reduces future confusion. Should not block or distract from H1/H2. If doing a resilience pass: H1 first, then README drift, then H2.
+>
+> #### What the original feedback overstated or should soften
+>
+> **1. Redis Pub/Sub at-most-once is not immediately urgent.** Technically correct, but softened because the app broadcasts full state snapshots, not irreplaceable deltas. "Missing a Pub/Sub frame can leave a client temporarily stale, but the next full-state broadcast usually self-heals it. The risk is highest when the missed frame is the final important state transition before inactivity." Backlog: a simple `resync` action or periodic authoritative snapshot later; do not lead with Redis Streams; sequence numbers are nice but probably not the next fix.
+>
+> **2. Reconnect token in localStorage is valid hardening, not urgent security work.** No account-level credentials or financial data; a stolen token is mostly a temporary seat-hijack risk. Rotate token on reconnect, clear it aggressively when the game ends, keep HttpOnly cookie auth as a future option only. Do not spend a major implementation cycle on this before H1/H2.
+>
+> **3. Compose secrets are a good production-hardening note, not a gameplay issue.** For a self-hosted hobby app, environment variables may be acceptable; Compose secrets are better but not more important than gameplay liveness or telemetry correctness.
+>
+> **4. Sequential fan-out should be framed narrowly.** "A slow-but-not-dead WebSocket send can delay sequential fan-out because there is no explicit send timeout/backpressure boundary." Do not imply there is no dead-client cleanup if the code already removes clients after send failures. Backlog: add bounded timeout/backpressure around sends; preserve per-session ordering.
+>
+> **5. Dependency automation is useful but should start small.** First CI pass minimal: install Python deps, install npm deps, run frontend build, run the existing WebSocket integration test if Redis can be provided, optionally build the Docker image. Do not wait for perfect Playwright coverage before adding basic CI.
+>
+> #### Revised priority list
+>
+> 1. **Fix H1 client in-game error recovery.** Acceptance: nonfatal in-game `error` while `awaitingAck` does not wedge the UI; pending roll timers cleared; `rolling`/`awaitingAck` false after recovery; roll button usable again when state allows; player remains in game; subsequent roll works; error visible in the game view. Tests: duplicate/too-fast roll, pause while rolling, synthetic in-game error frame while `awaitingAck` is true.
+> 2. **Fix README/config drift.** Update max player count, reconnect grace, production worker/replica behavior, any current local test command drift.
+> 3. **Fix H2 round-advance recovery.** Acceptance: if the delayed win task dies after `round_over` is set, reaper advances the game; advancement happens exactly once; pause during winner delay still defers until resume; multi-instance race does not double-advance; recovery path emits/broadcasts fresh state. Direction: add a Redis field such as `round_advance_due_ms`, set it when the round is won, clear it only after successful advancement, let the reaper check overdue round-over games.
+> 4. **Fix telemetry transaction/event durability.** Acceptance: event insert survives rollup handler failure; rollup failure observable; writer continues future batches; failed rollups retryable/dead-lettered/explicitly recorded as lost.
+> 5. **Fix telemetry stats semantics.** Acceptance: `total_games`/`total_rounds`/`total_wins` correct or renamed/removed; tests cover multiple players over multiple rounds with different winners.
+> 6. **Add minimal CI.** Start small and reliable, then expand. Do not block CI on solving every browser screenshot or Docker path.
+>
+> #### Items that should move to backlog
+>
+> Still valid, but should not drive the next implementation session: Redis Pub/Sub sequence/gap detection; Redis Streams; reconnect token storage redesign; Compose secrets; send timeout/backpressure; env parser fail-fast behavior; comment/audit breadcrumb cleanup; full Playwright visual regression suite; production-grade auth/cookie redesign.
+>
+> #### Notes on ChatGPT's own process
+>
+> The original static review had two weaknesses: it mixed directly reproducible gameplay bugs with broader best-practice hardening (making the priority list feel flatter than it should), and it initially understated H2's terminal behavior while overstating the urgency of some lower-risk hardening items. Corrected interpretation: "H1 and H2 are the real gameplay-resilience findings. Telemetry correctness is the real data-quality finding. Most other items are valid backlog hardening."
+>
+> #### Recommended instruction to Claude Code
+>
+> Use this feedback as a calibration pass over the original ChatGPT review. Implement only: (1) H1 client recovery with tests, (2) README drift cleanup, (3) H2 Redis/reaper round-advance recovery with tests. Then stop and report results before doing telemetry or hardening backlog. Do not implement token storage redesign, Compose secrets, Pub/Sub sequence numbers, or comment cleanup in the same pass unless explicitly asked.
+
+---
+
+## Turn 5 — Claude Code
+
+ChatGPT's calibration **converges on my Turn 2 second opinion** almost point for
+point. The places it revised its own review are the places I pushed on:
+
+- **H2 re-rated from "another event might correct it" to terminal** — exactly the
+  escalation I made from `ws.py:207` (a `round_over` game has no self-heal path). We
+  now agree on both the mechanism (terminal) and the severity (low-frequency,
+  high-impact), and on the fix (Redis due-marker + idempotent reaper advance, reusing
+  the existing `round_advance_pending` pattern).
+- **Sequential fan-out reframed narrowly** to "slow-but-not-dead send, no
+  timeout/backpressure" and explicitly "do not imply there is no dead-client
+  cleanup" — that's my M2 correction (`fanout.py:83-92` already prunes dead clients;
+  the real gap is the missing `send()` timeout at `broadcast.py:14-39`).
+- **M1 (Pub/Sub), M3 (token), M6 (secrets) softened to backlog** — matching my
+  "low real severity given full-snapshot broadcasts + no-accounts + strict-CSP"
+  framing.
+
+The one genuinely new thing in this turn is a **concrete acceptance-criteria set**
+per fix and an explicit, narrowed implementation order:
+
+1. H1 — client in-game error recovery (+ tests)
+2. L1 — README/config drift
+3. H2 — Redis/reaper round-advance recovery (+ tests)
+4. M4 — telemetry event durability (writer transaction split)
+5. M5 — telemetry stats semantics
+6. M7 — minimal CI
+
+with everything else (M1 seq/resync, M2 send timeout, M3 rotation, M6 secrets,
+L2 fail-fast, L4 cleanup) explicitly in the backlog. ChatGPT's closing instruction
+is to implement **only P1–P3 (H1, README, H2) with tests, then stop and report**
+before touching telemetry or hardening.
+
+I agree with this plan and have no correction to add — the two reviews are now in
+sync. No code was changed in this turn; per the standing "review only" decision, this
+iteration is logged but **not implemented**. If you want to proceed, the natural
+first tranche is exactly P1–P3 as ChatGPT scopes it; I'd start with H1 since it's
+client-only and needs no design decision.
