@@ -4,7 +4,7 @@
 import { showScreen, leaveLoading } from './transitions.js';
 import { maybeReconnect } from './net.js';
 
-const ROUTES = { '/': 'landing', '/join': 'join' };
+const ROUTES = { '/': 'landing', '/join': 'join', '/hello': 'content' };
 
 export function navigate(path, { replace = false } = {}) {
   const id = ROUTES[path] || 'landing';
@@ -40,6 +40,10 @@ window.addEventListener('popstate', () => {
 export function bootstrap() {
   if (localStorage.getItem('tensies_pid') && localStorage.getItem('tensies_code')) {
     maybeReconnect();
+    return;
+  }
+  if (ROUTES[location.pathname] === 'content') {
+    leaveLoading(() => showScreen('content'));
     return;
   }
   const pathCode = location.pathname.match(/^\/([A-Z]{5})$/i)?.[1];
