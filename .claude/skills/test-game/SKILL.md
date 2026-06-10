@@ -49,7 +49,7 @@ Before running any tests, check whether the skill is stale relative to the game 
 
 ```bash
 # Get the skill file's last-modified timestamp (seconds since epoch)
-SKILL_MTIME=$(stat -f %m .claude/skills/test-game/skill.md 2>/dev/null || stat -c %Y .claude/skills/test-game/skill.md)
+SKILL_MTIME=$(stat -f %m .claude/skills/test-game/SKILL.md 2>/dev/null || stat -c %Y .claude/skills/test-game/SKILL.md)
 
 # Find commits to game-relevant files that are newer than the skill
 git log --since="@${SKILL_MTIME}" --oneline -- main.py server/ static/

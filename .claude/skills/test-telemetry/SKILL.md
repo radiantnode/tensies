@@ -36,7 +36,7 @@ The game instances need isolated `localStorage` (separate profiles). The Grafana
 Before running any tests, check whether the skill is stale relative to the telemetry code.
 
 ```bash
-SKILL_MTIME=$(stat -f %m .claude/skills/test-telemetry/skill.md 2>/dev/null || stat -c %Y .claude/skills/test-telemetry/skill.md)
+SKILL_MTIME=$(stat -f %m .claude/skills/test-telemetry/SKILL.md 2>/dev/null || stat -c %Y .claude/skills/test-telemetry/SKILL.md)
 
 # Commits to telemetry-relevant files newer than the skill
 git log --since="@${SKILL_MTIME}" --oneline -- server/telemetry/ server/ws.py server/broadcast.py migrations/ ops/grafana/dashboards/
