@@ -2,6 +2,30 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Working agreement
+
+How to work on this repo so changes land right the first time:
+
+- **Plan before non-trivial edits.** For anything beyond a localized one-file
+  change, lay out the approach and the files you'll touch *before* writing code,
+  and get a nod. Catching a wrong turn at the plan stage costs seconds; catching
+  it after 200 lines costs the session.
+- **Re-read the relevant invariant before touching it.** The pause state
+  machine, `delayed_broadcast` ack timing, and the Redis-vs-process-local split
+  (see Architecture overview) are load-bearing and easy to half-remember. Read
+  the actual code/section before changing these paths rather than working from
+  memory.
+- **Verify the way this app demands.** Tensies is **mobile-only** and
+  **multiplayer over Redis**. Validate frontend changes at a **mobile viewport
+  (390×844)**, never desktop width, and exercise multiplayer changes with **at
+  least two clients** (the Playwright host/guest MCP servers are set up for
+  this). State *how* you verified — including when you couldn't.
+- **Respect stated scope.** When the user says "frontend only" or "don't touch
+  the WS protocol," stay inside that fence even if an adjacent file looks
+  relevant.
+- **When scope is genuinely ambiguous, ask one sharp question** instead of
+  guessing and building the wrong thing.
+
 ## Running the server
 
 ```bash
@@ -46,36 +70,45 @@ sessions, ack_events, drop_tasks, pause_tasks # live asyncio objects, owned by t
 
 Games are destroyed when the last player disconnects. Distinct players write distinct hash fields (atomic `HSET`/`HINCRBY`, no contention), so simultaneous rolling stays parallel; the one contended write — crowning the round winner — is an atomic Lua compare-and-set (`try_finish_round`). A periodic **reaper** (`server/reaper.py`) is the cross-instance backstop for grace-drops / pause-caps whose owning instance died, and publishes the global active-games gauge (aggregate it with `max()` across instances, not `sum()`).
 
-Key env vars (`server/config.py`): `REDIS_URL`, `TELEMETRY_ENABLED`, `ALLOWED_ORIGINS` (WS origin allowlist), `METRICS_TOKEN`/`STATS_TOKEN` (bearer-gate `/metrics`+`/stats`), `MAX_GAMES`, `MAX_PLAYERS_PER_GAME`, `MAX_CONNECTIONS_PER_IP`, `CREATE_RATE_*`/`JOIN_RATE_*`, `MAX_WS_MESSAGE_BYTES`.
+Key env vars (`server/config.py`): `REDIS_URL`, `TELEMETRY_ENABLED`, `ALLOWED_ORIGINS` (WS origin allowlist), `METRICS_TOKEN`/`STATS_TOKEN` (bearer-gate `/metrics`+`/stats`), `MAX_GAMES`, `MAX_PLAYERS_PER_GAME`, `MAX_CONNECTIONS_PER_IP`, `CREATE_RATE_*`/`JOIN_RATE_*`, `MAX_WS_MESSAGE_BYTES`. Behind a trusted proxy, set `TRUST_PROXY_HEADERS`/`TRUSTED_PROXY_HOPS` so the per-IP caps read the real client from `X-Forwarded-For`. Security response headers are governed by `SECURITY_HEADERS` (CSP, on by default), `CSP_OVERRIDE`/`CSP_EXTRA_SCRIPT_SRC`/`CSP_EXTRA_CONNECT_SRC`, and the `HSTS_*` group (off in dev, on for HTTPS deploys) — see `server/security.py`. Asset serving is split on `FRONTEND_DIST` (see Cache-busting).
 
 ### Code layout
 
 ```
 main.py                  FastAPI entry — lifespan boots gamestore + fanout +
-                         telemetry + reaper, then wires the routers together
+                         telemetry + reaper; adds SecurityHeadersMiddleware;
+                         splits asset serving on FRONTEND_DIST (dev: serve raw
+                         modules via assets.build_js_cache; prod: nginx serves a
+                         prebuilt dist/); then wires the routers together
 server/
   config.py              constants (gameplay, Redis, abuse caps, origin
-                         allowlist, endpoint tokens, telemetry flag) + logging
+                         allowlist, proxy/XFF trust, endpoint tokens, CSP/HSTS
+                         security headers, asset-serving mode, telemetry) + logging
+  security.py            SecurityHeadersMiddleware — stamps a strict CSP (+ HSTS
+                         on HTTPS) onto every HTTP response (pure-ASGI, no buffering)
   state.py               process-local connections + sessions + ack/timer registries
   gamestore.py           Redis-backed game state: pool, Lua (create/join/finish/
                          drop), snapshot rebuild, abuse limiters, make_code
   fanout.py              cross-instance broadcast over Redis pub/sub (bcast:*)
   reaper.py              periodic backstop for grace-drops/pause-caps + active gauge
-  assets.py              cache-busting: globs static/css and static/js, appends
-                         ?v=<sha1[:8]> to every /static/*.css|js href in index.html
+  assets.py              dev cache-busting: build_index_html() appends
+                         ?v=<sha1[:8]> to every /static/*.css|js href; build_js_cache()
+                         rewrites transitive ES-module import URLs the same way
   game.py                pure game logic — apply_roll, next_target, state_msg,
                          sanitize_name, reconnect-token mint/verify
   broadcast.py           send, broadcast (→ fanout), delayed_broadcast,
                          advance_round, drop_player/do_drop, pause_timeout
-  routes.py              GET / + bearer-gated /metrics and /stats/*
+  routes.py              GET / + /{code} join-deeplink (SPA shell) +
+                         bearer-gated /metrics and /stats/*
   ws.py                  @app.websocket("/ws") — Session, security guards
                          (origin/size/caps/rate-limit), handle_<action>() dispatch
 
 The frontend is vanilla **web components + a native History-API router**, no
 build step. Each screen is a light-DOM custom element whose host element *is*
 the `#id.screen` (so global CSS applies); `index.html` is a thin shell. First
-paint is the inline `#loading` section, which renders from inline critical CSS
-with no JS in the path.
+paint is the inline `#loading` *markup*, styled by `css/critical.css` (tokens +
+reset + logo + the `#loading` screen), which `index.html` loads as the first,
+render-blocking stylesheet — so the loading screen paints with no JS in the path.
 
 **Tensies is mobile-only — always test the frontend at a mobile resolution**
 (the pixel harness baselines are **390×844** @2× dpr). When driving the app in a
@@ -84,11 +117,15 @@ frontend change at desktop width.
 
 ```
 static/
-  index.html             thin shell: inline critical CSS (tokens + reset + logo +
-                         the #loading screen), async-loaded CSS, the <*-screen>
-                         component tags, and the pause/winner <dialog> overlays.
-  css/                   (tokens, document reset, and #loading are inline-critical
-                         in index.html; the rest load async, non-render-blocking)
+  index.html             thin shell: the inline #loading markup, the stylesheet
+                         <link>s (critical.css first), the modulepreload graph,
+                         the <*-screen> component tags, and the pause/winner
+                         <dialog> overlays.
+  css/                   (critical.css is the first <link> — it carries tokens,
+                         reset, logo, and #loading; the rest follow as separate
+                         <link>s, downloaded in parallel)
+    critical.css         @font-face, design tokens, document reset, shared logo,
+                         the #loading screen, and view-transition setup
     controls.css         inputs, .btn variants, .error-msg
     shell.css            shared .game-topbar / app-header / .screen-body
     landing.css          landing + join screens, logo, tagline, form-stack
@@ -115,6 +152,8 @@ static/
     roll.js              roll() — send intent, shake, schedule reveal
     overlays.js          winner + pause dialogs (showWinner / showPaused / …)
     title-row.js         shared top-bar title row markup (app-header + game header)
+    touch.js             capture-phase touchstart guard: blocks iOS double-tap
+                         zoom; rapid taps on a ready roll button still register
     components/          light-DOM custom elements; the host IS the #id.screen
       app-header.js      <app-header> shared top bar (hamburger → nav menu)
       landing-screen.js  <landing-screen>  (#landing)
@@ -127,7 +166,8 @@ static/
 ```
 
 (The loading screen is inline HTML in `index.html`, not a component, so it
-paints before JS. The old single-file modules — `main.js`, `ws.js`, `screens.js`,
+paints before JS — styled by `critical.css`, the first stylesheet loaded. The
+old single-file modules — `main.js`, `ws.js`, `screens.js`,
 `menu.js`, `landing.js`, `loading.css`, `base.css` — were replaced in the
 component rewrite; behaviour is unchanged.)
 
@@ -138,15 +178,18 @@ component rewrite; behaviour is unchanged.)
 |--------|-------------|
 | `create` | create new game; payload: `name` |
 | `join` | join existing game; payload: `name`, `code` |
+| `reconnect` | rejoin a held slot after a drop; payload: `code`, `token` (the private reconnect token) |
 | `start` | host starts the game (host only) |
 | `pause` | host-only toggle that freezes/unfreezes rolling for everyone |
 | `roll` | roll unlocked dice |
 | `roll_done` | client signals its reveal animation has completed |
+| `pong` | reply to the server's keepalive ping |
 
 **Server → client** (`type` field):
 | type | description |
 |------|-------------|
 | `welcome` | connection established; contains `player_id` |
+| `reconnect_token` | private token (sent after create/join) the client stores to rejoin a held slot |
 | `state` | full game state snapshot |
 | `round_won` | state snapshot with `winner_name`; triggers overlay |
 | `error` | `msg` field with human-readable reason |
@@ -180,9 +223,14 @@ This is implemented in `delayed_broadcast()` (`server/broadcast.py`) via an `asy
 3. First player to lock all 10 wins the round → `handle_roll` sets `round_over=True`, sends `round_won` privately and schedules a `delayed_broadcast`
 4. After `ROUND_WIN_DELAY` seconds, `delayed_broadcast` advances `target` (cycles 6→5→4→3→2→1→6), increments `round_num`, calls `deal_round()` again to clear per-round state
 
-### Cache-busting
+### Asset serving & cache-busting
 
-At import time, `server/assets.py` hashes every CSS/JS file under `static/css/` and `static/js/`, then rewrites every `/static/*.css|.js` URL in `index.html` to append `?v=<sha1[:8]>`. No build step needed — changing any static file changes the hash on the next server restart.
+Asset serving is split by deployment mode on the `FRONTEND_DIST` env var (wired in `main.py`):
+
+- **Dev (`FRONTEND_DIST` unset) — no build step.** The app serves the raw, unbundled ES modules itself. At import, `server/assets.py` hashes every CSS/JS file under `static/css/` and `static/js/`; `build_index_html()` rewrites every `/static/*.css|.js` URL in the served `index.html` to append `?v=<sha1[:8]>`, and `build_js_cache()` rewrites every transitive `import './foo.js'` URL the same way (the `?v=` on the script tag alone wouldn't bust the modules it imports). Changing any static file changes the hash on the next server restart. `StaticFiles` serves css/images/fonts.
+- **Prod (`FRONTEND_DIST` set) — there IS a build step.** The frontend is bundled + fingerprinted into a static `dist/` at image-build time (`scripts/build_assets.mjs`) and served straight from disk by **nginx**. The app does ZERO asset work: it skips the in-process JS cache and the `StaticFiles` mount and only serves the prebuilt `dist/index.html`.
+
+Either way the document still flows through `SecurityHeadersMiddleware`, so the CSP stays single-sourced in `server/security.py`.
 
 ### Client-side animation state
 
