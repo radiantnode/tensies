@@ -168,7 +168,7 @@ SMS / Beer links.
 
 - **Browser is pinned.** `browser-guard.js` (a `globalSetup`) refuses to run on
   any Chromium build other than the one in `baselines/CAPTURE-ENV.txt`
-  (currently 141.0.7390.37). At `maxDiffPixels:0`, sub-pixel font hinting differs
+  (currently 140.0.7339.16). At `maxDiffPixels:0`, sub-pixel font hinting differs
   between builds, so an accidental upgrade would read as a rewrite regression.
   Re-baselining on a new build is a deliberate act: bump `EXPECTED` in
   `browser-guard.js` **and** `CAPTURE-ENV.txt` together. `@playwright/test` is
