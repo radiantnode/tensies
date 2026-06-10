@@ -1,7 +1,7 @@
 ---
 name: frontend-rewrite
 description: "Governs all frontend work: full rewrites AND incremental design additions (new views, new components, visual changes). For a full rewrite: blank-canvas rebuild, pixel-perfect verified view by view. For design additions: baseline → build → verify loop, same engineering standard. Trigger on: rewrite/rebuild/modernise requests AND any new screen, component, or intentional visual change."
-user-invocable: true
+user_invocable: true
 ---
 
 # Tensies Frontend Rewrite (pixel-perfect)
