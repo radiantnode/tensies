@@ -23,6 +23,11 @@
   <!-- Critical CSS: layer order, tokens, reset, loading screen, view-transition setup. -->
   <link rel="stylesheet" href="/static/css/critical.css">
 
+  <!-- Non-critical CSS — all downloaded in parallel by the browser. -->
+  <link rel="stylesheet" href="/static/css/controls.css">
+  <link rel="stylesheet" href="/static/css/shell.css">
+  <link rel="stylesheet" href="/static/css/landing.css">
+
   <!-- Preload the whole module graph so it fetches in parallel instead of
        waterfalling app -> router/net -> components. -->
   <link rel="modulepreload" href="/static/js/app.js">
@@ -34,6 +39,7 @@
   <link rel="modulepreload" href="/static/js/router.js">
   <link rel="modulepreload" href="/static/js/net.js">
   <link rel="modulepreload" href="/static/js/touch.js">
+  <link rel="modulepreload" href="/static/js/components/app-header.js">
   <link rel="modulepreload" href="/static/js/components/landing-screen.js">
   <link rel="modulepreload" href="/static/js/components/join-screen.js">
   <link rel="modulepreload" href="/static/js/components/lobby-screen.js">

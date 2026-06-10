@@ -1,0 +1,92 @@
+/* Shared shell chrome: the branded header bar and the centred body used by
+   landing, join, lobby and game — one source of truth, every screen renders
+   the same <app-header>. */
+
+@layer components {
+  .app-header { flex-shrink: 0; }
+
+  .game-topbar {
+    position: relative;
+    flex-shrink: 0;
+    padding-block-start: env(safe-area-inset-top);
+    border-block-end: 1px solid rgba(180, 100, 20, 0.25);
+  }
+
+  .topbar-title-row {
+    display: flex;
+    align-items: center;
+    position: relative;
+    z-index: 100;
+    border-block-end: 1px solid rgba(180, 100, 20, 0.2);
+    background: var(--color-panel);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .game-title {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0.5rem 0.75rem 0.5rem 0.4rem;
+    font-size: 1.2rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .game-title-mark {
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+    inline-size: 34px;
+    block-size: 34px;
+    margin-inline-end: -10px;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7))
+            drop-shadow(0 0 10px rgba(255, 77, 109, 0.4));
+  }
+
+  /* Hamburger toggle */
+  .game-menu-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    flex-shrink: 0;
+    min-inline-size: 44px;
+    min-block-size: 44px;
+    margin-inline-start: auto;
+    padding: 0.5rem 0.75rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .game-menu-btn span {
+    display: block;
+    inline-size: 18px;
+    block-size: 2px;
+    background: rgba(255, 255, 255, 0.65);
+    border-radius: 2px;
+    transition: transform 0.25s ease, opacity 0.2s ease;
+    transform-origin: center;
+  }
+
+  .game-menu-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .game-menu-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+  .game-menu-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  /* Centred screen body beneath the header */
+  .screen-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-block-size: 0;
+    padding: 2rem 2rem calc(2rem + env(safe-area-inset-bottom));
+    overflow: hidden;
+    text-align: center;
+  }
+}

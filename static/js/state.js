@@ -1,4 +1,6 @@
 // @ts-check
+import { makeName } from './names.js';
+
 /** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
 
 /**
@@ -20,8 +22,10 @@ export const state = {
   /** @type {GameSnapshot | null} Last server snapshot. */
   currentState: null,
   reconnecting: false,
-  /** The seeded "Zesty Pickle" name shared by both name fields. */
-  randomNamePlaceholder: '',
+  // The "Zesty Pickle" name shared by both name-field placeholders. Seeded
+  // here because state.js evaluates before any component module — this must
+  // stay the FIRST Math.random consumer (the pixel harness pins the RNG).
+  randomNamePlaceholder: makeName(),
 
   // ── Game board / roll choreography (driven by the game view) ──
   /** @type {string | null} Fingerprint to skip needless my-area re-renders. */
