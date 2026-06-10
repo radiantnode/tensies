@@ -31,7 +31,7 @@ The two players MUST run in **separate Playwright MCP instances**, each with its
 | Game 3 host | Alpha3 | `mcp__playwright-g3-host__*` | `/tmp/pw-mcp-g3-host` |
 | Game 3 guest | Beta3 | `mcp__playwright-g3-guest__*` | `/tmp/pw-mcp-g3-guest` |
 
-The core suite below uses only the first pair: **"Tab 1" = instance #1 (`mcp__playwright`)** and **"Tab 2" = instance #2 (`mcp__playwright-guest`)**. These are independent processes — acting on one never disturbs the other, and you may issue calls to different instances in parallel. The g2/g3 instances are available for optional concurrent-games / cross-game-isolation checks (run three games at once and confirm distinct game codes, correct per-game rosters, and `tensies_games_active == 3`). For very high scale (hundreds of games), don't fan out browsers — use the headless WebSocket driver `loadtest.py` in the repo root: `docker compose cp loadtest.py web:/app/loadtest.py && docker compose exec -T -w /app web python loadtest.py 250 1000`. It runs the real create/join/start/roll protocol per client and reports throughput, errors, and whether `games_active` drains back to 0 after the disconnect grace (a leak check — it caught a real game-leak regression at 250+ games).
+The core suite below uses only the first pair: **"Tab 1" = instance #1 (`mcp__playwright`)**, **"Tab 2" = instance #2 (`mcp__playwright-guest`)**. They're independent processes — acting on one never disturbs the other, and you can call different instances in parallel. The g2/g3 instances are for optional concurrent-games / cross-game-isolation checks (run three games at once; confirm distinct codes, correct per-game rosters, `tensies_games_active == 3`). For high scale (hundreds of games) don't fan out browsers — use the headless WS driver `loadtest.py` in the repo root: `docker compose cp loadtest.py web:/app/loadtest.py && docker compose exec -T -w /app web python loadtest.py 250 1000`. It runs the real create/join/start/roll protocol per client and reports throughput, errors, and whether `games_active` drains to 0 after the disconnect grace (a leak check — it caught a real game-leak regression at 250+ games).
 
 **Why this matters (do not regress to two tabs in one browser):** two tabs/windows in a *single* profile share `localStorage`, so the second player's `tensies_pid`/`tensies_code` overwrites the first's. That silently corrupts per-player identity and produces *false* reconnect failures (a "host reconnect fails" report on 2026-05-29 was exactly this artifact, not a real bug). Separate instances give each player its own isolated `localStorage`.
 
@@ -101,10 +101,10 @@ If no logs exist yet, skip this step.
 
 ## Shared primitives — see the `game-harness` skill
 
-The reusable testing primitives this suite leans on live in the **`game-harness`**
-skill (`.claude/skills/game-harness/SKILL.md`) — the single source of truth, so
-they don't drift between here and one-off checks. Read it first; the rest of this
-file assumes it. In brief:
+The reusable primitives this suite leans on live in the **`game-harness`** skill
+(`.claude/skills/game-harness/SKILL.md`) — the single source of truth, so they
+don't drift between here and one-off checks. Read it first; the rest of this file
+assumes it. In brief:
 
 - **`window._state`** — `static/js/state.js` exposes the shared client state bag
   as `window._state` on `localhost`/`127.0.0.1` (dev **and** local prod
@@ -120,7 +120,7 @@ file assumes it. In brief:
   `max-rolls`) is worth reporting. Copy the helper verbatim from `game-harness`.
 - **Two isolated Playwright instances** — separate browser profiles so per-player
   `localStorage` doesn't collide (detailed, with the six-instance fan-out, in the
-  topology section below).
+  topology section above).
 
 **Dev stack required for WebSocket testing.** Prod `.env.prod` has
 `ALLOWED_ORIGINS` set to the deploy domain, which blocks WS connections from
@@ -156,7 +156,7 @@ If the check fails, stop and report — no point running the browser suite again
 
 Navigate **instance #1** (`mcp__playwright__browser_navigate → http://localhost:8888/`) — Player 1 / host (Alpha). Also navigate **instance #2** (`mcp__playwright-guest__browser_navigate → http://localhost:8888/`) now so both browsers are warm; Player 2 / guest (Beta) lives there for the rest of the suite. The two navigations are independent — issue them in parallel.
 
-**Expect a one-retry relaunch.** If an instance's browser was closed since a prior session, the first `browser_navigate` errors with "Target page, context or browser has been closed". This is normal — the MCP relaunches the browser on the call; simply re-issue the same `browser_navigate` once and it succeeds. Only treat it as a failure if the *retry* also errors.
+**Expect a one-retry relaunch.** If an instance's browser was closed since a prior session, the first `browser_navigate` errors with "Target page, context or browser has been closed". This is normal — the MCP relaunches the browser on the call; re-issue the same `browser_navigate` once and it succeeds. Only treat it as a failure if the *retry* also errors.
 
 **Clear stale sessions first.** These are persistent profiles, so `tensies_pid`/`tensies_code` survive from prior runs — the bootstrap then attempts a doomed auto-reconnect to a dead game and flashes "Connection failed" on the landing. On **both** instances run `() => { localStorage.clear(); return true; }`, then **re-navigate both** to `http://localhost:8888/`. The landing is now clean.
 
@@ -260,7 +260,7 @@ Verify `#join-error` (not `#landing-error`) contains "Game already in progress".
 ## Step 8 — Roll and reveal correctness (single-player roll, Tab 1)
 
 In Tab 1:
-1. Read `roll_count` from the page state via `evaluate` (`_state` is the shared module-state bag, exposed on `window._state` by `static/js/state.js` on localhost — see the section above):
+1. Read `roll_count` from the page state via `evaluate` (`_state` is the shared state bag on `window._state` — see Shared primitives):
    ```js
    () => _state.currentState?.players[_state.myId]?.roll_count ?? -1
    ```
@@ -359,7 +359,7 @@ This checks that other players don't see a roll before the roller's reveal anima
 
 ## Step 12 — Roll to win (winner overlay)
 
-**Note:** Alpha will often have already won round 1 during the roll-heavy steps above (8–11). If so, this step runs in round 2 or later — that is expected and fine. Check `_state.currentState.round_num` to confirm which round you're in.
+**Note:** Alpha will often have already won round 1 during the roll-heavy steps above (8–11). If so, this step runs in round 2 or later — that's fine. Check `_state.currentState.round_num` to confirm which round you're in.
 
 **Winner overlay capture:** The winner overlay is a `<dialog id="winner-overlay">` opened with `showModal()` — it has **no `visible` class**; its open state is the dialog's `open` property/attribute. It auto-dismisses after ~3s. A post-loop screenshot will always miss it, so install a `MutationObserver` on the `open` attribute and capture content the moment it opens:
 
