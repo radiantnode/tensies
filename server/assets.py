@@ -61,3 +61,38 @@ def build_js_cache() -> dict[str, str]:
         rel = path.relative_to(STATIC_DIR).as_posix()
         cache[rel] = _rewrite_js(path.read_text(), version)
     return cache
+
+
+# ─── Dev-mode refresh ─────────────────────────────────────────────────────
+# In dev there's no build step, so the rendered index.html and the rewritten
+# JS modules must track on-disk edits. Each request stats every asset (cheap);
+# the read+hash+rewrite only reruns when an mtime, or the file list, changes.
+
+_dev_stamp: tuple | None = None
+_dev_index: str = ""
+_dev_js: dict[str, str] = {}
+
+
+def _asset_stamp() -> tuple:
+    css, js, legacy = _collect_assets()
+    files = [STATIC_DIR / "index.html", *css, *js, *legacy]
+    return tuple((str(p), p.stat().st_mtime_ns) for p in files)
+
+
+def _dev_refresh() -> None:
+    global _dev_stamp, _dev_index, _dev_js
+    stamp = _asset_stamp()
+    if stamp != _dev_stamp:
+        _dev_index = build_index_html()
+        _dev_js = build_js_cache()
+        _dev_stamp = stamp
+
+
+def dev_index_html() -> str:
+    _dev_refresh()
+    return _dev_index
+
+
+def dev_js_cache() -> dict[str, str]:
+    _dev_refresh()
+    return _dev_js

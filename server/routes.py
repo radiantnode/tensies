@@ -6,20 +6,27 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from pathlib import Path
 
-from .assets import build_index_html
 from .config import FRONTEND_DIST, METRICS_TOKEN, STATS_TOKEN, TELEMETRY_ENABLED, log
 
 router = APIRouter()
 
 # In prod (FRONTEND_DIST set) serve the prebuilt, fingerprinted index.html that
 # the build step produced — it references the hashed bundles nginx serves under
-# /static. In dev, build the document from the raw source on the fly. Either way
-# it's read once here; the document still flows through SecurityHeadersMiddleware
-# so the CSP stays single-sourced in server/security.py.
+# /static; it's read once here. In dev, render the document per request with
+# fresh ?v= hashes (mtime-gated in assets.py) so CSS/JS edits show on reload,
+# and mark it no-cache so the browser always revalidates. Either way the
+# document still flows through SecurityHeadersMiddleware so the CSP stays
+# single-sourced in server/security.py.
 if FRONTEND_DIST:
     _index_html = (Path(FRONTEND_DIST) / "index.html").read_text()
+
+    def _index_response() -> HTMLResponse:
+        return HTMLResponse(_index_html)
 else:
-    _index_html = build_index_html()
+    from .assets import dev_index_html
+
+    def _index_response() -> HTMLResponse:
+        return HTMLResponse(dev_index_html(), headers={"Cache-Control": "no-cache"})
 
 # Fail loud, not closed: a bare `uvicorn` run stays usable, but warn so an
 # operator never unknowingly exposes these on a public port. Both compose files
@@ -49,7 +56,7 @@ def _require_telemetry() -> None:
 
 @router.get("/")
 async def root() -> HTMLResponse:
-    return HTMLResponse(_index_html)
+    return _index_response()
 
 
 @router.get("/metrics", dependencies=[Depends(_bearer_guard(METRICS_TOKEN))])
@@ -145,4 +152,4 @@ _GAME_CODE_RE = re.compile(r"[A-Za-z]{5}")
 async def join_deeplink(code: str) -> HTMLResponse:
     if not _GAME_CODE_RE.fullmatch(code):
         raise HTTPException(status_code=404)
-    return HTMLResponse(_index_html)
+    return _index_response()

@@ -44,19 +44,19 @@ app.add_middleware(SecurityHeadersMiddleware)
 #
 #   DEV   (FRONTEND_DIST unset): no build step. The app serves the raw,
 #         unbundled ES modules itself, rewriting each transitive `import
-#         './foo.js'` URL with a ?v=<hash> cache-buster (build_js_cache) so
-#         edits are picked up immediately. StaticFiles serves css/images/fonts.
+#         './foo.js'` URL with a ?v=<hash> cache-buster (dev_js_cache, which
+#         rebuilds when any asset's mtime changes) so edits are picked up
+#         immediately. StaticFiles serves css/images/fonts.
 if not FRONTEND_DIST:
-    from server.assets import build_js_cache
-
-    _js_cache = build_js_cache()
+    from server.assets import dev_js_cache
 
     @app.get("/static/js/{path:path}")
     async def static_js(path: str):
         key = f"js/{path}"
-        if key in _js_cache:
+        js_cache = dev_js_cache()
+        if key in js_cache:
             return Response(
-                content=_js_cache[key],
+                content=js_cache[key],
                 media_type="text/javascript; charset=utf-8",
                 headers={"Cache-Control": "no-cache"},
             )
