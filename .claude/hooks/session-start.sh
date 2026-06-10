@@ -115,6 +115,27 @@ else
   add "⚠️ Proxy-CA override: skipped — no readable CA bundle at $CA_BUNDLE"
 fi
 
+# ── 4. Playwright MCP browser ─────────────────────────────────────────────────
+# The Playwright MCP servers (.mcp.json) launch with `--browser chromium`, which
+# resolves to a chrome-for-testing build that is NOT baked into the image — so a
+# fresh container can't drive a browser until it's fetched. Ensure it's present.
+# Idempotent: install-browser is a fast no-op when the build is already there.
+# NB: route ALL its output to the log — this hook's STDOUT is reserved for the
+# additionalContext JSON below, and download progress bars would corrupt it.
+if command -v npx >/dev/null 2>&1; then
+  log "ensuring Playwright MCP browser (chrome-for-testing) is installed…"
+  if npx --yes @playwright/mcp@latest install-browser chrome-for-testing >>"$LOGFILE" 2>&1; then
+    log "Playwright MCP browser ready"
+    add "✅ Playwright browser: chrome-for-testing ready"
+  else
+    log "WARNING: failed to install chrome-for-testing for Playwright MCP"
+    add "‼️ Playwright browser: install FAILED (browser-driving may not work)"
+  fi
+else
+  log "npx not found; skipping Playwright MCP browser install"
+  add "⚠️ Playwright browser: skipped — npx not found"
+fi
+
 # ── Report ────────────────────────────────────────────────────────────────────
 # Emit the collected summary as SessionStart additionalContext so it surfaces in
 # the session. printf %s leaves the literal "\n" separators intact → valid JSON.
