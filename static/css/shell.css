@@ -12,7 +12,7 @@ main:has(#join.active),
 main:has(#lobby.active) { background: var(--panel-screen); }
 
 /* Hide the global header during the loading screen */
-main:has(#loading.active) > app-header { display: none; }
+main:has(#loading.active) > app-header { visibility: hidden; pointer-events: none; }
 
 .game-topbar {
   flex-shrink: 0;

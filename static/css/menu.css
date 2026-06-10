@@ -13,9 +13,9 @@ nav-menu {
   inset: 0;
   z-index: 50;
   background: rgba(8, 4, 1, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   transform: translateY(-100%);
-  /* visibility delays to hidden after slide-out so backdrop-filter
-     never runs while the menu is off-screen (layout bounds = full #game) */
   visibility: hidden;
   transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
               visibility 0s linear 0.28s;
@@ -24,8 +24,6 @@ nav-menu {
 .game-menu.open {
   transform: translateY(0);
   visibility: visible;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   pointer-events: all;
   transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
               visibility 0s linear 0s;
