@@ -113,6 +113,65 @@ Because the hook lives in `state.js` itself, it works against both stacks: the d
 
 ---
 
+## Driving rolls — the canonical `rollUntil` helper
+
+Most steps need to roll the local player some number of times — usually "roll until I win this round." **Do not hand-roll a `click(); sleep(900)` loop for this.** A fixed sleep is a guess at the gather+shake+reveal+ack window; it's flaky (passes nine times, hangs the tenth) and it doesn't actually confirm the roll *landed*. Synchronize on **state** instead: a roll is complete only when `roll_count` has advanced **and** both `_state.rolling` and `_state.awaitingAck` have cleared. Pass this once via `evaluate` / `run_code_unsafe` and reuse it:
+
+```js
+// rollUntil(opts) → Promise<{ rolls, matched, won, reason }>
+// Drives the local player's roll button, waiting on state between rolls (never a
+// fixed sleep). Stops when all 10 dice match the target (default), or when `stop()`
+// returns true, or on round_over / maxRolls / a per-roll settle timeout.
+(opts = {}) => new Promise(resolve => {
+  const { maxRolls = 60, perRollTimeoutMs = 3000, stop } = opts;
+  const me      = () => _state.currentState?.players[_state.myId];
+  const matched = () => (me()?.dice || []).filter(v => v === _state.currentState?.target).length;
+  const done    = () => (stop ? stop() : matched() >= 10);
+  let rolls = 0;
+
+  // The roll button is clickable only when nothing is in flight: not mid-animation,
+  // not awaiting the server ack, game screen active, not paused, no winner overlay.
+  const clickable = () => {
+    const btn = document.getElementById('roll-btn');
+    return btn && !btn.disabled &&
+           !document.getElementById('winner-overlay')?.open &&
+           document.getElementById('game').classList.contains('active') &&
+           !_state.rolling && !_state.awaitingAck && !_state.currentState?.paused;
+  };
+
+  const step = () => {
+    if (done())                            return resolve({ rolls, matched: matched(), won: true,  reason: 'target-met' });
+    if (rolls >= maxRolls)                 return resolve({ rolls, matched: matched(), won: false, reason: 'max-rolls' });
+    if (_state.currentState?.round_over)   return resolve({ rolls, matched: matched(), won: false, reason: 'round-over' });
+    if (!clickable()) { setTimeout(step, 80); return; }
+
+    const before = me()?.roll_count ?? -1;
+    document.getElementById('roll-btn').click();
+    rolls++;
+
+    // Wait for THIS roll to fully settle before the next one: count advanced AND
+    // the animation + ack have cleared. This is the synchronization a sleep fakes.
+    const t0 = Date.now();
+    const settle = () => {
+      if ((me()?.roll_count ?? -1) > before && !_state.rolling && !_state.awaitingAck) { step(); return; }
+      if (Date.now() - t0 > perRollTimeoutMs)
+        return resolve({ rolls, matched: matched(), won: false, reason: 'roll-timeout' });
+      setTimeout(settle, 50);
+    };
+    settle();
+  };
+  step();
+})
+```
+
+A `reason` other than `target-met` is a red flag worth reporting: `roll-timeout` means a roll never settled (the roll-ack hang — see Steps 8–9), `max-rolls` means 60 rolls didn't complete the round (suspicious unless the RNG was cruel).
+
+**Scope caveat — this exercises game logic, not the touch path.** `rollUntil` calls the button's `.click()` from inside the page, which is a synthetic DOM click. It validates the roll → reveal → ack → broadcast flow and round progression, but it does **not** go through a real pointer/touch event, so it does *not* exercise the capture-phase `touchstart` guard in `static/js/touch.js` (the iOS double-tap-zoom blocker). To validate that a genuine tap registers, drive a small number of rolls with the MCP `browser_click` tool (real input events) under touch emulation instead.
+
+The bespoke roll loops in Steps 13 and 22 are intentionally **not** this helper — they carry their own instrumentation (spacebar-hammering during the overlay window; staggered dual-client cadences with overlay-duration recording) that `rollUntil` deliberately doesn't.
+
+---
+
 ## Step 1 — Server health
 
 Bring the server up. **Do not `pkill` browser/playwright processes** — that would kill the MCP-managed browser instances this skill drives. Each Playwright MCP instance manages its own browser lifecycle; just navigate them.
@@ -358,12 +417,16 @@ new MutationObserver(() => {
 }).observe(overlay, { attributes: true, attributeFilter: ['open'] });
 ```
 
-Then roll in a loop:
-- After each roll, read `matched = _state.currentState.players[_state.myId].dice.filter(d => d === _state.currentState.target).length`
-- If matched < 10, wait for roll button to re-enable (max 3s), then roll again
-- Time out and fail after 120 seconds total
+Then drive the round to a win with the **`rollUntil` helper** (see "Driving rolls — the canonical `rollUntil` helper" above) — it rolls, synchronizing on state between rolls, until all 10 dice match the target:
 
-When the loop exits, read `window._winnerCapture`. Verify:
+```js
+// after installing the winner MutationObserver above:
+() => rollUntil()   // resolves { rolls, matched, won, reason } — expect reason: 'target-met'
+```
+
+A `reason` of `roll-timeout` here is the roll-ack hang; `max-rolls` means 60 rolls didn't finish the round. Don't reintroduce a `click(); sleep(N)` loop.
+
+When `rollUntil` resolves, read `window._winnerCapture`. Verify:
 - `winnerName` contains "Alpha"
 - `bannerSuffix` is `Winner` (the winner sees the Winner banner; losers see `Loser`)
 - `winnerRound` matches the round that was just won
