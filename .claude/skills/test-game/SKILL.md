@@ -1,6 +1,6 @@
 ---
 name: test-game
-description: Full integration test of Tensies — spins up the server, runs a two-player game end-to-end with Playwright, checks every known bug class and gameplay edge case, and reports a pass/fail summary.
+description: "Comprehensive end-to-end regression suite for Tensies — the deliberate full pass, not a quick check. Runs all 28 steps across two Playwright clients (gameplay, multiplayer sync, reconnect, host transfer, pause, every known bug class), then tears down the dev stack to rebuild and smoketest the prod bundle, and writes a dated run log. Long-running (10-15+ min) and has side effects: rebuilds the Docker stack and commits a log file. Use for a pre-merge or pre-release confidence pass, or when the user explicitly asks for the full game test suite or invokes /test-game. For a quick one-off spot-check of a single change, do NOT use this — use the verify skill instead."
 user_invocable: true
 ---
 
