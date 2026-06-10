@@ -1,6 +1,6 @@
 ---
 name: test-game
-description: Full integration test of Tensies — spins up the server, runs a two-player game end-to-end with Playwright, checks every known bug class and gameplay edge case, and reports a pass/fail summary.
+description: "Comprehensive end-to-end regression suite for Tensies — the deliberate full pass, not a quick check. Runs all 28 steps across two Playwright clients (gameplay, multiplayer sync, reconnect, host transfer, pause, every known bug class), then tears down the dev stack to rebuild and smoketest the prod bundle, and writes a dated run log. Long-running (10-15+ min) and has side effects: rebuilds the Docker stack and commits a log file. Use for a pre-merge or pre-release confidence pass, or when the user explicitly asks for the full game test suite or invokes /test-game. For a quick one-off spot-check of a single change, do NOT use this — use the verify skill instead."
 user_invocable: true
 ---
 
@@ -31,7 +31,7 @@ The two players MUST run in **separate Playwright MCP instances**, each with its
 | Game 3 host | Alpha3 | `mcp__playwright-g3-host__*` | `/tmp/pw-mcp-g3-host` |
 | Game 3 guest | Beta3 | `mcp__playwright-g3-guest__*` | `/tmp/pw-mcp-g3-guest` |
 
-The core suite below uses only the first pair: **"Tab 1" = instance #1 (`mcp__playwright`)** and **"Tab 2" = instance #2 (`mcp__playwright-guest`)**. These are independent processes — acting on one never disturbs the other, and you may issue calls to different instances in parallel. The g2/g3 instances are available for optional concurrent-games / cross-game-isolation checks (run three games at once and confirm distinct game codes, correct per-game rosters, and `tensies_games_active == 3`). For very high scale (hundreds of games), don't fan out browsers — use the headless WebSocket driver `loadtest.py` in the repo root: `docker compose cp loadtest.py web:/app/loadtest.py && docker compose exec -T -w /app web python loadtest.py 250 1000`. It runs the real create/join/start/roll protocol per client and reports throughput, errors, and whether `games_active` drains back to 0 after the disconnect grace (a leak check — it caught a real game-leak regression at 250+ games).
+The core suite below uses only the first pair: **"Tab 1" = instance #1 (`mcp__playwright`)**, **"Tab 2" = instance #2 (`mcp__playwright-guest`)**. They're independent processes — acting on one never disturbs the other, and you can call different instances in parallel. The g2/g3 instances are for optional concurrent-games / cross-game-isolation checks (run three games at once; confirm distinct codes, correct per-game rosters, `tensies_games_active == 3`). For high scale (hundreds of games) don't fan out browsers — use the headless WS driver `loadtest.py` in the repo root: `docker compose cp loadtest.py web:/app/loadtest.py && docker compose exec -T -w /app web python loadtest.py 250 1000`. It runs the real create/join/start/roll protocol per client and reports throughput, errors, and whether `games_active` drains to 0 after the disconnect grace (a leak check — it caught a real game-leak regression at 250+ games).
 
 **Why this matters (do not regress to two tabs in one browser):** two tabs/windows in a *single* profile share `localStorage`, so the second player's `tensies_pid`/`tensies_code` overwrites the first's. That silently corrupts per-player identity and produces *false* reconnect failures (a "host reconnect fails" report on 2026-05-29 was exactly this artifact, not a real bug). Separate instances give each player its own isolated `localStorage`.
 
@@ -49,7 +49,7 @@ Before running any tests, check whether the skill is stale relative to the game 
 
 ```bash
 # Get the skill file's last-modified timestamp (seconds since epoch)
-SKILL_MTIME=$(stat -f %m .claude/skills/test-game/skill.md 2>/dev/null || stat -c %Y .claude/skills/test-game/skill.md)
+SKILL_MTIME=$(stat -f %m .claude/skills/test-game/SKILL.md 2>/dev/null || stat -c %Y .claude/skills/test-game/SKILL.md)
 
 # Find commits to game-relevant files that are newer than the skill
 git log --since="@${SKILL_MTIME}" --oneline -- main.py server/ static/
@@ -63,7 +63,7 @@ If any commits appear **or** any files are listed in the `git diff` output (stag
 
 1. Read the relevant refactored modules: `main.py`, `server/ws.py`, `server/game.py`, `server/broadcast.py`, `static/index.html`, and any `static/js/*.js` module touched by the diff.
 2. Compare what changed against what this skill currently tests. Look for:
-   - **New server actions or messages** (new entries in `ACTIONS` in `server/ws.py`, new `msg.type` values in `handleMessage` in `static/js/ws.js`)
+   - **New server actions or messages** (new entries in `ACTIONS` in `server/ws.py`, new `msg.type` values in `handleMessage` in `static/js/net.js`)
    - **New game state fields** (new keys in `fresh_player`, `state_msg`, or `game` dict in `server/game.py`)
    - **New client state fields** (new keys on the `state` object in `static/js/state.js`)
    - **New UI elements** (new IDs or screens in `index.html`)
@@ -99,20 +99,37 @@ If no logs exist yet, skip this step.
 
 ---
 
-## Accessing module state from `evaluate`
+## Shared primitives — see the `game-harness` skill
 
-The JS app uses ES modules with cache-busting (`state.js?v=<hash>`). The `state` object is **not** globally exposed — `_state` will throw `ReferenceError`. To access module state from any `evaluate` call, use a versioned dynamic import:
+The reusable primitives this suite leans on live in the **`game-harness`** skill
+(`.claude/skills/game-harness/SKILL.md`) — the single source of truth, so they
+don't drift between here and one-off checks. Read it first; the rest of this file
+assumes it. In brief:
 
-```js
-const stateUrl = performance.getEntriesByType('resource').find(r => r.name.includes('state.js'))?.name;
-const url = new URL(stateUrl);
-const m = await import(url.pathname + url.search);
-const s = m.state;  // use s instead of _state throughout
-```
+- **`window._state`** — `static/js/state.js` exposes the shared client state bag
+  as `window._state` on `localhost`/`127.0.0.1` (dev **and** local prod
+  smoketest, never a public deploy). So every `evaluate` / `run_code_unsafe`
+  snippet below reads `_state.currentState`, `_state.myId`, `_state.rolling`, etc.
+  **directly** — e.g. `() => _state.currentState?.players[_state.myId]?.roll_count ?? -1`.
+  Off localhost it's unset; fall back to DOM checks.
+- **`rollUntil(opts)`** — the canonical state-synced roll-driver (waits on
+  `roll_count` advancing + `rolling`/`awaitingAck` clearing, never a fixed sleep).
+  Use it wherever a step says "roll until …"; **don't** reintroduce a
+  `click(); sleep(N)` loop. It returns `{ rolls, matched, won, reason }` — a
+  `reason` other than `target-met` (`roll-timeout` = the roll-ack hang;
+  `max-rolls`) is worth reporting. Copy the helper verbatim from `game-harness`.
+- **Two isolated Playwright instances** — separate browser profiles so per-player
+  `localStorage` doesn't collide (detailed, with the six-instance fan-out, in the
+  topology section above).
 
-This works in dev (separate ES module files). In prod the bundled `app.js` replaces `state.js` as a separate resource — use DOM-based checks instead when running against the prod build.
+**Dev stack required for WebSocket testing.** Prod `.env.prod` has
+`ALLOWED_ORIGINS` set to the deploy domain, which blocks WS connections from
+localhost. Always use `docker compose up -d` (dev) for local Playwright tests.
 
-**Dev stack required for WebSocket testing.** Prod `.env.prod` has `ALLOWED_ORIGINS` set to the deploy domain, which blocks WS connections from localhost. Always use `docker compose up -d` (dev) for local Playwright tests.
+The bespoke roll loops in Steps 13 and 22 are intentionally **not** `rollUntil` —
+they carry their own instrumentation (spacebar-hammering during the overlay
+window; staggered dual-client cadences with overlay-duration recording) that the
+generic helper deliberately doesn't.
 
 ---
 
@@ -139,7 +156,7 @@ If the check fails, stop and report — no point running the browser suite again
 
 Navigate **instance #1** (`mcp__playwright__browser_navigate → http://localhost:8888/`) — Player 1 / host (Alpha). Also navigate **instance #2** (`mcp__playwright-guest__browser_navigate → http://localhost:8888/`) now so both browsers are warm; Player 2 / guest (Beta) lives there for the rest of the suite. The two navigations are independent — issue them in parallel.
 
-**Expect a one-retry relaunch.** If an instance's browser was closed since a prior session, the first `browser_navigate` errors with "Target page, context or browser has been closed". This is normal — the MCP relaunches the browser on the call; simply re-issue the same `browser_navigate` once and it succeeds. Only treat it as a failure if the *retry* also errors.
+**Expect a one-retry relaunch.** If an instance's browser was closed since a prior session, the first `browser_navigate` errors with "Target page, context or browser has been closed". This is normal — the MCP relaunches the browser on the call; re-issue the same `browser_navigate` once and it succeeds. Only treat it as a failure if the *retry* also errors.
 
 **Clear stale sessions first.** These are persistent profiles, so `tensies_pid`/`tensies_code` survive from prior runs — the bootstrap then attempts a doomed auto-reconnect to a dead game and flashes "Connection failed" on the landing. On **both** instances run `() => { localStorage.clear(); return true; }`, then **re-navigate both** to `http://localhost:8888/`. The landing is now clean.
 
@@ -243,7 +260,7 @@ Verify `#join-error` (not `#landing-error`) contains "Game already in progress".
 ## Step 8 — Roll and reveal correctness (single-player roll, Tab 1)
 
 In Tab 1:
-1. Read `roll_count` from the page state via `evaluate` (`_state` is the shared module-state object, exposed for testing in `static/js/state.js`):
+1. Read `roll_count` from the page state via `evaluate` (`_state` is the shared state bag on `window._state` — see Shared primitives):
    ```js
    () => _state.currentState?.players[_state.myId]?.roll_count ?? -1
    ```
@@ -342,7 +359,7 @@ This checks that other players don't see a roll before the roller's reveal anima
 
 ## Step 12 — Roll to win (winner overlay)
 
-**Note:** Alpha will often have already won round 1 during the roll-heavy steps above (8–11). If so, this step runs in round 2 or later — that is expected and fine. Check `_state.currentState.round_num` to confirm which round you're in.
+**Note:** Alpha will often have already won round 1 during the roll-heavy steps above (8–11). If so, this step runs in round 2 or later — that's fine. Check `_state.currentState.round_num` to confirm which round you're in.
 
 **Winner overlay capture:** The winner overlay is a `<dialog id="winner-overlay">` opened with `showModal()` — it has **no `visible` class**; its open state is the dialog's `open` property/attribute. It auto-dismisses after ~3s. A post-loop screenshot will always miss it, so install a `MutationObserver` on the `open` attribute and capture content the moment it opens:
 
@@ -361,12 +378,16 @@ new MutationObserver(() => {
 }).observe(overlay, { attributes: true, attributeFilter: ['open'] });
 ```
 
-Then roll in a loop:
-- After each roll, read `matched = _state.currentState.players[_state.myId].dice.filter(d => d === _state.currentState.target).length`
-- If matched < 10, wait for roll button to re-enable (max 3s), then roll again
-- Time out and fail after 120 seconds total
+Then drive the round to a win with the **`rollUntil` helper** (from the `game-harness` skill — see "Shared primitives" above; copy it verbatim) — it rolls, synchronizing on state between rolls, until all 10 dice match the target:
 
-When the loop exits, read `window._winnerCapture`. Verify:
+```js
+// after installing the winner MutationObserver above:
+() => rollUntil()   // resolves { rolls, matched, won, reason } — expect reason: 'target-met'
+```
+
+A `reason` of `roll-timeout` here is the roll-ack hang; `max-rolls` means 60 rolls didn't finish the round. Don't reintroduce a `click(); sleep(N)` loop.
+
+When `rollUntil` resolves, read `window._winnerCapture`. Verify:
 - `winnerName` contains "Alpha"
 - `bannerSuffix` is `Winner` (the winner sees the Winner banner; losers see `Loser`)
 - `winnerRound` matches the round that was just won
@@ -474,7 +495,7 @@ Take screenshot **`.playwright-mcp/14-round2.png`**.
 
 ## Step 15 — Host pause toggle (host-only) + non-host wait screen
 
-Pause is the first in-game menu feature (`static/js/menu.js`, host-only, a toggle). With the game running:
+Pause is the first in-game menu feature (`static/js/components/game-screen.js`, host-only, a toggle). With the game running:
 
 On **Tab 1** (host Alpha): click `#game-menu-btn` to open the menu, then verify `#menu-pause-btn` is **visible** (host sees it). On **Tab 2** (guest Beta): click `#game-menu-btn`, verify `#menu-pause-btn` is **hidden** (`hidden` attribute present) — pause is host-only.
 

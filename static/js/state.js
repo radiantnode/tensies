@@ -24,6 +24,14 @@ export const state = {
   pendingWinIsLoser: false,
 };
 
+// Expose the shared state bag for the test-game skill's evaluate() snippets.
+// Gated to localhost so it's available in local dev and the local prod
+// smoketest, but never on a public deploy. See .claude/skills/test-game/SKILL.md.
+if (typeof window !== 'undefined' &&
+    (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+  window._state = state;
+}
+
 export function resetRollState() {
   state.pendingRollTimeouts.forEach(clearTimeout);
   state.pendingRollTimeouts = [];

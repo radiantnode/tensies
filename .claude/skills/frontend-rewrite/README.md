@@ -146,7 +146,7 @@ Every view this system protects was built to these rules. Anything new should fo
 | Path | Purpose |
 |------|---------|
 | [TESTS.md](TESTS.md) | All 25 states with inline screenshots and spec links |
-| [skill.md](skill.md) | Full engineering spec — read before building anything |
+| [SKILL.md](SKILL.md) | Full engineering spec — read before building anything |
 | [harness/](harness/) | The Playwright test suite |
 | [harness/determinism.js](harness/determinism.js) | `seedPage`, `settle`, `pinWebSocket` |
 | [harness/stateful.spec.js](harness/stateful.spec.js) | Synthesized server-driven states — copy from here |
