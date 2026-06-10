@@ -11,7 +11,11 @@ FROM node:22-bookworm-slim AS assets
 WORKDIR /build
 # Install the exact, locked build toolchain (esbuild) first for layer caching.
 COPY package.json package-lock.json ./
-RUN npm ci
+# Optional build-time CA bundle (BuildKit secret `proxy_ca`): lets `npm ci` work
+# behind a TLS-intercepting egress proxy. Absent in normal builds -> plain npm ci.
+RUN --mount=type=secret,id=proxy_ca \
+    NODE_EXTRA_CA_CERTS=$(test -s /run/secrets/proxy_ca && echo /run/secrets/proxy_ca) \
+    npm ci
 COPY scripts/ ./scripts/
 COPY static/ ./static/
 # -> /build/dist : bundled + minified + content-hashed JS/CSS, fingerprinted
@@ -42,7 +46,13 @@ WORKDIR /app
 # Install deps first for layer caching. Prefer the fully-pinned lock for
 # reproducible/prod builds; fall back to requirements.txt if the lock is absent.
 COPY requirements.txt requirements.lock* ./
-RUN pip install --no-cache-dir -r $( [ -f requirements.lock ] && echo requirements.lock || echo requirements.txt )
+# Optional build-time CA bundle (BuildKit secret `proxy_ca`): lets pip reach the
+# index behind a TLS-intercepting egress proxy. Absent in normal builds -> plain
+# pip with the default trust store.
+RUN --mount=type=secret,id=proxy_ca \
+    pip install --no-cache-dir \
+      $(test -s /run/secrets/proxy_ca && echo --cert=/run/secrets/proxy_ca) \
+      -r $( [ -f requirements.lock ] && echo requirements.lock || echo requirements.txt )
 
 COPY . .
 
