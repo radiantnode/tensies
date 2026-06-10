@@ -17,7 +17,8 @@ How to work on this repo so changes land right the first time:
   memory.
 - **Verify the way this app demands.** Tensies is **mobile-only** and
   **multiplayer over Redis**. Validate frontend changes at a **mobile viewport
-  (390×844)**, never desktop width, and exercise multiplayer changes with **at
+  (390×844 @2×, matching the pixel harness)**, never desktop width, and exercise
+  multiplayer changes with **at
   least two clients** (the Playwright host/guest MCP servers are set up for
   this). State *how* you verified — including when you couldn't.
 - **Respect stated scope.** When the user says "frontend only" or "don't touch
@@ -110,10 +111,12 @@ paint is the inline `#loading` *markup*, styled by `css/critical.css` (tokens +
 reset + logo + the `#loading` screen), which `index.html` loads as the first,
 render-blocking stylesheet — so the loading screen paints with no JS in the path.
 
-**Tensies is mobile-only — always test the frontend at a mobile resolution**
-(the pixel harness baselines are **390×844** @2× dpr). When driving the app in a
-browser (Playwright/manual), set a mobile viewport first; never validate a
-frontend change at desktop width.
+**Tensies is mobile-only — always test the frontend at a mobile resolution.**
+When driving the app in a browser (Playwright/manual), set the viewport to
+**390×844 CSS px @2× dpr** *first* — the same resolution the pixel-regression
+harness baselines were captured at (`frontend-rewrite/harness/playwright.config.js`),
+so manual checks and the byte-perfect suite agree. Never validate a frontend
+change at desktop width.
 
 ```
 static/
