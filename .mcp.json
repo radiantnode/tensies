@@ -3,32 +3,32 @@
     "playwright": {
       "type": "stdio",
       "command": "npx",
-      "args": ["@playwright/mcp@latest", "--user-data-dir", "/tmp/pw-mcp-host"]
+      "args": ["@playwright/mcp@latest", "--browser", "chromium", "--user-data-dir", "/tmp/pw-mcp-host"]
     },
     "playwright-guest": {
       "type": "stdio",
       "command": "npx",
-      "args": ["@playwright/mcp@latest", "--user-data-dir", "/tmp/pw-mcp-guest"]
+      "args": ["@playwright/mcp@latest", "--browser", "chromium", "--user-data-dir", "/tmp/pw-mcp-guest"]
     },
     "playwright-g2-host": {
       "type": "stdio",
       "command": "npx",
-      "args": ["@playwright/mcp@latest", "--user-data-dir", "/tmp/pw-mcp-g2-host"]
+      "args": ["@playwright/mcp@latest", "--browser", "chromium", "--user-data-dir", "/tmp/pw-mcp-g2-host"]
     },
     "playwright-g2-guest": {
       "type": "stdio",
       "command": "npx",
-      "args": ["@playwright/mcp@latest", "--user-data-dir", "/tmp/pw-mcp-g2-guest"]
+      "args": ["@playwright/mcp@latest", "--browser", "chromium", "--user-data-dir", "/tmp/pw-mcp-g2-guest"]
     },
     "playwright-g3-host": {
       "type": "stdio",
       "command": "npx",
-      "args": ["@playwright/mcp@latest", "--user-data-dir", "/tmp/pw-mcp-g3-host"]
+      "args": ["@playwright/mcp@latest", "--browser", "chromium", "--user-data-dir", "/tmp/pw-mcp-g3-host"]
     },
     "playwright-g3-guest": {
       "type": "stdio",
       "command": "npx",
-      "args": ["@playwright/mcp@latest", "--user-data-dir", "/tmp/pw-mcp-g3-guest"]
+      "args": ["@playwright/mcp@latest", "--browser", "chromium", "--user-data-dir", "/tmp/pw-mcp-g3-guest"]
     }
   }
 }
