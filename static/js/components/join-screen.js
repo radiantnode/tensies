@@ -1,13 +1,10 @@
 // @ts-check
 import './app-header.js';
+import { BACK_BUTTON_HTML } from '../back-button.js';
 import { byId } from '../dom.js';
 import { joinGame } from '../net.js';
 import { showLanding } from '../router.js';
 import { state } from '../state.js';
-
-// Chevron + label for the back chip. Extracted to a shared module at second
-// use (the changelog back chip renders the same chip).
-const BACK_BUTTON_HTML = `<svg class="back-chevron" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"/></svg><span>Back</span>`;
 
 /**
  * <join-screen> — enter name + game code. Light DOM: the host element *is*
