@@ -197,7 +197,7 @@ ORDER BY table_name;
 
 **Pass criteria:**
 - `schema_migrations` has at least 2 rows
-- An `events_YYYY_MM` partition exists for the current month (2026_05)
+- An `events_YYYY_MM` partition exists for the current month (e.g. `events_2026_06` for June 2026)
 - All 10 expected tables present
 
 ---
@@ -247,7 +247,7 @@ Then navigate both to `http://localhost:8888/`.
 3. Capture the game code from `#lobby-code` — store as `GAME_CODE`
 
 **Beta joins:**
-4. In instance #2 (guest), navigate to `http://localhost:8888/?join=<GAME_CODE>`
+4. In instance #2 (guest), navigate to `http://localhost:8888/<GAME_CODE>`
 5. Type `Monitor` into `#join-name-input`, submit `#join-form`
 6. Wait for `#lobby.active` on both instances
 
@@ -455,7 +455,7 @@ Check:
 - `games.player_count == 0` (live connected count; expected 0 after clean end)
 - `games.round_count >= 3` (all 3 played rounds recorded)
 - All 3 `rounds` rows have `has_winner = true` and `duration_ms > 0`
-- Target cycling is correct: round 1 → target 6, round 2 → target 5, round 3 → target 4
+- Target cycling is correct: round 1 → target 1, round 2 → target 2, round 3 → target 3 (initial target is 1; `next_target = t%6+1` increments each round)
 - `round_player` rows exist for rounds with rolls
 - `rounds.total_rolls` matches `round_player` roll sums
 
@@ -475,7 +475,7 @@ ORDER BY user_id;
 - `games.player_count = 0` (drops to 0 on clean game end — expected)
 - `games.round_count >= 3`
 - All 3 rounds have winner and positive duration
-- Targets follow the 6→5→4 sequence
+- Targets follow the 1→2→3 sequence
 - `player_stats` rows exist for both players with `total_rolls > 0`
 
 ---
