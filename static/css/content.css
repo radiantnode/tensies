@@ -19,16 +19,25 @@ main:has(#content.active) { background: var(--panel-screen); }
 }
 
 .content-body h1 {
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: var(--accent);
-  text-shadow: var(--text-shadow);
-  margin-bottom: 1rem;
+  font-size: clamp(1.4rem, 5.5vw, 1.75rem);
+  font-weight: 900;
+  letter-spacing: 0.005em;
+  line-height: 1.5;
+  -webkit-text-stroke: 1px #f1cf98;
+  paint-order: stroke fill;
+  background: linear-gradient(180deg, #fff6e9 0%, #f6dcb0 52%, #e7ba7f 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+  margin-bottom: 0.75rem;
 }
 
 .content-body p {
-  color: var(--text-warm);
-  line-height: 1.65;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.9;
+  color: rgba(235, 215, 195, 0.72);
   margin-bottom: 0.75rem;
 }
+
+.content-body p strong { color: rgba(255, 240, 220, 0.95); font-weight: 700; }
