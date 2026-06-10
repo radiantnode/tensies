@@ -1,39 +1,63 @@
-// Single mutable state bag shared across modules (mirrors the old state.js).
-export const state = {
-  ws: null,
-  myId: null,
-  gameCode: null,
-  pendingOrigin: null,        // 'landing' | 'join' — where a failed connect returns to
-  currentState: null,         // last server state snapshot
-  reconnecting: false,
-  randomNamePlaceholder: '',  // the seeded "Zesty Pickle" name
+// @ts-check
+/** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
 
-  // ── Game board / roll choreography ──
-  barCards: {},               // pid -> <player-card>, reused across renders
-  lastMyDiceKey: null,        // fingerprint to skip needless my-area re-renders
-  rolling: false,             // shake animation running
-  awaitingAck: false,         // waiting on the server's roll response
-  pendingRollState: null,     // held roll response until the shake finishes
-  postRevealState: null,      // a newer broadcast that arrived mid-reveal
+/**
+ * Single mutable state bag shared across modules.
+ *
+ * Kept deliberately flat: every field is readable in one hop from anywhere,
+ * and the test suites assert on these exact names (see the localhost seam
+ * below).
+ */
+export const state = {
+  /** @type {WebSocket | null} */
+  ws: null,
+  /** @type {string | null} */
+  myId: null,
+  /** @type {string | null} */
+  gameCode: null,
+  /** @type {'landing' | 'join' | null} Where a failed connect intent returns to. */
+  pendingOrigin: null,
+  /** @type {GameSnapshot | null} Last server snapshot. */
+  currentState: null,
+  reconnecting: false,
+  /** The seeded "Zesty Pickle" name shared by both name fields. */
+  randomNamePlaceholder: '',
+
+  // ── Game board / roll choreography (driven by the game view) ──
+  /** @type {string | null} Fingerprint to skip needless my-area re-renders. */
+  lastMyDiceKey: null,
+  /** True while the shake animation is running. */
+  rolling: false,
+  /** True while waiting on the server's roll response. */
+  awaitingAck: false,
+  /** @type {GameSnapshot | null} Roll response held until the shake finishes. */
+  pendingRollState: null,
+  /** @type {GameSnapshot | null} Newer broadcast that arrived mid-reveal. */
+  postRevealState: null,
+  /** @type {ReturnType<typeof setTimeout>[]} */
   pendingRollTimeouts: [],
-  prevMatchedCount: 0,        // matched dice before this roll (to find the new ones)
+  /** Matched dice before the in-flight roll (to find the newly locked ones). */
+  prevMatchedCount: 0,
   rollShakeEnd: 0,
-  pendingWinName: null,       // winner overlay, held until the reveal completes (view 6)
+  /** @type {string | null} Winner overlay payload, held until the reveal completes. */
+  pendingWinName: null,
+  /** @type {number | null} */
   pendingWinTarget: null,
+  /** @type {number | null} */
   pendingWinRound: null,
   pendingWinIsLoser: false,
 };
 
-// Expose the shared state bag for the test-game skill's evaluate() snippets.
-// Gated to localhost so it's available in local dev and the local prod
-// smoketest, but never on a public deploy. See .claude/skills/test-game/SKILL.md.
-if (typeof window !== 'undefined' &&
-    (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
-  window._state = state;
+// Test seam: expose the bag as window._state for the game-harness / test-game
+// suites' evaluate() snippets. Localhost only — present in local dev and the
+// local prod smoketest, never on a public deploy.
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+  /** @type {any} */ (window)._state = state;
 }
 
+/** Clear every in-flight roll/overlay field and cancel pending roll timers. */
 export function resetRollState() {
-  state.pendingRollTimeouts.forEach(clearTimeout);
+  for (const timeout of state.pendingRollTimeouts) clearTimeout(timeout);
   state.pendingRollTimeouts = [];
   state.rolling = false;
   state.awaitingAck = false;

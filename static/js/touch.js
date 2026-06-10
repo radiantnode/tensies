@@ -1,29 +1,30 @@
-// Prevent double-tap zoom on iOS Safari.
-//
-// We intercept touchstart in capture phase (earliest possible point) so iOS
-// never gets a chance to recognise two quick taps as a zoom gesture.
-// - Multi-touch (pinch): always prevented (maximum-scale=1 covers this too).
-// - Double-tap: prevented only for the 2nd tap within 300 ms — the roll button
-//   is disabled by then anyway, so the blocked click is always a no-op.
-// - First tap / slow taps: default is never prevented, clicks fire normally.
+// @ts-check
 
-let lastTouchStart = 0;
-
-document.addEventListener('touchstart', function (e) {
-  if (e.touches.length > 1) {
-    e.preventDefault();
-    return;
-  }
-  const now = Date.now();
-  if (now - lastTouchStart <= 300) {
-    e.preventDefault();
-    // Even though we're blocking the zoom gesture, if this tap was aimed at
-    // the roll button and the button is ready, treat it as a click. This way
-    // rapid tapping keeps rolling without ever triggering zoom.
-    const btn = document.getElementById('roll-btn');
-    if (btn && !btn.disabled && e.target.closest && e.target.closest('#roll-btn')) {
-      btn.click();
+/**
+ * iOS Safari double-tap-zoom prevention.
+ *
+ * Intercepts touchstart in the capture phase (the earliest possible point) so
+ * iOS never recognises two quick taps as a zoom gesture:
+ * - multi-touch (pinch): always prevented (`maximum-scale=1` covers this too);
+ * - double-tap: prevented only for the second tap within 300 ms — but if that
+ *   tap targets a ready roll button, it's converted into a click so rapid
+ *   tapping keeps rolling without ever zooming;
+ * - first / slow taps: never prevented, clicks fire normally.
+ */
+export function installTouchGuard() {
+  let lastTouchStart = 0;
+  document.addEventListener('touchstart', (event) => {
+    if (event.touches.length > 1) {
+      event.preventDefault();
+      return;
     }
-  }
-  lastTouchStart = now;
-}, { passive: false, capture: true });
+    const now = Date.now();
+    if (now - lastTouchStart <= 300) {
+      event.preventDefault();
+      const btn = /** @type {HTMLButtonElement | null} */ (document.getElementById('roll-btn'));
+      const target = /** @type {Element} */ (event.target);
+      if (btn && !btn.disabled && target.closest?.('#roll-btn')) btn.click();
+    }
+    lastTouchStart = now;
+  }, { passive: false, capture: true });
+}

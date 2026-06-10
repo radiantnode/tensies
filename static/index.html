@@ -20,45 +20,24 @@
   <link rel="preload" href="/static/images/bar-top.webp" as="image" type="image/webp">
   <link rel="preload" href="/static/fonts/inter-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 
-  <!-- Critical CSS: tokens, reset, loading screen, view-transition setup. -->
+  <!-- Critical CSS: layer order, tokens, reset, loading screen, view-transition setup. -->
   <link rel="stylesheet" href="/static/css/critical.css">
-
-  <!-- Non-critical CSS — all downloaded in parallel by the browser. -->
-  <link rel="stylesheet" href="/static/css/controls.css">
-  <link rel="stylesheet" href="/static/css/shell.css">
-  <link rel="stylesheet" href="/static/css/landing.css">
-  <link rel="stylesheet" href="/static/css/lobby.css">
-  <link rel="stylesheet" href="/static/css/game.css">
-  <link rel="stylesheet" href="/static/css/players-bar.css">
-  <link rel="stylesheet" href="/static/css/dice.css">
-  <link rel="stylesheet" href="/static/css/menu.css">
-  <link rel="stylesheet" href="/static/css/overlays.css">
 
   <!-- Preload the whole module graph so it fetches in parallel instead of
        waterfalling app -> router/net -> components. -->
   <link rel="modulepreload" href="/static/js/app.js">
+  <link rel="modulepreload" href="/static/js/dom.js">
   <link rel="modulepreload" href="/static/js/state.js">
-  <link rel="modulepreload" href="/static/js/util.js">
+  <link rel="modulepreload" href="/static/js/session.js">
   <link rel="modulepreload" href="/static/js/names.js">
   <link rel="modulepreload" href="/static/js/transitions.js">
   <link rel="modulepreload" href="/static/js/router.js">
   <link rel="modulepreload" href="/static/js/net.js">
-  <link rel="modulepreload" href="/static/js/components/app-header.js">
-  <link rel="modulepreload" href="/static/js/pips.js">
-  <link rel="modulepreload" href="/static/js/dice.js">
-  <link rel="modulepreload" href="/static/js/dice-positions.js">
-  <link rel="modulepreload" href="/static/js/game-render.js">
-  <link rel="modulepreload" href="/static/js/animations.js">
-  <link rel="modulepreload" href="/static/js/roll.js">
-  <link rel="modulepreload" href="/static/js/overlays.js">
-  <link rel="modulepreload" href="/static/js/title-row.js">
   <link rel="modulepreload" href="/static/js/touch.js">
   <link rel="modulepreload" href="/static/js/components/landing-screen.js">
   <link rel="modulepreload" href="/static/js/components/join-screen.js">
   <link rel="modulepreload" href="/static/js/components/lobby-screen.js">
   <link rel="modulepreload" href="/static/js/components/game-screen.js">
-  <link rel="modulepreload" href="/static/js/components/player-card.js">
-  <link rel="modulepreload" href="/static/js/components/round-target.js">
   <link rel="modulepreload" href="/static/js/components/nav-menu.js">
   <script type="module" src="/static/js/app.js"></script>
 </head>
@@ -68,11 +47,11 @@
 
   <!-- Inline loading screen: paints from the critical CSS above with no JS.
        The router swaps it for landing/join/lobby/game once the app boots. -->
-  <section id="loading" class="screen active" aria-labelledby="loading-msg">
+  <section id="loading" class="screen loading-screen active" aria-labelledby="loading-msg">
     <img src="/static/images/logo.svg" class="logo-mark" alt="">
     <h1 class="logo">TENSIES</h1>
     <div class="loading-bar" aria-hidden="true"><div class="loading-bar-fill"></div></div>
-    <p id="loading-msg">Loading…</p>
+    <p id="loading-msg" class="loading-msg">Loading…</p>
   </section>
 
   <landing-screen></landing-screen>
@@ -83,28 +62,6 @@
 </main>
 
 <nav-menu></nav-menu>
-
-<!-- Non-host wait screen while the game is paused. Body-level <dialog> so the
-     board stays live underneath; visually mirrors #loading. -->
-<dialog id="pause-overlay" class="overlay-dialog" aria-labelledby="pause-overlay-msg">
-  <img src="/static/images/logo.svg" class="logo-mark" alt="">
-  <h1 class="logo">TENSIES</h1>
-  <div class="loading-bar" aria-hidden="true"><div class="loading-bar-fill"></div></div>
-  <p id="pause-overlay-msg"></p>
-</dialog>
-
-<!-- Round winner/loser celebration. Body-level <dialog> over the live board. -->
-<dialog id="winner-overlay" class="overlay-dialog" aria-label="Round winner">
-  <div class="winner-box">
-    <div class="winner-banner"><span class="winner-banner-label">Round <span class="winner-round-pill" id="winner-round"></span> <span id="winner-banner-suffix">Winner</span></span></div>
-    <img src="/static/images/logo-winner.svg" class="winner-logo" alt="" aria-hidden="true">
-    <p class="winner-name" id="winner-name"></p>
-  </div>
-  <div class="winner-timer" aria-hidden="true">
-    <div class="winner-timer-bar"><div class="winner-timer-fill" id="winner-timer-fill"></div></div>
-    <p class="winner-timer-secs" id="winner-timer-secs"></p>
-  </div>
-</dialog>
 
 </body>
 </html>
