@@ -63,7 +63,7 @@ If any commits appear **or** any files are listed in the `git diff` output (stag
 
 1. Read the relevant refactored modules: `main.py`, `server/ws.py`, `server/game.py`, `server/broadcast.py`, `static/index.html`, and any `static/js/*.js` module touched by the diff.
 2. Compare what changed against what this skill currently tests. Look for:
-   - **New server actions or messages** (new entries in `ACTIONS` in `server/ws.py`, new `msg.type` values in `handleMessage` in `static/js/ws.js`)
+   - **New server actions or messages** (new entries in `ACTIONS` in `server/ws.py`, new `msg.type` values in `handleMessage` in `static/js/net.js`)
    - **New game state fields** (new keys in `fresh_player`, `state_msg`, or `game` dict in `server/game.py`)
    - **New client state fields** (new keys on the `state` object in `static/js/state.js`)
    - **New UI elements** (new IDs or screens in `index.html`)
@@ -101,16 +101,13 @@ If no logs exist yet, skip this step.
 
 ## Accessing module state from `evaluate`
 
-The JS app uses ES modules with cache-busting (`state.js?v=<hash>`). The `state` object is **not** globally exposed — `_state` will throw `ReferenceError`. To access module state from any `evaluate` call, use a versioned dynamic import:
+The JS app keeps its shared state in an ES module (`static/js/state.js`), not on a global. For tests, `state.js` exposes that bag as **`window._state`** whenever the app is served from `localhost`/`127.0.0.1` — i.e. local dev **and** the local prod smoketest, but never a public deploy. So every `evaluate` / `run_code_unsafe` snippet below can read `_state.currentState`, `_state.myId`, `_state.rolling`, etc. **directly**.
 
 ```js
-const stateUrl = performance.getEntriesByType('resource').find(r => r.name.includes('state.js'))?.name;
-const url = new URL(stateUrl);
-const m = await import(url.pathname + url.search);
-const s = m.state;  // use s instead of _state throughout
+() => _state.currentState?.players[_state.myId]?.roll_count ?? -1
 ```
 
-This works in dev (separate ES module files). In prod the bundled `app.js` replaces `state.js` as a separate resource — use DOM-based checks instead when running against the prod build.
+Because the hook lives in `state.js` itself, it works against both stacks: the dev server (unbundled modules) and the prod build (bundled `app.js`) — both run on `localhost` during this suite. If you ever point the suite at a non-localhost host, `_state` won't be set; fall back to DOM-based checks.
 
 **Dev stack required for WebSocket testing.** Prod `.env.prod` has `ALLOWED_ORIGINS` set to the deploy domain, which blocks WS connections from localhost. Always use `docker compose up -d` (dev) for local Playwright tests.
 
@@ -243,7 +240,7 @@ Verify `#join-error` (not `#landing-error`) contains "Game already in progress".
 ## Step 8 — Roll and reveal correctness (single-player roll, Tab 1)
 
 In Tab 1:
-1. Read `roll_count` from the page state via `evaluate` (`_state` is the shared module-state object, exposed for testing in `static/js/state.js`):
+1. Read `roll_count` from the page state via `evaluate` (`_state` is the shared module-state bag, exposed on `window._state` by `static/js/state.js` on localhost — see the section above):
    ```js
    () => _state.currentState?.players[_state.myId]?.roll_count ?? -1
    ```
@@ -474,7 +471,7 @@ Take screenshot **`.playwright-mcp/14-round2.png`**.
 
 ## Step 15 — Host pause toggle (host-only) + non-host wait screen
 
-Pause is the first in-game menu feature (`static/js/menu.js`, host-only, a toggle). With the game running:
+Pause is the first in-game menu feature (`static/js/components/game-screen.js`, host-only, a toggle). With the game running:
 
 On **Tab 1** (host Alpha): click `#game-menu-btn` to open the menu, then verify `#menu-pause-btn` is **visible** (host sees it). On **Tab 2** (guest Beta): click `#game-menu-btn`, verify `#menu-pause-btn` is **hidden** (`hidden` attribute present) — pause is host-only.
 
