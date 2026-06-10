@@ -21,6 +21,12 @@ How to work on this repo so changes land right the first time:
   multiplayer changes with **at
   least two clients** (the Playwright host/guest MCP servers are set up for
   this). State *how* you verified — including when you couldn't.
+- **Prefer the docker-compose stack for running the app.** Always try
+  `docker compose up -d` first (start the daemon with
+  `setsid dockerd >/tmp/dockerd.log 2>&1 &` if it isn't running). Only fall back
+  to the local `redis-server` + no-DB uvicorn wrapper when the stack genuinely
+  can't run in the sandbox (e.g. image pulls are blocked) — and say so when you
+  do. See the remote-container caveat under "Running the server."
 - **Respect stated scope.** When the user says "frontend only" or "don't touch
   the WS protocol," stay inside that fence even if an adjacent file looks
   relevant.
@@ -42,6 +48,23 @@ The volume mount in `docker-compose.yml` means edits to any file are live immedi
 ```bash
 # scale to N instances (they share Redis; any instance serves any game)
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --scale web=3
+```
+
+**Remote/sandbox caveat.** Always prefer this compose stack. In the cloud
+container two things can get in the way, neither of which means Docker is broken:
+(1) the daemon may not be started — bring it up with
+`setsid dockerd >/tmp/dockerd.log 2>&1 &`; (2) Docker Hub may refuse image pulls
+with an *unauthenticated pull rate-limit* error (the daemon and registry are
+fine; Hub is throttling). Durable fixes are `docker login` credentials or a
+registry mirror configured via the environment's setup — see
+https://code.claude.com/docs/en/claude-code-on-the-web. Only when pulls can't
+succeed, fall back to a local Redis + the no-DB app wrapper for work that doesn't
+need the telemetry stack:
+
+```bash
+redis-server --daemonize yes --port 6379
+PYTHONPATH=.claude/skills/frontend-rewrite/harness:. \
+  uvicorn run_without_db:app --host 127.0.0.1 --port 8888
 ```
 
 ## Git submodules
