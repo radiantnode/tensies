@@ -9,6 +9,13 @@
 #      egress-proxy CA into the image build as a BuildKit secret, so in-build
 #      `npm ci` / `pip install` can verify TLS through the intercepting proxy.
 #
+# It reports what it did two ways:
+#   * a one-shot summary on STDOUT as SessionStart `additionalContext`, so the
+#     outcome (hook fired, docker login OK, override written) is injected into
+#     the session and visible to you, not buried in stderr; and
+#   * the usual per-step `log()` lines on stderr, also appended to
+#     /tmp/session-start.log for after-the-fact auditing.
+#
 # Everything here is gated to remote sessions and is a no-op when the relevant
 # inputs are absent, so it's safe to run on any machine. Nothing it does touches
 # tracked files (the override is git-ignored) or leaks the token to disk in plain
@@ -20,7 +27,32 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
 fi
 
-log() { echo "[session-start] $*" >&2; }
+LOGFILE="/tmp/session-start.log"
+log() {
+  echo "[session-start] $*" >&2
+  echo "[session-start] $*" >>"$LOGFILE" 2>/dev/null || true
+}
+
+# Status accumulator → STDOUT additionalContext. Separator is a literal "\n"
+# (two chars) so the final printf yields a valid JSON string escape. Interpolated
+# values are stripped of " and \ so they can't break the JSON we emit by hand.
+SUMMARY=""
+sanitize() { printf '%s' "$1" | tr -d '"\\'; }
+add() {
+  local m; m="$(sanitize "$1")"
+  if [ -z "$SUMMARY" ]; then SUMMARY="$m"; else SUMMARY="$SUMMARY\n$m"; fi
+}
+
+# SessionStart delivers a JSON payload on stdin ({source, session_id, …}). Read it
+# only when stdin is a pipe, so a manual interactive run never blocks on `cat`.
+INPUT=""
+[ ! -t 0 ] && INPUT="$(cat)"
+SOURCE="$(printf '%s' "$INPUT" | sed -n 's/.*"source"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"
+[ -z "$SOURCE" ] && SOURCE="unknown"
+TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+log "fired (source=$SOURCE) at $TS"
+add "✅ SessionStart hook fired (source=$SOURCE) at $TS"
 
 # ── 1. Docker daemon ──────────────────────────────────────────────────────────
 if ! docker info >/dev/null 2>&1; then
@@ -33,8 +65,10 @@ if ! docker info >/dev/null 2>&1; then
 fi
 if docker info >/dev/null 2>&1; then
   log "dockerd is up"
+  add "✅ Docker daemon: up"
 else
   log "WARNING: dockerd did not come up; see /tmp/dockerd.log"
+  add "‼️ Docker daemon: did NOT come up (see /tmp/dockerd.log)"
 fi
 
 # ── 2. Docker Hub auth (no-op if creds absent) ────────────────────────────────
@@ -44,11 +78,14 @@ if [ -n "${DOCKERHUB_USERNAME:-}" ] && [ -n "$DOCKERHUB_TOKEN_TRIMMED" ]; then
   if printf '%s' "$DOCKERHUB_TOKEN_TRIMMED" \
        | docker login -u "$DOCKERHUB_USERNAME" --password-stdin >/dev/null 2>&1; then
     log "docker login OK as $DOCKERHUB_USERNAME"
+    add "✅ Docker Hub login: OK as $DOCKERHUB_USERNAME"
   else
     log "WARNING: docker login failed for $DOCKERHUB_USERNAME"
+    add "‼️ Docker Hub login: FAILED for $DOCKERHUB_USERNAME"
   fi
 else
   log "Docker Hub creds not set; skipping login (pulls may hit the anon rate limit)"
+  add "⚠️ Docker Hub login: skipped — no creds (pulls may hit the anon rate limit)"
 fi
 
 # ── 3. Proxy-CA build secret (local-only compose override) ────────────────────
@@ -72,8 +109,15 @@ secrets:
     file: $CA_BUNDLE
 EOF
   log "wrote $OVERRIDE (proxy_ca <- $CA_BUNDLE)"
+  add "✅ Proxy-CA override: wrote docker-compose.override.yml (proxy_ca <- $CA_BUNDLE)"
 else
   log "no readable CA bundle at $CA_BUNDLE; skipping build-secret override"
+  add "⚠️ Proxy-CA override: skipped — no readable CA bundle at $CA_BUNDLE"
 fi
+
+# ── Report ────────────────────────────────────────────────────────────────────
+# Emit the collected summary as SessionStart additionalContext so it surfaces in
+# the session. printf %s leaves the literal "\n" separators intact → valid JSON.
+printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"%s"}}\n' "$SUMMARY"
 
 exit 0
