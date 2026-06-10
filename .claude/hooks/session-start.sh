@@ -9,10 +9,12 @@
 #      egress-proxy CA into the image build as a BuildKit secret, so in-build
 #      `npm ci` / `pip install` can verify TLS through the intercepting proxy.
 #
-# It reports what it did two ways:
-#   * a one-shot summary on STDOUT as SessionStart `additionalContext`, so the
-#     outcome (hook fired, docker login OK, override written) is injected into
-#     the session and visible to you, not buried in stderr; and
+# It reports what it did three ways, all from one STDOUT JSON object:
+#   * `systemMessage` — the one-shot summary shown to the USER in the transcript
+#     (a top-level field; `additionalContext` on its own is model-only, so the
+#     user never saw the checklist before);
+#   * `additionalContext` — the same summary injected into Claude's context as a
+#     system reminder, so the outcome is visible to you too, not buried in stderr;
 #   * the usual per-step `log()` lines on stderr, also appended to
 #     /tmp/session-start.log for after-the-fact auditing.
 #
@@ -137,8 +139,13 @@ else
 fi
 
 # ── Report ────────────────────────────────────────────────────────────────────
-# Emit the collected summary as SessionStart additionalContext so it surfaces in
-# the session. printf %s leaves the literal "\n" separators intact → valid JSON.
-printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"%s"}}\n' "$SUMMARY"
+# Emit the collected summary twice in one JSON object:
+#   * systemMessage      → shown to the USER in the transcript (a top-level field;
+#                          additionalContext alone is model-only, which is why the
+#                          checklist wasn't visible to the user before), and
+#   * additionalContext  → injected into Claude's context as a system reminder.
+# Both reuse $SUMMARY, which is already "-sanitized and uses literal "\n"
+# separators, so printf %s leaves valid JSON string escapes intact.
+printf '{"systemMessage":"%s","hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"%s"}}\n' "$SUMMARY" "$SUMMARY"
 
 exit 0
