@@ -158,6 +158,7 @@ Use as the reference inventory. Approach: **static** = served files only;
 | players-bar-variants | synth | clipped to `#players-bar`; one **paused** board showing leading + hot + disconnected + is-me cards |
 | paused-board | synth | host paused, menu closed → board with the "Paused" roll button |
 | target-die-1..6 | synth | element-clipped `round-target` die for each target value |
+| play-die-1..6 | synth | element-clipped regular ivory die for each face: first unmatched `.die-scene`, all my dice = value, target ≠ value |
 
 **Deliberately not captured** (transient / external, no stable frame): the
 initial `#loading` flash, the mid-roll shake animation (frozen by

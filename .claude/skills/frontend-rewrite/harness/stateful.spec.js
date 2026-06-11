@@ -304,3 +304,24 @@ for (const target of [1, 2, 3, 4, 5, 6]) {
     await expect(die).toHaveScreenshot(`target-die-${target}.png`);
   });
 }
+
+for (const value of [1, 2, 3, 4, 5, 6]) {
+  test(`play-die-${value}`, async ({ page }) => {
+    // The regular ivory play die for each face value, clipped to the first
+    // unmatched die on the board. All ten of my dice carry the value and the
+    // target differs, so the clip is a plain (non-matched) cube — face,
+    // bone material, drilled pips — at its seeded scatter pose.
+    await host(page, (msg, myPid) => ({
+      ...msg, type: 'state', code: 'AYBD', started: true, paused: false, host: myPid,
+      round_num: 1, target: value % 6 + 1,
+      players: roster(myPid, {
+        alpha: Array(10).fill(value),
+        bravo: [1, 2, 3, 4, 5, 6, 1, 2, 3, 4], cosmo: [2, 3, 4, 5, 6, 1, 2, 3, 4, 5],
+      }),
+    }), '#game.active');
+    const die = page.locator('.zone-unmatched .die-wrapper').first().locator('.die-scene');
+    await die.waitFor();
+    await settle(page);
+    await expect(die).toHaveScreenshot(`play-die-${value}.png`);
+  });
+}

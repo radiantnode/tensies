@@ -1,6 +1,6 @@
 # Pixel Verification Tests
 
-25 tests, 25 mobile baselines (390×844 · 2× dpr · Chromium 140.0.7339.16).
+31 tests, 31 mobile baselines (390×844 · 2× dpr · Chromium 140.0.7339.16).
 Run with `npm run verify` from `harness/`; all must pass at `maxDiffPixels 0` before any frontend change ships.
 
 ---
@@ -78,3 +78,16 @@ A single real WebSocket connection; `pinWebSocket` rewrites every inbound `state
 | 23 | <img src="harness/baselines/target-die-4-mobile.png" width="60"> | Target die **4** — four corner pips | [stateful.spec.js:289](harness/stateful.spec.js#L289) |
 | 24 | <img src="harness/baselines/target-die-5-mobile.png" width="60"> | Target die **5** — four corners + centre | [stateful.spec.js:289](harness/stateful.spec.js#L289) |
 | 25 | <img src="harness/baselines/target-die-6-mobile.png" width="60"> | Target die **6** — six pips, two columns | [stateful.spec.js:289](harness/stateful.spec.js#L289) |
+
+### Play die — each face value
+
+The regular ivory bone die, clipped to the first unmatched `.die-scene` on the board (all ten of my dice carry the value; the target differs so the cube is non-matched). Each clip pins the face value, the `--die-face` bone material, the drilled `PIP_POSITIONS` pip layout, and the seeded scatter pose.
+
+| # | Screenshot | Checks | Spec |
+|---|-----------|--------|------|
+| 26 | <img src="harness/baselines/play-die-1-mobile.png" width="60"> | Play die **1** — one centre pip | [stateful.spec.js:308](harness/stateful.spec.js#L308) |
+| 27 | <img src="harness/baselines/play-die-2-mobile.png" width="60"> | Play die **2** — two diagonal pips | [stateful.spec.js:308](harness/stateful.spec.js#L308) |
+| 28 | <img src="harness/baselines/play-die-3-mobile.png" width="60"> | Play die **3** — three diagonal pips | [stateful.spec.js:308](harness/stateful.spec.js#L308) |
+| 29 | <img src="harness/baselines/play-die-4-mobile.png" width="60"> | Play die **4** — four corner pips | [stateful.spec.js:308](harness/stateful.spec.js#L308) |
+| 30 | <img src="harness/baselines/play-die-5-mobile.png" width="60"> | Play die **5** — four corners + centre | [stateful.spec.js:308](harness/stateful.spec.js#L308) |
+| 31 | <img src="harness/baselines/play-die-6-mobile.png" width="60"> | Play die **6** — six pips, two columns | [stateful.spec.js:308](harness/stateful.spec.js#L308) |
