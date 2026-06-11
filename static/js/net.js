@@ -244,7 +244,10 @@ function handleError(msg) {
     state.currentState = null;
     state.reconnecting = false;
     leaveLoading(() => {
-      showScreen('landing');
+      // Forced: a fatal landing swap must win even against an in-flight view
+      // transition (the showScreen early-return race — see transitions.js).
+      // The only sanctioned behavior change of the rewrite.
+      showScreen('landing', { force: true });
       landingScreen().showError(msg.msg);
     });
     return;

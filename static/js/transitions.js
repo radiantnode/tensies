@@ -25,11 +25,19 @@ function settledTransition() {
  * Make `id` the active screen, animated with a view transition when available.
  * Already-active targets are left untouched (a document-wide transition would
  * stomp on in-flight animations); callers still get an awaitable handle.
+ *
+ * `force` skips that early-return. It exists for the fatal-error path: when a
+ * terminal error lands while a previous swap's view transition hasn't applied
+ * yet, the target can still read as "active" and a plain call would no-op —
+ * stranding the user on the loading screen with the error set but invisible.
+ * Forcing re-runs the swap (the browser skips the in-flight transition), so
+ * the resting state is guaranteed.
  * @param {string} id Screen element id: 'loading' | 'landing' | 'join' | 'lobby' | 'game'.
+ * @param {{ force?: boolean }} [options]
  */
-export function showScreen(id) {
+export function showScreen(id, { force = false } = {}) {
   const target = byId(id);
-  if (target.classList.contains('active')) return settledTransition();
+  if (!force && target.classList.contains('active')) return settledTransition();
   const swap = () => {
     document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
     target.classList.add('active');
