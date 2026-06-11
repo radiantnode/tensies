@@ -52,7 +52,20 @@ export function showScreen(id, { force = false, onSwap } = {}) {
     target.classList.add('active');
     onSwap?.();
   };
-  if (document.startViewTransition) return document.startViewTransition(swap);
+  if (document.startViewTransition) {
+    const transition = document.startViewTransition(() => {
+      // The 3-D dice must not be rasterized by the transition: WebKit flattens
+      // preserve-3d in the new-view capture, stacking all six faces (every die
+      // reads as a 6; 90°-rotated ones vanish edge-on). `vt-settling` hides
+      // them (game.css) for the duration; added before swap() so dice created
+      // by onSwap's render are born hidden, removed once the transition
+      // settles — `.finally` so a skipped transition can't strand the class.
+      target.classList.add('vt-settling');
+      swap();
+    });
+    transition.finished.finally(() => target.classList.remove('vt-settling'));
+    return transition;
+  }
   swap();
   return settledTransition();
 }

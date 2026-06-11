@@ -121,6 +121,13 @@
     filter: drop-shadow(3px 4px 6px rgba(0, 0, 0, 0.14));
   }
 
+  /* While a view transition into the board is animating, the 3-D dice are
+     held invisible so the transition never rasterizes them (WebKit flattens
+     preserve-3d in the capture — dice mis-render as 6s or vanish edge-on).
+     transitions.js adds/removes the class around the swap; the flat 2-D
+     round-target die is unaffected and stays visible. */
+  .game-screen.vt-settling .die-scene { visibility: hidden; }
+
   .zone-matched {
     display: flex;
     flex-wrap: wrap;
