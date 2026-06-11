@@ -147,55 +147,88 @@ static/
                          <link>s (critical.css first), the modulepreload graph,
                          the <*-screen> component tags, and the pause/winner
                          <dialog> overlays.
-  css/                   (critical.css is the first <link> — it carries tokens,
-                         reset, logo, and #loading; the rest follow as separate
-                         <link>s, downloaded in parallel)
-    critical.css         @font-face, design tokens, document reset, shared logo,
-                         the #loading screen, and view-transition setup
+  css/                   ALL rules live in explicit cascade layers
+                         (@layer reset, tokens, elements, components, utilities
+                         — declared once at the top of critical.css, the first
+                         <link>). Selectors are class-based and low-specificity;
+                         element IDs exist only as JS/test hooks, never for
+                         styling. The rest download in parallel as separate
+                         <link>s.
+    critical.css         @font-face, the @layer order, semantic tokens
+                         (--color-*/--shadow-*/--radius-*), reset, shared logo,
+                         the loading screen, view-transition setup, and the
+                         .staging/.dissolving screen states (staged reveals)
     controls.css         inputs, .btn variants, .error-msg
     shell.css            shared .game-topbar / app-header / .screen-body
     landing.css          landing + join screens, logo, tagline, form-stack
-    lobby.css            #lobby, code display, SMS button, player list, badges
-    game.css             #game layout, round header, my-area, dice zones, roll button
+    lobby.css            lobby screen, code display, SMS button, player list,
+                         badges; @property registrations for the scroll fades
+    game.css             board layout, round header, my-area, dice zones, roll
+                         button, the vt-settling dice guard
     players-bar.css      top-bar mini cards (.player-mini-*)
     dice.css             .die-scene / .die-3d / .face / tumble + pop animations
     menu.css             game menu + nav menu (about / changelog) + pause status
     overlays.css         winner + pause <dialog> styling
-  js/
-    app.js               entry: register components, seed name, bootstrap router
-    router.js            History-API router (permalinks), bootstrap, showJoin
-    transitions.js       showScreen (View Transitions), showLoading, leaveLoading
-    state.js             single mutable bag shared across modules
-    util.js              esc, nextTarget, setError, setJoinError
-    net.js               WebSocket: connect, dispatch, create/join/start intents,
-                         showFor (lobby / game / pause / disconnect routing)
+  js/                    every module is strict-checked JS (// @ts-check +
+                         jsconfig.json at the repo root); named exports, JSDoc
+                         on the public API
+    app.js               entry: register components, install touch guard,
+                         bootstrap router
+    types.js             JSDoc @typedefs for the WS protocol (GameSnapshot,
+                         PlayerSnapshot, ServerMessage) — editor-only, no runtime
+    router.js            ALL screen routing: History-API URL routes (permalinks,
+                         bootstrap, showJoin) + showFor (snapshot → screen,
+                         incl. the paused-before-disconnected branch order)
+    transitions.js       showScreen — View Transitions for pre-game swaps,
+                         staged reveals ({staged: true}: build the screen
+                         invisibly, dissolve the old one over it — REQUIRED for
+                         swaps into #game; a VT raster flattens the 3-D dice on
+                         Safari) — plus showLoading, leaveLoading
+    state.js             single mutable bag shared across modules + the
+                         localhost-only window._state test seam; seeds the
+                         shared random name (must stay the first Math.random
+                         consumer — the pixel harness pins the RNG)
+    session.js           tensies_pid / tensies_code / tensies_token
+                         localStorage accessors
+    dom.js               byId() — throwing getElementById for shell-guaranteed
+                         elements
+    net.js               WebSocket: connect, reconnect loop, dispatch (incl.
+                         the celebration-echo guard), create/join/start intents
     names.js             ADJECTIVES (50) × NOUNS (50) → makeName()
     pips.js              PIP_POSITIONS — die-face pip layout (shared by the dice)
     dice.js              FACE_ROTATIONS, makeDie, placeGrid, myDiceKey
     dice-positions.js    localStorage persistence for the unmatched-zone layout
-    game-render.js       renderGame / renderPlayersBar / renderMyArea / renderMenu
-    animations.js        startShake, updateDiceInPlace, tryReveal, resetRollState
+    game-render.js       renderGame / renderPlayersBar / renderMyArea /
+                         renderMenu; owns the keyed <player-card> registry
+    animations.js        startShake, updateDiceInPlace, tryReveal
     roll.js              roll() — send intent, shake, schedule reveal
     overlays.js          winner + pause dialogs (showWinner / showPaused / …)
     title-row.js         shared top-bar title row markup (app-header + game header)
-    touch.js             capture-phase touchstart guard: blocks iOS double-tap
-                         zoom; rapid taps on a ready roll button still register
+    back-button.js       shared back-chip markup (join screen + changelog)
+    scroll-fades.js      can-scroll-up/down edge-fade toggler (lobby list +
+                         changelog body)
+    touch.js             installTouchGuard() — capture-phase touchstart guard:
+                         blocks iOS double-tap zoom; rapid taps on a ready roll
+                         button still register
     components/          light-DOM custom elements; the host IS the #id.screen
       app-header.js      <app-header> shared top bar (hamburger → nav menu)
-      landing-screen.js  <landing-screen>  (#landing)
-      join-screen.js     <join-screen>     (#join)
-      lobby-screen.js    <lobby-screen>    (#lobby) — render(snap)
+      landing-screen.js  <landing-screen>  (#landing) — owns showError
+      join-screen.js     <join-screen>     (#join) — owns showError
+      lobby-screen.js    <lobby-screen>    (#lobby) — render(snap), keyed rows
       game-screen.js     <game-screen>     (#game) + in-game pause menu
-      nav-menu.js        <nav-menu> about blurb + "What's New" changelog
+      nav-menu.js        <nav-menu> about blurb + "What's New" changelog;
+                         toggles body.nav-menu-open (landing header chrome)
       player-card.js     <player-card> players-bar mini card
       round-target.js    <round-target> round-header die
 ```
 
 (The loading screen is inline HTML in `index.html`, not a component, so it
-paints before JS — styled by `critical.css`, the first stylesheet loaded. The
-old single-file modules — `main.js`, `ws.js`, `screens.js`,
-`menu.js`, `landing.js`, `loading.css`, `base.css` — were replaced in the
-component rewrite; behaviour is unchanged.)
+paints before JS — styled by `critical.css`, the first stylesheet loaded.
+History: the original single-file modules were replaced in the component
+rewrite, and the whole tree was then rebuilt blank-canvas in **rewrite-v2**
+(branch `frontend-rewrite-v2`, 2026-06-10) — @layer CSS, strict checkJs,
+concern-per-module — pixel-verified against the harness baselines at
+maxDiffPixels:0; behaviour is unchanged except documented fixes.)
 
 ### WebSocket message protocol
 
@@ -229,11 +262,11 @@ A terminal `error` frame carries `fatal: true` (the only producer today is the p
 The host toggles `pause` (first feature in the in-game menu, `static/js/components/game-screen.js`). `handle_pause` flips `game["paused"]` and broadcasts. While paused:
 
 - **Rolls are rejected** (`handle_roll` guards on `paused`; the client also disables the roll button and guards `roll()`).
-- **Non-host players see the `#loading` screen** ("Waiting for &lt;Host&gt; to resume the game") via `showFor()`; the host keeps the board — even with players offline — so the menu stays reachable. The paused branch in `showFor` precedes the disconnect-loading branch precisely so a paused host isn't bounced to a "waiting to reconnect" screen.
-- **The host's menu shows live status while paused.** `state_msg` adds `pause_remaining_ms` (from `pause_deadline_mono`); `renderMenu()` runs a local 1 Hz countdown plus an "X of Y connected" count so the host can wait for stragglers. A host returning from reconnect lands on `#loading`, so `showFor` calls `openMenu()` on the swap to surface the resume toggle. Resuming closes the menu; pausing leaves it open.
+- **Non-host players see the pause dialog over the live board** (`#pause-overlay`, "Waiting for &lt;Host&gt; to resume the game") via `showFor()` — the board stays live underneath so the dice keep their places; the host keeps the board too, so the menu stays reachable even with players offline. The paused branch in `showFor` (`static/js/router.js`) precedes the disconnect-loading branch precisely so a paused host isn't bounced to a "waiting to reconnect" screen.
+- **The host's menu shows live status while paused.** `state_msg` adds `pause_remaining_ms` (from `pause_deadline_mono`); `renderMenu()` (`static/js/game-render.js`) runs a local 1 Hz countdown plus an "X of Y connected" count so the host can wait for stragglers. A host returning from reconnect lands on `#loading`, so `showFor` calls `openMenu()` on the swap to surface the resume toggle. Resuming closes the menu; pausing leaves it open.
 - **Players are never dropped — but the host isn't a single point of failure.** `drop_player` returns early when paused, so a disconnect (host backgrounding their phone) doesn't end the game. The client extends its reconnect window to ~1 h (`PAUSED_RECONNECT_WINDOW_MS`) when its last-known state was paused. The one exception: if the *host* is the one who's been gone past `DISCONNECT_GRACE`, `drop_player` hands the host role (and the resume control) to a still-connected player instead of dropping anyone — so an absent host can't freeze the table until the cap.
 - **A round won during the pause window doesn't slip past it.** `delayed_broadcast` advances the round after `ROUND_WIN_DELAY`; if a pause landed in that window it sets `round_advance_pending` and freezes instead, and `handle_pause` calls `advance_round()` on resume.
-- **A pause that lands mid-reveal on a roller isn't lost.** A non-host who is mid-roll when the host pauses holds the pause snapshot in `state.postRevealState`; `tryReveal` re-routes through `showFor()` once the reveal finishes, so the roller lands on the wait screen instead of being stranded on the board.
+- **A pause that lands mid-reveal on a roller isn't lost.** A non-host who is mid-roll when the host pauses holds the pause snapshot in `state.postRevealState`; `tryReveal` re-routes through `showFor()` once the reveal finishes, so the roller lands under the pause dialog instead of being stranded on an unguarded board.
 - **A cap backstops abandonment.** `handle_pause` schedules `pause_timeout()` for `PAUSE_MAX` (1 h); if still paused then, the game is ended (fatal `error` broadcast + cleanup). Resume cancels the watchdog and reschedules a normal `DISCONNECT_GRACE` drop for anyone still offline. Re-pausing starts a fresh `PAUSE_MAX` — intentional, since an actively-toggling host isn't an abandoned game.
 
 ### Delayed broadcast (key design detail)

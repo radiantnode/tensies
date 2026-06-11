@@ -14,11 +14,11 @@ All of it runs in `scripts/build_assets.mjs`, in the Docker builder stage, befor
 
 1. SVGs get comments stripped and whitespace collapsed, then a content hash baked into the filename (`logo-eae59c27.svg`). Other binary assets (WebP, woff2) are fingerprinted as-is. A manifest maps the original paths to the hashed ones so everything downstream can find them.
 
-2. The 24 JS modules get bundled into a single file with esbuild. `minify: true` handles identifier mangling, syntax compression, and whitespace removal, including collapsing the newlines in HTML template strings that esbuild normally leaves alone. Asset references get rewritten, then the whole thing gets content-hashed.
+2. The 28 JS modules (27 in the runtime import graph — `types.js` is JSDoc-only) get bundled into a single file with esbuild. `minify: true` handles identifier mangling, syntax compression, and whitespace removal, including collapsing the newlines in HTML template strings that esbuild normally leaves alone. Asset references get rewritten, then the whole thing gets content-hashed.
 
 3. The 10 CSS files get concatenated and run through esbuild's CSS transformer. Non-critical styles (everything except `critical.css`) merge into a single `app.css`. Both get content-hashed.
 
-4. `index.html` gets rewritten: the 9 non-critical `<link>` tags collapse to one, the modulepreload graph (24 entries) drops, every URL swaps to its hashed equivalent, and the HTML gets stripped of comments and collapsed to a single line.
+4. `index.html` gets rewritten: the 9 non-critical `<link>` tags collapse to one, the modulepreload graph (27 entries) drops, every URL swaps to its hashed equivalent, and the HTML gets stripped of comments and collapsed to a single line.
 
 5. Every text asset (JS, CSS, HTML, SVG) gets a `.gz` sibling at level 9 compression. nginx's `gzip_static` serves the pre-compressed file directly. No CPU cost per request.
 

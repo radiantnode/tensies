@@ -37,9 +37,9 @@ pause menu); set it to a *different* id to render the **guest/non-host** view
   (`dice-positions.js`) don't leak between runs either.
 - **`Date.now`** → every countdown freezes: the **winner** timer
   (`overlays.js::startWinTimer`) and the **pause** countdown
-  (`screens.js::renderMenu`, re-anchored to `Date.now()` each tick) both render a
-  fixed value. The winner overlay reads `Next round starts in: NNs`; paused-host
-  reads `60:00`.
+  (`game-render.js::renderMenu`, re-anchored to `Date.now()` each tick) both
+  render a fixed value. The winner overlay reads `Next round starts in: NNs`;
+  paused-host reads `60:00`.
 - **`settle()`** waits `document.fonts.ready`, then pauses infinite animations
   and hides carets. `toHaveScreenshot({animations:'disabled'})` additionally
   fast-forwards finite CSS animations to their end state.
@@ -52,8 +52,8 @@ anything leaked, run #2 goes red. Always re-run verify after capturing.
 For any **started** game, set `has_rolled: true` on players (and a non-zero
 `roll_count`). It controls two things:
 
-- **Players-bar progress** (`screens.js` ~L75): `matched = p.has_rolled ?
-  count(dice==target) : 0`. Without it every bar reads 0/10.
+- **Players-bar progress** (`game-render.js::renderPlayersBar`): `matched =
+  p.has_rolled ? count(dice==target) : 0`. Without it every bar reads 0/10.
 - **My-area layout** (`renderMyArea`): `effectiveTarget = has_rolled ? target :
   -1`. Without it *no* die counts as matched, so nothing splits into the matched
   grid — every die scatters and the board looks pre-roll.
@@ -112,11 +112,12 @@ Confirmed by observing a real game (`page.on('websocket')` → `framereceived`):
   harness by **delaying** the second frame until the first transition settles
   (the fatal-error spec delays the error ~900ms), and **wait for the resting
   state** — `landing active AND loading NOT active AND error text present` — not
-  just the synchronously-set text. (This is also a genuine latent app bug; see
-  below.)
+  just the synchronously-set text. (The app-side half of this race was fixed in
+  rewrite-v2; see the last section.)
 - **Fresh load needs no backend for static views.** With empty `localStorage` and
-  no `?join=`, `main.js` transitions `#loading → #landing` client-side. So
-  landing / join / nav-menu / changelog capture against the served files alone.
+  no `?join=`, `router.js::bootstrap` transitions `#loading → #landing`
+  client-side. So landing / join / nav-menu / changelog capture against the
+  served files alone.
 - **A disconnected peer routes a non-paused board to loading.** `showFor` sends
   the viewer to the "waiting to reconnect" loading screen when any player is
   `disconnected:true` — *unless* the game is paused (the paused branch runs
@@ -185,6 +186,14 @@ SMS / Beer links.
 - **Volatile content gets masked.** `nav-menu-changelog` masks
   `.menu-changelog-body` (regenerated prose) via `toHaveScreenshot({mask:[…]})`,
   so it verifies the panel chrome without false-diffing every changelog update.
+- **Never judge 3-D content from Playwright-WebKit screenshots.** WebKit's
+  screenshot path flattens `transform-style: preserve-3d` *unconditionally*: a
+  settled, perfectly-rendered board screenshots as all-6s with the 90°-rotated
+  dice missing, while the live page is fine. (The same flattening in WebKit's
+  view-transition rasterizer was the real Safari dice bug.) For cross-engine
+  checks, verify WebKit with DOM counts + `getComputedStyle` sampling and use
+  Chromium screenshots for visual evidence. This trap doesn't affect the pixel
+  suite — it's Chromium-pinned.
 - **Courtesy screenshots must wait for animations; verification already does.**
   `toHaveScreenshot` (verify/baseline) auto-retries until two consecutive frames
   match, so it waits out the loading↔landing/screen view-transition morph and
@@ -224,11 +233,24 @@ frames non-invasively with `page.on('websocket', ws => ws.on('framereceived'))`.
 This is how the frame table above was verified. (`/tmp/play.js` during the build
 was a throwaway driver of this shape.)
 
-## Known latent app bug (preserve-or-fix in the rewrite)
+## Latent app bug — FIXED in rewrite-v2
 
-The `showScreen()` early-return race above means a fatal `error` arriving within
-~`MIN_LOADING_MS` (600 ms) of `create` strands the user on the loading screen
-(error set but hidden). It can't trigger in production today — the only fatal
-producer is the pause cap, which fires an hour in — but any faster fatal path
-would surface it. The rewrite's fatal handler should force the landing swap (or
-clear the loading state) rather than trust `showScreen` to win the race.
+The `showScreen()` early-return race above could strand a fast fatal `error` on
+the loading screen (error set but hidden). **Fixed** as the rewrite's one
+sanctioned behavior change: `showScreen(id, { force: true })` skips the
+early-return, and the fatal handler in `net.js` uses it, so the landing swap
+always wins. The harness's fatal-error spec still delays the error ~900ms — a
+deliberate match for production timing, not a workaround anymore.
+
+Two more rendering behaviors layered on since (both relevant when adding
+captures):
+
+- **Swaps INTO `#game` don't use the View Transitions API.** They're *staged*
+  (`showScreen({ staged: true })`): the board builds invisibly (`.staging`),
+  then the outgoing screen `.dissolving`-fades over the live result. This is
+  load-bearing — a VT raster flattens `preserve-3d` on WebKit and the dice
+  mis-render as 6s. Captures gating on `#game.active` then `settle()` are
+  unaffected (the dissolve is an ordinary transition the stability-wait
+  outlasts).
+- **`vt-settling`** hides `.die-scene` during any VT that does target the game
+  screen — dormant insurance now that those swaps are staged.
