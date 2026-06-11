@@ -33,7 +33,7 @@
      higher layer may override. */
   [hidden] { display: none !important; }
 
-  .screen:not(.active) { display: none !important; }
+  .screen:not(.active):not(.staging):not(.dissolving) { display: none !important; }
 }
 
 @layer tokens {
@@ -160,6 +160,25 @@
   @keyframes loading-slide {
     0% { inset-inline-start: -35%; }
     100% { inset-inline-start: 100%; }
+  }
+
+  /* Staged screen reveals (transitions.js showScreen({ staged })): the
+     incoming screen builds invisibly at its final geometry, then the outgoing
+     screen dissolves over the live result — no view-transition raster, so
+     the 3-D dice are never flattened (the Safari capture bug). */
+  .screen.staging {
+    position: fixed;
+    inset: 0;
+    visibility: hidden;
+  }
+
+  .screen.dissolving {
+    position: fixed;
+    inset: 0;
+    z-index: 200;       /* above the game top bar's z-index: 100 */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
   }
 
   /* Loading↔landing morph: the logo pair carries across the swap. */

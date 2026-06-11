@@ -38,13 +38,47 @@ function settledTransition() {
  * work — the dice scatter needs the zone's pixel rect — sees the screen
  * displayed, and the board is complete before the transition's first animated
  * frame), or synchronously when the target is already active.
+ *
+ * `staged` takes the non-view-transition path for screens with 3-D content:
+ * the target is built invisibly at its final geometry (`.staging`) while the
+ * current screen stays up, then the current screen dissolves over the live,
+ * complete result (`.dissolving`). No raster is ever taken, so WebKit's
+ * preserve-3d flattening (the Safari dice bug) can't occur, and the outgoing
+ * overlay covers the board until the dice are rendered.
  * @param {string} id Screen element id: 'loading' | 'landing' | 'join' | 'lobby' | 'game'.
- * @param {{ force?: boolean, onSwap?: () => void }} [options]
+ * @param {{ force?: boolean, staged?: boolean, onSwap?: () => void }} [options]
  */
-export function showScreen(id, { force = false, onSwap } = {}) {
+export function showScreen(id, { force = false, staged = false, onSwap } = {}) {
   const target = byId(id);
   if (!force && target.classList.contains('active')) {
     onSwap?.();
+    return settledTransition();
+  }
+  if (staged) {
+    target.classList.add('staging');
+    onSwap?.();
+    // Commit a frame later: the staged content is laid out (and the dice
+    // placed against the real rect) before the reveal.
+    requestAnimationFrame(() => {
+      const previous = /** @type {HTMLElement | null} */ (document.querySelector('.screen.active'));
+      document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
+      target.classList.remove('staging');
+      target.classList.add('active');
+      if (previous && previous !== target) {
+        previous.classList.add('dissolving');
+        const settle = () => {
+          previous.classList.remove('dissolving');
+          previous.removeEventListener('transitionend', onEnd);
+        };
+        /** @param {TransitionEvent} event */
+        const onEnd = (event) => {
+          // Child transitions bubble — only the overlay's own opacity fade counts.
+          if (event.target === previous && event.propertyName === 'opacity') settle();
+        };
+        previous.addEventListener('transitionend', onEnd);
+        setTimeout(settle, 700); // fallback: a swallowed event can't strand a ghost overlay
+      }
+    });
     return settledTransition();
   }
   const swap = () => {

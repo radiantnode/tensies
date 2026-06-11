@@ -123,6 +123,7 @@ export function showFor(snap) {
       hideWinner();
       leaveLoading(() => {
         showScreen('game', {
+          staged: true,
           onSwap: () => {
             gameScreen().render(snap);
             showPaused(pausedText(snap));
@@ -139,6 +140,7 @@ export function showFor(snap) {
       hideWinner();
       hidePaused();
       showScreen('game', {
+        staged: true,
         onSwap: () => {
           gameScreen().render(snap);
           if (fromLoading) gameScreen().openMenu();
@@ -162,7 +164,7 @@ export function showFor(snap) {
 
   leaveLoading(() => {
     hideWinner();
-    showScreen('game', { onSwap: () => gameScreen().render(snap) });
+    showScreen('game', { staged: true, onSwap: () => gameScreen().render(snap) });
     // Just resumed: drop the pause overlay after the toggle's slide-off.
     const pauseDialog = /** @type {HTMLDialogElement | null} */ (document.getElementById('pause-overlay'));
     if (pauseDialog?.open) setTimeout(hidePaused, RESUME_CLOSE_DELAY_MS);
