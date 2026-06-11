@@ -46,7 +46,7 @@ A single real WebSocket connection; `pinWebSocket` rewrites every inbound `state
 | # | Screenshot | Checks | Spec |
 |---|-----------|--------|------|
 | 10 | <img src="harness/baselines/game-board-mobile.png" width="60"> | Started game mid-round, 3 players with mixed locked/unlocked dice; players bar, round target die, roll button | [stateful.spec.js:54](harness/stateful.spec.js#L54) |
-| 11 | <img src="harness/baselines/game-menu-open-mobile.png" width="60"> | In-game slide-up menu open; Pause and Leave options | [stateful.spec.js:130](harness/stateful.spec.js#L130) |
+| 11 | <img src="harness/baselines/game-menu-open-mobile.png" width="60"> | In-game menu (slides down from the top bar) open over the blurred board; the host's "Pause Game" toggle is its only item | [stateful.spec.js:130](harness/stateful.spec.js#L130) |
 | 12 | <img src="harness/baselines/paused-host-mobile.png" width="60"> | Paused game as host with menu open; 60:00 countdown, "Everyone is here" count, Resume toggle | [stateful.spec.js:146](harness/stateful.spec.js#L146) |
 | 13 | <img src="harness/baselines/paused-board-mobile.png" width="60"> | Paused game as host, menu closed; board visible, Roll button reads "Paused" | [stateful.spec.js:270](harness/stateful.spec.js#L270) |
 | 14 | <img src="harness/baselines/paused-guest-mobile.png" width="60"> | Paused game as non-host; pause overlay "Waiting for Alpha to resume the game" | [stateful.spec.js:166](harness/stateful.spec.js#L166) |
@@ -58,7 +58,7 @@ A single real WebSocket connection; `pinWebSocket` rewrites every inbound `state
 | # | Screenshot | Checks | Spec |
 |---|-----------|--------|------|
 | 17 | <img src="harness/baselines/winner-win-mobile.png" width="60"> | Round-won overlay when I am the winner; "Winner" banner, my name, countdown timer bar | [stateful.spec.js:68](harness/stateful.spec.js#L68) |
-| 18 | <img src="harness/baselines/winner-lose-mobile.png" width="60"> | Round-won overlay when Cosmo won; "Winner" banner shows Cosmo's name, not mine | [stateful.spec.js:82](harness/stateful.spec.js#L82) |
+| 18 | <img src="harness/baselines/winner-lose-mobile.png" width="60"> | Round-won overlay when someone else (Cosmo) won; the viewer sees the **"Loser"** banner, the shattered-dice logo, and **their own name** (Alpha) — losers never see the winner's name in the overlay | [stateful.spec.js:82](harness/stateful.spec.js#L82) |
 
 ### Players bar variants
 
