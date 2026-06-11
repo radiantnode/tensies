@@ -1,0 +1,115 @@
+/* Players bar: the scrollable row of <player-card> minis under the game
+   title row. */
+
+@layer components {
+  .players-bar {
+    display: flex;
+    flex-direction: row;
+    gap: 0.45rem;
+    padding: 0.6rem 0.75rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: var(--color-panel);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .players-bar::-webkit-scrollbar { display: none; }
+
+  .player-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-inline-size: 48px;
+    max-inline-size: 96px;
+  }
+
+  .player-mini-top {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+  }
+
+  .player-mini-name {
+    flex: 1;
+    overflow: hidden;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgba(230, 200, 160, 0.88);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  }
+
+  .player-mini-you {
+    flex-shrink: 0;
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: rgba(230, 130, 110, 0.85);
+  }
+
+  .player-mini-wins {
+    flex-shrink: 0;
+    padding: 0.1rem 0.3rem;
+    background: rgba(150, 95, 35, 0.22);
+    border-radius: 6px;
+    font-size: 0.58rem;
+    font-weight: 700;
+    white-space: nowrap;
+    color: rgba(230, 200, 160, 0.85);
+  }
+
+  .player-mini-wins.leading {
+    background: rgba(150, 95, 35, 0.22);
+    color: rgba(230, 200, 160, 0.85);
+  }
+
+  .player-mini-progress {
+    block-size: 6px;
+    overflow: hidden;
+    background: rgba(40, 22, 10, 0.55);
+    border-radius: 3px;
+  }
+
+  .player-mini-fill {
+    block-size: 100%;
+    background: linear-gradient(90deg,
+      rgba(150, 95, 35, 0.85) 0%,
+      rgba(190, 130, 60, 0.95) 70%,
+      rgba(230, 175, 100, 1) 100%);
+    border-radius: 3px;
+    box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.18);
+    transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .player-mini-fill.me {
+    background: linear-gradient(90deg,
+      rgba(180, 130, 55, 0.85) 0%,
+      rgba(225, 180, 100, 0.95) 70%,
+      rgba(250, 220, 155, 1) 100%);
+  }
+
+  .player-mini-fill.hot {
+    background: linear-gradient(90deg,
+      rgba(180, 40, 70, 0.85) 0%,
+      var(--color-accent) 70%,
+      rgba(255, 130, 155, 1) 100%);
+  }
+
+  .player-mini-count {
+    font-size: 0.58rem;
+    font-variant-numeric: tabular-nums;
+    color: rgba(200, 170, 130, 0.65);
+  }
+
+  .player-mini-count.hot {
+    font-weight: 700;
+    color: var(--color-accent);
+  }
+
+  /* Dimmed card for a disconnected player */
+  .player-mini.disconnected { opacity: 0.35; }
+}

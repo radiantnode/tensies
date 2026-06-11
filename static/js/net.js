@@ -1,8 +1,11 @@
 // @ts-check
+import { myDiceKey } from './dice.js';
 import { byId } from './dom.js';
+import { renderMyArea, renderPlayersBar } from './game-render.js';
+import { showWinner } from './overlays.js';
 import { showFor } from './router.js';
 import {
-  savePlayerId, saveGameCode, saveReconnectToken, readSession, hasSession, clearSession,
+  savePlayerId, saveReconnectToken, readSession, hasSession, clearSession,
 } from './session.js';
 import { state, resetRollState } from './state.js';
 import { showScreen, showLoading, leaveLoading } from './transitions.js';
@@ -185,13 +188,44 @@ function handleMessage(msg) {
       saveReconnectToken(msg.token);
       return;
     case 'state':
-      showFor(msg);
+      // My own roll response (private, pre-broadcast): hold it for tryReveal
+      // so the shake/reveal animation drives the change instead of a hard
+      // re-render. A newer broadcast landing mid-reveal is stashed separately
+      // and applied after the reveal completes.
+      if (state.awaitingAck && msg.started && myDiceKey(msg) !== state.lastMyDiceKey && !state.pendingRollState) {
+        state.pendingRollState = msg;
+      } else if (state.awaitingAck && state.pendingRollState) {
+        state.postRevealState = msg;
+      } else {
+        showFor(msg);
+      }
       return;
-    case 'round_won':
-      // Scaffold scope: routed like a state frame; the winner overlay and the
-      // mid-roll choreography arrive with the game/overlay views.
-      showFor(msg);
+    case 'round_won': {
+      const me = state.myId ? msg.players[state.myId] : undefined;
+      const myName = me ? me.name : (msg.winner_name ?? '?');
+      const iWon = Boolean(me) && Boolean(me?.dice.every((d) => d === msg.target));
+      if (state.awaitingAck && myDiceKey(msg) !== state.lastMyDiceKey) {
+        // Mid-roll win: animate my reveal first; tryReveal shows the overlay.
+        state.pendingRollState = msg;
+        state.pendingWinName = myName;
+        state.pendingWinTarget = msg.target;
+        state.pendingWinRound = msg.round_num;
+        state.pendingWinIsLoser = !iWon;
+      } else {
+        for (const timeout of state.pendingRollTimeouts) clearTimeout(timeout);
+        state.pendingRollTimeouts = [];
+        state.awaitingAck = false;
+        state.rolling = false;
+        state.pendingRollState = null;
+        state.currentState = msg;
+        state.lastMyDiceKey = myDiceKey(msg);
+        showScreen('game');
+        renderPlayersBar(msg);
+        renderMyArea(msg);
+        showWinner(myName, msg.target, msg.round_num, !iWon);
+      }
       return;
+    }
     case 'error':
       handleError(msg);
       return;
