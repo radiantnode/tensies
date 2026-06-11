@@ -172,6 +172,25 @@ export function startGame() {
 }
 
 /**
+ * Whether a `state` frame is a same-round opponent-roll echo arriving while
+ * the win celebration is on screen. Such frames carry nothing the viewer can
+ * see (the board is under the overlay scrim) but would route through
+ * showFor() → hideWinner() and cut the celebration short (observed at 1153ms
+ * and 759ms instead of the full ~3s). Pause and disconnect transitions are
+ * NOT echoes — interrupting the celebration is correct for them — and the
+ * next-round frame (round_num + 1) must keep closing the overlay as before.
+ * @param {import('./types.js').GameSnapshot} snap
+ */
+function isCelebrationEcho(snap) {
+  const overlay = /** @type {HTMLDialogElement | null} */ (document.getElementById('winner-overlay'));
+  return Boolean(overlay?.open)
+    && snap.started
+    && !snap.paused
+    && snap.round_num === state.currentState?.round_num
+    && !Object.values(snap.players).some((p) => p.disconnected);
+}
+
+/**
  * Inbound dispatch.
  * @param {ServerMessage} msg
  */
@@ -196,6 +215,12 @@ function handleMessage(msg) {
         state.pendingRollState = msg;
       } else if (state.awaitingAck && state.pendingRollState) {
         state.postRevealState = msg;
+      } else if (isCelebrationEcho(msg)) {
+        // Absorb the data (state bag + players bar stay fresh) but skip the
+        // screen routing so the overlay holds its full window. My own dice
+        // can't differ in an opponent echo, so no my-area render is needed.
+        state.currentState = msg;
+        renderPlayersBar(msg);
       } else {
         showFor(msg);
       }
