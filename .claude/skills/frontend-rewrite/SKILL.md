@@ -128,7 +128,9 @@ game), exactly what `seedPage` pins and why, the `has_rolled` requirement for
 started games, the confirmed WS frame shapes, a selector cheat-sheet, the
 time-sink gotchas (the `showScreen` View-Transition race, pause status hidden
 inside the menu, `pkill -f uvicorn` self-kill), the full 17-state catalog with
-the approach for each, and a known latent app bug to preserve-or-fix. The
+the approach for each, and the rendering behaviors layered on since the rewrite
+(staged reveals into `#game`, the fixed fatal-swap race, the WebKit 3-D
+screenshot trap). The
 running specs (`stateful.spec.js`, `extras.spec.js`, `views.spec.js`) are the
 worked references; copy their patterns.
 
@@ -162,7 +164,8 @@ rewrite; for incremental work, collapse them to this loop:
    baseline, and re-run.
 
 5. **Commit after the harness is green.** One logical commit per addition,
-   referencing which views were verified.
+   referencing which views were verified — and including the matching
+   `TESTS.md` row when a state was added or its visible content changed.
 
 The non-negotiables (no creative liberties, no MCP Playwright, plan-mode
 approval, zero tolerance) apply here exactly as they do in a full rewrite.
@@ -190,6 +193,11 @@ is not tested. The catalog is encoded in three places to
 copy from: `harness/states.json` (single-page "static" states), `stateful.spec.js`
 (synthesized server-driven states), and `extras.spec.js` (real-interaction
 states). Note which approach each new state needs — `NOTES.md` explains all three.
+The **human-readable index is `TESTS.md`** (one row per state: thumbnail, what
+the baseline protects, spec link). Treat it as part of the catalog: whenever a
+state is added, removed, or its on-screen content changes, update its row in the
+same commit — nothing else in the workflow forces that file open, so it drifts
+silently otherwise.
 
 **Confirm the catalog with the user before leaving this phase.** Adding a missed
 state later is cheap; shipping a view that was never protected is the failure mode
