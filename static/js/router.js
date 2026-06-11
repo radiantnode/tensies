@@ -102,11 +102,16 @@ export function showFor(snap) {
     saveGameCode(snap.code);
   }
 
+  // Screen-specific DOM work rides showScreen's onSwap so it runs with the
+  // target screen displayed — the dice scatter needs the zone's pixel rect,
+  // which reads 0×0 while the screen is still `display: none` (the bug that
+  // made scattered dice miss the board's first paint after a reconnect).
   if (!snap.started) {
     leaveLoading(() => {
       hidePaused();
-      showScreen('lobby');
-      /** @type {import('./components/lobby-screen.js').LobbyScreen} */ (byId('lobby')).render(snap);
+      showScreen('lobby', {
+        onSwap: () => /** @type {import('./components/lobby-screen.js').LobbyScreen} */ (byId('lobby')).render(snap),
+      });
     });
     return;
   }
@@ -117,21 +122,28 @@ export function showFor(snap) {
     if (snap.host !== state.myId) {
       hideWinner();
       leaveLoading(() => {
-        showScreen('game');
-        gameScreen().render(snap);
-        showPaused(pausedText(snap));
+        showScreen('game', {
+          onSwap: () => {
+            gameScreen().render(snap);
+            showPaused(pausedText(snap));
+          },
+        });
       });
       return;
     }
     // A host returning from reconnect lands on the loading screen — pop the
-    // menu open on the swap so the resume toggle is right there.
+    // menu open on the swap so the resume toggle is right there. (Read the
+    // flag before showScreen: the swap changes what's active.)
     const fromLoading = byId('loading').classList.contains('active');
     leaveLoading(() => {
       hideWinner();
       hidePaused();
-      showScreen('game');
-      gameScreen().render(snap);
-      if (fromLoading) gameScreen().openMenu();
+      showScreen('game', {
+        onSwap: () => {
+          gameScreen().render(snap);
+          if (fromLoading) gameScreen().openMenu();
+        },
+      });
     });
     return;
   }
@@ -150,8 +162,7 @@ export function showFor(snap) {
 
   leaveLoading(() => {
     hideWinner();
-    showScreen('game');
-    gameScreen().render(snap);
+    showScreen('game', { onSwap: () => gameScreen().render(snap) });
     // Just resumed: drop the pause overlay after the toggle's slide-off.
     const pauseDialog = /** @type {HTMLDialogElement | null} */ (document.getElementById('pause-overlay'));
     if (pauseDialog?.open) setTimeout(hidePaused, RESUME_CLOSE_DELAY_MS);

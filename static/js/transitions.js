@@ -32,15 +32,25 @@ function settledTransition() {
  * stranding the user on the loading screen with the error set but invisible.
  * Forcing re-runs the swap (the browser skips the in-flight transition), so
  * the resting state is guaranteed.
+ *
+ * `onSwap` runs at the moment the screen state is committed: inside the view
+ * transition's update phase right after the class flip (so layout-dependent
+ * work — the dice scatter needs the zone's pixel rect — sees the screen
+ * displayed, and the board is complete before the transition's first animated
+ * frame), or synchronously when the target is already active.
  * @param {string} id Screen element id: 'loading' | 'landing' | 'join' | 'lobby' | 'game'.
- * @param {{ force?: boolean }} [options]
+ * @param {{ force?: boolean, onSwap?: () => void }} [options]
  */
-export function showScreen(id, { force = false } = {}) {
+export function showScreen(id, { force = false, onSwap } = {}) {
   const target = byId(id);
-  if (!force && target.classList.contains('active')) return settledTransition();
+  if (!force && target.classList.contains('active')) {
+    onSwap?.();
+    return settledTransition();
+  }
   const swap = () => {
     document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
     target.classList.add('active');
+    onSwap?.();
   };
   if (document.startViewTransition) return document.startViewTransition(swap);
   swap();

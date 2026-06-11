@@ -244,9 +244,15 @@ function handleMessage(msg) {
         state.pendingRollState = null;
         state.currentState = msg;
         state.lastMyDiceKey = myDiceKey(msg);
-        showScreen('game');
-        renderPlayersBar(msg);
-        renderMyArea(msg);
+        // The renders ride onSwap so the dice scatter sees a displayed,
+        // measurable board (usually the screen is already active and this
+        // runs synchronously).
+        showScreen('game', {
+          onSwap: () => {
+            renderPlayersBar(msg);
+            renderMyArea(msg);
+          },
+        });
         showWinner(myName, msg.target, msg.round_num, !iWon);
       }
       return;

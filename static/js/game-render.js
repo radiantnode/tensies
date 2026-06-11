@@ -114,12 +114,18 @@ export function renderMyArea(snap) {
   const unmatchedZone = document.createElement('div');
   unmatchedZone.className = 'zone-unmatched';
   const diceToPlace = [...unmatched];
-  // Wait until the zone has dimensions before placing — on a view-transition
-  // swap the .active class isn't applied at the first rAF, so the rect is 0×0.
-  const place = (attempts = 0) => {
+  // Scatter needs the zone's pixel rect. When this render rides showScreen's
+  // onSwap the screen is already displayed, so the first synchronous attempt
+  // succeeds and the dice are in the DOM before the view transition's first
+  // animated frame. If the zone still measures 0×0 (screen not displayed
+  // yet), poll until it is — stopping only when a newer render has replaced
+  // this zone, never by giving up (a silent give-up left boards without
+  // their scattered dice).
+  const place = () => {
+    if (!unmatchedZone.isConnected) return;
     const rect = unmatchedZone.getBoundingClientRect();
-    if ((rect.width <= 0 || rect.height <= 0) && attempts < 30) {
-      requestAnimationFrame(() => place(attempts + 1));
+    if (rect.width <= 0 || rect.height <= 0) {
+      requestAnimationFrame(place);
       return;
     }
     const sz = window.innerWidth <= 480 ? 50 : 56;
@@ -140,7 +146,6 @@ export function renderMyArea(snap) {
     });
     saveDicePositions(snap.code, snap.round_num, used);
   };
-  requestAnimationFrame(() => place());
   zones.appendChild(unmatchedZone);
 
   const matchedZone = document.createElement('div');
@@ -158,6 +163,11 @@ export function renderMyArea(snap) {
   btn.textContent = 'Roll';
   rollArea.appendChild(btn);
   area.appendChild(rollArea);
+
+  // Last: the zone must be measured in its FINAL layout (the roll area above
+  // takes flex height from the zones). The isConnected guard inside place()
+  // is the kill switch if a newer render replaces this one.
+  place();
 }
 
 /**
