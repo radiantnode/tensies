@@ -32,6 +32,7 @@
   <link rel="stylesheet" href="/static/css/players-bar.css">
   <link rel="stylesheet" href="/static/css/dice.css">
   <link rel="stylesheet" href="/static/css/menu.css">
+  <link rel="stylesheet" href="/static/css/overlays.css">
 
   <!-- Preload the whole module graph so it fetches in parallel instead of
        waterfalling app -> router/net -> components. -->
@@ -85,6 +86,28 @@
 </main>
 
 <nav-menu></nav-menu>
+
+<!-- Non-host wait screen while the game is paused. Body-level <dialog> so the
+     board stays live underneath; visually mirrors the loading screen. -->
+<dialog id="pause-overlay" class="overlay-dialog pause-overlay" aria-labelledby="pause-overlay-msg">
+  <img src="/static/images/logo.svg" class="logo-mark" alt="">
+  <h1 class="logo">TENSIES</h1>
+  <div class="loading-bar" aria-hidden="true"><div class="loading-bar-fill"></div></div>
+  <p id="pause-overlay-msg" class="pause-overlay-msg"></p>
+</dialog>
+
+<!-- Round winner/loser celebration. Body-level <dialog> over the live board. -->
+<dialog id="winner-overlay" class="overlay-dialog winner-overlay" aria-label="Round winner">
+  <div class="winner-box">
+    <div class="winner-banner"><span class="winner-banner-label">Round <span class="winner-round-pill" id="winner-round"></span> <span id="winner-banner-suffix">Winner</span></span></div>
+    <img src="/static/images/logo-winner.svg" class="winner-logo" alt="" aria-hidden="true">
+    <p class="winner-name" id="winner-name"></p>
+  </div>
+  <div class="winner-timer" aria-hidden="true">
+    <div class="winner-timer-bar"><div class="winner-timer-fill" id="winner-timer-fill"></div></div>
+    <p class="winner-timer-secs" id="winner-timer-secs"></p>
+  </div>
+</dialog>
 
 </body>
 </html>

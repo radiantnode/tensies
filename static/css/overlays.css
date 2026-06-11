@@ -1,0 +1,271 @@
+/* Dialog overlays: the winner/loser celebration and the non-host pause wait
+   screen. Both are native <dialog>s sitting over the still-visible board —
+   showModal() gives top-layer + focus trap; the dialog itself paints the
+   dimmer (the native ::backdrop is hidden). */
+
+@layer components {
+  .overlay-dialog {
+    position: fixed;
+    inset: 0;
+    inline-size: 100vw;
+    inline-size: 100dvw;
+    block-size: 100vh;
+    block-size: 100dvh;
+    max-inline-size: none;
+    max-block-size: none;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    color: inherit;
+  }
+
+  .overlay-dialog[open] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .overlay-dialog::backdrop { background: transparent; }
+
+  /* ── Pause overlay (non-host) ──
+     Visually identical to the loading screen — same background, logo, bar,
+     and message — but a <dialog> so the game board stays live underneath. */
+  .pause-overlay[open] {
+    flex-direction: column;
+    padding: calc(2rem + env(safe-area-inset-top)) 2rem calc(2rem + env(safe-area-inset-bottom));
+    background: rgba(6, 3, 1, 0.92);
+    text-align: center;
+  }
+
+  /* Match the loading screen's logo spacing exactly, without triggering the
+     view-transition morph that's scoped to .loading-screen/.landing-screen. */
+  .pause-overlay .logo-mark {
+    margin-block-end: -3.5rem;
+    view-transition-name: none;
+  }
+
+  .pause-overlay .logo {
+    margin-block-end: 2.5rem;
+    view-transition-name: none;
+  }
+
+  .pause-overlay-msg {
+    max-inline-size: 280px;
+    block-size: 3.5rem;
+    margin-block-start: 1.25rem;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.5;
+    color: var(--color-text);
+  }
+
+  /* ── Winner overlay ── */
+  .winner-overlay { background: rgba(6, 3, 1, 0.92); }
+
+  /* Column layout. A top spacer equal to the timer's flex region keeps the
+     content (banner/dice/name) centered on screen, while the loader centers
+     in the gap below it. */
+  .winner-overlay[open] { flex-direction: column; }
+  .winner-overlay[open]::before { content: ''; flex: 1; }
+
+  /* "─── Round X Winner ───" banner, right above the logo, centred. */
+  .winner-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    inline-size: 100%;
+    margin: 0 auto -0.75rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--color-text-warm);
+    text-shadow: var(--shadow-text-lg);
+  }
+
+  .winner-banner::before,
+  .winner-banner::after {
+    content: '';
+    flex: 1;
+    block-size: 1px;
+  }
+
+  /* Mostly-solid warm rule that fades only at the very outer end, so the line
+     reads as long/wide rather than petering out near the text. */
+  .winner-banner::before { background: linear-gradient(90deg, transparent 0, rgba(236, 176, 106, 0.78) 32%, rgba(236, 176, 106, 0.78) 100%); }
+  .winner-banner::after { background: linear-gradient(90deg, rgba(236, 176, 106, 0.78) 0, rgba(236, 176, 106, 0.78) 68%, transparent 100%); }
+
+  .winner-banner-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    flex-shrink: 0;
+  }
+
+  /* Round number in a small glowing leather pill — same glow + gradient rim
+     as the board's round pill (.round-label), kept circular. */
+  .winner-round-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    /* Always a circle: fixed equal width/height (sized to fit two digits). */
+    inline-size: 1.85em;
+    block-size: 1.85em;
+    padding: 0;
+    background: rgba(30, 15, 6, 0.22);
+    border-radius: 50%;
+    box-shadow:
+      inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.42),  /* lit inner edge, top-right */
+      inset 2px -2px 6px rgba(70, 28, 8, 0.4),           /* shaded inner edge, bottom-left */
+      2px -2px 9px rgba(255, 186, 102, 0.42),            /* tight glow from top-right */
+      5px -5px 22px rgba(246, 152, 62, 0.3),             /* ambient ember, top-right */
+      0 3px 9px rgba(0, 0, 0, 0.45);                     /* contact shadow below */
+    font-size: 1.5rem;
+    line-height: 1;
+    letter-spacing: 0;
+    color: #fff;
+  }
+
+  .winner-round-pill::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(to bottom left,
+      rgba(252, 200, 126, 0.95) 0%,
+      rgba(216, 148, 80, 0.55) 38%,
+      rgba(150, 96, 46, 0.2) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .winner-box {
+    /* No card surface — the content sits directly on the dimmed board. Full
+       width so the banner rules run edge to edge; perspective so the dice
+       read as a 3D object flying toward the viewer. */
+    flex-shrink: 0;
+    inline-size: 100%;
+    padding: 2.5rem 0;
+    text-align: center;
+    perspective: 900px;
+  }
+
+  .winner-logo {
+    position: relative;
+    z-index: 2;               /* dice overlap on top of the name */
+    inline-size: clamp(250px, 74vw, 360px);
+    block-size: auto;
+    margin-block-end: -3.2rem;
+    transform-origin: center;
+    /* trophy-shine drives the warm glow (filter); fly-in zooms the dice toward
+       you from far away; float-3d keeps a gentle tilt/bob so they hang in space. */
+    animation:
+      trophy-shine 3.2s ease-in-out infinite,
+      fly-in 0.85s cubic-bezier(0.18, 0.7, 0.2, 1) both,
+      float-3d 5s ease-in-out 0.85s infinite;
+  }
+
+  @keyframes fly-in {
+    0% { opacity: 0; transform: translateZ(-820px) rotateX(36deg) scale(0.96); }
+    55% { opacity: 1; }
+    100% { opacity: 1; transform: translateZ(0) rotateX(7deg) rotateY(-9deg); }
+  }
+
+  @keyframes float-3d {
+    0%, 100% { transform: translateZ(0) rotateX(7deg) rotateY(-9deg); }
+    50% { transform: translateZ(38px) rotateX(-5deg) rotateY(10deg); }
+  }
+
+  @keyframes trophy-shine {
+    0%, 100% {
+      filter:
+        drop-shadow(0 8px 18px rgba(0, 0, 0, 0.6))
+        drop-shadow(0 0 26px rgba(248, 168, 80, 0.3))          /* slight even halo */
+        drop-shadow(6px -6px 18px rgba(255, 214, 150, 0.2));   /* faint top-right bias */
+    }
+    50% {
+      filter:
+        drop-shadow(0 8px 18px rgba(0, 0, 0, 0.6))
+        drop-shadow(0 0 32px rgba(250, 176, 88, 0.38))
+        drop-shadow(7px -7px 22px rgba(255, 224, 168, 0.26));
+    }
+  }
+
+  /* Winner name: warm cream→gold gradient with a soft amber glow — lit like
+     the dice/round pill, NOT the brand's accent-red wordmark style. */
+  .winner-name {
+    position: relative;
+    z-index: 1;               /* sits behind the dice */
+    margin: 0;
+    font-size: clamp(2.4rem, 9.5vw, 3.8rem);
+    font-weight: 900;
+    letter-spacing: 0.005em;
+    /* Inter caps at 900, so add a warm-gold stroke (painted behind the fill)
+       to thicken the glyphs further. */
+    -webkit-text-stroke: 1.4px #f1cf98;
+    paint-order: stroke fill;
+    background: linear-gradient(180deg, #fff6e9 0%, #f6dcb0 52%, #e7ba7f 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    /* Glow + legibility (text-shadow doesn't show through clipped text, so
+       the halo and shadow come from drop-shadow filters on the element). */
+    filter:
+      drop-shadow(0 0 18px rgba(246, 152, 62, 0.4))
+      drop-shadow(0 2px 5px rgba(0, 0, 0, 0.65));
+  }
+
+  @media (max-width: 480px) {
+    .winner-box { padding: 2rem 2.25rem; }
+  }
+
+  /* Countdown to the next round — amber progress bar + seconds (loading-text
+     style) pinned at the bottom of the overlay. */
+  .winner-timer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7rem;
+    flex: 1;                  /* fills the gap below the content */
+  }
+
+  .winner-timer-bar {
+    inline-size: min(220px, 62vw);
+    block-size: 6px;
+    overflow: hidden;
+    background: rgba(90, 55, 22, 0.75);
+    border-radius: 3px;
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.45);
+  }
+
+  .winner-timer-fill {
+    inline-size: 100%;
+    block-size: 100%;
+    background: linear-gradient(90deg,
+      rgba(180, 130, 55, 0.85) 0%,
+      rgba(225, 180, 100, 0.95) 70%,
+      rgba(250, 220, 155, 1) 100%);
+    border-radius: 3px;
+    box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.18);
+  }
+
+  /* Seconds remaining — matches the loading message. */
+  .winner-timer-secs {
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text);
+    text-shadow: var(--shadow-text);
+  }
+}

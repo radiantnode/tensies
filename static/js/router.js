@@ -1,8 +1,11 @@
 // @ts-check
 import { byId } from './dom.js';
+import {
+  RESUME_CLOSE_DELAY_MS, hidePaused, hideWinner, pausedText, showPaused, waitingText,
+} from './overlays.js';
 import { saveGameCode, hasSession } from './session.js';
 import { state } from './state.js';
-import { showScreen, leaveLoading } from './transitions.js';
+import { showScreen, showLoading, leaveLoading } from './transitions.js';
 
 /** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
 
@@ -80,10 +83,15 @@ export function bootstrap({ resumeSession }) {
   }
 }
 
+/** The game screen component (typed accessor). */
+function gameScreen() {
+  return /** @type {import('./components/game-screen.js').GameScreen} */ (byId('game'));
+}
+
 /**
- * Show whatever screen the latest server snapshot calls for.
- * (Scaffold scope: lobby and basic board routing. The paused, peer-disconnected
- * and post-roll branches are added with their views.)
+ * Show whatever screen the latest server snapshot calls for. Branch order is
+ * load-bearing: the paused branch must precede the peer-disconnected branch,
+ * so a paused host isn't bounced to the "waiting to reconnect" screen.
  * @param {GameSnapshot} snap
  */
 export function showFor(snap) {
@@ -93,15 +101,60 @@ export function showFor(snap) {
     state.gameCode = snap.code;
     saveGameCode(snap.code);
   }
+
   if (!snap.started) {
     leaveLoading(() => {
+      hidePaused();
       showScreen('lobby');
       /** @type {import('./components/lobby-screen.js').LobbyScreen} */ (byId('lobby')).render(snap);
     });
     return;
   }
+
+  // Paused. Non-host: keep the board under a wait dialog so dice stay in
+  // place. Host: stay on the board with the menu open (countdown + resume).
+  if (snap.paused) {
+    if (snap.host !== state.myId) {
+      hideWinner();
+      leaveLoading(() => {
+        showScreen('game');
+        gameScreen().render(snap);
+        showPaused(pausedText(snap));
+      });
+      return;
+    }
+    // A host returning from reconnect lands on the loading screen — pop the
+    // menu open on the swap so the resume toggle is right there.
+    const fromLoading = byId('loading').classList.contains('active');
+    leaveLoading(() => {
+      hideWinner();
+      hidePaused();
+      showScreen('game');
+      gameScreen().render(snap);
+      if (fromLoading) gameScreen().openMenu();
+    });
+    return;
+  }
+
+  // A peer dropped (and we're not paused): everyone else watches the loading
+  // screen until they reconnect or the grace window elapses.
+  const downNames = Object.values(snap.players)
+    .filter((p) => p.disconnected)
+    .map((p) => p.name);
+  if (downNames.length > 0) {
+    hideWinner();
+    hidePaused();
+    showLoading(waitingText(downNames));
+    return;
+  }
+
   leaveLoading(() => {
+    hideWinner();
     showScreen('game');
-    /** @type {import('./components/game-screen.js').GameScreen} */ (byId('game')).render(snap);
+    gameScreen().render(snap);
+    // Just resumed: drop the pause overlay after the toggle's slide-off.
+    const pauseDialog = /** @type {HTMLDialogElement | null} */ (document.getElementById('pause-overlay'));
+    if (pauseDialog?.open) setTimeout(hidePaused, RESUME_CLOSE_DELAY_MS);
+    else hidePaused();
   });
 }

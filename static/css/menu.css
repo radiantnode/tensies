@@ -267,4 +267,88 @@
     inline-size: 1rem;
     block-size: 1rem;
   }
+
+  /* ── In-game menu items (pause toggle + status) ── */
+  .menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    inline-size: 100%;
+    padding: 0.9rem 1.1rem;
+    background: rgba(30, 15, 5, 0.5);
+    border: 1px solid rgba(170, 115, 45, 0.3);
+    border-radius: var(--radius-md);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-align: start;
+    color: rgba(235, 215, 195, 0.92);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .menu-item:hover { background: rgba(40, 20, 6, 0.6); }
+  .menu-item[hidden] { display: none; }
+
+  /* Toggle switch */
+  .menu-switch {
+    position: relative;
+    flex-shrink: 0;
+    inline-size: 44px;
+    block-size: 24px;
+    background: rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    transition: background 0.2s ease;
+  }
+
+  .menu-switch::after {
+    content: '';
+    position: absolute;
+    inset-block-start: 2px;
+    inset-inline-start: 2px;
+    inline-size: 20px;
+    block-size: 20px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    transition: transform 0.2s ease;
+  }
+
+  .menu-toggle.active .menu-switch { background: var(--color-accent); }
+  .menu-toggle.active .menu-switch::after { transform: translateX(20px); }
+
+  /* Pause status (host, while paused) */
+  .menu-status { padding: 0.25rem 1.1rem 0; }
+  .menu-status[hidden] { display: none; }
+
+  .menu-status-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.15rem 0;
+  }
+
+  .menu-status-label {
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(220, 200, 180, 0.7);
+  }
+
+  .menu-status-value {
+    font-size: 1.05rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: rgba(235, 215, 195, 0.95);
+  }
+
+  .menu-status-players {
+    margin-block-start: 0.3rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: rgba(235, 215, 195, 0.82);
+  }
 }
