@@ -12,7 +12,7 @@ Driven by `states.json`. Each navigates to a URL, clicks through steps, and scre
 | # | Screenshot | Checks | Spec |
 |---|-----------|--------|------|
 | 1 | <img src="harness/baselines/landing-mobile.png" width="60"> | Landing screen at `/`; name input, Create Game button, Join Game with Code button, hamburger | [views.spec.js:15](harness/views.spec.js#L15) |
-| 2 | <img src="harness/baselines/join-empty-mobile.png" width="60"> | Join screen after clicking "Join Game with Code"; name input, code input, Back chip | [views.spec.js:15](harness/views.spec.js#L15) |
+| 2 | <img src="harness/baselines/join-empty-mobile.png" width="60"> | Join screen after clicking "Join Game with Code"; name input, code input, Listen (audio code) button with equalizer icon, Back chip | [views.spec.js:15](harness/views.spec.js#L15) |
 | 3 | <img src="harness/baselines/nav-menu-open-mobile.png" width="60"> | Nav menu slid down from the hamburger; about blurb and "See What's New" button | [views.spec.js:15](harness/views.spec.js#L15) |
 
 ---
@@ -23,7 +23,7 @@ Reached by driving the live app through actual clicks and form submissions.
 
 | # | Screenshot | Checks | Spec |
 |---|-----------|--------|------|
-| 4 | <img src="harness/baselines/join-error-mobile.png" width="60"> | Join form submitted with a non-existent code (`ZZZZZ`); inline error message visible below the form | [extras.spec.js:6](harness/extras.spec.js#L6) |
+| 4 | <img src="harness/baselines/join-error-mobile.png" width="60"> | Join form submitted with a non-existent code (`ZZZZZ`); inline error message visible below the form, Listen button between code input and submit | [extras.spec.js:6](harness/extras.spec.js#L6) |
 | 5 | <img src="harness/baselines/rotate-overlay-mobile.png" width="120"> | Phone held sideways (844×390 landscape — the only non-portrait baseline); the CSS orientation guard covers the layout: dice logo-mark, TENSIES wordmark, "rotate your device to portrait" prompt | [extras.spec.js:21](harness/extras.spec.js#L21) |
 | 6 | <img src="harness/baselines/nav-menu-changelog-mobile.png" width="60"> | "What's New" changelog panel open; changelog body masked (content changes) — protects panel chrome: header, Back button, scroll fades | [extras.spec.js:34](harness/extras.spec.js#L34) |
 
@@ -37,8 +37,8 @@ A single real WebSocket connection; `pinWebSocket` rewrites every inbound `state
 
 | # | Screenshot | Checks | Spec |
 |---|-----------|--------|------|
-| 7 | <img src="harness/baselines/lobby-3p-mobile.png" width="60"> | 3-player lobby, current player is host; player list, game code chip, Start button, SMS share | [stateful.spec.js:44](harness/stateful.spec.js#L44) |
-| 8 | <img src="harness/baselines/lobby-solo-mobile.png" width="60"> | Lobby with only the host; single-player list, Start button | [stateful.spec.js:96](harness/stateful.spec.js#L96) |
+| 7 | <img src="harness/baselines/lobby-3p-mobile.png" width="60"> | 3-player lobby, current player is host; player list, game code chip, Start button, Share + Play (audio code) buttons | [stateful.spec.js:44](harness/stateful.spec.js#L44) |
+| 8 | <img src="harness/baselines/lobby-solo-mobile.png" width="60"> | Lobby with only the host; single-player list, Start button, Share + Play (audio code) buttons | [stateful.spec.js:96](harness/stateful.spec.js#L96) |
 | 9 | <img src="harness/baselines/lobby-guest-mobile.png" width="60"> | Lobby as a non-host guest; "You" badge on own row, "Waiting for host" instead of Start button | [stateful.spec.js:105](harness/stateful.spec.js#L105) |
 | 10 | <img src="harness/baselines/lobby-5p-mobile.png" width="60"> | Lobby at 5 players (max); list overflow and scroll-fade behavior | [stateful.spec.js:117](harness/stateful.spec.js#L117) |
 
