@@ -162,6 +162,66 @@
     100% { inset-inline-start: 100%; }
   }
 
+  /* Orientation guard (inline #rotate-overlay in index.html). Hidden by default;
+     the landscape media query below reveals it. Scoped by max-height so it targets
+     phones held sideways (short in landscape) — never desktop/tablet, which are
+     landscape but tall. There is no true web orientation lock on iOS, so this CSS
+     prompt is the cross-browser stand-in; the manifest covers installed PWAs. */
+  .rotate-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.1rem;
+    padding: calc(1.5rem + env(safe-area-inset-top)) calc(1.5rem + env(safe-area-inset-right))
+             calc(1.5rem + env(safe-area-inset-bottom)) calc(1.5rem + env(safe-area-inset-left));
+    text-align: center;
+    background: var(--color-bg) url('/static/images/bar-top.webp') center / cover no-repeat;
+  }
+
+  .rotate-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--color-panel-screen);
+  }
+
+  .rotate-overlay > * { position: relative; }
+
+  .rotate-icon {
+    inline-size: clamp(44px, 12vh, 64px);
+    block-size: auto;
+    color: var(--color-accent);
+    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6));
+    animation: rotate-hint 2.6s ease-in-out infinite;
+  }
+
+  @keyframes rotate-hint {
+    0%, 60%, 100% { transform: rotate(0deg); }
+    75%, 90% { transform: rotate(-24deg); }
+  }
+
+  .rotate-logo {
+    font-size: clamp(1.6rem, 7vh, 2.4rem);
+    margin-block: 0.25rem 0;
+  }
+
+  .rotate-msg {
+    max-inline-size: 320px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--color-text);
+    text-shadow: var(--shadow-text);
+  }
+
+  @media (orientation: landscape) and (max-height: 500px) {
+    .rotate-overlay { display: flex; }
+  }
+
   /* Staged screen reveals (transitions.js showScreen({ staged })): the
      incoming screen builds invisibly at its final geometry, then the outgoing
      screen dissolves over the live result — no view-transition raster, so
