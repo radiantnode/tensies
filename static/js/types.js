@@ -54,6 +54,8 @@
  * @typedef {object} ErrorMessage
  * @property {'error'} type
  * @property {string} msg
+ * @property {string} [code] Stable machine key (e.g. 'game_not_found') the
+ *   attitude pack re-voices; `msg` is the neutral fallback.
  * @property {boolean} [fatal] Terminal — the game is gone; clear the session.
  */
 

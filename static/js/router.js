@@ -1,4 +1,5 @@
 // @ts-check
+import { observeSnapshot } from './attitude.js';
 import { byId } from './dom.js';
 import {
   RESUME_CLOSE_DELAY_MS, hidePaused, hideWinner, pausedText, showPaused, waitingText,
@@ -97,6 +98,7 @@ function gameScreen() {
 export function showFor(snap) {
   state.currentState = snap;
   state.pendingOrigin = null;
+  observeSnapshot(snap);
   if (snap.code) {
     state.gameCode = snap.code;
     saveGameCode(snap.code);

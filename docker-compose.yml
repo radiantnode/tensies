@@ -20,6 +20,11 @@ services:
       METRICS_TOKEN: ${METRICS_TOKEN:-devmetrics}
       STATS_TOKEN: ${STATS_TOKEN:-devstats}
       CREATE_RATE_MAX: ${CREATE_RATE_MAX:-10}
+      # Tensies Attitude: snarky in local dev by default. The code default is
+      # "off" (byte-identical copy), so the pixel harness and prod stay clean
+      # unless they opt in. Levels: off | friendly_drunk | heckler |
+      # who_invited_him | intolerable.
+      ATTITUDE_LEVEL: ${ATTITUDE_LEVEL:-heckler}
     depends_on:
       postgres:
         condition: service_healthy

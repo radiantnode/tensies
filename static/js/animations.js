@@ -1,4 +1,5 @@
 // @ts-check
+import { hideToast, quip, recordRoll, toast } from './attitude.js';
 import { FACE_ROTATIONS, makeDie, myDiceKey, placeGrid } from './dice.js';
 import { saveDicePositions } from './dice-positions.js';
 import { renderMyArea, renderPlayersBar } from './game-render.js';
@@ -217,6 +218,16 @@ export function tryReveal() {
       state.postRevealState = null;
       showWinner(name, target, round, isLoser);
     } else {
+      // Roll settled without a round result: let the attitude react to the
+      // outcome (bust streaks, a big roll, one die left). No-op at level off.
+      const me = state.myId ? snap.players[state.myId] : undefined;
+      if (me) {
+        const matchedNow = me.dice.filter((d) => d === snap.target).length;
+        const gained = matchedNow - state.prevMatchedCount;
+        const scenario = recordRoll(gained, matchedNow);
+        if (scenario) toast(quip(scenario, '', { target: snap.target, count: gained }));
+        else hideToast(); // an unremarkable roll supersedes the last line
+      }
       hideWinner();
       if (state.postRevealState) {
         const stashed = state.postRevealState;

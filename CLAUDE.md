@@ -282,6 +282,14 @@ This is implemented in `delayed_broadcast()` (`server/broadcast.py`) via an `asy
 3. First player to lock all 10 wins the round → `handle_roll` sets `round_over=True`, sends `round_won` privately and schedules a `delayed_broadcast`
 4. After `ROUND_WIN_DELAY` seconds, `delayed_broadcast` advances `target` (cycles 1→2→3→4→5→6→1), increments `round_num`, calls `deal_round()` again to clear per-round state
 
+### Tensies Attitude (the snark engine)
+
+The UI's voice is a server-decided **attitude pack**. `attitude.json` (repo root) defines five levels — `off`, `friendly_drunk`, `heckler`, `who_invited_him`, `intolerable` — with per-scenario phrase variants. `server/attitude.py` resolves the pack to the operator's `ATTITUDE_LEVEL` at startup (scenarios fall back *down* the scale when a level is missing; lower levels never receive the upper tiers' profanity) and serves it at `GET /attitude.json` (ETag'd; works in both deploy modes since nginx proxies non-`/static` to the app). `ATTITUDE_PLAYER_CHOICE`/`ATTITUDE_MAX_LEVEL` are the pre-wired path to per-player levels (`?level=`, clamped to the operator's ceiling).
+
+Client-side, `static/js/attitude.js` loads the pack at boot and re-voices text through `quip(key, fallback, vars)` / `quipSticky` (memoised, for labels that re-render on every snapshot). Variants can carry `when` conditions matched against a live context — bust/win/loss streaks, `behind_by`, `idle_secs`, daypart, weekend, and a per-player localStorage memory (`tensies_attitude`: lifetime wins/losses/visits, last-played) — plus a `{nickname}` hash-picked from the stable pid so each player gets a persistent pet name. New surfaces: the `#quip-toast` line on the board (roll outcomes, round starts, idle nags — absolutely positioned, zero board reflow) and `#winner-flavor` in the win overlay (`:empty` → hidden). Server `error` frames carry an additive `code` field (`game_not_found`, `rate_limited`, `pause_timeout`, …) the client maps to `errors.*` scenarios; `msg` remains the neutral fallback.
+
+**Invariant: level `off` (the code default) is byte-identical to the built-in copy** — no `Math.random` consumed, no localStorage writes, no DOM changes — so the pixel-harness contract (state.js as first RNG consumer, exact baselines) holds. `docker-compose.yml` sets `ATTITUDE_LEVEL=heckler` for local dev only.
+
 ### Asset serving & cache-busting
 
 Asset serving is split by deployment mode on the `FRONTEND_DIST` env var (wired in `main.py`):

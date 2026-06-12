@@ -1,6 +1,7 @@
 // @ts-check
 import './components/player-card.js';
 import './components/round-target.js';
+import { markActivity, quipSticky } from './attitude.js';
 import { makeDie, myDiceKey, placeGrid } from './dice.js';
 import { loadDicePositions, saveDicePositions } from './dice-positions.js';
 import { byId } from './dom.js';
@@ -220,10 +221,16 @@ export function renderMenu(snap) {
     .map((p) => p.name);
   const playersEl = document.getElementById('pause-players');
   if (playersEl) {
-    if (downNames.length === 0) playersEl.textContent = "Everyone is here! Let's go!";
-    else if (downNames.length === 1) playersEl.textContent = `Waiting on ${downNames[0]}…`;
-    else if (downNames.length === 2) playersEl.textContent = `Waiting on ${downNames[0]} and ${downNames[1]}…`;
-    else playersEl.textContent = `Waiting on ${downNames.slice(0, -1).join(', ')}, and ${downNames.at(-1)}…`;
+    if (downNames.length === 0) {
+      playersEl.textContent = quipSticky('pause.everyone_here', "Everyone is here! Let's go!");
+    } else {
+      const list = downNames.length === 1
+        ? downNames[0]
+        : downNames.length === 2
+          ? `${downNames[0]} and ${downNames[1]}`
+          : `${downNames.slice(0, -1).join(', ')}, and ${downNames.at(-1)}`;
+      playersEl.textContent = quipSticky('pause.waiting_on', `Waiting on ${list}…`, { names: list });
+    }
   }
 
   const remainingEl = document.getElementById('pause-remaining');
@@ -247,7 +254,7 @@ export function syncPaused(snap) {
   if (!btn) return;
   if (snap.paused) {
     btn.disabled = true;
-    btn.textContent = 'Paused';
+    btn.textContent = quipSticky('roll_button_paused', 'Paused');
   } else if (!state.rolling && !state.awaitingAck) {
     btn.disabled = false;
     btn.textContent = 'Roll';
@@ -265,6 +272,7 @@ export function renderGame(snap) {
   if (key !== state.lastMyDiceKey) {
     state.lastMyDiceKey = key;
     state.rolling = false;
+    markActivity(); // my board changed — reset the idle-nag clock
     renderPlayersBar(snap);
     renderMyArea(snap);
   } else {

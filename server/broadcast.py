@@ -136,7 +136,7 @@ async def end_if_paused_over(code: str) -> None:
          total_rolls=snap["total_rolls"])
     metrics.games_ended_total.labels(reason="pause_timeout").inc()
     metrics.game_duration_seconds.observe(duration_ms / 1000.0)
-    await broadcast(code, {"type": "error", "fatal": True,
+    await broadcast(code, {"type": "error", "fatal": True, "code": "pause_timeout",
                            "msg": "Game ended — it was paused too long."})
     await gamestore.delete_game(code)
     state.connections.pop(code, None)

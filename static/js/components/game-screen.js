@@ -1,4 +1,5 @@
 // @ts-check
+import { idleNag, toast } from '../attitude.js';
 import { byId } from '../dom.js';
 import { renderGame } from '../game-render.js';
 import { RESUME_CLOSE_DELAY_MS } from '../overlays.js';
@@ -21,6 +22,9 @@ export class GameScreen extends HTMLElement {
 
   /** @type {HTMLElement | null} */
   #menu = null;
+
+  /** @type {ReturnType<typeof setInterval> | undefined} */
+  #nagTimer;
 
   /** @param {KeyboardEvent} event */
   #onKeydown = (event) => {
@@ -63,7 +67,8 @@ export class GameScreen extends HTMLElement {
           </div>
         </nav>
       </div>
-      <div class="my-area" id="my-area"></div>`;
+      <div class="my-area" id="my-area"></div>
+      <div id="quip-toast" class="quip-toast" aria-live="polite"></div>`;
 
     this.#menuBtn = /** @type {HTMLButtonElement} */ (this.querySelector('.game-menu-btn'));
     this.#menu = byId('game-menu');
@@ -94,10 +99,24 @@ export class GameScreen extends HTMLElement {
     });
 
     document.addEventListener('keydown', this.#onKeydown);
+
+    // Attitude idle nag: poke a player sitting on a live board. idleNag()
+    // returns null while the attitude is off, so this stays inert by default.
+    this.#nagTimer = setInterval(() => {
+      if (!this.classList.contains('active')) return;
+      const snap = state.currentState;
+      if (!snap?.started || snap.paused) return;
+      if (state.rolling || state.awaitingAck) return;
+      const overlay = /** @type {HTMLDialogElement | null} */ (document.getElementById('winner-overlay'));
+      if (overlay?.open) return;
+      const nag = idleNag();
+      if (nag) toast(nag);
+    }, 5000);
   }
 
   disconnectedCallback() {
     document.removeEventListener('keydown', this.#onKeydown);
+    clearInterval(this.#nagTimer);
   }
 
   /** Whether the in-game menu is open. */

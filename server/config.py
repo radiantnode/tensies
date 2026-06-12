@@ -132,6 +132,22 @@ FRONTEND_DIST = os.environ.get("FRONTEND_DIST", "").strip()
 APP_URL = os.environ.get("APP_URL", "").strip().rstrip("/")
 
 
+# ─── Attitude (server-decided snark) ─────────────────────────────────────
+# The Tensies Attitude voice pack (attitude.json). ATTITUDE_LEVEL picks the
+# active level by name or index 0-4 (off | friendly_drunk | heckler |
+# who_invited_him | intolerable); the level-resolved pack is served at
+# GET /attitude.json and rendered entirely client-side. "off" (the default)
+# keeps every string byte-identical to the built-in copy — the pixel harness
+# and any deploy that doesn't opt in are unaffected.
+ATTITUDE_LEVEL = os.environ.get("ATTITUDE_LEVEL", "off").strip().lower()
+ATTITUDE_FILE = os.environ.get("ATTITUDE_FILE", "attitude.json")
+
+# Future player choice: when enabled, /attitude.json?level=X serves any level
+# up to ATTITUDE_MAX_LEVEL — the operator's rudeness ceiling.
+ATTITUDE_PLAYER_CHOICE = _flag("ATTITUDE_PLAYER_CHOICE", False)
+ATTITUDE_MAX_LEVEL = os.environ.get("ATTITUDE_MAX_LEVEL", "intolerable").strip().lower()
+
+
 # ─── Security response headers: HSTS + CSP (audit L4) ────────────────────
 # Master switch for the Content-Security-Policy header. On by default — the
 # frontend has no inline scripts/styles, so a strict CSP applies with no

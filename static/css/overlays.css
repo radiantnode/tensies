@@ -224,6 +224,22 @@
       drop-shadow(0 2px 5px rgba(0, 0, 0, 0.65));
   }
 
+  /* Attitude flavor line under the name. :empty keeps it out of layout at
+     level off, so the overlay's geometry matches the pixel baselines exactly. */
+  .winner-flavor {
+    position: relative;
+    z-index: 1;
+    margin: 0.6rem 0 0;
+    max-inline-size: 30ch;
+    font-size: 0.95rem;
+    font-style: italic;
+    font-weight: 600;
+    color: var(--color-text-warm);
+    text-shadow: var(--shadow-text);
+  }
+
+  .winner-flavor:empty { display: none; }
+
   @media (max-width: 480px) {
     .winner-box { padding: 2rem 2.25rem; }
   }

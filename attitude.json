@@ -1,0 +1,300 @@
+{
+  "version": 1,
+  "comment": "Tensies Attitude voice pack. Levels run 0-4: off, friendly_drunk, heckler, who_invited_him, intolerable. A scenario missing a level falls back DOWN the scale (intolerable -> who_invited_him -> heckler -> friendly_drunk); 'off' always uses the client's built-in copy. Variants are a plain string or {when, text, weight}. `when` conditions match the client's live context: bust_streak, win_streak, loss_streak, behind_by, round, rounds_played, idle_secs, daypart (late_night|morning|afternoon|evening|night), is_weekend, is_first_time, days_since_played, lifetime_wins, lifetime_losses, lifetime_visits. Numeric conditions take '>=N' '<=N' '>N' '<N' '==N'. Placeholders: {nickname} {time} {daypart} {host} {name} {names} {target} {count} {round} plus any context field.",
+
+  "nicknames": {
+    "friendly_drunk": ["champ", "superstar", "my favorite person", "buddy", "legend"],
+    "heckler": ["chief", "ace", "professor", "hotshot", "high roller"],
+    "who_invited_him": ["sport", "slick", "big shot", "genius", "kid"],
+    "intolerable": ["dice goblin", "sunshine", "you absolute liability", "sport", "champ (derogatory)"]
+  },
+
+  "phrases": {
+    "greeting": {
+      "friendly_drunk": [
+        "Dice with friends!! Best day ever!",
+        "Hey hey HEY, it's {nickname}!",
+        { "when": { "daypart": "morning" }, "text": "Morning dice! Breakfast of champions, {nickname}!" },
+        { "when": { "daypart": "late_night" }, "text": "Late night dice club! Shhh, but also YESSS!" },
+        { "when": { "is_first_time": true }, "text": "A NEW FRIEND. Welcome welcome welcome!" },
+        { "when": { "days_since_played": ">=7" }, "text": "{nickname}!! It's been forever! I missed you!" }
+      ],
+      "heckler": [
+        "Roll all ten to win. It's not complicated. Mostly.",
+        "Back for more, {nickname}?",
+        { "when": { "daypart": "late_night" }, "text": "Dice at {time}? Bold life choices, {nickname}." },
+        { "when": { "daypart": "morning" }, "text": "Gambling energy before noon. Respect, I guess." },
+        { "when": { "is_first_time": true }, "text": "Fresh meat. Roll all ten to win — try to keep up." },
+        { "when": { "lifetime_losses": ">=10" }, "text": "{lifetime_losses} career losses and still showing up. That's grit. Or denial." }
+      ],
+      "who_invited_him": [
+        "Oh good. You again.",
+        "Roll the damn dice, win the round. Even you can manage that.",
+        { "when": { "daypart": "late_night" }, "text": "{time} and you're here rolling dice. Everything okay at home?" },
+        { "when": { "days_since_played": ">=7" }, "text": "Look who crawled back." }
+      ],
+      "intolerable": [
+        "Oh great, {nickname} is here. Lock up the good dice.",
+        "Welcome back to the only bar that won't kick me out.",
+        { "when": { "daypart": "late_night" }, "text": "{time}. Playing dice with strangers. Living the dream, huh." },
+        { "when": { "is_first_time": true }, "text": "First time? The dice can smell fear. So can I." },
+        { "when": { "lifetime_losses": ">=15" }, "text": "{lifetime_losses} lifetime losses. At this point it's a donation, not a game." }
+      ]
+    },
+
+    "loading": {
+      "friendly_drunk": ["Hold my drink, loading…", "Gimme a sec, I love this part…"],
+      "heckler": ["Loading. Try to contain yourself.", "Patience. It's a virtue you lack."],
+      "who_invited_him": ["Loading. Yes, still. Damn.", "It's loading. Stop staring at me."],
+      "intolerable": ["It's loading, genius. The bar is doing its best.", "Loading. Unlike you, it has somewhere to be."]
+    },
+
+    "reconnecting": {
+      "friendly_drunk": ["Whoops, dropped you! Hang on, {nickname}…", "Come baaack! Reconnecting…"],
+      "heckler": ["Lost you. Shocking nobody, given your wifi.", "Reconnecting. Blame your phone, everyone else does."],
+      "who_invited_him": ["Your connection died. Like your chances this round.", "Reconnecting. Maybe stand near a window."],
+      "intolerable": ["Reconnecting. Maybe pay your internet bill, {nickname}.", "Connection dropped. It was trying to escape you."]
+    },
+
+    "waiting_reconnect": {
+      "friendly_drunk": ["{names} wandered off! They'll be back, they LOVE us…"],
+      "heckler": ["Waiting for {names} to find the on button…", "{names} dropped. Hold your dice."],
+      "who_invited_him": ["{names} bailed. Probably 'checking a text'. Sure."],
+      "intolerable": ["{names} dropped off the face of the earth. Typical."]
+    },
+
+    "errors": {
+      "connection_failed": {
+        "friendly_drunk": ["Couldn't connect! The internet is being a meanie."],
+        "heckler": ["Couldn't connect. It's not me, it's you."],
+        "who_invited_him": ["Connection failed. Shocker."],
+        "intolerable": ["Couldn't connect. Even the server is avoiding you."]
+      },
+      "game_not_found": {
+        "friendly_drunk": ["Hmm, no party at that address! Double-check the code?"],
+        "heckler": ["That game doesn't exist. Bold of you to type with such confidence."],
+        "who_invited_him": ["No such game. You had ONE code to copy."],
+        "intolerable": ["Game not found, because you can't read five letters correctly."]
+      },
+      "game_in_progress": {
+        "friendly_drunk": ["They already started! Rude of them, honestly."],
+        "heckler": ["That game already started. Fashionably late doesn't work here."],
+        "who_invited_him": ["Too late. They started without you. Take the hint."],
+        "intolerable": ["They started without you. On purpose, probably."]
+      },
+      "game_full": {
+        "friendly_drunk": ["Aww, it's a full house! Start your own party!"],
+        "heckler": ["Game's full. They started without you. Telling."],
+        "who_invited_him": ["Full. No room for you. Story of your life?"],
+        "intolerable": ["Full. No room for you. There's a metaphor in there somewhere."]
+      },
+      "server_full": {
+        "friendly_drunk": ["The bar is PACKED tonight! Try again in a minute!"],
+        "heckler": ["Server's at capacity. Apparently everyone had the same bad idea."],
+        "intolerable": ["Server's full. Even the machines are over it tonight."]
+      },
+      "rate_limited": {
+        "friendly_drunk": ["Whoa whoa, easy there, speedy!"],
+        "heckler": ["Slow down. The dice need to breathe."],
+        "who_invited_him": ["Stop spamming, you absolute menace."],
+        "intolerable": ["Slow. Down. The server isn't your stress toy."]
+      },
+      "enter_code": {
+        "friendly_drunk": ["You forgot the code, silly! It goes in the box!"],
+        "heckler": ["A game code goes in the game code box. Revolutionary, I know."],
+        "who_invited_him": ["The code. Type the damn code."],
+        "intolerable": ["You pressed Join with no code. Incredible work."]
+      },
+      "paused": {
+        "heckler": ["It's paused. Rolling won't work. Neither will whining."],
+        "intolerable": ["Paused means paused. Sit."]
+      },
+      "pause_timeout": {
+        "friendly_drunk": ["Party's over — the host fell asleep. Love you all, get home safe!"],
+        "heckler": ["Game's over. The host paused it and just… never came back."],
+        "who_invited_him": ["Game's dead. Your host abandoned you. Like everyone eventually does."],
+        "intolerable": ["The host ghosted the whole table. An hour. You waited an HOUR."]
+      },
+      "too_large": {
+        "heckler": ["That message was way too big. What are you even sending?"]
+      }
+    },
+
+    "lobby": {
+      "waiting": {
+        "friendly_drunk": ["Waiting for more friends!!", "The party is assembling!"],
+        "heckler": ["Waiting for players. Quality of company not guaranteed."],
+        "who_invited_him": ["Waiting on your so-called friends…"],
+        "intolerable": ["Waiting for players dumb enough to join you."]
+      },
+      "invite": {
+        "friendly_drunk": ["Invite EVERYONE — or start solo, you rebel!"],
+        "heckler": ["Invite friends — or roll alone. No judgment. Some judgment."],
+        "who_invited_him": ["Invite somebody, or play solo like a weirdo."],
+        "intolerable": ["Invite friends. Assuming any are still talking to you."]
+      },
+      "waiting_for_host": {
+        "friendly_drunk": ["The host is gonna start it ANY second, I can feel it!"],
+        "heckler": ["Waiting for the host to find the start button…"],
+        "who_invited_him": ["The host controls the start button. Tragic, I know."],
+        "intolerable": ["Waiting on the host. Power corrupts. Five-letter codes corrupt absolutely."]
+      }
+    },
+
+    "pause": {
+      "waiting_for_host": {
+        "friendly_drunk": ["{host} stepped out — probably getting snacks! SNACKS!"],
+        "heckler": ["{host} paused the game. The power's gone straight to their head."],
+        "who_invited_him": ["{host} paused it. Sit there and think about your life choices."],
+        "intolerable": ["{host} paused the game and left you all hostage. Hell of a host."]
+      },
+      "everyone_here": {
+        "friendly_drunk": ["Everyone's here!! Group hug, then dice!"],
+        "heckler": ["Everyone's here. Miraculously. Resume when ready."],
+        "who_invited_him": ["They're all here. Stop hiding behind the pause button."],
+        "intolerable": ["Everyone's waiting on you now. Enjoy the power trip."]
+      },
+      "waiting_on": {
+        "friendly_drunk": ["{names} will be right back, I believe in them!"],
+        "heckler": ["Waiting on {names}. As usual."],
+        "who_invited_him": ["{names} wandered off. Typical damn {names} behavior."],
+        "intolerable": ["Still waiting on {names}. They're not coming back, you know."]
+      }
+    },
+
+    "roll_button_paused": {
+      "friendly_drunk": ["Hold on!"],
+      "heckler": ["Nope"],
+      "who_invited_him": ["Not now"],
+      "intolerable": ["Sit. Stay."]
+    },
+
+    "winner": {
+      "banner_win": {
+        "friendly_drunk": ["LEGEND"],
+        "heckler": ["Winner, somehow"],
+        "who_invited_him": ["Winner. Fine."],
+        "intolerable": ["Lucky, not good"]
+      },
+      "banner_lose": {
+        "friendly_drunk": ["Next time!!"],
+        "heckler": ["Not a winner"],
+        "who_invited_him": ["Loser. It's right there in the banner."],
+        "intolerable": ["Loser"]
+      },
+      "flavor_win": {
+        "friendly_drunk": ["{name}, you beautiful dice wizard!", "TEN! ALL TEN! I'm crying!"],
+        "heckler": [
+          "Ten {target}s. Even a broken clock, {name}.",
+          "A win. Savor it — statistics say you shouldn't get used to this.",
+          { "when": { "win_streak": ">=3" }, "text": "{win_streak} in a row. Okay, {nickname}, leave some luck for the rest of the table." }
+        ],
+        "who_invited_him": [
+          "You won. The dice clearly felt sorry for you.",
+          { "when": { "win_streak": ">=3" }, "text": "{win_streak} straight wins. You're insufferable now, you know that?" }
+        ],
+        "intolerable": [
+          "You won, {name}. Blind luck, but sure, celebrate.",
+          { "when": { "win_streak": ">=3" }, "text": "{win_streak} in a row. Cheating, or did hell freeze over?" }
+        ]
+      },
+      "flavor_lose": {
+        "friendly_drunk": ["{name} got lucky! You're still MY winner!", "So close! The dice love you, they're just shy!"],
+        "heckler": [
+          "{name} won. You were there too, I guess.",
+          { "when": { "loss_streak": ">=3" }, "text": "{loss_streak} in a row. At some point it stops being bad luck, {nickname}." }
+        ],
+        "who_invited_him": [
+          "Beaten by {name}. Hell of a performance, sport.",
+          { "when": { "loss_streak": ">=3" }, "text": "{loss_streak} straight losses. Damn. Even the dice are bored of beating you." }
+        ],
+        "intolerable": [
+          "{name} smoked you. Fucking embarrassing, honestly.",
+          { "when": { "loss_streak": ">=3" }, "text": "{loss_streak} straight, {nickname}. The dice have formed an opinion about you, and it isn't kind." },
+          { "when": { "loss_streak": ">=5" }, "text": "{loss_streak} losses in a row. Uninstall. I'm serious. This is sad." }
+        ]
+      },
+      "near_miss": {
+        "friendly_drunk": ["NINE!! You had NINE! My heart can't take this!"],
+        "heckler": ["Nine locked and {name} snipes it. Brutal. Genuinely brutal."],
+        "who_invited_him": ["NINE locked. Nine. {name} robbed you and I'm not even mad about it."],
+        "intolerable": ["You had nine. NINE. And still lost. That takes a special kind of talent."]
+      }
+    },
+
+    "roll": {
+      "bust": {
+        "friendly_drunk": [
+          "No matches but GREAT energy!",
+          "The dice are warming up, I can tell!",
+          { "when": { "bust_streak": ">=3" }, "text": "Okay {bust_streak} misses but who's counting! (me. I'm counting.)" }
+        ],
+        "heckler": [
+          "Zero. You rolled zero {target}s. Inspiring.",
+          "Nothing. Crowd goes mild.",
+          { "when": { "bust_streak": ">=3" }, "text": "{bust_streak} busts in a row, {nickname}. Is the phone upside down?" },
+          { "when": { "behind_by": ">=4" }, "text": "A bust, AND you're {behind_by} dice behind. Multitasking failure." },
+          { "when": { "daypart": "late_night" }, "text": "Busting at {time}. The dice are asleep. You should be too." }
+        ],
+        "who_invited_him": [
+          "Nothing. Absolutely nothing. Hell of a roll.",
+          { "when": { "bust_streak": ">=3" }, "text": "{bust_streak} in a row with nothing. Damn, the dice really don't like you." },
+          { "when": { "bust_streak": ">=5" }, "text": "{bust_streak} straight busts. Crap luck or crap technique — pick one." }
+        ],
+        "intolerable": [
+          "A whole lot of nothing. The dice are mocking you and so am I.",
+          { "when": { "bust_streak": ">=3" }, "text": "{bust_streak} busts running. You're not unlucky, {nickname}, you're cursed." },
+          { "when": { "bust_streak": ">=5" }, "text": "{bust_streak} in a row. Holy shit. Frame this. Nobody will believe it." }
+        ]
+      },
+      "good": {
+        "friendly_drunk": ["{count} at once!! I LOVE this person!", "{count}!! Somebody check those dice for magic!"],
+        "heckler": ["{count} in one roll? Who are you and what did you do with {nickname}?"],
+        "who_invited_him": ["{count} at once. Okay, that was almost impressive."],
+        "intolerable": ["{count} in one roll. Even a blind squirrel, I guess."]
+      },
+      "one_left": {
+        "friendly_drunk": ["ONE MORE! I can't watch! I'm watching!"],
+        "heckler": ["One die left. Time to choke."],
+        "who_invited_him": ["One left. Don't blow it. You're gonna blow it."],
+        "intolerable": ["One die left. The whole bar is watching you choke in real time."]
+      }
+    },
+
+    "round": {
+      "start": {
+        "friendly_drunk": ["Round {round}! Target's {target}! GO GO GO!"],
+        "heckler": [
+          "Round {round}. Target's {target}. Try to keep up.",
+          { "when": { "rounds_played": ">=10" }, "text": "Round {round}. Don't you people have jobs?" }
+        ],
+        "who_invited_him": [
+          "Round {round}, target {target}. You know the drill, even if you can't execute it.",
+          { "when": { "rounds_played": ">=10" }, "text": "Round {round}. This is a cry for help at this point." }
+        ],
+        "intolerable": [
+          "Round {round}. Target {target}. Lower your expectations accordingly.",
+          { "when": { "rounds_played": ">=12", "daypart": "late_night" }, "text": "Round {round} at {time}. Seek help. After this round." }
+        ]
+      }
+    },
+
+    "idle_nag": {
+      "friendly_drunk": ["Roll roll roll roll roll!", "{nickname}! The dice miss you!"],
+      "heckler": [
+        "Any decade now, {nickname}.",
+        "The roll button. The big one. At the bottom.",
+        { "when": { "idle_secs": ">=60" }, "text": "Hello? The dice are getting cold." }
+      ],
+      "who_invited_him": [
+        "You gonna roll, or…?",
+        { "when": { "idle_secs": ">=60" }, "text": "It's been a damn minute. Roll." }
+      ],
+      "intolerable": [
+        "Roll the dice. It's the one thing you're here to do.",
+        { "when": { "idle_secs": ">=60" }, "text": "Everyone is literally waiting on you. Literally. Everyone." },
+        { "when": { "idle_secs": ">=120" }, "text": "Two minutes. I've seen glaciers with more urgency." }
+      ]
+    }
+  }
+}

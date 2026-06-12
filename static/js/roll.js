@@ -1,5 +1,6 @@
 // @ts-check
 import { startShake, tryReveal } from './animations.js';
+import { markActivity } from './attitude.js';
 import { state } from './state.js';
 
 /**
@@ -38,6 +39,7 @@ export function roll() {
   for (const timeout of state.pendingRollTimeouts) clearTimeout(timeout);
   state.pendingRollTimeouts = [];
 
+  markActivity();
   state.ws.send(JSON.stringify({ action: 'roll' }));
   startShake();
 

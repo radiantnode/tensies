@@ -65,8 +65,13 @@ class Session:
         self.pinger: Pinger | None = None
 
 
-async def _error(ws: WebSocket, msg: str) -> None:
-    await send(ws, {"type": "error", "msg": msg})
+async def _error(ws: WebSocket, msg: str, code: str | None = None) -> None:
+    """Error frame. `code` is a stable machine key the client's attitude pack
+    re-voices (static/js/attitude.js); `msg` stays the neutral human fallback."""
+    frame: dict = {"type": "error", "msg": msg}
+    if code:
+        frame["code"] = code
+    await send(ws, frame)
 
 
 def _ensure_session_started(session: Session) -> None:
@@ -86,12 +91,12 @@ async def handle_create(session: Session, msg: dict) -> None:
     if not await gamestore.rate_allow("create", session.ip, CREATE_RATE_MAX, CREATE_RATE_WINDOW):
         log.warning("create   ip=%s  RATE LIMIT", session.ip)
         metrics.rate_limits_total.inc()
-        await _error(session.ws, "Too many games created — slow down")
+        await _error(session.ws, "Too many games created — slow down", "rate_limited")
         return
     token, token_hash = make_reconnect_token()
     code = await gamestore.create_game(session.pid, name, token_hash)
     if code is None:
-        await _error(session.ws, "Server is at capacity — try again shortly")
+        await _error(session.ws, "Server is at capacity — try again shortly", "server_full")
         return
     connections[code] = {session.pid: session.ws}
     session.code = code
@@ -115,21 +120,21 @@ async def handle_join(session: Session, msg: dict) -> None:
     if not await gamestore.rate_allow("join", session.ip, JOIN_RATE_MAX, JOIN_RATE_WINDOW):
         log.warning("join     ip=%s  RATE LIMIT", session.ip)
         metrics.rate_limits_total.inc()
-        await _error(session.ws, "Too many attempts — slow down")
+        await _error(session.ws, "Too many attempts — slow down", "rate_limited")
         return
     token, token_hash = make_reconnect_token()
     res = await gamestore.add_player(join_code, session.pid, name, token_hash)
     if res == -1:
         log.info("join     game=%s  player=%s  GAME NOT FOUND", join_code, name)
-        await _error(session.ws, "Game not found")
+        await _error(session.ws, "Game not found", "game_not_found")
         return
     if res == -2:
         log.info("join     game=%s  player=%s  ALREADY STARTED", join_code, name)
-        await _error(session.ws, "Game already in progress")
+        await _error(session.ws, "Game already in progress", "game_in_progress")
         return
     if res == -3:
         log.info("join     game=%s  player=%s  FULL", join_code, name)
-        await _error(session.ws, "Game is full")
+        await _error(session.ws, "Game is full", "game_full")
         return
     session.code = join_code
     connections.setdefault(join_code, {})[session.pid] = session.ws
@@ -177,7 +182,7 @@ async def handle_reconnect(session: Session, msg: dict) -> None:
     if (player is None
             or not player.get("disconnected")
             or not verify_token(player.get("token_hash"), token)):
-        await _error(session.ws, "Game not found")
+        await _error(session.ws, "Game not found", "game_not_found")
         return
     # Cancel a local grace task if this instance owns it. If the task lives on
     # another instance, mark_connected below makes its drop a no-op anyway.
@@ -207,7 +212,7 @@ async def handle_roll(session: Session, msg: dict) -> None:
     if meta is None or not meta["started"] or meta["round_over"]:
         return
     if meta["paused"]:
-        await _error(session.ws, "Game is paused")
+        await _error(session.ws, "Game is paused", "paused")
         return
     player = await gamestore.get_player(code, session.pid)
     if not player:
@@ -220,7 +225,7 @@ async def handle_roll(session: Session, msg: dict) -> None:
         metrics.rate_limits_total.inc()
         emit("rate_limited", game_code=code, user_id=session.pid,
              dt_ms=now_ms - last_ms)
-        await _error(session.ws, "Slow down")
+        await _error(session.ws, "Slow down", "rate_limited")
         return
     dt_ms = (now_ms - last_ms) if last_ms else None
 
@@ -440,7 +445,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
             # Reject oversized frames before parsing (audit L2).
             if len(text) > MAX_WS_MESSAGE_BYTES:
                 log.warning("ws oversize pid=%s  bytes=%d", session.pid[:8], len(text))
-                await _error(ws, "Message too large")
+                await _error(ws, "Message too large", "too_large")
                 continue
             session.msgs_in += 1
             session.bytes_in += len(text)

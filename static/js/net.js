@@ -1,4 +1,5 @@
 // @ts-check
+import { quip, recordRoundEnd } from './attitude.js';
 import { myDiceKey } from './dice.js';
 import { byId } from './dom.js';
 import { renderMyArea, renderPlayersBar } from './game-render.js';
@@ -46,7 +47,7 @@ function expireSession() {
   state.currentState = null;
   leaveLoading(() => {
     showScreen('landing');
-    landingScreen().showError('Connection failed');
+    landingScreen().showError(quip('errors.connection_failed', 'Connection failed'));
   });
 }
 
@@ -66,7 +67,7 @@ export function maybeReconnect() {
   if (!playerId || !gameCode) return;
   state.myId = playerId;
   state.reconnecting = true;
-  showLoading('Reconnecting…');
+  showLoading(quip('reconnecting', 'Reconnecting…'));
   const windowMs = state.currentState?.paused ? PAUSED_RECONNECT_WINDOW_MS : RECONNECT_WINDOW_MS;
   attemptReconnect(playerId, gameCode, Date.now() + windowMs);
 }
@@ -157,7 +158,7 @@ export function createGame() {
 export function joinGame() {
   const code = /** @type {HTMLInputElement} */ (byId('code-input')).value.trim();
   if (!code) {
-    joinScreen().showError('Enter a game code');
+    joinScreen().showError(quip('errors.enter_code', 'Enter a game code'));
     return;
   }
   const name = currentName();
@@ -229,6 +230,9 @@ function handleMessage(msg) {
       const me = state.myId ? msg.players[state.myId] : undefined;
       const myName = me ? me.name : (msg.winner_name ?? '?');
       const iWon = Boolean(me) && Boolean(me?.dice.every((d) => d === msg.target));
+      // Streaks/near-miss must be recorded before the overlay shows (either
+      // branch) so the flavor line's conditions see this round's outcome.
+      recordRoundEnd(iWon, me ? me.dice.filter((d) => d === msg.target).length : 0);
       if (state.awaitingAck && myDiceKey(msg) !== state.lastMyDiceKey) {
         // Mid-roll win: animate my reveal first; tryReveal shows the overlay.
         state.pendingRollState = msg;
@@ -270,6 +274,9 @@ function handleMessage(msg) {
  * @param {ErrorMessage} msg
  */
 function handleError(msg) {
+  // Server errors carry a stable `code` the attitude pack re-voices; the
+  // server's neutral msg is always the fallback.
+  const text = msg.code ? quip(`errors.${msg.code}`, msg.msg) : msg.msg;
   if (msg.fatal) {
     clearSession();
     state.currentState = null;
@@ -279,7 +286,7 @@ function handleError(msg) {
       // transition (the showScreen early-return race — see transitions.js).
       // The only sanctioned behavior change of the rewrite.
       showScreen('landing', { force: true });
-      landingScreen().showError(msg.msg);
+      landingScreen().showError(text);
     });
     return;
   }
@@ -287,13 +294,13 @@ function handleError(msg) {
     state.pendingOrigin = null;
     leaveLoading(() => {
       showScreen('join');
-      joinScreen().showError(msg.msg);
+      joinScreen().showError(text);
     });
   } else if (state.pendingOrigin === 'landing') {
     state.pendingOrigin = null;
     leaveLoading(() => {
       showScreen('landing');
-      landingScreen().showError(msg.msg);
+      landingScreen().showError(text);
     });
   }
   // (In-game errors are handled once the game view exists.)

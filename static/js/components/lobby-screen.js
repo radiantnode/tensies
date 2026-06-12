@@ -1,5 +1,6 @@
 // @ts-check
 import './app-header.js';
+import { quipSticky } from '../attitude.js';
 import { byId } from '../dom.js';
 import { startGame } from '../net.js';
 import { updateScrollFades } from '../scroll-fades.js';
@@ -77,6 +78,7 @@ export class LobbyScreen extends HTMLElement {
   render(snap) {
     state.gameCode = snap.code;
     byId('lobby-code').textContent = snap.code;
+    byId('lobby-title').textContent = quipSticky('lobby.waiting', 'Waiting for players…');
 
     const list = this.#list;
     if (!list) return;
@@ -106,11 +108,12 @@ export class LobbyScreen extends HTMLElement {
     const waitingMsg = byId('waiting-msg');
     if (snap.host === state.myId) {
       startBtn.hidden = false;
-      waitingMsg.textContent =
-        Object.keys(snap.players).length < 2 ? 'Invite friends — or start solo!' : '';
+      waitingMsg.textContent = Object.keys(snap.players).length < 2
+        ? quipSticky('lobby.invite', 'Invite friends — or start solo!')
+        : '';
     } else {
       startBtn.hidden = true;
-      waitingMsg.textContent = 'Waiting for the host to start…';
+      waitingMsg.textContent = quipSticky('lobby.waiting_for_host', 'Waiting for the host to start…');
     }
     requestAnimationFrame(() => this.#updateFades());
   }

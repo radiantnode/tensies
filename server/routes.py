@@ -7,6 +7,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pathlib import Path
 
 from .assets import absolutize_social_images, build_index_html
+from .attitude import response_for
 from .config import APP_URL, FRONTEND_DIST, METRICS_TOKEN, STATS_TOKEN, TELEMETRY_ENABLED, log
 
 router = APIRouter()
@@ -54,6 +55,23 @@ def _require_telemetry() -> None:
 @router.get("/")
 async def root() -> HTMLResponse:
     return HTMLResponse(_index_html)
+
+
+# The Attitude voice pack, resolved to the active level server-side (see
+# server/attitude.py). Served by the app in both deploy modes — nginx proxies
+# everything outside /static — so the operator's ATTITUDE_LEVEL always decides.
+# `level` is honoured only when ATTITUDE_PLAYER_CHOICE is on (clamped to the
+# operator ceiling); ETag + no-cache keeps repeat loads to a 304.
+@router.get("/attitude.json")
+async def attitude_json(
+    level: str | None = None,
+    if_none_match: str | None = Header(default=None, alias="if-none-match"),
+) -> Response:
+    body, etag = response_for(level)
+    headers = {"ETag": etag, "Cache-Control": "no-cache"}
+    if if_none_match == etag:
+        return Response(status_code=304, headers=headers)
+    return Response(body, media_type="application/json", headers=headers)
 
 
 @router.get("/metrics", dependencies=[Depends(_bearer_guard(METRICS_TOKEN))])
