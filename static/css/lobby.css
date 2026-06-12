@@ -93,7 +93,7 @@
 
   .copied { color: var(--color-success) !important; }
 
-  .btn-sms {
+  .btn-share {
     /* Inline icon + label, centred together. */
     display: flex;
     align-items: center;
@@ -116,7 +116,7 @@
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
   }
 
-  .btn-sms:hover:not(:disabled) {
+  .btn-share:hover:not(:disabled) {
     background: var(--color-raised-hover);
     border-color: rgba(190, 130, 55, 0.45);
   }
