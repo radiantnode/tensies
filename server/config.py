@@ -125,6 +125,12 @@ STATS_TOKEN = os.environ.get("STATS_TOKEN") or None
 # edit-and-reload loop needs no build step.
 FRONTEND_DIST = os.environ.get("FRONTEND_DIST", "").strip()
 
+# Public origin the app is served from (e.g. https://tensies.app). When set, the
+# served index.html gets an ABSOLUTE og:image/twitter:image so iOS LinkPresentation
+# (which fetches the join URL without running JS and wants absolute URLs) can show
+# the share-sheet preview. Unset (dev/preview): the image stays relative.
+APP_URL = os.environ.get("APP_URL", "").strip().rstrip("/")
+
 
 # ─── Security response headers: HSTS + CSP (audit L4) ────────────────────
 # Master switch for the Content-Security-Policy header. On by default — the

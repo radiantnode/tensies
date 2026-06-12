@@ -150,6 +150,11 @@ export class LobbyScreen extends HTMLElement {
    * old SMS button; `#composeSms` stays as the fallback for browsers without
    * `navigator.share` (mostly desktop). A user-dismissed sheet rejects with
    * `AbortError` — that's a normal cancel, so it's swallowed silently.
+   *
+   * Only `title` + `url` are shared, deliberately no `text`: on iOS, passing
+   * `text` alongside `url` makes the share sheet show plain text and drop the
+   * rich link card (with the Tensies icon from the page's og:image). The dice
+   * emoji moves into the SMS fallback body instead.
    */
   async #share() {
     if (!state.gameCode) return;
@@ -157,7 +162,6 @@ export class LobbyScreen extends HTMLElement {
       try {
         await navigator.share({
           title: 'Tensies',
-          text: '🎲 Come play Tensies!',
           url: joinLink(),
         });
       } catch {

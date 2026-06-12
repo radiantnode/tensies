@@ -6,8 +6,8 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from pathlib import Path
 
-from .assets import build_index_html
-from .config import FRONTEND_DIST, METRICS_TOKEN, STATS_TOKEN, TELEMETRY_ENABLED, log
+from .assets import absolutize_social_images, build_index_html
+from .config import APP_URL, FRONTEND_DIST, METRICS_TOKEN, STATS_TOKEN, TELEMETRY_ENABLED, log
 
 router = APIRouter()
 
@@ -20,6 +20,10 @@ if FRONTEND_DIST:
     _index_html = (Path(FRONTEND_DIST) / "index.html").read_text()
 else:
     _index_html = build_index_html()
+
+# Stamp the social-preview image to an absolute URL (no-op when APP_URL is unset).
+# Done here so it covers both serving modes from the one document the routes share.
+_index_html = absolutize_social_images(_index_html, APP_URL)
 
 # Fail loud, not closed: a bare `uvicorn` run stays usable, but warn so an
 # operator never unknowingly exposes these on a public port. Both compose files
