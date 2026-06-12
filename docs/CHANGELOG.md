@@ -2,6 +2,30 @@
 
 Pull up a stool. Newest stuff up top.
 
+## 1.11.0 ("On Tap")
+
+Friday, June 12, 2026
+
+- Add Tensies to your home screen and it opens like a real app, full screen, with none of the browser clutter between you and the dice.
+- The lobby invite button now opens your phone's share sheet. AirDrop it, text it, drop it in the group chat, whatever gets the crew in fastest. 🍻
+- Turn your phone sideways and Tensies will politely ask you to turn it back. It's a portrait kind of game.
+
+## 1.10.0 ("Clean Glasses")
+
+Thursday, June 11, 2026
+
+- Fixed dice on iPhones sometimes showing the wrong faces for a moment when screens changed. You always see what you actually rolled now.
+- Your win screen no longer blinks away early when an impatient opponent rolls right as you finish. Savor it. 🥃
+- The board shows up fully set now. Your dice are already on the wood before you ever see it, and the loading screen just melts away.
+- _Behind the scenes: the big rebuild from yesterday is done. Every screen reconstructed and checked against the original down to the last pixel._
+
+## 1.9.1 ("Back of House")
+
+Wednesday, June 10, 2026
+
+- You shouldn't notice a single thing different today, and that's the point. We started rebuilding the whole front of the game from scratch, and every screen gets checked against the original, pixel by pixel. 🔍
+- _Behind the scenes: cleaner bones under the same bar means new rounds of features land faster and break less._
+
 ## 1.9.0 ("Speed Round")
 
 Sunday, June 8, 2026
