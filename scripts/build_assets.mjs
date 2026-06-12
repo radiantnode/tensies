@@ -113,6 +113,15 @@ const NONCRIT = ['controls', 'shell', 'landing', 'lobby', 'game',
     writeHashed('css', 'critical', '.css', rewriteRefs(min)));
 }
 
+// ── 4b. Rewrite the web-app manifest's icon refs, then hash it ────────────────
+// Icons were fingerprinted in step 1, so rewriteRefs points them at the hashed
+// paths; recording the manifest in the map lets step 5 rewrite its <link> href.
+{
+  const raw = readFileSync(join(SRC, 'manifest.webmanifest'), 'utf8');
+  manifest.set('/static/manifest.webmanifest',
+    writeHashed('', 'manifest', '.webmanifest', rewriteRefs(raw)));
+}
+
 // ── 5. Rewrite index.html ─────────────────────────────────────────────────────
 let html = readFileSync(join(SRC, 'index.html'), 'utf8');
 html = rewriteRefs(html); // images, fonts, critical.css link
@@ -133,7 +142,7 @@ writeFileSync(join(DIST, 'index.html'), html);
 // ── 6. Pre-compress text assets for nginx gzip_static ─────────────────────────
 let gz = 0;
 for (const file of walk(DIST)) {
-  if (/\.(js|css|html|svg)$/.test(file)) {
+  if (/\.(js|css|html|svg|webmanifest)$/.test(file)) {
     writeFileSync(`${file}.gz`, gzipSync(readFileSync(file), { level: 9 }));
     gz++;
   }
