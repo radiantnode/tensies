@@ -175,9 +175,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1.1rem;
-    padding: calc(1.5rem + env(safe-area-inset-top)) calc(1.5rem + env(safe-area-inset-right))
-             calc(1.5rem + env(safe-area-inset-bottom)) calc(1.5rem + env(safe-area-inset-left));
+    padding: calc(1.25rem + env(safe-area-inset-top)) calc(1.5rem + env(safe-area-inset-right))
+             calc(1.25rem + env(safe-area-inset-bottom)) calc(1.5rem + env(safe-area-inset-left));
     text-align: center;
     background: var(--color-bg) url('/static/images/bar-top.webp') center / cover no-repeat;
   }
@@ -191,27 +190,29 @@
 
   .rotate-overlay > * { position: relative; }
 
-  .rotate-icon {
-    inline-size: clamp(44px, 12vh, 64px);
-    block-size: auto;
-    color: var(--color-accent);
-    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6));
-    animation: rotate-hint 2.6s ease-in-out infinite;
+  /* The dice logo-mark IS the brand here (mirrors the loading/pause screens),
+     sized down to vh so it fits the short landscape height. The gentle rotate
+     nudge doubles as the "turn your phone" hint (suppressed under reduced-motion
+     by the utilities layer). */
+  .rotate-mark {
+    inline-size: clamp(56px, 22vh, 112px);
+    margin-block-end: -1rem;
+    animation: rotate-hint 2.8s ease-in-out infinite;
   }
 
   @keyframes rotate-hint {
     0%, 60%, 100% { transform: rotate(0deg); }
-    75%, 90% { transform: rotate(-24deg); }
+    78%, 90% { transform: rotate(-16deg); }
   }
 
   .rotate-logo {
-    font-size: clamp(1.6rem, 7vh, 2.4rem);
-    margin-block: 0.25rem 0;
+    font-size: clamp(1.5rem, 6.5vh, 2.3rem);
+    margin-block-end: 0.75rem;
   }
 
   .rotate-msg {
     max-inline-size: 320px;
-    font-size: 1.05rem;
+    font-size: 1rem;
     font-weight: 600;
     line-height: 1.5;
     color: var(--color-text);
