@@ -1,7 +1,7 @@
 # Tensies
 
 <p align="center">
-  <img src="static/logo.svg" alt="Tensies" width="220" />
+  <img src="static/images/logo.svg" alt="Tensies" width="220" />
 </p>
 
 A real-time multiplayer dice game for the bar, the beach, or anywhere you forgot to bring actual dice.
