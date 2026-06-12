@@ -80,33 +80,6 @@
     max-inline-size: 320px;
   }
 
-  /* "Listen" (audio code share) — icon + label like the lobby Share button,
-     with a pulsing dot while the mic is live. */
-  .btn-listen {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.55rem;
-  }
-
-  .btn-listen.listening::before {
-    content: '';
-    inline-size: 8px;
-    block-size: 8px;
-    border-radius: 50%;
-    background: var(--color-accent);
-    animation: listen-pulse 1.2s ease-in-out infinite;
-  }
-
-  @keyframes listen-pulse {
-    0%, 100% { opacity: 0.35; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1); }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .btn-listen.listening::before { animation: none; opacity: 1; }
-  }
-
   .or-divider {
     display: flex;
     align-items: center;

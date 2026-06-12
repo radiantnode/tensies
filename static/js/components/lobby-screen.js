@@ -2,6 +2,7 @@
 import './app-header.js';
 import { playCode } from '../audio-share.js';
 import { byId } from '../dom.js';
+import { EQ_ICON_HTML } from '../eq-icon.js';
 import { startGame } from '../net.js';
 import { updateScrollFades } from '../scroll-fades.js';
 import { state } from '../state.js';
@@ -50,10 +51,8 @@ export class LobbyScreen extends HTMLElement {
           </svg>
           <span>Share</span>
         </button>
-        <button id="play-code-btn" type="button" class="btn btn-share btn-play-code">
-          <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-          </svg>
+        <button id="play-code-btn" type="button" class="btn btn-share btn-play-code btn-audio">
+          ${EQ_ICON_HTML}
           <span>Play</span>
         </button>
         <section class="lobby-players-section" aria-labelledby="players-label">
@@ -187,15 +186,16 @@ export class LobbyScreen extends HTMLElement {
   async #playCode() {
     if (!state.gameCode) return;
     const btn = /** @type {HTMLButtonElement} */ (byId('play-code-btn'));
-    const label = /** @type {HTMLSpanElement} */ (btn.querySelector('span'));
-    btn.disabled = true;
+    if (btn.classList.contains('playing')) return; // already chirping
+    const label = /** @type {HTMLSpanElement} */ (btn.querySelector('span:not(.eq)'));
+    btn.classList.add('playing');
     label.textContent = 'Playing…';
     try {
       await playCode(state.gameCode);
     } catch {
       // Unsupported or interrupted — nothing to recover, just restore the button.
     } finally {
-      btn.disabled = false;
+      btn.classList.remove('playing');
       label.textContent = 'Play';
     }
   }

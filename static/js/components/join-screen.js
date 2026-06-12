@@ -3,6 +3,7 @@ import './app-header.js';
 import { AudioShareError, listenForCode } from '../audio-share.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
 import { byId } from '../dom.js';
+import { EQ_ICON_HTML } from '../eq-icon.js';
 import { joinGame } from '../net.js';
 import { showLanding } from '../router.js';
 import { state } from '../state.js';
@@ -30,10 +31,8 @@ export class JoinScreen extends HTMLElement {
         <form id="join-form" class="form-stack" autocomplete="off" novalidate>
           <input id="join-name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20">
           <input id="code-input" name="code" class="code-input" type="text" aria-label="Game code" inputmode="latin" placeholder="ABCDE" maxlength="5" autocapitalize="characters">
-          <button id="listen-btn" type="button" class="btn btn-secondary btn-listen">
-            <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>
-            </svg>
+          <button id="listen-btn" type="button" class="btn btn-secondary btn-listen btn-audio">
+            ${EQ_ICON_HTML}
             <span>Listen</span>
           </button>
           <button type="submit" class="btn btn-primary">Join Game</button>
@@ -70,18 +69,18 @@ export class JoinScreen extends HTMLElement {
     }
 
     const btn = /** @type {HTMLButtonElement} */ (byId('listen-btn'));
-    const label = /** @type {HTMLSpanElement} */ (btn.querySelector('span'));
+    const label = /** @type {HTMLSpanElement} */ (btn.querySelector('span:not(.eq)'));
     const codeInput = /** @type {HTMLInputElement} */ (byId('code-input'));
     this.#listenAbort = new AbortController();
     btn.classList.add('listening');
-    label.textContent = 'Listening… tap to cancel';
+    label.textContent = 'Listening…';
     this.showError('');
 
     try {
       codeInput.value = await listenForCode({
         signal: this.#listenAbort.signal,
         onStatus: () => {
-          label.textContent = 'Hearing it… hold still';
+          label.textContent = 'Hearing it…';
         },
       });
       codeInput.focus();

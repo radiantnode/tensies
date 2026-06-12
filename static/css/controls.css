@@ -112,6 +112,146 @@
     max-inline-size: 400px;
   }
 
+  /* Audio share buttons (lobby "Play", join "Listen") — a live equalizer
+     icon plus directional sonar rings: Play broadcasts (rings expand),
+     Listen receives (rings contract). Shared by both screens. */
+  .btn-audio {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  /* Idle: a slow breathing glow so the feature reads as alive before any
+     tap. Keyframes restate the .btn-share/.btn-secondary resting shadows so
+     animating box-shadow doesn't drop them. */
+  .btn-audio:not(.playing):not(.listening) {
+    animation: audio-breathe 3s ease-in-out infinite;
+  }
+
+  @keyframes audio-breathe {
+    0%, 100% {
+      box-shadow:
+        inset 0 1px 0 rgba(220, 170, 70, 0.12),
+        0 4px 14px rgba(0, 0, 0, 0.45),
+        0 0 14px rgba(255, 77, 109, 0.18);
+    }
+    50% {
+      box-shadow:
+        inset 0 1px 0 rgba(220, 170, 70, 0.12),
+        0 4px 14px rgba(0, 0, 0, 0.45),
+        0 0 28px rgba(255, 77, 109, 0.45);
+    }
+  }
+
+  /* Active surface: the .btn-primary pink rim + a soft highlight sweeping
+     across (same motion family as the loading bar). */
+  .btn-audio:is(.playing, .listening) {
+    border-color: rgba(255, 160, 178, 0.7);
+    background-image: linear-gradient(
+      105deg,
+      transparent 32%,
+      rgba(255, 220, 226, 0.18) 50%,
+      transparent 68%
+    );
+    background-size: 250% 100%;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 220, 226, 0.4),
+      inset 0 0 18px rgba(255, 77, 109, 0.12),
+      0 4px 14px rgba(0, 0, 0, 0.45),
+      0 0 32px rgba(255, 77, 109, 0.55);
+    animation: audio-shimmer 1.8s linear infinite;
+  }
+
+  @keyframes audio-shimmer {
+    from { background-position: 120% 0; }
+    to { background-position: -120% 0; }
+  }
+
+  /* Keep the active rim/surface stable under the screen-level :hover rules
+     (.btn-share:hover / .btn-secondary:hover would out-specify it). */
+  .btn-audio:is(.playing, .listening):hover:not(:disabled) {
+    border-color: rgba(255, 160, 178, 0.7);
+    background-color: var(--color-raised);
+  }
+
+  /* Sonar rings, centred on the button, clipped by the pill. */
+  .btn-audio::before,
+  .btn-audio::after {
+    content: '';
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    inline-size: 34px;
+    block-size: 34px;
+    margin: -17px 0 0 -17px;
+    border: 2px solid var(--color-accent);
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .btn-audio.playing::before { animation: sonar-out 1.8s linear infinite; }
+  .btn-audio.playing::after { animation: sonar-out 1.8s linear 0.9s infinite; }
+  .btn-audio.listening::before { animation: sonar-in 1.8s linear infinite; }
+  .btn-audio.listening::after { animation: sonar-in 1.8s linear 0.9s infinite; }
+
+  @keyframes sonar-out {
+    0% { transform: scale(0.45); opacity: 0.8; }
+    100% { transform: scale(3.8); opacity: 0; }
+  }
+
+  @keyframes sonar-in {
+    0% { transform: scale(3.8); opacity: 0; }
+    60% { opacity: 0.65; }
+    100% { transform: scale(0.45); opacity: 0; }
+  }
+
+  /* The equalizer icon: five amber bars at rest, dancing magenta when
+     active — unsynchronised durations, like the dice tumbles. */
+  .btn-audio .eq {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    inline-size: 18px;
+    block-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .btn-audio .eq i {
+    flex: 1;
+    border-radius: 1px;
+    background: var(--color-amber);
+    opacity: 0.85;
+    transform-origin: center;
+  }
+
+  .btn-audio .eq i:nth-child(1) { transform: scaleY(0.35); }
+  .btn-audio .eq i:nth-child(2) { transform: scaleY(0.65); }
+  .btn-audio .eq i:nth-child(3) { transform: scaleY(0.95); }
+  .btn-audio .eq i:nth-child(4) { transform: scaleY(0.55); }
+  .btn-audio .eq i:nth-child(5) { transform: scaleY(0.3); }
+
+  .btn-audio:is(.playing, .listening) .eq i {
+    background: var(--color-accent);
+    opacity: 1;
+    filter: drop-shadow(0 0 6px var(--color-accent));
+  }
+
+  .btn-audio:is(.playing, .listening) .eq i:nth-child(1) { animation: eq-dance 0.5s ease-in-out -0.15s infinite alternate; }
+  .btn-audio:is(.playing, .listening) .eq i:nth-child(2) { animation: eq-dance 0.62s ease-in-out -0.4s infinite alternate; }
+  .btn-audio:is(.playing, .listening) .eq i:nth-child(3) { animation: eq-dance 0.45s ease-in-out infinite alternate; }
+  .btn-audio:is(.playing, .listening) .eq i:nth-child(4) { animation: eq-dance 0.7s ease-in-out -0.25s infinite alternate; }
+  .btn-audio:is(.playing, .listening) .eq i:nth-child(5) { animation: eq-dance 0.55s ease-in-out -0.55s infinite alternate; }
+
+  @keyframes eq-dance {
+    from { transform: scaleY(0.2); }
+    to { transform: scaleY(1); }
+  }
+
   .error-msg {
     min-block-size: 1.4rem;
     font-size: 0.9rem;
