@@ -78,7 +78,12 @@ export class JoinScreen extends HTMLElement {
     this.showError('');
 
     try {
-      codeInput.value = await listenForCode({ signal: this.#listenAbort.signal });
+      codeInput.value = await listenForCode({
+        signal: this.#listenAbort.signal,
+        onStatus: () => {
+          label.textContent = 'Hearing it… hold still';
+        },
+      });
       codeInput.focus();
     } catch (err) {
       const reason = err instanceof AudioShareError ? err.reason : 'unsupported';

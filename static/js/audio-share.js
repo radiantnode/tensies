@@ -30,24 +30,31 @@ const SEP_MS = 70;
 const START_TONE_MS = 200;
 const END_TONE_MS = 100;
 const FRAME_GAP_MS = 250;
-const REPEATS = 3;
+const REPEATS = 4; // 4 frames of evidence for the cross-frame vote (~7 s)
 const RAMP_S = 0.005; // 5 ms gain ramps — no clicks, cleaner spectrum
-const TONE_GAIN = 0.6;
-// Measured over-air: at equal level (0.6) the separator rings louder and
-// longer than the letters and steals their polls; at 0.15 it loses the
-// frequency race entirely and repeated letters merge. 0.4 (~3.5 dB down)
-// leaves the letters dominant while the separator still wins its own slot.
-const SEP_GAIN = 0.4;
+// Full scale — a single sine can't clip, and every dB here is range.
+const TONE_GAIN = 1.0;
+// Measured over-air: at equal level the separator rings louder and longer
+// than the letters and steals their polls; far below (-12 dB) it loses the
+// frequency race entirely and repeated letters merge. ~3.5 dB down leaves
+// the letters dominant while the separator still wins its own slot.
+const SEP_GAIN = 0.65;
 
 const BAND_LOW_HZ = 1700;
 const BAND_HIGH_HZ = 3600;
 // 2048 samples ≈ 43 ms at 48 kHz — short enough to fit inside one tone,
-// wide enough (~23 Hz bins) to separate symbols.
+// wide enough (~23 Hz bins) to separate symbols. 4096 would buy ~3 dB of
+// bin SNR but its 85 ms window never fits inside the 70 ms separator slot,
+// so separator detection (and with it repeated letters) would regress.
 const FFT_SIZE = 2048;
-const SIGNAL_MIN_DB = -70; // absolute floor for "there is a tone"
-// Measured over-air: real tones sit 40+ dB over the band median; ambient
-// peaks only ~15 dB over. 18 dB cleanly splits them.
-const SIGNAL_MARGIN_DB = 18;
+// Desk measurements: tones -28…-50 dB, ambient peaks -65…-69, floor ~-85.
+// -80 keeps tones decodable at 2-3× the distance; the relative margin below
+// stays the main gate against ambient noise.
+const SIGNAL_MIN_DB = -80;
+// Real tones sit 30+ dB over the band median even at range; ambient peaks
+// reach ~15. Occasional false polls are absorbed by the run-length
+// requirement, the checksum, and the cross-frame vote.
+const SIGNAL_MARGIN_DB = 15;
 const POLL_MS = 16;
 const START_RUN = 6; // consecutive polls of START to arm a frame
 const SYMBOL_RUN = 3; // consecutive polls to confirm a letter/end segment
@@ -55,7 +62,7 @@ const SYMBOL_RUN = 3; // consecutive polls to confirm a letter/end segment
 // way a false letter can — so it confirms faster. Over-air it often wins
 // only ~2 polls of its 70 ms slot (the neighbouring letters ring over it).
 const SEP_RUN = 2;
-const LISTEN_TIMEOUT_MS = 15000;
+const LISTEN_TIMEOUT_MS = 22000; // covers the full 4-repeat transmission + slack
 
 const CODE_LEN = 5;
 const CODE_RE = /^[A-Z]{5}$/;
@@ -166,12 +173,14 @@ export async function playCode(code) {
 /**
  * Decode a code from any audio source node (mic, or a loopback from
  * {@link scheduleCode} for testing). Resolves with the 5-letter code on the
- * first checksum-valid frame.
+ * first checksum-valid frame — or, at marginal signal, on a cross-frame
+ * majority vote / single-letter repair over the imperfect frames heard so
+ * far (different repetitions tend to flub different letters).
  * @param {AudioNode} source
- * @param {{ signal?: AbortSignal, timeoutMs?: number }} [options]
+ * @param {{ signal?: AbortSignal, timeoutMs?: number, onStatus?: (status: 'heard') => void }} [options]
  * @returns {Promise<string>}
  */
-export function decodeFromNode(source, { signal, timeoutMs = LISTEN_TIMEOUT_MS } = {}) {
+export function decodeFromNode(source, { signal, timeoutMs = LISTEN_TIMEOUT_MS, onStatus } = {}) {
   return new Promise((resolve, reject) => {
     const ctx = source.context;
     const analyser = ctx.createAnalyser();
@@ -197,6 +206,67 @@ export function decodeFromNode(source, { signal, timeoutMs = LISTEN_TIMEOUT_MS }
     let lastSegment = null;
     let collecting = false;
     let letters = '';
+    let heardFired = false;
+    /** @type {string[]} completed 6-letter frames that failed their checksum */
+    const candidates = [];
+
+    /** @param {string} frame 6 letters (5 code + checksum) */
+    const isValidFrame = (frame) =>
+      frame.length === CODE_LEN + 1 && frame[CODE_LEN] === checksumLetter(frame.slice(0, CODE_LEN));
+
+    /**
+     * Try to reconstruct a valid frame from the imperfect candidates.
+     * @returns {string | null} a checksum-valid 6-letter frame, or null
+     */
+    const recoverFrame = () => {
+      // Position-wise majority vote across all failed frames.
+      if (candidates.length >= 2) {
+        let voted = '';
+        for (let pos = 0; pos <= CODE_LEN; pos++) {
+          /** @type {Map<string, number>} */
+          const counts = new Map();
+          for (const frame of candidates) {
+            counts.set(frame[pos], (counts.get(frame[pos]) ?? 0) + 1);
+          }
+          let bestLetter = '';
+          let bestCount = 0;
+          for (const [letter, count] of counts) {
+            if (count > bestCount) {
+              bestCount = count;
+              bestLetter = letter;
+            }
+          }
+          voted += bestLetter;
+        }
+        if (isValidFrame(voted)) return voted;
+      }
+      // Single-position checksum repair: the checksum is a mod-26 sum, so for
+      // a chosen suspect position the correct letter is fully determined.
+      // Only accept a repair another frame corroborates — repairing on the
+      // checksum math alone would "fix" any single-letter corruption.
+      for (const frame of candidates) {
+        for (let pos = 0; pos <= CODE_LEN; pos++) {
+          let fixed;
+          if (pos === CODE_LEN) {
+            fixed = checksumLetter(frame.slice(0, CODE_LEN));
+          } else {
+            let others = letterIndex(frame[CODE_LEN]);
+            for (let i = 0; i < CODE_LEN; i++) {
+              if (i !== pos) others -= letterIndex(frame[i]);
+            }
+            fixed = String.fromCharCode(65 + (((others % 26) + 26) % 26));
+          }
+          if (fixed === frame[pos]) continue;
+          const corroborated = candidates.some(
+            (other) => other !== frame && other[pos] === fixed,
+          );
+          if (!corroborated) continue;
+          const repaired = frame.slice(0, pos) + fixed + frame.slice(pos + 1);
+          if (isValidFrame(repaired)) return repaired;
+        }
+      }
+      return null;
+    };
 
     /** @param {() => void} settle */
     const cleanup = (settle) => {
@@ -258,19 +328,34 @@ export function decodeFromNode(source, { signal, timeoutMs = LISTEN_TIMEOUT_MS }
       lastSegment = segment;
       if (segment === 'silence' || segment === 'sep') return; // delimiters only
       if (segment === 'start') {
+        if (!heardFired) {
+          heardFired = true;
+          onStatus?.('heard');
+        }
         collecting = true;
         letters = '';
         return;
       }
       if (!collecting) return;
       if (segment === 'end') {
-        const code = letters.slice(0, CODE_LEN);
-        if (letters.length === CODE_LEN + 1 && letters[CODE_LEN] === checksumLetter(code)) {
+        if (isValidFrame(letters)) {
+          const code = letters.slice(0, CODE_LEN);
           cleanup(() => resolve(code));
-        } else {
-          collecting = false; // bad frame — wait for the next repetition
-          letters = '';
+          return;
         }
+        // Bad frame — keep it as voting evidence (only fully-aligned 6-letter
+        // frames; a frame with a dropped letter would vote misaligned) and
+        // see whether the evidence so far reconstructs a valid one.
+        if (letters.length === CODE_LEN + 1) {
+          candidates.push(letters);
+          const recovered = recoverFrame();
+          if (recovered) {
+            cleanup(() => resolve(recovered.slice(0, CODE_LEN)));
+            return;
+          }
+        }
+        collecting = false; // wait for the next repetition
+        letters = '';
         return;
       }
       letters += segment;
@@ -299,11 +384,12 @@ export function decodeFromNode(source, { signal, timeoutMs = LISTEN_TIMEOUT_MS }
 /**
  * Ask for the microphone and listen for a transmitted game code.
  * Rejects with {@link AudioShareError} (`reason`: 'permission' | 'timeout' |
- * 'aborted' | 'unsupported').
- * @param {{ signal?: AbortSignal }} [options]
+ * 'aborted' | 'unsupported'). `onStatus('heard')` fires when the start tone
+ * is first detected, so the UI can tell the user to hold still.
+ * @param {{ signal?: AbortSignal, onStatus?: (status: 'heard') => void }} [options]
  * @returns {Promise<string>}
  */
-export async function listenForCode({ signal } = {}) {
+export async function listenForCode({ signal, onStatus } = {}) {
   if (typeof AudioContext === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
     throw new AudioShareError('unsupported', 'Microphone capture is not supported here');
   }
@@ -322,7 +408,7 @@ export async function listenForCode({ signal } = {}) {
   const ctx = new AudioContext();
   try {
     await ctx.resume();
-    return await decodeFromNode(ctx.createMediaStreamSource(stream), { signal });
+    return await decodeFromNode(ctx.createMediaStreamSource(stream), { signal, onStatus });
   } finally {
     for (const track of stream.getTracks()) track.stop();
     await ctx.close().catch(() => {});
