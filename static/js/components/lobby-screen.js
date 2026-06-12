@@ -1,5 +1,6 @@
 // @ts-check
 import './app-header.js';
+import { playCode } from '../audio-share.js';
 import { byId } from '../dom.js';
 import { startGame } from '../net.js';
 import { updateScrollFades } from '../scroll-fades.js';
@@ -49,6 +50,12 @@ export class LobbyScreen extends HTMLElement {
           </svg>
           <span>Share</span>
         </button>
+        <button id="play-code-btn" type="button" class="btn btn-share btn-play-code">
+          <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+          </svg>
+          <span>Play</span>
+        </button>
         <section class="lobby-players-section" aria-labelledby="players-label">
           <h2 id="players-label" class="section-label">Fellow Bar Rats</h2>
           <ul class="player-list" id="lobby-players" aria-label="Players"></ul>
@@ -63,6 +70,7 @@ export class LobbyScreen extends HTMLElement {
 
     byId('lobby-code').addEventListener('click', () => this.#copyJoinLink());
     byId('share-btn').addEventListener('click', () => this.#share());
+    byId('play-code-btn').addEventListener('click', () => this.#playCode());
     byId('start-btn').addEventListener('click', () => startGame());
   }
 
@@ -170,6 +178,26 @@ export class LobbyScreen extends HTMLElement {
       return;
     }
     this.#composeSms();
+  }
+
+  /**
+   * Chirp the game code through the speaker so a nearby phone on the join
+   * screen can pick it up with its mic ("Listen"). Experimental.
+   */
+  async #playCode() {
+    if (!state.gameCode) return;
+    const btn = /** @type {HTMLButtonElement} */ (byId('play-code-btn'));
+    const label = /** @type {HTMLSpanElement} */ (btn.querySelector('span'));
+    btn.disabled = true;
+    label.textContent = 'Playing…';
+    try {
+      await playCode(state.gameCode);
+    } catch {
+      // Unsupported or interrupted — nothing to recover, just restore the button.
+    } finally {
+      btn.disabled = false;
+      label.textContent = 'Play';
+    }
   }
 
   #composeSms() {
