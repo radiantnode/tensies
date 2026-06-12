@@ -159,6 +159,7 @@ Use as the reference inventory. Approach: **static** = served files only;
 | paused-board | synth | host paused, menu closed → board with the "Paused" roll button |
 | target-die-1..6 | synth | element-clipped `round-target` die for each target value |
 | play-die-1..6 | synth | element-clipped regular ivory die for each face: first unmatched `.die-scene`, all my dice = value, target ≠ value |
+| rotate-overlay | real | the one landscape capture (`setViewportSize` 844×390): the CSS orientation guard revealed by the landscape + max-height media query |
 
 **Deliberately not captured** (transient / external, no stable frame): the
 initial `#loading` flash, the mid-roll shake animation (frozen by

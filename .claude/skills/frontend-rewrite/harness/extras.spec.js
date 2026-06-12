@@ -18,6 +18,19 @@ test('join-error', async ({ page }) => {
   await expect(page).toHaveScreenshot('join-error.png');
 });
 
+test('rotate-overlay', async ({ page }) => {
+  await seedPage(page);
+  // The one landscape capture: same phone rotated (844×390 @2×). The CSS
+  // orientation guard (#rotate-overlay, critical.css) is revealed by the
+  // (orientation: landscape) and (max-height: 500px) media query alone — no JS.
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.goto('/');
+  await page.waitForSelector('#landing.active');  // app settled beneath the guard
+  await page.waitForSelector('#rotate-overlay');  // visible only in landscape
+  await settle(page);
+  await expect(page).toHaveScreenshot('rotate-overlay.png');
+});
+
 test('nav-menu-changelog', async ({ page }) => {
   await seedPage(page);
   await page.goto('/');
