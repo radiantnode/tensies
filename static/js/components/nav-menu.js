@@ -7,6 +7,8 @@ const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
 <h2>1.11.0 ("On Tap")</h2>
 <p>Friday, June 12, 2026</p>
 <ul>
+<li>New party trick: the host taps Play and their phone literally sings the game code out loud. A friend taps Listen on the join screen, holds their phone close, and the code types itself in. Nobody has to spell it out over the jukebox anymore. 🎶</li>
+<li>The Play and Listen buttons look the part too: they breathe while they wait, and when a phone is talking the little equalizer dances and sonar rings ripple out.</li>
 <li>Add Tensies to your home screen and it opens like a real app, full screen, with none of the browser clutter between you and the dice.</li>
 <li>The lobby invite button now opens your phone's share sheet. AirDrop it, text it, drop it in the group chat, whatever gets the crew in fastest. 🍻</li>
 <li>Turn your phone sideways and Tensies will politely ask you to turn it back. It's a portrait kind of game.</li>
