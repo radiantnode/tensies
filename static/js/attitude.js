@@ -420,3 +420,10 @@ export function hideToast() {
   clearTimeout(toastTimer);
   document.getElementById('quip-toast')?.classList.remove('show');
 }
+
+// Test seam, mirroring state.js's window._state: expose the context bag and
+// quip/toast so the harness can drive rare conditions (near-miss, long
+// streaks) deterministically. Localhost only — never on a public deploy.
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+  /** @type {any} */ (window)._attitude = { ctx, quip, toast };
+}
