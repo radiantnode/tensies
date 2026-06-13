@@ -2,6 +2,12 @@
 
 Pull up a stool. Newest stuff up top.
 
+## 1.12.0 ("Karaoke Night")
+
+Friday, June 13, 2026
+
+- _Behind the scenes: the audio share works, but it sounds like you're getting a fax, and half the time the other phone doesn't catch it. So we built a soundboard, twenty-four voices to try (steel drums, kalimbas, music boxes, the works) and a rig that plays them out of real phone speakers in real bars, then tries to decode them on the mic across the room. The goal: find the one that's catchy enough to make the person on the next stool go "what was that?" and reliable enough to actually land every time._ 🎛️
+
 ## 1.11.0 ("On Tap")
 
 Friday, June 12, 2026

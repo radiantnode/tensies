@@ -4,6 +4,11 @@ import { updateScrollFades } from '../scroll-fades.js';
 
 // Baked changelog HTML — content, not code; the changelog skill regenerates it.
 const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
+<h2>1.12.0 ("Karaoke Night")</h2>
+<p>Friday, June 13, 2026</p>
+<ul>
+<li><em>Behind the scenes: the audio share works, but it sounds like you're getting a fax, and half the time the other phone doesn't catch it. So we built a soundboard, twenty-four voices to try (steel drums, kalimbas, music boxes, the works) and a rig that plays them out of real phone speakers in real bars, then tries to decode them on the mic across the room. The goal: find the one that's catchy enough to make the person on the next stool go "what was that?" and reliable enough to actually land every time.</em> 🎛️</li>
+</ul>
 <h2>1.11.0 ("On Tap")</h2>
 <p>Friday, June 12, 2026</p>
 <ul>
