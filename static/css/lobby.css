@@ -210,21 +210,28 @@
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
   }
 
+  .you-badge,
   .host-badge {
-    margin-inline-start: auto;
+    min-inline-size: 3.5rem;
     padding: 0.2rem 0.5rem;
-    background: var(--color-accent);
+    background: var(--color-raised);
+    border: 1px solid var(--color-border-strong);
     border-radius: 6px;
     font-size: 0.7rem;
     font-weight: 700;
-    color: #fff;
+    text-align: center;
+    color: var(--color-text-label);
   }
 
   .you-badge {
-    margin-inline-start: auto;
-    font-size: 0.7rem;
-    color: var(--color-text-muted);
+    background: var(--color-raised-hover);
+    color: var(--color-text-warm);
   }
+
+  /* Push the first badge to the end; if both exist, "you" takes the auto
+     margin and "HOST" follows naturally. */
+  .you-badge:first-of-type,
+  .host-badge:first-of-type { margin-inline-start: auto; }
 
   .waiting-msg {
     margin-block-start: 0.75rem;

@@ -89,19 +89,30 @@ export class LobbyScreen extends HTMLElement {
 
     const list = this.#list;
     if (!list) return;
-    for (const [pid, player] of Object.entries(snap.players)) {
+    // Sort: current player first, then insertion order.
+    const entries = Object.entries(snap.players);
+    entries.sort(([a], [b]) =>
+      a === state.myId ? -1 : b === state.myId ? 1 : 0
+    );
+    for (const [pid, player] of entries) {
       let row = this.#rows.get(pid);
       if (!row) {
         row = document.createElement('li');
         row.className = 'player-list-item';
         this.#rows.set(pid, row);
+      }
+      // Always prepend "you" row, append others.
+      if (pid === state.myId) {
+        list.prepend(row);
+      } else {
         list.appendChild(row);
       }
       row.textContent = player.name;
+      if (pid === state.myId) {
+        row.appendChild(this.#badge('you-badge', 'YOU'));
+      }
       if (pid === snap.host) {
         row.appendChild(this.#badge('host-badge', 'HOST'));
-      } else if (pid === state.myId) {
-        row.appendChild(this.#badge('you-badge', 'you'));
       }
     }
     for (const [pid, row] of this.#rows) {
