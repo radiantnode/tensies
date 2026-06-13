@@ -93,15 +93,21 @@
 
   .copied { color: var(--color-success) !important; }
 
+  .invite-actions {
+    display: flex;
+    gap: 0.75rem;
+    inline-size: 100%;
+    max-inline-size: 400px;
+    margin-block-end: 1.5rem;
+  }
+
   .btn-share {
     /* Inline icon + label, centred together. */
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.55rem;
-    inline-size: 100%;
-    max-inline-size: 400px;
-    margin-block-end: 1.5rem;
+    flex: 1;
     /* Warm leather secondary — same surface language as .btn-secondary and
        the in-game menu items. */
     background: var(--color-raised);
@@ -121,11 +127,8 @@
     border-color: rgba(190, 130, 55, 0.45);
   }
 
-  /* "Play" (audio code share) sits directly under Share — close the default
-     share-button margin so the pair reads as one invite group. */
-  .btn-share:has(+ .btn-play-code) {
-    margin-block-end: 0.75rem;
-  }
+  /* Both buttons now sit side-by-side inside .invite-actions; no individual
+     margin needed. */
 
   .btn-icon {
     flex-shrink: 0;
@@ -224,6 +227,7 @@
   }
 
   .waiting-msg {
+    margin-block-start: 0.75rem;
     font-size: 0.95rem;
     color: var(--color-text-muted);
     text-shadow: var(--shadow-text);

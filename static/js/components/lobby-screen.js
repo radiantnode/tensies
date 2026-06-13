@@ -45,16 +45,18 @@ export class LobbyScreen extends HTMLElement {
         <button id="lobby-code" type="button" class="code-display" aria-label="Copy invite link">——</button>
         <p class="copy-hint" id="copy-hint">${COPY_HINT}</p>
         <div class="or-divider" aria-hidden="true"><span>or</span></div>
-        <button id="share-btn" type="button" class="btn btn-share">
-          <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-            <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/>
-          </svg>
-          <span>Share</span>
-        </button>
-        <button id="play-code-btn" type="button" class="btn btn-share btn-play-code btn-audio">
-          ${EQ_ICON_HTML}
-          <span>Play</span>
-        </button>
+        <div class="invite-actions">
+          <button id="share-btn" type="button" class="btn btn-share">
+            <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+              <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/>
+            </svg>
+            <span>Share</span>
+          </button>
+          <button id="play-code-btn" type="button" class="btn btn-share btn-play-code btn-audio">
+            ${EQ_ICON_HTML}
+            <span>Play</span>
+          </button>
+        </div>
         <section class="lobby-players-section" aria-labelledby="players-label">
           <h2 id="players-label" class="section-label">Fellow Bar Rats</h2>
           <ul class="player-list" id="lobby-players" aria-label="Players"></ul>
