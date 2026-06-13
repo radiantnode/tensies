@@ -229,7 +229,7 @@
   .winner-flavor {
     position: relative;
     z-index: 1;
-    margin: 0.6rem 0 0;
+    margin: 0.6rem auto 0;
     max-inline-size: 30ch;
     font-size: 0.95rem;
     font-style: italic;

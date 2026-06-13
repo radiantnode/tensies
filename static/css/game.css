@@ -212,9 +212,9 @@
   .quip-toast {
     position: absolute;
     inset-inline: 1rem;
-    inset-block-end: calc(7.5rem + env(safe-area-inset-bottom));
+    inset-block-end: calc(5.9rem + env(safe-area-inset-bottom));
     text-align: center;
-    font-size: 0.92rem;
+    font-size: 0.7rem;
     font-style: italic;
     font-weight: 600;
     color: var(--color-text-warm);

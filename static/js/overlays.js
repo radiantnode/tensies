@@ -104,9 +104,7 @@ export function showWinner(name, target, round, isLoser = false) {
   if (pill) pill.textContent = String(round);
   const suffix = document.getElementById('winner-banner-suffix');
   if (suffix) {
-    suffix.textContent = isLoser
-      ? quip('winner.banner_lose', 'Loser')
-      : quip('winner.banner_win', 'Winner');
+    suffix.textContent = isLoser ? 'Loser' : 'Winner';
   }
   const logo = /** @type {HTMLImageElement | null} */ (document.querySelector('.winner-logo'));
   if (logo) logo.src = isLoser ? '/static/images/logo-loser.svg' : '/static/images/logo-winner.svg';

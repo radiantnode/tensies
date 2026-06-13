@@ -24,7 +24,7 @@ services:
       # "off" (byte-identical copy), so the pixel harness and prod stay clean
       # unless they opt in. Levels: off | friendly_drunk | heckler |
       # who_invited_him | intolerable.
-      ATTITUDE_LEVEL: ${ATTITUDE_LEVEL:-heckler}
+      ATTITUDE_LEVEL: ${ATTITUDE_LEVEL:-off}
     depends_on:
       postgres:
         condition: service_healthy
