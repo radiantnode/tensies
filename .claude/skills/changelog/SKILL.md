@@ -76,6 +76,11 @@ Translation examples (technical commit → friendly line):
 
 ## Phase 1 — Gather the history
 
+**Always regenerate from scratch.** Even if a previous `docs/CHANGELOG.md` exists,
+do not copy-paste its entries or append to it. Write every entry fresh from the
+git log. The existing file is overwritten, not extended. This is how the changelog
+stays in sync with history and avoids stale prose drifting across runs.
+
 Pull the full log, oldest to newest, with the author date, short hash, and subject:
 
 ```bash
@@ -101,6 +106,9 @@ looks significant but the one-liner is opaque.
 ## Phase 2 — Group by day, then lump into significant changes
 
 1. **Bucket commits by calendar day** (the `%ad` date). Each day is a section.
+   **One calendar day = one release, always.** Never split a single day into
+   multiple version entries, even if the day's commits span unrelated themes.
+   Group them all under one heading with one codename and one version number.
 2. **Within each day, cluster related commits into a handful of significant
    changes.** A "significant change" is a theme a player would notice, not a
    single commit. For example, five commits that build the pause feature
@@ -287,8 +295,10 @@ Formatting rules:
 - **Headings** use the `Version ("Codename")` shape, e.g. `## 1.4.0 ("Last
   Call")`. Versions come from the semver pass in Phase 2.
 - **The date** goes on its own line directly under the heading, in a human format
-  like "Friday, May 30, 2026" (never `2026-05-30`). Derive the weekday from the
-  date.
+  like "Friday, May 30, 2026" (never `2026-05-30`). **Compute weekdays, don't
+  guess them.** Run `date` (macOS: `date -j -f "%Y-%m-%d" "2026-05-30" "+%A"`)
+  for every date in the file. Do this in a single batch command covering all
+  dates before writing the draft, not one at a time after the fact.
 - **No emojis in the draft.** Write the draft clean; the humanizer pass cuts
   emojis anyway, and a later phase adds a sparing few back tastefully (Phase 6).
 - **No em dashes or en dashes.** Use commas, periods, colons, or parentheses.

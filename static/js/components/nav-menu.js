@@ -5,24 +5,27 @@ import { updateScrollFades } from '../scroll-fades.js';
 // Baked changelog HTML — content, not code; the changelog skill regenerates it.
 const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
 <h2>1.12.0 ("Karaoke Night")</h2>
-<p>Friday, June 13, 2026</p>
+<p>Saturday, June 13, 2026</p>
 <ul>
-<li><em>Behind the scenes: the audio share works, but it sounds like you're getting a fax, and half the time the other phone doesn't catch it. So we built a soundboard, twenty-four voices to try (steel drums, kalimbas, music boxes, the works) and a rig that plays them out of real phone speakers in real bars, then tries to decode them on the mic across the room. The goal: find the one that's catchy enough to make the person on the next stool go "what was that?" and reliable enough to actually land every time.</em> 🎛️</li>
+<li>The landing page got some love. The dice wiggle while they wait for you to start, and the logo text sits softer against the background now. 🎲</li>
+<li>The big buttons (Create Game, Start Game, that crew) catch a sweep of light now, like something on the bar catching the overhead. ✨</li>
+<li>The lobby got rearranged. Share and Play sit side by side so there's more room for the crew below, you always show up at the top of the player list, and if you're hosting you get both the YOU and HOST pills next to your name.</li>
+<li><em>Behind the scenes: the audio share works, but it sounds like you're getting a fax, and half the time the other phone doesn't catch it. So we built a soundboard with twenty-four voices to try and a rig that plays them out of real phone speakers in real bars, then listens on the mic across the room. Still hunting for the one that lands every time.</em> 🎛️</li>
 </ul>
 <h2>1.11.0 ("On Tap")</h2>
 <p>Friday, June 12, 2026</p>
 <ul>
 <li>New party trick: the host taps Play and their phone literally sings the game code out loud. A friend taps Listen on the join screen, holds their phone close, and the code types itself in. Nobody has to spell it out over the jukebox anymore. 🎶</li>
 <li>The Play and Listen buttons look the part too: they breathe while they wait, and when a phone is talking the little equalizer dances and sonar rings ripple out.</li>
-<li>Add Tensies to your home screen and it opens like a real app, full screen, with none of the browser clutter between you and the dice.</li>
+<li>Put Tensies on your home screen and it opens like a real app, full screen, none of the browser chrome getting in the way.</li>
 <li>The lobby invite button now opens your phone's share sheet. AirDrop it, text it, drop it in the group chat, whatever gets the crew in fastest. 🍻</li>
 <li>Turn your phone sideways and Tensies will politely ask you to turn it back. It's a portrait kind of game.</li>
 </ul>
 <h2>1.10.0 ("Clean Glasses")</h2>
 <p>Thursday, June 11, 2026</p>
 <ul>
-<li>Fixed dice on iPhones sometimes showing the wrong faces for a moment when screens changed. You always see what you actually rolled now.</li>
-<li>Your win screen no longer blinks away early when an impatient opponent rolls right as you finish. Savor it. 🥃</li>
+<li>Fixed dice on iPhones sometimes showing the wrong faces for a split second when screens changed. You always see what you actually rolled now. 🎲</li>
+<li>Your win screen no longer blinks away early when an impatient opponent rolls right as you finish. Savor it.</li>
 <li>The board shows up fully set now. Your dice are already on the wood before you ever see it, and the loading screen just melts away.</li>
 <li><em>Behind the scenes: the big rebuild from yesterday is done. Every screen reconstructed and checked against the original down to the last pixel.</em></li>
 </ul>
@@ -30,43 +33,43 @@ const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
 <p>Wednesday, June 10, 2026</p>
 <ul>
 <li>You shouldn't notice a single thing different today, and that's the point. We started rebuilding the whole front of the game from scratch, and every screen gets checked against the original, pixel by pixel. 🔍</li>
-<li><em>Behind the scenes: cleaner bones under the same bar means new rounds of features land faster and break less.</em></li>
+<li><em>Behind the scenes: tidier wiring under the same bar means the next round of features goes in faster.</em></li>
 </ul>
 <h2>1.9.0 ("Speed Round")</h2>
-<p>Sunday, June 8, 2026</p>
+<p>Monday, June 8, 2026</p>
 <ul>
-<li>The game loads faster now. Everything gets bundled down and compressed before it hits your phone, so the wait before the first round is shorter. 🚀</li>
+<li>The game loads faster now. Everything gets bundled and compressed before it hits your phone, so the wait before the first round is shorter. 🚀</li>
 <li>The bar background photo got slimmed down too, converted to a format that cuts the file size without changing how it looks.</li>
 <li>Your winner overlay pops up the moment your last die settles now, not a beat after.</li>
-<li><em>Behind the scenes: every file gets fingerprinted and cached forever, so once you've loaded the game once, coming back is near-instant.</em></li>
+<li><em>Behind the scenes: every file gets fingerprinted and cached hard, so once you've loaded the game once, coming back is practically instant.</em></li>
 </ul>
 <h2>1.8.0 ("Savor the Win")</h2>
-<p>Saturday, June 7, 2026</p>
+<p>Sunday, June 7, 2026</p>
 <ul>
-<li>Fixed a maddening one. Every so often your win screen would blink and vanish while everyone else's stuck around just fine. Now your victory lap holds the full three seconds, like it should. 🎲</li>
-<li>You can now join a game by going straight to the code link. Clean URL, no extra text at the end.</li>
+<li>Fixed a maddening one. Every so often your win screen would blink and vanish while everyone else's stuck around just fine. Now your victory lap holds the full three seconds, like it should. 🥃</li>
+<li>You can join a game by going straight to the code link now. Clean URL, no extra junk at the end.</li>
 <li>Locked the doors a little tighter, so the game behaves on real networks and only the right people can wander into the back room.</li>
-<li><em>Behind the scenes: the frontend got rebuilt from the ground up using proper components. Same game, cleaner bones.</em></li>
+<li><em>Behind the scenes: the frontend got a full rebuild with proper components. Same game, sturdier frame underneath.</em></li>
 </ul>
 <h2>1.7.0 ("Open Bar")</h2>
-<p>Sunday, June 1, 2026</p>
+<p>Monday, June 1, 2026</p>
 <ul>
-<li>The game can spread across a whole row of servers now. A big crowd can pile in and nobody gets bumped at the door. Bring the whole bar. 🍻</li>
+<li>The game can spread across a whole row of servers now. A big crowd can pile in and nobody gets bumped at the door. Bring everyone. 🍻</li>
 <li>Any server can pick up any game, so if one hiccups, your round just keeps rolling.</li>
-<li>Built this whole "bring the whole bar" upgrade from a beach chair in Cap Cana, Dominican Republic, ducking back to the pool between edits.</li>
+<li>Built this whole upgrade from a beach chair in Cap Cana, Dominican Republic, ducking back to the pool between edits.</li>
 <li><em>Behind the scenes: moved every game onto a shared brain so matches stay fast and fair no matter how many people show up.</em></li>
 </ul>
 <h2>1.6.0 ("High Roller")</h2>
 <p>Sunday, May 31, 2026</p>
 <ul>
-<li>Gave the whole place a warm new look. The landing, the lobby, the board, all redone to feel like your favorite dim-lit watering hole.</li>
+<li>Gave the whole place a warm new look. The landing, the lobby, the board, all of it redone to feel like your favorite dim-lit watering hole.</li>
 <li>The winner screen got redone properly. A 3D die flies in at you, your name comes up in gold, and a countdown ticks to the next round.</li>
 <li>Lose the round? You get your own screen now too, complete with dramatically shattered dice. 💔</li>
 <li>The target counts up now: 1, 2, 3, 4, 5, 6, then back around.</li>
 <li>Added a menu with a "See What's New" panel, so you can read these very notes without leaving the game.</li>
 </ul>
 <h2>1.5.0 ("Last Call")</h2>
-<p>Friday, May 30, 2026</p>
+<p>Saturday, May 30, 2026</p>
 <ul>
 <li>Whoever's hosting can pause the game. Perfect for a bar run, a bathroom break, or sorting out who's buying the next round. ⏸️</li>
 <li>Paused games hang on for up to an hour, so a phone going dark mid-round won't end the night.</li>
@@ -75,23 +78,23 @@ const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
 <li><em>Behind the scenes: built a backstage view of every game so we can keep matches fair and catch trouble early.</em></li>
 </ul>
 <h2>1.4.0 ("Happy Hour")</h2>
-<p>Thursday, May 29, 2026</p>
+<p>Friday, May 29, 2026</p>
 <ul>
 <li>Added the start of an in-game menu, the little hamburger button that opens up your options.</li>
 <li>Reconnect window doubled: you now have a full minute to get back before the game drops you. 🔌</li>
 <li><em>Behind the scenes: built a stress-test rig that crams in hundreds of pretend players, so the real ones never end up waiting.</em></li>
 </ul>
 <h2>1.3.0 ("On the Rocks")</h2>
-<p>Wednesday, May 28, 2026</p>
+<p>Thursday, May 28, 2026</p>
 <ul>
 <li>Your dice stay put exactly where they landed, even if you refresh or your phone dozes off. 🎲</li>
 <li>Connecting feels smoother. One clean loading screen instead of jarring pop-ups when you join or come back.</li>
 <li>Random names get dreamed up right on your phone now, with a lot more goofy combos to go around.</li>
 <li>Squashed a winner screen that sometimes overstayed its welcome.</li>
-<li><em>Behind the scenes: reorganized the guts of the game so new stuff lands faster and breaks less.</em></li>
+<li><em>Behind the scenes: reorganized the guts of the game so new stuff lands without breaking what's already there.</em></li>
 </ul>
 <h2>1.2.0 ("Hold My Drink")</h2>
-<p>Tuesday, May 27, 2026</p>
+<p>Wednesday, May 27, 2026</p>
 <ul>
 <li>Drop off and come right back. Lose your signal and you get a grace period to slide back into your seat.</li>
 <li>Fixed a sneaky freeze when your re-roll landed on the exact same numbers. Spooky, but no longer sticky. 👻</li>
@@ -99,13 +102,13 @@ const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
 <li>Cleaned up dice that could tear or smear in the middle of a roll.</li>
 </ul>
 <h2>1.1.0 ("House Rules")</h2>
-<p>Monday, May 26, 2026</p>
+<p>Tuesday, May 26, 2026</p>
 <ul>
 <li>Tensies got its own dice logo and favicon, so the browser tab finally looks the part. 🎲</li>
 <li>Moved the dice rolls over to the server, so everyone's looking at the same honest roll.</li>
 </ul>
 <h2>1.0.0 ("Opening Tab")</h2>
-<p>Sunday, May 25, 2026</p>
+<p>Monday, May 25, 2026</p>
 <ul>
 <li>A bar regular and his friends love playing Tensies, the dice game. One night, a few heated rounds in and drinks down, he figured it'd be great to play anywhere, even on the nights you forget to bring the dice. So he started building it with Claude, sketched the very first board himself, and kept tinkering from his barstool between rounds. 🍺</li>
 <li>Share a link or fire off a quick text to get your friends in the game.</li>
