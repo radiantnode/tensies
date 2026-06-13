@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Audio Share Soundboard</title>
+<title>Audio Share Testing Soundboard</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -247,7 +247,7 @@ h1 { text-align: center; margin-bottom: 0; font-size: 1.4rem; color: #efe3d4; }
     <g transform="translate(132 130) rotate(10)"><rect x="-39" y="-39" width="78" height="78" rx="14" fill="#1a1a2e" opacity="0.35" transform="translate(3 5)"/><rect x="-38" y="-38" width="76" height="76" rx="14" fill="url(#t-white)" stroke="#1a1a2e" stroke-width="1.5"/><rect x="-35" y="-35" width="70" height="18" rx="8" fill="#ffffff" opacity="0.6"/><circle cx="-19" cy="-19" r="6" fill="#1a1a2e"/><circle cx="19" cy="-19" r="6" fill="#1a1a2e"/><circle cx="-19" cy="19" r="6" fill="#1a1a2e"/><circle cx="19" cy="19" r="6" fill="#1a1a2e"/></g>
   </svg>
   <div class="wordmark">TENSIES</div>
-  <h1>Audio Share Soundboard</h1>
+  <h1>Audio Share Testing Soundboard</h1>
 </div>
 <p class="subtitle">Tensies has an experimental audio share feature — the host's phone chirps the game code as a short melody and a joining player's phone decodes it through the mic. It works, but it sounds like a modem. This soundboard helps iterate on making it musical, catchy, and pleasant. Pick a voice, hit Play to hear it, or Test to run a real speaker-to-mic decode and see if it still lands.</p>
 <p class="subtitle" style="margin-top:6px; font-size:0.75rem;">Encoder/decoder constants are mirrored from <code>static/js/audio-share.js</code> — if the production FSK scheme changes, update this file to match. See <code>README.md</code> for the full list.</p>
@@ -259,6 +259,11 @@ h1 { text-align: center; margin-bottom: 0; font-size: 1.4rem; color: #efe3d4; }
 </div>
 
 <div class="grid" id="grid"></div>
+
+<div id="export-bar" style="display:none; max-width:1200px; margin:20px auto 0; text-align:center;">
+  <button id="export-btn" class="play-btn" style="padding:10px 24px; font-size:0.9rem;">Export Tests</button>
+  <span id="export-count" style="margin-left:10px; font-size:0.78rem; color:rgba(214,188,158,0.55);"></span>
+</div>
 
 <script>
 // ── Mirrored from static/js/audio-share.js ──
@@ -1122,6 +1127,159 @@ async function runTestSuite(voice, userCode, onResult, onLog, card) {
   return { passed, failed, total: codes.length };
 }
 
+// ── Test results store ──
+const testStore = []; // { voiceId, voiceName, voice params, timestamp, results[] }
+
+function updateExportBar() {
+  const bar = document.getElementById('export-bar');
+  const count = document.getElementById('export-count');
+  if (testStore.length === 0) { bar.style.display = 'none'; return; }
+  bar.style.display = 'block';
+  const totalTests = testStore.reduce((n, s) => n + s.results.length, 0);
+  const totalPass = testStore.reduce((n, s) => n + s.results.filter(r => r.pass).length, 0);
+  count.textContent = testStore.length + ' voice(s) tested \u00b7 ' + totalPass + '/' + totalTests + ' passed';
+}
+
+async function gatherAudioDiagnostics() {
+  const diag = {};
+
+  // Audio devices
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    diag.audioInputs = devices.filter(d => d.kind === 'audioinput').map(d => ({
+      label: d.label || '(unlabeled)', deviceId: d.deviceId.slice(0, 8) + '...',
+    }));
+    diag.audioOutputs = devices.filter(d => d.kind === 'audiooutput').map(d => ({
+      label: d.label || '(unlabeled)', deviceId: d.deviceId.slice(0, 8) + '...',
+    }));
+  } catch {}
+
+  // AudioContext capabilities
+  try {
+    const ctx = new AudioContext();
+    diag.sampleRate = ctx.sampleRate;
+    diag.baseLatency = ctx.baseLatency;
+    diag.outputLatency = ctx.outputLatency;
+    diag.maxChannelCount = ctx.destination.maxChannelCount;
+    await ctx.close();
+  } catch {}
+
+  // Mic stream settings (if mic was already granted)
+  if (sharedMicStream) {
+    try {
+      const track = sharedMicStream.getAudioTracks()[0];
+      const settings = track.getSettings();
+      diag.micSettings = {
+        sampleRate: settings.sampleRate,
+        channelCount: settings.channelCount,
+        echoCancellation: settings.echoCancellation,
+        noiseSuppression: settings.noiseSuppression,
+        autoGainControl: settings.autoGainControl,
+        deviceId: (settings.deviceId || '').slice(0, 8) + '...',
+        label: track.label,
+      };
+    } catch {}
+  }
+
+  // Ambient noise floor — sample mic for 500ms
+  try {
+    const mic = await getMicStream();
+    const ctx = new AudioContext();
+    const source = ctx.createMediaStreamSource(mic);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
+    const bins = new Float32Array(analyser.frequencyBinCount);
+    const samples = [];
+    await new Promise(resolve => {
+      const start = performance.now();
+      function measure() {
+        if (performance.now() - start > 500) { resolve(); return; }
+        analyser.getFloatFrequencyData(bins);
+        const peak = Math.max(...bins);
+        samples.push(peak);
+        requestAnimationFrame(measure);
+      }
+      measure();
+    });
+    source.disconnect();
+    await ctx.close();
+    const avg = samples.reduce((a, b) => a + b, 0) / samples.length;
+    const peak = Math.max(...samples);
+    diag.ambientNoise = {
+      peakDb: Math.round(peak * 10) / 10,
+      avgDb: Math.round(avg * 10) / 10,
+      samples: samples.length,
+      durationMs: 500,
+    };
+  } catch {}
+
+  // Battery
+  try {
+    if (navigator.getBattery) {
+      const bat = await navigator.getBattery();
+      diag.battery = {
+        level: Math.round(bat.level * 100) + '%',
+        charging: bat.charging,
+      };
+    }
+  } catch {}
+
+  // Location
+  try {
+    const pos = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: false, timeout: 5000, maximumAge: 300000,
+      });
+    });
+    diag.location = {
+      lat: Math.round(pos.coords.latitude * 1000) / 1000,
+      lng: Math.round(pos.coords.longitude * 1000) / 1000,
+      accuracy: Math.round(pos.coords.accuracy),
+    };
+  } catch {}
+
+  return diag;
+}
+
+async function exportTests() {
+  const audioDiag = await gatherAudioDiagnostics();
+  const report = {
+    exported: new Date().toISOString(),
+    device: {
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      screen: { width: screen.width, height: screen.height, dpr: devicePixelRatio },
+      viewport: { width: innerWidth, height: innerHeight },
+      ...audioDiag,
+    },
+    sessions: testStore.map(s => ({
+      voiceId: s.voiceId,
+      voiceName: s.voiceName,
+      timestamp: s.timestamp,
+      code: s.code,
+      voice: s.voiceParams,
+      summary: {
+        passed: s.results.filter(r => r.pass).length,
+        failed: s.results.filter(r => !r.pass).length,
+        total: s.results.length,
+      },
+      results: s.results,
+      log: s.log,
+    })),
+  };
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  a.download = 'soundboard-tests-' + ts + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('export-btn').addEventListener('click', exportTests);
+
 // ── UI ──
 const grid = document.getElementById('grid');
 const codeInput = document.getElementById('code');
@@ -1271,7 +1429,31 @@ grid.addEventListener('click', async (e) => {
     summary.className = 'test-summary';
     results.appendChild(summary);
 
+    // Accumulate for export
+    const session = {
+      voiceId: voice.id,
+      voiceName: voice.name,
+      timestamp: new Date().toISOString(),
+      code: getCode(),
+      voiceParams: {
+        wave: voice.wave, envelope: voice.envelope,
+        toneMs: voice.toneMs, rampMs: voice.rampMs, toneGain: voice.toneGain,
+        startFreq: voice.startFreq, letterBase: voice.letterBase,
+        freqStep: voice.freqStep, sepFreq: voice.sepFreq, endFreq: voice.endFreq,
+        overtones: voice.overtones, harmonies: voice.harmonies,
+        tremolo: voice.tremolo, portamentoMs: voice.portamentoMs,
+        reverb: voice.reverb,
+      },
+      results: [],
+      log: [],
+    };
+    // Remove undefined keys
+    Object.keys(session.voiceParams).forEach(k => {
+      if (session.voiceParams[k] === undefined) delete session.voiceParams[k];
+    });
+
     const addLog = (line) => {
+      session.log.push(line);
       const el = document.createElement('div');
       el.className = 'log-line';
       el.textContent = line;
@@ -1280,6 +1462,7 @@ grid.addEventListener('click', async (e) => {
     };
 
     await runTestSuite(voice, getCode(), (r) => {
+      session.results.push(r);
       const row = document.createElement('div');
       const icon = r.pass ? '\u2713' : '\u2717';
       if (r.pass) {
@@ -1310,6 +1493,9 @@ grid.addEventListener('click', async (e) => {
       summary.className = 'test-summary ' + (failed ? 'has-failures' : 'all-pass');
       results.scrollTop = results.scrollHeight;
     }, addLog, card);
+
+    testStore.push(session);
+    updateExportBar();
 
     card.classList.remove('testing');
     testBtn.disabled = false;
