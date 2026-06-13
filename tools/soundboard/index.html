@@ -270,6 +270,12 @@ h1 { text-align: center; margin-bottom: 0; font-size: 1.4rem; color: #efe3d4; }
 <div class="grid" id="grid"></div>
 
 <div id="export-bar" style="display:none; max-width:1200px; margin:20px auto 0; text-align:center;">
+  <div style="margin-bottom:10px;">
+    <textarea id="field-notes" rows="3" placeholder="Field notes — environment, observations, anything useful for debugging..."
+      style="width:100%; max-width:600px; padding:10px; font-size:0.85rem; font-family:inherit;
+        background:rgba(20,10,5,0.7); color:#efe3d4; border:1px solid rgba(180,100,20,0.25);
+        border-radius:8px; resize:vertical; line-height:1.4;"></textarea>
+  </div>
   <button id="export-btn" class="play-btn" style="padding:10px 24px; font-size:0.9rem;">Export Tests</button>
   <span id="export-count" style="margin-left:10px; font-size:0.78rem; color:rgba(214,188,158,0.55);"></span>
 </div>
@@ -1253,8 +1259,10 @@ async function gatherAudioDiagnostics() {
 
 async function exportTests() {
   const audioDiag = await gatherAudioDiagnostics();
+  const notes = document.getElementById('field-notes').value.trim();
   const report = {
     exported: new Date().toISOString(),
+    fieldNotes: notes || undefined,
     device: {
       userAgent: navigator.userAgent,
       platform: navigator.platform,
