@@ -1,18 +1,30 @@
-# Audio Share Soundboard
+# Audio Share Testing Soundboard
 
 Tensies has an experimental audio share feature: instead of typing a 5-letter game code, the host's phone chirps it as a short melody (FSK-encoded tones) and a joining player's phone decodes it through the microphone. It works, but it sounds like a modem. This soundboard exists to iterate on making it sound musical, catchy, and pleasant — the kind of sound that makes someone nearby ask "hey, what's that?" instead of wincing.
 
+**Live version:** https://radiantnode.github.io/tensies/tools/soundboard/index.html
+
 ## What it does
 
-Open `index.html` directly in a browser (no server needed). You get:
+Open `index.html` in a browser (no server needed — also hosted on GitHub Pages). You get:
 
 - **24 voice presets** across four categories: the current production sound, same-pitch alternatives, lower-pitched variations, and experimental voices that push the envelope (harmony layers, portamento, reverb).
-- **Play** any preset with a configurable 5-letter code to hear what it sounds like.
+- **Play** any preset with a configurable 5-letter code to hear what it sounds like. Animated EQ bars respond to the live audio.
 - **Test** any preset through real speaker-to-microphone decoding — plays the code out loud, listens through the mic, and reports frame-by-frame detection results with signal levels, recovery method, and pass/fail.
+- **Test All** runs every voice sequentially with a single tap.
+- **Export Tests** downloads a JSON file with all test results, device diagnostics (audio hardware, sample rate, mic settings, ambient noise floor, battery, GPS location), and your field notes — ready to hand off for analysis.
+
+## Field testing workflow
+
+1. Open the live URL on your phone.
+2. Tap **Test All Voices** (or test individual voices).
+3. Add field notes describing the environment (outdoor, noisy bar, quiet room, etc.).
+4. Tap **Export Tests** to download the JSON report.
+5. Share the file for analysis — it contains everything needed to diagnose failures.
 
 ## Mirrored constants from production
 
-The soundboard duplicates a handful of constants and utilities from `static/js/audio-share.js` (the production encoder/decoder). If you change the production FSK scheme, update these in `index.html` to match:
+The soundboard duplicates a handful of constants and utilities from [`static/js/audio-share.js`](../../static/js/audio-share.js) (the production encoder/decoder). If you change the production FSK scheme, update these in `index.html` to match:
 
 | Soundboard constant | Production source | Value |
 |---|---|---|
@@ -32,6 +44,8 @@ The decoder thresholds (FFT size 2048, -80 dB floor, 15 dB margin, run lengths 6
 2. Type a code in the input field or leave the default.
 3. Hit **Play** on any voice to hear it.
 4. Hit **Test** to run a real speaker-to-mic decode suite (your code + tricky patterns like AABCD, ZZZZY + random codes). Grant mic permission when prompted.
-5. Compare pass rates, signal margins, and how each voice *feels*.
+5. Hit **Test All Voices** to run every voice sequentially.
+6. Compare pass rates, signal margins, and how each voice *feels*.
+7. Add field notes and hit **Export Tests** to save a diagnostic report.
 
 When you find a voice worth shipping, the next step is porting its parameters back into `static/js/audio-share.js` and updating the production decoder if the frequency band changed.
