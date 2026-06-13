@@ -262,6 +262,11 @@ h1 { text-align: center; margin-bottom: 0; font-size: 1.4rem; color: #efe3d4; }
   <span style="font-size:0.75rem; color:rgba(214,188,158,0.45);">Used by Play and as the first test case</span>
 </div>
 
+<div style="text-align:center; margin-bottom:16px;">
+  <button id="test-all-btn" class="play-btn" style="padding:10px 24px; font-size:0.9rem;">Test All Voices</button>
+  <span id="test-all-status" style="margin-left:10px; font-size:0.78rem; color:rgba(214,188,158,0.55);"></span>
+</div>
+
 <div class="grid" id="grid"></div>
 
 <div id="export-bar" style="display:none; max-width:1200px; margin:20px auto 0; text-align:center;">
@@ -1567,6 +1572,38 @@ grid.addEventListener('click', async (e) => {
 });
 
 renderCards();
+
+// ── Test All handler ──
+document.getElementById('test-all-btn').addEventListener('click', async function() {
+  const btn = this;
+  const status = document.getElementById('test-all-status');
+  btn.disabled = true;
+  btn.textContent = 'Testing...';
+
+  let done = 0;
+  const total = VOICES.length;
+
+  for (const voice of VOICES) {
+    status.textContent = (done + 1) + '/' + total + ' — ' + voice.name;
+
+    // Simulate clicking the individual test button
+    const testBtn = document.querySelector('#card-' + voice.id + ' .test-btn');
+    if (testBtn && !testBtn.disabled) {
+      testBtn.click();
+      // Wait for the test to finish (button re-enables when done)
+      await new Promise(resolve => {
+        const check = setInterval(() => {
+          if (!testBtn.disabled) { clearInterval(check); resolve(); }
+        }, 200);
+      });
+    }
+    done++;
+  }
+
+  status.textContent = done + '/' + total + ' complete';
+  btn.disabled = false;
+  btn.textContent = 'Test All Voices';
+});
 </script>
 </body>
 </html>
