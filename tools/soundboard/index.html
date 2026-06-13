@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audio Share Soundboard</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, system-ui, sans-serif;
+  background: #1a0e08;
+  color: #efe3d4;
+  min-height: 100vh;
+  padding: 20px 20px 40px;
+}
+
+/* Header / logo */
+.header {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 6px; margin-bottom: 32px;
+}
+.header svg {
+  width: 72px; height: auto;
+  position: relative; z-index: 2;
+  margin-bottom: -1.8rem;
+  filter: drop-shadow(0 8px 18px rgba(0,0,0,0.75))
+          drop-shadow(0 0 20px rgba(255,77,109,0.35));
+}
+.wordmark {
+  font-size: 2.2rem; font-weight: 900; letter-spacing: 0.15em;
+  color: #ff4d6d; text-align: center;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+  margin-bottom: 0.75rem;
+}
+h1 { text-align: center; margin-bottom: 0; font-size: 1.4rem; color: #efe3d4; }
+.subtitle {
+  text-align: center; color: rgba(214,188,158,0.62); font-size: 0.85rem;
+  margin-bottom: 16px; max-width: 720px; margin-left: auto; margin-right: auto;
+  line-height: 1.5;
+}
+.subtitle code {
+  color: rgba(225,180,100,0.95); background: rgba(20,10,5,0.7);
+  padding: 1px 5px; border-radius: 4px; font-size: 0.78rem;
+}
+
+.code-input {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-bottom: 24px;
+}
+.code-input label { font-size: 0.9rem; color: rgba(220,200,180,0.72); }
+.code-input input {
+  width: 120px; padding: 8px 12px; font-size: 1.1rem; letter-spacing: 4px;
+  text-align: center; text-transform: uppercase; border-radius: 8px;
+  border: 1px solid rgba(180,100,20,0.25); background: rgba(20,10,5,0.7);
+  color: #efe3d4; font-family: monospace;
+}
+.code-input input:focus {
+  outline: none; border-color: #ff4d6d;
+  box-shadow: 0 0 0 2px rgba(255,77,109,0.25);
+}
+
+/* Horizontal row layout */
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.card {
+  background: rgba(8,4,1,0.58);
+  border: 1px solid rgba(180,100,20,0.25);
+  border-radius: 12px;
+  padding: 12px 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  display: grid;
+  grid-template-columns: 200px 280px 130px 1fr;
+  grid-template-rows: auto auto;
+  gap: 4px 24px;
+  align-items: start;
+  position: relative;
+  overflow: hidden;
+}
+.card > * { position: relative; z-index: 1; }
+.card .eq-bg {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  height: 100%;
+  padding: 0 16px 4px 16px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.07;
+}
+.card .eq-bg span {
+  flex: 1;
+  max-width: 8px;
+  background: linear-gradient(to top, #ff4d6d, #ff9f43, rgba(255,200,80,0.4));
+  border-radius: 2px 2px 0 0;
+  transition: height 0.06s linear;
+}
+.card.playing .eq-bg, .card.testing .eq-bg { opacity: 0.25; }
+.card:hover { border-color: rgba(170,115,45,0.4); }
+.card.playing { border-color: #ff4d6d; box-shadow: 0 0 16px rgba(255,77,109,0.2); }
+.card.testing { border-color: rgba(225,180,100,0.7); box-shadow: 0 0 12px rgba(225,180,100,0.15); }
+
+/* Col 1: name + desc */
+.card-info { grid-column: 1; grid-row: 1 / 3; align-self: start; }
+.card-header { display: flex; align-items: center; gap: 8px; }
+.card-title { font-size: 0.95rem; font-weight: 600; color: #efe3d4; white-space: nowrap; }
+.card-desc {
+  font-size: 0.75rem; color: rgba(214,188,158,0.55); line-height: 1.35;
+  margin-top: 4px;
+}
+
+/* Col 2: params + viz */
+.card-params {
+  grid-column: 2; grid-row: 1 / 3;
+  font-size: 0.7rem; color: rgba(214,188,158,0.42); font-family: monospace;
+  line-height: 1.5; align-self: start;
+}
+.viz {
+  display: none; /* hidden in row layout — too narrow */
+}
+
+/* Col 3: buttons */
+.btn-row {
+  grid-column: 3; grid-row: 1 / 3;
+  display: flex; gap: 6px; align-items: center; align-self: start;
+}
+.play-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 14px; border-radius: 8px; border: none;
+  background: #ff4d6d; color: #fff; font-size: 0.82rem; font-weight: 500;
+  cursor: pointer; transition: background 0.2s, transform 0.1s;
+  white-space: nowrap;
+}
+.play-btn:hover { background: #e63a59; }
+.play-btn:active { transform: scale(0.97); }
+.play-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.play-btn svg { width: 14px; height: 14px; fill: currentColor; }
+.stop-btn { background: #c0392b; }
+.stop-btn:hover { background: #a93226; }
+.test-btn { background: rgba(30,15,5,0.5); border: 1px solid rgba(180,100,20,0.25); }
+.test-btn:hover { background: rgba(40,20,6,0.6); }
+.test-btn:disabled { opacity: 0.5; cursor: wait; }
+
+/* Col 4: test results */
+.test-results {
+  grid-column: 4; grid-row: 1 / 3;
+  font-family: monospace; font-size: 0.72rem; line-height: 1.55;
+  padding-left: 16px; border-left: 1px solid rgba(180,100,20,0.15);
+  max-height: 200px;
+  overflow-y: auto;
+  min-width: 0;
+}
+.test-row { padding: 1px 0; word-break: break-word; }
+.test-row.pass { color: #2ecc71; }
+.test-row.fail { color: #e74c3c; }
+.test-row .detail { color: rgba(214,188,158,0.42); }
+.test-summary {
+  margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(180,100,20,0.2);
+  font-size: 0.75rem; font-weight: 600; color: rgba(214,188,158,0.55);
+}
+.test-summary.all-pass { color: #2ecc71; }
+.test-summary.has-failures { color: #e74c3c; }
+.test-log { }
+.log-line { color: rgba(214,188,158,0.35); font-size: 0.68rem; padding: 0; line-height: 1.45; word-break: break-word; }
+
+.current-tag {
+  display: inline-block; padding: 2px 6px; border-radius: 4px;
+  font-size: 0.65rem; background: #ff4d6d; color: #fff; font-weight: 600;
+}
+.section-label {
+  max-width: 1200px; margin: 20px auto 6px;
+  font-size: 0.72rem; color: rgba(225,180,100,0.6); text-transform: uppercase;
+  letter-spacing: 1.5px; padding-left: 4px;
+}
+
+/* ── Tablet: drop params column ── */
+@media (max-width: 900px) {
+  .card {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    gap: 6px 16px;
+  }
+  .card-info { grid-column: 1; grid-row: 1; }
+  .card-params { grid-column: 1 / -1; grid-row: 2; }
+  .btn-row { grid-column: 2; grid-row: 1; align-self: center; }
+  .test-results {
+    grid-column: 1 / -1; grid-row: 3;
+    padding-left: 0; border-left: none;
+    border-top: 1px solid rgba(180,100,20,0.15);
+    padding-top: 6px;
+  }
+}
+
+/* ── Mobile: full stack ── */
+@media (max-width: 520px) {
+  body { padding: 12px 12px 32px; }
+  .header svg { width: 56px; margin-bottom: -1.4rem; }
+  .wordmark { font-size: 1.6rem; }
+  h1 { font-size: 1.1rem; }
+  .subtitle { font-size: 0.78rem; }
+  .code-input { flex-wrap: wrap; gap: 6px; }
+  .code-input .hint { width: 100%; text-align: center; }
+
+  .card {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    gap: 8px;
+    padding: 14px;
+  }
+  .card-info { grid-column: 1; grid-row: auto; }
+  .card-title { white-space: normal; }
+  .card-params { grid-column: 1; grid-row: auto; }
+  .btn-row {
+    grid-column: 1; grid-row: auto;
+    justify-content: flex-start;
+  }
+  .play-btn { padding: 8px 18px; font-size: 0.88rem; }
+  .test-results {
+    grid-column: 1; grid-row: auto;
+    padding-left: 0; border-left: none;
+    border-top: 1px solid rgba(180,100,20,0.15);
+    padding-top: 8px;
+    max-height: 160px;
+  }
+  .section-label { margin: 14px auto 4px; font-size: 0.68rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Tensies">
+    <defs>
+      <filter id="t-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+      <linearGradient id="t-pink" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6b85"/><stop offset="1" stop-color="#e63a59"/></linearGradient>
+      <linearGradient id="t-white" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dcd9e8"/></linearGradient>
+    </defs>
+    <g transform="translate(74 80) rotate(-14)" opacity="0.55"><rect x="-46" y="-46" width="92" height="92" rx="20" fill="#ff4d6d" filter="url(#t-glow)"/></g>
+    <g transform="translate(74 80) rotate(-14)"><rect x="-40" y="-40" width="80" height="80" rx="15" fill="url(#t-pink)" stroke="#2a0a14" stroke-width="1.5"/><rect x="-37" y="-37" width="74" height="20" rx="9" fill="#ffffff" opacity="0.12"/><circle cx="-20" cy="-22" r="6" fill="#fff"/><circle cx="-20" cy="0" r="6" fill="#fff"/><circle cx="-20" cy="22" r="6" fill="#fff"/><circle cx="20" cy="-22" r="6" fill="#fff"/><circle cx="20" cy="0" r="6" fill="#fff"/><circle cx="20" cy="22" r="6" fill="#fff"/></g>
+    <g transform="translate(132 130) rotate(10)"><rect x="-39" y="-39" width="78" height="78" rx="14" fill="#1a1a2e" opacity="0.35" transform="translate(3 5)"/><rect x="-38" y="-38" width="76" height="76" rx="14" fill="url(#t-white)" stroke="#1a1a2e" stroke-width="1.5"/><rect x="-35" y="-35" width="70" height="18" rx="8" fill="#ffffff" opacity="0.6"/><circle cx="-19" cy="-19" r="6" fill="#1a1a2e"/><circle cx="19" cy="-19" r="6" fill="#1a1a2e"/><circle cx="-19" cy="19" r="6" fill="#1a1a2e"/><circle cx="19" cy="19" r="6" fill="#1a1a2e"/></g>
+  </svg>
+  <div class="wordmark">TENSIES</div>
+  <h1>Audio Share Soundboard</h1>
+</div>
+<p class="subtitle">Tensies has an experimental audio share feature — the host's phone chirps the game code as a short melody and a joining player's phone decodes it through the mic. It works, but it sounds like a modem. This soundboard helps iterate on making it musical, catchy, and pleasant. Pick a voice, hit Play to hear it, or Test to run a real speaker-to-mic decode and see if it still lands.</p>
+<p class="subtitle" style="margin-top:6px; font-size:0.75rem;">Encoder/decoder constants are mirrored from <code>static/js/audio-share.js</code> — if the production FSK scheme changes, update this file to match. See <code>README.md</code> for the full list.</p>
+
+<div class="code-input">
+  <label for="code">Code:</label>
+  <input id="code" type="text" value="HELLO" maxlength="5" pattern="[A-Za-z]{5}">
+  <span style="font-size:0.75rem; color:rgba(214,188,158,0.45);">Used by Play and as the first test case</span>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+// ── Mirrored from static/js/audio-share.js ──
+// These constants and utilities are duplicated from the production encoder/
+// decoder. If the production FSK scheme changes, update these to match:
+//
+//   START_FREQ        audio-share.js:23    1800
+//   LETTER_BASE_FREQ  audio-share.js:24    1860
+//   FREQ_STEP         audio-share.js:25    60
+//   SEP_FREQ          audio-share.js:26    3420
+//   END_FREQ          audio-share.js:27    3480
+//   letterIndex()     audio-share.js:84
+//   checksumLetter()  audio-share.js:87-89
+//
+// Decoder thresholds (FFT 2048, -80 dB floor, 15 dB margin, run lengths
+// 6/3/2) are hardcoded in decodeMic() below and also mirror production.
+const START_FREQ = 1800;
+const LETTER_BASE_FREQ = 1860;
+const FREQ_STEP = 60;
+const SEP_FREQ = 3420;
+const END_FREQ = 3480;
+
+const letterIndex = (ch) => ch.charCodeAt(0) - 65;
+const checksumLetter = (code) => {
+  const sum = [...code].reduce((t, ch) => t + letterIndex(ch), 0);
+  return String.fromCharCode(65 + (sum % 26));
+};
+
+// ── Voice presets ──
+const VOICES = [
+  {
+    id: 'current',
+    name: 'Current (Pure Sine)',
+    desc: 'The existing sound. Clean sine waves with 5ms linear ramps. Functional but robotic.',
+    current: true,
+    wave: 'sine',
+    toneMs: 150, sepMs: 70, startMs: 200, endMs: 100, gapMs: 250,
+    rampS: 0.005,
+    toneGain: 1.0, sepGain: 0.65,
+    envelope: 'linear',
+  },
+  {
+    id: 'soft-sine',
+    name: 'Soft Sine',
+    desc: 'Same sine wave but with longer, rounder attack/release curves. Gentler on the ears.',
+    wave: 'sine',
+    toneMs: 160, sepMs: 70, startMs: 200, endMs: 120, gapMs: 250,
+    rampS: 0.020,
+    toneGain: 0.85, sepGain: 0.55,
+    envelope: 'exponential',
+  },
+  {
+    id: 'triangle',
+    name: 'Triangle Wave',
+    desc: 'Triangle oscillator — odd harmonics only, 12dB/oct rolloff. Warmer, woodwind-like quality.',
+    wave: 'triangle',
+    toneMs: 150, sepMs: 70, startMs: 200, endMs: 100, gapMs: 250,
+    rampS: 0.008,
+    toneGain: 1.0, sepGain: 0.65,
+    envelope: 'linear',
+  },
+  {
+    id: 'bell',
+    name: 'Bell / Celesta',
+    desc: 'Sine fundamental + quiet octave overtone. Sharp attack, gentle exponential decay — like a music box.',
+    wave: 'sine',
+    toneMs: 170, sepMs: 70, startMs: 200, endMs: 120, gapMs: 250,
+    rampS: 0.003,
+    toneGain: 0.9, sepGain: 0.55,
+    envelope: 'bell',
+    overtones: [{ ratio: 2.0, gain: 0.15 }, { ratio: 3.0, gain: 0.05 }],
+  },
+  {
+    id: 'marimba',
+    name: 'Marimba',
+    desc: 'Percussive attack with a warm body. Triangle wave + fast decay gives a mallet-instrument feel.',
+    wave: 'triangle',
+    toneMs: 160, sepMs: 70, startMs: 200, endMs: 100, gapMs: 250,
+    rampS: 0.002,
+    toneGain: 1.0, sepGain: 0.6,
+    envelope: 'percussive',
+  },
+  {
+    id: 'flute',
+    name: 'Flute / Breath',
+    desc: 'Sine with slow breathy attack and gentle release. Legato feel between notes.',
+    wave: 'sine',
+    toneMs: 170, sepMs: 70, startMs: 220, endMs: 140, gapMs: 250,
+    rampS: 0.035,
+    toneGain: 0.8, sepGain: 0.5,
+    envelope: 'exponential',
+  },
+  {
+    id: 'chime',
+    name: 'Wind Chime',
+    desc: 'Custom wave (fundamental + 5th + octave). Bright, shimmery attack with airy decay.',
+    wave: 'custom-chime',
+    toneMs: 180, sepMs: 70, startMs: 200, endMs: 130, gapMs: 280,
+    rampS: 0.003,
+    toneGain: 0.75, sepGain: 0.50,
+    envelope: 'bell',
+  },
+  {
+    id: 'kalimba',
+    name: 'Kalimba',
+    desc: 'Sine + very quiet 3rd harmonic. Plucky attack, medium decay. Thumb-piano character.',
+    wave: 'sine',
+    toneMs: 155, sepMs: 70, startMs: 200, endMs: 100, gapMs: 250,
+    rampS: 0.001,
+    toneGain: 0.95, sepGain: 0.6,
+    envelope: 'percussive',
+    overtones: [{ ratio: 3.0, gain: 0.08 }],
+  },
+  {
+    id: 'organ',
+    name: 'Warm Organ',
+    desc: 'Custom wave blending fundamental + octave below (sub). Full, warm, sustained tone.',
+    wave: 'custom-organ',
+    toneMs: 155, sepMs: 70, startMs: 200, endMs: 110, gapMs: 250,
+    rampS: 0.012,
+    toneGain: 0.85, sepGain: 0.55,
+    envelope: 'exponential',
+  },
+  {
+    id: 'vibes',
+    name: 'Vibraphone',
+    desc: 'Sine + subtle tremolo (amplitude vibrato at 5Hz). Jazzy, shimmering sustain.',
+    wave: 'sine',
+    toneMs: 170, sepMs: 70, startMs: 200, endMs: 120, gapMs: 260,
+    rampS: 0.005,
+    toneGain: 0.9, sepGain: 0.55,
+    envelope: 'bell',
+    tremolo: { rate: 5, depth: 0.15 },
+  },
+  // ── Lower-pitched / melodic voices ──
+  {
+    id: 'music-box',
+    name: 'Music Box (Low)',
+    desc: 'Dropped an octave into the 800–2400 Hz range. Bell envelope + octave overtone. The classic tiny-dancer-in-a-box sound.',
+    section: 'lower',
+    wave: 'sine',
+    toneMs: 190, sepMs: 70, startMs: 220, endMs: 130, gapMs: 280,
+    rampS: 0.003,
+    toneGain: 0.9, sepGain: 0.55,
+    envelope: 'bell',
+    overtones: [{ ratio: 2.0, gain: 0.12 }],
+    startFreq: 800, letterBase: 860, freqStep: 60, sepFreq: 2420, endFreq: 2480,
+  },
+  {
+    id: 'xylophone-low',
+    name: 'Toy Xylophone',
+    desc: 'Triangle wave in the 700–2300 Hz range. Percussive, bright, playful — like a Fisher-Price toy.',
+    section: 'lower',
+    wave: 'triangle',
+    toneMs: 160, sepMs: 70, startMs: 200, endMs: 100, gapMs: 250,
+    rampS: 0.002,
+    toneGain: 1.0, sepGain: 0.6,
+    envelope: 'percussive',
+    startFreq: 700, letterBase: 760, freqStep: 60, sepFreq: 2320, endFreq: 2380,
+  },
+  {
+    id: 'doorbell',
+    name: 'Doorbell Chime',
+    desc: 'Warm sine in 900–2500 Hz with slow attack and long decay. Ding-dong character — friendly, inviting.',
+    section: 'lower',
+    wave: 'sine',
+    toneMs: 200, sepMs: 70, startMs: 250, endMs: 160, gapMs: 300,
+    rampS: 0.015,
+    toneGain: 0.85, sepGain: 0.5,
+    envelope: 'bell',
+    startFreq: 900, letterBase: 960, freqStep: 60, sepFreq: 2520, endFreq: 2580,
+  },
+  {
+    id: 'kalimba-low',
+    name: 'Deep Kalimba',
+    desc: 'Thumb-piano pluck in the 600–2200 Hz range. Earthy, warm, immediately recognizable.',
+    section: 'lower',
+    wave: 'sine',
+    toneMs: 175, sepMs: 70, startMs: 200, endMs: 120, gapMs: 260,
+    rampS: 0.001,
+    toneGain: 0.95, sepGain: 0.6,
+    envelope: 'percussive',
+    overtones: [{ ratio: 3.0, gain: 0.06 }],
+    startFreq: 600, letterBase: 660, freqStep: 60, sepFreq: 2220, endFreq: 2280,
+  },
+  {
+    id: 'marimba-low',
+    name: 'Warm Marimba',
+    desc: 'Triangle wave dropped to 650–2250 Hz. Rounder, woodier mallet tone. The kind of sound you hear at a resort lobby.',
+    section: 'lower',
+    wave: 'triangle',
+    toneMs: 185, sepMs: 70, startMs: 220, endMs: 120, gapMs: 270,
+    rampS: 0.002,
+    toneGain: 1.0, sepGain: 0.6,
+    envelope: 'percussive',
+    overtones: [{ ratio: 2.0, gain: 0.08 }],
+    startFreq: 650, letterBase: 710, freqStep: 60, sepFreq: 2270, endFreq: 2330,
+  },
+  {
+    id: 'steel-drum',
+    name: 'Steel Drum',
+    desc: 'Custom wave (fundamental + detuned 2nd + 3rd partial) in 750–2350 Hz. Tropical, ringy, head-turning.',
+    section: 'lower',
+    wave: 'custom-steel',
+    toneMs: 180, sepMs: 70, startMs: 200, endMs: 130, gapMs: 270,
+    rampS: 0.002,
+    toneGain: 0.85, sepGain: 0.55,
+    envelope: 'bell',
+    tremolo: { rate: 6, depth: 0.1 },
+    startFreq: 750, letterBase: 810, freqStep: 60, sepFreq: 2370, endFreq: 2430,
+  },
+  // ── Fun / experimental voices ──
+  {
+    id: 'power-chime',
+    name: 'Power Chime',
+    desc: 'Each tone gets a quiet perfect 5th (+7 semitones) layered underneath. Rich, full, immediately musical. The 5th shouldn\'t land on another symbol bin at 60Hz spacing.',
+    section: 'experimental',
+    wave: 'sine',
+    toneMs: 180, sepMs: 70, startMs: 220, endMs: 130, gapMs: 270,
+    rampS: 0.003,
+    toneGain: 0.85, sepGain: 0.5,
+    envelope: 'bell',
+    harmony: [{ semitones: 7, gain: 0.2 }],
+    startFreq: 700, letterBase: 760, freqStep: 60, sepFreq: 2320, endFreq: 2380,
+  },
+  {
+    id: 'major-bells',
+    name: 'Major Chord Bells',
+    desc: 'Major triad — fundamental + major 3rd + 5th. Each letter rings as a full chord. Very musical but the extra tones add energy near neighboring bins.',
+    section: 'experimental',
+    wave: 'sine',
+    toneMs: 190, sepMs: 70, startMs: 220, endMs: 140, gapMs: 280,
+    rampS: 0.003,
+    toneGain: 0.8, sepGain: 0.45,
+    envelope: 'bell',
+    harmony: [{ semitones: 4, gain: 0.15 }, { semitones: 7, gain: 0.18 }],
+    overtones: [{ ratio: 2.0, gain: 0.08 }],
+    startFreq: 700, letterBase: 760, freqStep: 60, sepFreq: 2320, endFreq: 2380,
+  },
+  {
+    id: 'portamento-dream',
+    name: 'Dreamy Slide',
+    desc: 'Portamento (30ms glide) between every tone. Notes melt into each other instead of jumping. Decoder sees a brief frequency sweep — may lose a poll or two at each transition.',
+    section: 'experimental',
+    wave: 'sine',
+    toneMs: 185, sepMs: 80, startMs: 220, endMs: 130, gapMs: 270,
+    rampS: 0.008,
+    toneGain: 0.85, sepGain: 0.5,
+    envelope: 'exponential',
+    portamento: 0.030,
+    startFreq: 750, letterBase: 810, freqStep: 60, sepFreq: 2370, endFreq: 2430,
+  },
+  {
+    id: 'harp',
+    name: 'Ethereal Harp',
+    desc: 'Sine + glide + delay reverb + octave overtone. Spacious and dreamy. The reverb tail bleeds into the next tone — decoder needs testing.',
+    section: 'experimental',
+    wave: 'sine',
+    toneMs: 195, sepMs: 75, startMs: 230, endMs: 150, gapMs: 300,
+    rampS: 0.010,
+    toneGain: 0.75, sepGain: 0.45,
+    envelope: 'bell',
+    portamento: 0.020,
+    overtones: [{ ratio: 2.0, gain: 0.10 }],
+    reverb: { delay: 0.08, feedback: 0.25, wet: 0.2 },
+    startFreq: 750, letterBase: 810, freqStep: 60, sepFreq: 2370, endFreq: 2430,
+  },
+  {
+    id: 'gameboy',
+    name: 'Retro Gameboy',
+    desc: 'Square wave, percussive. Pure 8-bit chiptune character. Square has strong 3rd/5th harmonics — those partials could land on neighboring symbol bins.',
+    section: 'experimental',
+    wave: 'square',
+    toneMs: 130, sepMs: 60, startMs: 180, endMs: 90, gapMs: 220,
+    rampS: 0.002,
+    toneGain: 0.45, sepGain: 0.3,
+    envelope: 'percussive',
+    startFreq: 800, letterBase: 860, freqStep: 60, sepFreq: 2420, endFreq: 2480,
+  },
+  {
+    id: 'wide-marimba',
+    name: 'Wide Marimba',
+    desc: '80Hz spacing instead of 60Hz — wider melodic intervals, more singable melody. Needs a wider band (700–2880 Hz) and decoder retune, but each code sounds more like a tune.',
+    section: 'experimental',
+    wave: 'triangle',
+    toneMs: 175, sepMs: 70, startMs: 210, endMs: 120, gapMs: 260,
+    rampS: 0.002,
+    toneGain: 1.0, sepGain: 0.6,
+    envelope: 'percussive',
+    overtones: [{ ratio: 2.0, gain: 0.08 }],
+    startFreq: 700, letterBase: 760, freqStep: 80, sepFreq: 2820, endFreq: 2880,
+  },
+  {
+    id: 'echo-kalimba',
+    name: 'Echo Kalimba',
+    desc: 'Deep kalimba with a slapback delay (100ms, light feedback). Adds depth and space without heavy reverb. Delay echo could reinforce or confuse the detector.',
+    section: 'experimental',
+    wave: 'sine',
+    toneMs: 175, sepMs: 70, startMs: 200, endMs: 120, gapMs: 270,
+    rampS: 0.001,
+    toneGain: 0.9, sepGain: 0.55,
+    envelope: 'percussive',
+    overtones: [{ ratio: 3.0, gain: 0.06 }],
+    reverb: { delay: 0.10, feedback: 0.2, wet: 0.18 },
+    startFreq: 650, letterBase: 710, freqStep: 60, sepFreq: 2270, endFreq: 2330,
+  },
+  {
+    id: 'fm-bell',
+    name: 'FM Bell',
+    desc: 'Sine + detuned inharmonic overtones (x2.76, x4.15) for metallic FM-synthesis bell character. Inharmonic partials are well clear of symbol bins.',
+    section: 'experimental',
+    wave: 'sine',
+    toneMs: 185, sepMs: 70, startMs: 220, endMs: 130, gapMs: 280,
+    rampS: 0.002,
+    toneGain: 0.85, sepGain: 0.5,
+    envelope: 'bell',
+    overtones: [{ ratio: 2.76, gain: 0.12 }, { ratio: 4.15, gain: 0.06 }],
+    startFreq: 700, letterBase: 760, freqStep: 60, sepFreq: 2320, endFreq: 2380,
+  },
+];
+
+// ── Build a PeriodicWave for custom waveforms ──
+function getPeriodicWave(ctx, type) {
+  if (type === 'custom-chime') {
+    const real = new Float32Array([0, 0, 0, 0]);
+    const imag = new Float32Array([0, 1.0, 0.2, 0.1]);
+    return ctx.createPeriodicWave(real, imag, { disableNormalization: false });
+  }
+  if (type === 'custom-steel') {
+    const real = new Float32Array([0, 0, 0, 0]);
+    const imag = new Float32Array([0, 1.0, 0.3, 0.12]);
+    return ctx.createPeriodicWave(real, imag, { disableNormalization: false });
+  }
+  if (type === 'custom-organ') {
+    const real = new Float32Array([0, 0, 0]);
+    const imag = new Float32Array([0, 1.0, 0.35]);
+    return ctx.createPeriodicWave(real, imag, { disableNormalization: false });
+  }
+  return null;
+}
+
+// ── Schedule a code with a given voice ──
+function scheduleWithVoice(ctx, dest, code, voice, { repeats = 1 } = {}) {
+  const chk = checksumLetter(code);
+
+  const step = voice.freqStep ?? FREQ_STEP;
+  const startFreq = voice.startFreq ?? START_FREQ;
+  const letterBase = voice.letterBase ?? LETTER_BASE_FREQ;
+  const sepFreq = voice.sepFreq ?? SEP_FREQ;
+  const endFreq = voice.endFreq ?? END_FREQ;
+
+  const tones = [{ freq: startFreq, ms: voice.startMs, level: voice.toneGain, type: 'start' }];
+  [...code, chk].forEach((letter, i) => {
+    if (i > 0) tones.push({ freq: sepFreq, ms: voice.sepMs, level: voice.sepGain, type: 'sep' });
+    tones.push({
+      freq: letterBase + letterIndex(letter) * step,
+      ms: voice.toneMs, level: voice.toneGain, type: 'letter',
+    });
+  });
+  tones.push({ freq: endFreq, ms: voice.endMs, level: voice.toneGain, type: 'end' });
+
+  const startAt = ctx.currentTime + 0.05;
+  const nodes = [];
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const periodicWave = getPeriodicWave(ctx, voice.wave);
+  if (periodicWave) {
+    osc.setPeriodicWave(periodicWave);
+  } else {
+    osc.type = voice.wave;
+  }
+  gain.gain.setValueAtTime(0, startAt);
+  osc.connect(gain);
+  gain.connect(dest);
+  nodes.push(osc);
+
+  const overtoneNodes = (voice.overtones || []).map(ot => {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    g.gain.setValueAtTime(0, startAt);
+    o.connect(g);
+    g.connect(dest);
+    nodes.push(o);
+    return { osc: o, gain: g, ratio: ot.ratio, level: ot.gain };
+  });
+
+  let tremoloGain = null;
+  if (voice.tremolo) {
+    const lfo = ctx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(voice.tremolo.rate, startAt);
+    tremoloGain = ctx.createGain();
+    tremoloGain.gain.setValueAtTime(voice.tremolo.depth, startAt);
+    gain.disconnect();
+    const modGain = ctx.createGain();
+    modGain.gain.setValueAtTime(1, startAt);
+    gain.connect(modGain);
+    lfo.connect(tremoloGain);
+    tremoloGain.connect(modGain.gain);
+    modGain.connect(dest);
+    lfo.start(startAt);
+  }
+
+  const harmonyNodes = (voice.harmony || []).map(h => {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    const pw = getPeriodicWave(ctx, voice.wave);
+    if (pw) o.setPeriodicWave(pw); else o.type = voice.wave;
+    g.gain.setValueAtTime(0, startAt);
+    o.connect(g);
+    g.connect(dest);
+    nodes.push(o);
+    return { osc: o, gain: g, semitones: h.semitones, level: h.gain };
+  });
+
+  if (voice.reverb) {
+    const delay = ctx.createDelay(1.0);
+    delay.delayTime.setValueAtTime(voice.reverb.delay || 0.12, startAt);
+    const fb = ctx.createGain();
+    fb.gain.setValueAtTime(voice.reverb.feedback || 0.3, startAt);
+    const wet = ctx.createGain();
+    wet.gain.setValueAtTime(voice.reverb.wet || 0.25, startAt);
+    gain.connect(delay);
+    delay.connect(fb);
+    fb.connect(delay);
+    delay.connect(wet);
+    wet.connect(dest);
+  }
+
+  const portS = voice.portamento || 0;
+
+  let t = startAt;
+  for (let rep = 0; rep < repeats; rep++) {
+    for (const tone of tones) {
+      const dur = tone.ms / 1000;
+      const end = t + dur;
+
+      if (portS > 0) {
+        osc.frequency.setValueAtTime(osc.frequency.value || tone.freq, t);
+        osc.frequency.linearRampToValueAtTime(tone.freq, t + Math.min(portS, dur * 0.4));
+        for (const ot of overtoneNodes) {
+          ot.osc.frequency.setValueAtTime(ot.osc.frequency.value || tone.freq * ot.ratio, t);
+          ot.osc.frequency.linearRampToValueAtTime(tone.freq * ot.ratio, t + Math.min(portS, dur * 0.4));
+        }
+        for (const h of harmonyNodes) {
+          const hFreq = tone.freq * Math.pow(2, h.semitones / 12);
+          h.osc.frequency.setValueAtTime(h.osc.frequency.value || hFreq, t);
+          h.osc.frequency.linearRampToValueAtTime(hFreq, t + Math.min(portS, dur * 0.4));
+        }
+      } else {
+        osc.frequency.setValueAtTime(tone.freq, t);
+        for (const ot of overtoneNodes) {
+          ot.osc.frequency.setValueAtTime(tone.freq * ot.ratio, t);
+        }
+        for (const h of harmonyNodes) {
+          h.osc.frequency.setValueAtTime(tone.freq * Math.pow(2, h.semitones / 12), t);
+        }
+      }
+
+      const applyEnvelope = (gainParam, level) => {
+        switch (voice.envelope) {
+          case 'linear':
+            gainParam.setValueAtTime(0, t);
+            gainParam.linearRampToValueAtTime(level, t + voice.rampS);
+            gainParam.setValueAtTime(level, end - voice.rampS);
+            gainParam.linearRampToValueAtTime(0, end);
+            break;
+          case 'exponential': {
+            const safeLevel = Math.max(level, 0.001);
+            gainParam.setValueAtTime(0.001, t);
+            gainParam.exponentialRampToValueAtTime(safeLevel, t + voice.rampS);
+            gainParam.setValueAtTime(safeLevel, end - voice.rampS);
+            gainParam.exponentialRampToValueAtTime(0.001, end);
+            break;
+          }
+          case 'bell': {
+            const safeLevel = Math.max(level, 0.001);
+            const decay = dur * 0.7;
+            gainParam.setValueAtTime(0.001, t);
+            gainParam.linearRampToValueAtTime(safeLevel, t + voice.rampS);
+            gainParam.exponentialRampToValueAtTime(safeLevel * 0.25, t + voice.rampS + decay);
+            gainParam.exponentialRampToValueAtTime(0.001, end);
+            break;
+          }
+          case 'percussive': {
+            const safeLevel = Math.max(level, 0.001);
+            const attack = 0.002;
+            const decayEnd = Math.min(t + attack + dur * 0.25, end - 0.005);
+            const sustain = safeLevel * 0.4;
+            gainParam.setValueAtTime(0.001, t);
+            gainParam.linearRampToValueAtTime(safeLevel, t + attack);
+            gainParam.exponentialRampToValueAtTime(Math.max(sustain, 0.001), decayEnd);
+            gainParam.setValueAtTime(Math.max(sustain, 0.001), end - 0.005);
+            gainParam.exponentialRampToValueAtTime(0.001, end);
+            break;
+          }
+        }
+      };
+
+      applyEnvelope(gain.gain, tone.level);
+      for (const ot of overtoneNodes) {
+        applyEnvelope(ot.gain.gain, tone.level * ot.level);
+      }
+      for (const h of harmonyNodes) {
+        applyEnvelope(h.gain.gain, tone.level * h.level);
+      }
+
+      t = end;
+    }
+    t += voice.gapMs / 1000;
+  }
+
+  for (const n of nodes) {
+    n.start(startAt);
+    n.stop(t);
+  }
+
+  const totalDuration = t - startAt;
+  return { nodes, totalDuration, startAt };
+}
+
+// ── EQ bar animation ──
+function animateEQ(card, analyser, duration, voice) {
+  const bars = card.querySelectorAll('.eq-bg span');
+  if (!bars.length) return;
+  const bins = new Uint8Array(analyser.frequencyBinCount);
+  const hzPerBin = analyser.context.sampleRate / analyser.fftSize;
+  const bandLow = (voice?.startFreq ?? START_FREQ) - 100;
+  const bandHigh = (voice?.endFreq ?? END_FREQ) + 100;
+  const lo = Math.floor(bandLow / hzPerBin);
+  const hi = Math.min(Math.ceil(bandHigh / hzPerBin), bins.length);
+  const bandSize = hi - lo;
+  const start = performance.now();
+
+  function draw() {
+    if (performance.now() - start > (duration + 0.3) * 1000) {
+      // Reset to static heights
+      bars.forEach(b => { b.style.height = b.dataset.staticH; });
+      return;
+    }
+    analyser.getByteFrequencyData(bins);
+    const step = Math.max(1, Math.floor(bandSize / bars.length));
+    for (let i = 0; i < bars.length; i++) {
+      const idx = lo + Math.min(i * step, bandSize - 1);
+      const val = bins[idx] / 255;
+      const h = 10 + val * 85; // 10-95%
+      bars[i].style.height = h + '%';
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ── Visualizer ──
+function startViz(canvas, ctx, analyser, duration, voice) {
+  const cctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.offsetWidth * 2;
+  const h = canvas.height = canvas.offsetHeight * 2;
+  const bins = new Uint8Array(analyser.frequencyBinCount);
+  const start = performance.now();
+
+  function draw() {
+    if (performance.now() - start > (duration + 0.3) * 1000) {
+      cctx.clearRect(0, 0, w, h);
+      return;
+    }
+    analyser.getByteFrequencyData(bins);
+    cctx.fillStyle = '#0f0f23';
+    cctx.fillRect(0, 0, w, h);
+
+    const hzPerBin = ctx.sampleRate / analyser.fftSize;
+    const bandLow = (voice?.startFreq ?? START_FREQ) - 100;
+    const bandHigh = (voice?.endFreq ?? END_FREQ) + 100;
+    const lo = Math.floor(bandLow / hzPerBin);
+    const hi = Math.min(Math.ceil(bandHigh / hzPerBin), bins.length);
+    const count = hi - lo;
+    const barW = w / count;
+
+    for (let i = 0; i < count; i++) {
+      const val = bins[lo + i] / 255;
+      const barH = val * h;
+      const hue = 240 + val * 60;
+      cctx.fillStyle = `hsla(${hue}, 70%, ${40 + val * 30}%, ${0.6 + val * 0.4})`;
+      cctx.fillRect(i * barW, h - barH, barW - 1, barH);
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ── Verbose parameterized decoder (speaker → mic) ──
+function decodeMic(micSource, voice, { timeoutMs = 15000 } = {}) {
+  const step = voice.freqStep ?? FREQ_STEP;
+  const sFreq = voice.startFreq ?? START_FREQ;
+  const lBase = voice.letterBase ?? LETTER_BASE_FREQ;
+  const sepF = voice.sepFreq ?? SEP_FREQ;
+  const eFreq = voice.endFreq ?? END_FREQ;
+  const bandLow = sFreq - 100;
+  const bandHigh = eFreq + 100;
+
+  const symbols = [
+    { symbol: 'start', freq: sFreq },
+    ...Array.from({ length: 26 }, (_, i) => ({
+      symbol: String.fromCharCode(65 + i),
+      freq: lBase + i * step,
+    })),
+    { symbol: 'sep', freq: sepF },
+    { symbol: 'end', freq: eFreq },
+  ];
+
+  return new Promise((resolve, reject) => {
+    const ctx = micSource.context;
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0;
+    micSource.connect(analyser);
+
+    const bins = new Float32Array(analyser.frequencyBinCount);
+    const hzPerBin = ctx.sampleRate / analyser.fftSize;
+    const lowBin = Math.floor(bandLow / hzPerBin);
+    const highBin = Math.min(Math.ceil(bandHigh / hzPerBin), bins.length - 1);
+    const symbolBins = symbols.map(({ symbol, freq }) => ({
+      symbol,
+      bin: Math.round(freq / hzPerBin),
+    }));
+
+    const log = [];
+    const t0 = performance.now();
+    const elapsed = () => ((performance.now() - t0) / 1000).toFixed(2) + 's';
+
+    let runSymbol = null;
+    let runLength = 0;
+    let lastSegment = null;
+    let collecting = false;
+    let letters = '';
+    const candidates = [];
+    let frameNum = 0;
+    let peakDb = -Infinity;
+    let floorDb = -Infinity;
+
+    const isValidFrame = (frame) =>
+      frame.length === 6 && frame[5] === checksumLetter(frame.slice(0, 5));
+
+    const recoverFrame = () => {
+      if (candidates.length >= 2) {
+        let voted = '';
+        for (let pos = 0; pos <= 5; pos++) {
+          const counts = new Map();
+          for (const frame of candidates) {
+            counts.set(frame[pos], (counts.get(frame[pos]) ?? 0) + 1);
+          }
+          let best = '', bestC = 0;
+          for (const [l, c] of counts) { if (c > bestC) { bestC = c; best = l; } }
+          voted += best;
+        }
+        if (isValidFrame(voted)) {
+          log.push('[' + elapsed() + '] vote recovered: ' + voted.slice(0, 5) + ' from ' + candidates.length + ' frames');
+          return voted;
+        }
+      }
+      for (const frame of candidates) {
+        for (let pos = 0; pos <= 5; pos++) {
+          let fixed;
+          if (pos === 5) {
+            fixed = checksumLetter(frame.slice(0, 5));
+          } else {
+            let others = letterIndex(frame[5]);
+            for (let i = 0; i < 5; i++) { if (i !== pos) others -= letterIndex(frame[i]); }
+            fixed = String.fromCharCode(65 + (((others % 26) + 26) % 26));
+          }
+          if (fixed === frame[pos]) continue;
+          const corroborated = candidates.some((o) => o !== frame && o[pos] === fixed);
+          if (!corroborated) continue;
+          const repaired = frame.slice(0, pos) + fixed + frame.slice(pos + 1);
+          if (isValidFrame(repaired)) {
+            log.push('[' + elapsed() + '] checksum repair: pos ' + pos + ' ' + frame[pos] + '->' + fixed + ' => ' + repaired.slice(0, 5));
+            return repaired;
+          }
+        }
+      }
+      return null;
+    };
+
+    const cleanup = (settle) => {
+      clearInterval(poller);
+      clearTimeout(timer);
+      try { micSource.disconnect(analyser); } catch {}
+      settle();
+    };
+
+    const timer = setTimeout(() => {
+      log.push('[' + elapsed() + '] TIMEOUT — no valid decode');
+      if (candidates.length > 0) {
+        log.push('  failed frames: ' + candidates.join(', '));
+      }
+      cleanup(() => reject({ reason: 'timeout', log, candidates, peakDb: Math.round(peakDb), floorDb: Math.round(floorDb) }));
+    }, timeoutMs);
+
+    const detect = () => {
+      analyser.getFloatFrequencyData(bins);
+      let best = 'silence', bestDb = -Infinity;
+      for (const { symbol, bin } of symbolBins) {
+        const db = Math.max(bins[bin - 1], bins[bin], bins[bin + 1]);
+        if (db > bestDb) { bestDb = db; best = symbol; }
+      }
+      const band = [...bins.subarray(lowBin, highBin + 1)].sort((a, b) => a - b);
+      const floor = band[band.length >> 1];
+      if (bestDb > peakDb) peakDb = bestDb;
+      if (floor > floorDb) floorDb = floor;
+      if (bestDb < -80 || bestDb < floor + 15) return 'silence';
+      return best;
+    };
+
+    const confirmSegment = (segment) => {
+      if (segment === lastSegment) return;
+      lastSegment = segment;
+      if (segment === 'silence' || segment === 'sep') return;
+      if (segment === 'start') {
+        frameNum++;
+        collecting = true;
+        letters = '';
+        log.push('[' + elapsed() + '] START tone (frame #' + frameNum + ')');
+        return;
+      }
+      if (!collecting) return;
+      if (segment === 'end') {
+        const chkExpected = letters.length >= 5 ? checksumLetter(letters.slice(0, 5)) : '?';
+        const chkGot = letters.length === 6 ? letters[5] : '?';
+        const valid = isValidFrame(letters);
+        log.push('[' + elapsed() + '] END — heard "' + letters + '" (chk: expected ' + chkExpected + ', got ' + chkGot + ') ' + (valid ? 'VALID' : 'INVALID'));
+        if (valid) {
+          const code = letters.slice(0, 5);
+          log.push('[' + elapsed() + '] decoded: ' + code + ' (direct match, frame #' + frameNum + ')');
+          log.push('  signal: peak ' + Math.round(peakDb) + ' dB, floor ' + Math.round(floorDb) + ' dB, margin ' + Math.round(peakDb - floorDb) + ' dB');
+          cleanup(() => resolve({ decoded: code, log, method: 'direct', frame: frameNum, peakDb: Math.round(peakDb), floorDb: Math.round(floorDb) }));
+          return;
+        }
+        if (letters.length === 6) {
+          candidates.push(letters);
+          log.push('  candidate #' + candidates.length + ': ' + letters);
+          const recovered = recoverFrame();
+          if (recovered) {
+            const code = recovered.slice(0, 5);
+            log.push('[' + elapsed() + '] decoded: ' + code + ' (recovered from ' + candidates.length + ' frames)');
+            log.push('  signal: peak ' + Math.round(peakDb) + ' dB, floor ' + Math.round(floorDb) + ' dB');
+            cleanup(() => resolve({ decoded: code, log, method: 'recovered', frame: frameNum, peakDb: Math.round(peakDb), floorDb: Math.round(floorDb) }));
+            return;
+          }
+        } else {
+          log.push('  dropped (wrong length: ' + letters.length + ')');
+        }
+        collecting = false;
+        letters = '';
+        return;
+      }
+      letters += segment;
+    };
+
+    const poller = setInterval(() => {
+      const symbol = detect();
+      if (symbol === runSymbol) { runLength++; }
+      else { runSymbol = symbol; runLength = 1; }
+      let needed = 3;
+      if (symbol === 'start') needed = 6;
+      if (symbol === 'sep') needed = 2;
+      if (runLength === needed) confirmSegment(symbol);
+    }, 16);
+  });
+}
+
+/** Generate a random 5-letter code */
+function randomCode() {
+  let c = '';
+  for (let i = 0; i < 5; i++) c += String.fromCharCode(65 + Math.floor(Math.random() * 26));
+  return c;
+}
+
+/** Codes with tricky patterns for the decoder */
+const TRICKY_CODES = ['AABCD', 'ZZZZY', 'ABCDE'];
+
+/** Shared mic stream — requested once, reused across tests */
+let sharedMicStream = null;
+
+async function getMicStream() {
+  if (sharedMicStream) return sharedMicStream;
+  sharedMicStream = await navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+  });
+  return sharedMicStream;
+}
+
+/**
+ * Real speaker->mic test for a single code.
+ * Plays through speakers, decodes from mic, returns verbose result.
+ */
+async function testOneCode(code, voice, micStream, card) {
+  const ctx = new AudioContext();
+  await ctx.resume();
+
+  const analyser = ctx.createAnalyser();
+  analyser.fftSize = 2048;
+  analyser.smoothingTimeConstant = 0.3;
+  analyser.connect(ctx.destination);
+
+  const { nodes, totalDuration } = scheduleWithVoice(ctx, analyser, code, voice, { repeats: 3 });
+  if (card) animateEQ(card, analyser, totalDuration, voice);
+
+  const micSource = ctx.createMediaStreamSource(micStream);
+
+  const t0 = performance.now();
+  try {
+    const result = await decodeMic(micSource, voice, { timeoutMs: (totalDuration + 3) * 1000 });
+    const ms = Math.round(performance.now() - t0);
+    await ctx.close().catch(() => {});
+    return {
+      code, decoded: result.decoded, pass: result.decoded === code, ms,
+      method: result.method, frame: result.frame,
+      peakDb: result.peakDb, floorDb: result.floorDb,
+      log: result.log,
+    };
+  } catch (err) {
+    const ms = Math.round(performance.now() - t0);
+    await ctx.close().catch(() => {});
+    const info = err.reason ? err : { reason: 'error', log: [String(err)], candidates: [], peakDb: -999, floorDb: -999 };
+    return {
+      code, decoded: null, pass: false, ms,
+      method: 'failed', frame: 0,
+      peakDb: info.peakDb, floorDb: info.floorDb,
+      log: info.log, candidates: info.candidates,
+    };
+  }
+}
+
+/**
+ * Run a test suite for a voice: user's code + tricky patterns + randoms.
+ */
+async function runTestSuite(voice, userCode, onResult, onLog, card) {
+  const codes = [userCode, ...TRICKY_CODES, randomCode(), randomCode()];
+  let passed = 0, failed = 0;
+
+  let micStream;
+  try {
+    micStream = await getMicStream();
+    onLog('mic: ready (' + micStream.getAudioTracks()[0].label + ')');
+  } catch (err) {
+    onLog('mic: FAILED — ' + err);
+    return { passed: 0, failed: codes.length, total: codes.length };
+  }
+
+  for (const code of codes) {
+    onLog('--- testing ' + code + ' ---');
+    const result = await testOneCode(code, voice, micStream, card);
+    if (result.pass) passed++; else failed++;
+    for (const line of result.log) {
+      onLog(line);
+    }
+    onResult(result);
+  }
+  return { passed, failed, total: codes.length };
+}
+
+// ── UI ──
+const grid = document.getElementById('grid');
+const codeInput = document.getElementById('code');
+let activeCtx = null;
+let activeCard = null;
+
+function getCode() {
+  const raw = codeInput.value.toUpperCase().replace(/[^A-Z]/g, '');
+  return raw.length === 5 ? raw : 'HELLO';
+}
+
+const playSvg = '<svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>';
+const stopSvg = '<svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+
+function renderCards() {
+  grid.innerHTML = '';
+  let lastSection = null;
+
+  VOICES.forEach((voice, idx) => {
+    const section = voice.section ?? (voice.current ? 'current' : 'alt');
+    const sectionLabels = { current: 'Current', alt: 'Alternatives (same pitch)', lower: 'Lower Pitch (more melodic)', experimental: 'Experimental (may need decoder testing)' };
+    if (section !== lastSection) {
+      lastSection = section;
+      const label = document.createElement('div');
+      label.className = 'section-label';
+      label.style.cssText = 'grid-column: 1 / -1';
+      label.textContent = sectionLabels[section] || section;
+      grid.appendChild(label);
+    }
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = 'card-' + voice.id;
+
+    const header = document.createElement('div');
+    header.className = 'card-header';
+    const title = document.createElement('span');
+    title.className = 'card-title';
+    title.textContent = voice.name;
+    header.appendChild(title);
+
+    const desc = document.createElement('div');
+    desc.className = 'card-desc';
+    desc.textContent = voice.desc;
+
+    const params = document.createElement('div');
+    params.className = 'card-params';
+    const lines = [
+      'wave: ' + voice.wave,
+      'envelope: ' + voice.envelope,
+      'tone: ' + voice.toneMs + 'ms  ramp: ' + (voice.rampS * 1000) + 'ms  gain: ' + voice.toneGain,
+    ];
+    if (voice.overtones) {
+      lines.push('overtones: ' + voice.overtones.map(o => o.ratio + 'x @' + o.gain).join(', '));
+    }
+    if (voice.tremolo) {
+      lines.push('tremolo: ' + voice.tremolo.rate + 'Hz depth=' + voice.tremolo.depth);
+    }
+    if (voice.harmony) {
+      lines.push('harmony: ' + voice.harmony.map(h => '+' + h.semitones + ' semi @' + h.gain).join(', '));
+    }
+    if (voice.portamento) {
+      lines.push('portamento: ' + (voice.portamento * 1000) + 'ms glide');
+    }
+    if (voice.reverb) {
+      lines.push('reverb: ' + (voice.reverb.delay * 1000) + 'ms delay, fb=' + voice.reverb.feedback + ', wet=' + voice.reverb.wet);
+    }
+    if (voice.startFreq) {
+      lines.push('band: ' + voice.startFreq + '–' + voice.endFreq + ' Hz' + (voice.freqStep !== 60 ? ' (step=' + voice.freqStep + 'Hz)' : ''));
+    }
+    params.textContent = lines.join('\n');
+    params.style.cssText = 'white-space: pre-wrap';
+
+    const viz = document.createElement('div');
+    viz.className = 'viz';
+    const canvas = document.createElement('canvas');
+    viz.appendChild(canvas);
+
+    const btn = document.createElement('button');
+    btn.className = 'play-btn';
+    btn.dataset.voice = voice.id;
+    btn.innerHTML = playSvg + ' Play';
+
+    const testBtn = document.createElement('button');
+    testBtn.className = 'play-btn test-btn';
+    testBtn.dataset.voice = voice.id;
+    testBtn.textContent = 'Test';
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'btn-row';
+    btnRow.appendChild(btn);
+    btnRow.appendChild(testBtn);
+
+    const results = document.createElement('div');
+    results.className = 'test-results';
+    results.id = 'results-' + voice.id;
+
+    // EQ bar background decoration
+    const eq = document.createElement('div');
+    eq.className = 'eq-bg';
+    const barCount = 120;
+    // Deterministic pseudo-random heights seeded by voice name
+    const seed = voice.id.split('').reduce((s, c) => s + c.charCodeAt(0), 0);
+    for (let i = 0; i < barCount; i++) {
+      const bar = document.createElement('span');
+      const h = 30 + ((seed * (i + 1) * 7 + i * 13) % 65); // 30-95% height
+      bar.style.height = h + '%';
+      bar.dataset.staticH = h + '%';
+      eq.appendChild(bar);
+    }
+
+    const info = document.createElement('div');
+    info.className = 'card-info';
+    info.appendChild(header);
+    info.appendChild(desc);
+
+    card.appendChild(eq);
+    card.appendChild(info);
+    card.appendChild(params);
+    card.appendChild(viz);
+    card.appendChild(btnRow);
+    card.appendChild(results);
+    grid.appendChild(card);
+  });
+}
+
+// ── Test handler ──
+grid.addEventListener('click', async (e) => {
+  const testBtn = e.target.closest('.test-btn');
+  if (testBtn) {
+    const voiceId = testBtn.dataset.voice;
+    const voice = VOICES.find(v => v.id === voiceId);
+    if (!voice || testBtn.disabled) return;
+
+    testBtn.disabled = true;
+    testBtn.textContent = 'Testing...';
+    const card = document.getElementById('card-' + voiceId);
+    card.classList.add('testing');
+    const results = document.getElementById('results-' + voiceId);
+    results.innerHTML = '';
+
+    const logArea = document.createElement('div');
+    logArea.className = 'test-log';
+    results.appendChild(logArea);
+
+    const summary = document.createElement('div');
+    summary.className = 'test-summary';
+    results.appendChild(summary);
+
+    const addLog = (line) => {
+      const el = document.createElement('div');
+      el.className = 'log-line';
+      el.textContent = line;
+      logArea.appendChild(el);
+      results.scrollTop = results.scrollHeight;
+    };
+
+    await runTestSuite(voice, getCode(), (r) => {
+      const row = document.createElement('div');
+      const icon = r.pass ? '\u2713' : '\u2717';
+      if (r.pass) {
+        row.className = 'test-row pass';
+        row.textContent = icon + ' ' + r.code + ' \u2192 ' + r.decoded
+          + '  [' + r.method + ', frame #' + r.frame + ', ' + r.ms + 'ms'
+          + ', peak ' + r.peakDb + 'dB, floor ' + r.floorDb + 'dB'
+          + ', margin ' + (r.peakDb - r.floorDb) + 'dB]';
+      } else {
+        row.className = 'test-row fail';
+        const got = r.decoded || 'timeout';
+        row.textContent = icon + ' ' + r.code + ' \u2192 ' + got
+          + '  [' + r.method + ', ' + r.ms + 'ms'
+          + ', peak ' + r.peakDb + 'dB, floor ' + r.floorDb + 'dB]';
+        if (r.candidates && r.candidates.length > 0) {
+          const extra = document.createElement('div');
+          extra.className = 'log-line';
+          extra.textContent = '  heard frames: ' + r.candidates.join(', ');
+          logArea.appendChild(extra);
+        }
+      }
+      logArea.appendChild(row);
+
+      const passed = results.querySelectorAll('.pass').length;
+      const failed = results.querySelectorAll('.fail').length;
+      const total = passed + failed;
+      summary.textContent = passed + '/' + total + ' passed' + (failed ? '  \u00b7  ' + failed + ' failed' : '');
+      summary.className = 'test-summary ' + (failed ? 'has-failures' : 'all-pass');
+      results.scrollTop = results.scrollHeight;
+    }, addLog, card);
+
+    card.classList.remove('testing');
+    testBtn.disabled = false;
+    testBtn.textContent = 'Test';
+    return;
+  }
+
+  // ── Play handler ──
+  const btn = e.target.closest('.play-btn');
+  if (!btn) return;
+
+  const voiceId = btn.dataset.voice;
+  const voice = VOICES.find(v => v.id === voiceId);
+  if (!voice) return;
+
+  if (activeCtx) {
+    try { await activeCtx.close(); } catch {}
+    activeCtx = null;
+    if (activeCard) activeCard.classList.remove('playing');
+  }
+
+  if (activeCard && activeCard.id === 'card-' + voiceId && btn.classList.contains('stop-btn')) {
+    btn.innerHTML = playSvg + ' Play';
+    btn.classList.remove('stop-btn');
+    activeCard = null;
+    return;
+  }
+
+  grid.querySelectorAll('.play-btn:not(.test-btn)').forEach(b => {
+    b.innerHTML = playSvg + ' Play';
+    b.classList.remove('stop-btn');
+  });
+
+  const card = document.getElementById('card-' + voiceId);
+  const canvas = card.querySelector('canvas');
+  const ctx = new AudioContext();
+  activeCtx = ctx;
+  activeCard = card;
+
+  await ctx.resume();
+
+  const analyser = ctx.createAnalyser();
+  analyser.fftSize = 2048;
+  analyser.smoothingTimeConstant = 0.3;
+  analyser.connect(ctx.destination);
+
+  const code = getCode();
+  const { nodes, totalDuration } = scheduleWithVoice(ctx, analyser, code, voice);
+
+  card.classList.add('playing');
+  btn.innerHTML = stopSvg + ' Stop';
+  btn.classList.add('stop-btn');
+
+  startViz(canvas, ctx, analyser, totalDuration, voice);
+  animateEQ(card, analyser, totalDuration, voice);
+
+  nodes[0].onended = () => {
+    card.classList.remove('playing');
+    btn.innerHTML = playSvg + ' Play';
+    btn.classList.remove('stop-btn');
+    if (activeCard === card) activeCard = null;
+    ctx.close().catch(() => {});
+    if (activeCtx === ctx) activeCtx = null;
+  };
+});
+
+renderCards();
+</script>
+</body>
+</html>
