@@ -12,6 +12,20 @@
     border-block-end: 1px solid rgba(180, 100, 20, 0.25);
   }
 
+  /* Opaque shield behind the iOS status bar so nothing shows through
+     the clock/signal area. Covers the safe-area zone above the header. */
+  .game-topbar::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    block-size: env(safe-area-inset-top);
+    background: var(--color-panel);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 100;
+  }
+
   .topbar-title-row {
     display: flex;
     align-items: center;

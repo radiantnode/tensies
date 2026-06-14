@@ -45,6 +45,20 @@
     padding-block-start: env(safe-area-inset-top);
   }
 
+  /* Opaque shield behind the iOS status bar so scrolled menu content
+     doesn't show through the clock/signal area. */
+  .nav-menu::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    block-size: env(safe-area-inset-top);
+    background: rgba(8, 4, 1, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1;
+  }
+
   .nav-menu .menu-panel {
     padding-block: 5rem 2.5rem;
     padding-inline: 2rem;
