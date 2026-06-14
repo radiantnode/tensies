@@ -1,4 +1,5 @@
 // @ts-check
+import { getAuthUser } from '../auth.js';
 import { byId } from '../dom.js';
 import { renderGame } from '../game-render.js';
 import { RESUME_CLOSE_DELAY_MS } from '../overlays.js';
@@ -71,6 +72,15 @@ export class GameScreen extends HTMLElement {
     // id the rest of the app (and the test suites) reference.
     this.#menuBtn.id = 'game-menu-btn';
     this.#menuBtn.setAttribute('aria-controls', 'game-menu');
+
+    // Show signed-in username next to the hamburger
+    const user = getAuthUser();
+    if (user) {
+      const tag = document.createElement('span');
+      tag.className = 'header-username';
+      tag.textContent = `@${user.username}`;
+      this.#menuBtn.parentElement?.insertBefore(tag, this.#menuBtn);
+    }
 
     // Hamburger toggles the GAME menu (not the nav menu).
     this.#menuBtn.addEventListener('click', () => {
