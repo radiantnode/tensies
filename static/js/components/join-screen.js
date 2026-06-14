@@ -4,6 +4,7 @@ import { AudioShareError, listenForCode } from '../audio-share.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
 import { byId } from '../dom.js';
 import { EQ_ICON_HTML } from '../eq-icon.js';
+import { isSignedIn } from '../auth.js';
 import { joinGame } from '../net.js';
 import { showLanding } from '../router.js';
 import { state } from '../state.js';
@@ -40,7 +41,12 @@ export class JoinScreen extends HTMLElement {
         </form>
       </div>`;
     const codeInput = /** @type {HTMLInputElement} */ (byId('code-input'));
-    /** @type {HTMLInputElement} */ (byId('join-name-input')).placeholder = state.randomNamePlaceholder;
+    const joinNameInput = /** @type {HTMLInputElement} */ (byId('join-name-input'));
+    joinNameInput.placeholder = state.randomNamePlaceholder;
+    if (isSignedIn()) {
+      joinNameInput.hidden = true;
+      /** @type {HTMLElement} */ (this.querySelector('.tagline')).textContent = 'Enter the game code';
+    }
     byId('back-btn').addEventListener('click', () => showLanding());
     codeInput.addEventListener('input', () => {
       codeInput.value = codeInput.value.toUpperCase();

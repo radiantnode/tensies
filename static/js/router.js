@@ -54,7 +54,11 @@ export function showJoin() {
 
 /** Navigate to the landing screen. */
 export function showLanding() {
-  return navigate('/');
+  const transition = navigate('/');
+  transition.updateCallbackDone.then(() => {
+    /** @type {any} */ (byId('landing'))?.refreshAuth?.();
+  });
+  return transition;
 }
 
 /** Navigate to the sign-in screen. */

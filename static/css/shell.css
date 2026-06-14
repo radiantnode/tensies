@@ -73,6 +73,19 @@
     transform-origin: center;
   }
 
+  /* Signed-in username badge in the app-header (pre-game screens only) */
+  .header-username {
+    margin-inline-start: auto;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  .header-username + .game-menu-btn {
+    margin-inline-start: 0;
+  }
+
   .game-menu-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
   .game-menu-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
   .game-menu-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }

@@ -43,6 +43,8 @@
   .nav-menu .menu-panel {
     padding-block: calc(env(safe-area-inset-top) + 5rem) 2.5rem;
     padding-inline: 2rem;
+    overflow-y: auto;
+    max-block-size: 100%;
   }
 
   .menu-panel {
@@ -106,6 +108,14 @@
   .menu-beer-btn:hover {
     background: linear-gradient(160deg, rgba(180, 110, 20, 0.5) 0%, rgba(120, 70, 10, 0.5) 100%);
     border-color: rgba(230, 170, 55, 0.7);
+  }
+
+  .menu-auth-btn { inline-size: 100%; }
+
+  .menu-divider {
+    margin-block: 1.5rem;
+    block-size: 1px;
+    background: rgba(180, 180, 220, 0.15);
   }
 
   /* "See What's New" button */

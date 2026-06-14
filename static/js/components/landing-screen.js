@@ -61,19 +61,14 @@ export class LandingScreen extends HTMLElement {
 
     const user = getAuthUser();
     if (user) {
-      authStatus.hidden = false;
-      authStatus.innerHTML = `Signed in as <strong>@${user.username}</strong>`;
       authLink.textContent = 'Switch account';
-      if (nameInput) {
-        nameInput.value = user.username;
-        nameInput.disabled = true;
-      }
-      if (nameLabel) nameLabel.textContent = 'Playing as';
+      if (nameInput) nameInput.hidden = true;
+      if (nameLabel) nameLabel.hidden = true;
     } else {
       authStatus.hidden = true;
       authLink.textContent = 'Sign in or Sign up';
-      if (nameInput) nameInput.disabled = false;
-      if (nameLabel) nameLabel.textContent = 'Enter a player name or go with it';
+      if (nameInput) { nameInput.hidden = false; nameInput.disabled = false; }
+      if (nameLabel) { nameLabel.hidden = false; nameLabel.textContent = 'Enter a player name or go with it'; }
     }
   }
 
@@ -82,6 +77,20 @@ export class LandingScreen extends HTMLElement {
    */
   refreshAuth() {
     this._updateAuthState();
+    // Sync the header username badge
+    const header = this.querySelector('app-header');
+    if (!header) return;
+    const existing = header.querySelector('.header-username');
+    const user = getAuthUser();
+    if (user && !existing) {
+      const tag = document.createElement('span');
+      tag.className = 'header-username';
+      tag.textContent = `@${user.username}`;
+      const btn = header.querySelector('.game-menu-btn');
+      btn?.parentElement?.insertBefore(tag, btn);
+    } else if (!user && existing) {
+      existing.remove();
+    }
   }
 
   /**
