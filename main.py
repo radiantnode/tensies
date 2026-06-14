@@ -4,7 +4,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
-from server import fanout, gamestore, reaper, telemetry
+from server import db, fanout, gamestore, reaper, telemetry
+from server.auth import router as auth_router
 from server.config import FRONTEND_DIST
 from server.routes import router as http_router
 from server.security import SecurityHeadersMiddleware
@@ -13,9 +14,11 @@ from server.ws import router as ws_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Redis-backed shared state + cross-instance fan-out come up first (both
-    # required); telemetry (Postgres/Grafana) is optional; the reaper backstops
-    # per-game timers across instances.
+    # Postgres (shared pool + migrations) comes up first — auth needs it even
+    # with telemetry disabled. Then Redis-backed shared state + cross-instance
+    # fan-out (both required); telemetry (Grafana writer/live) is optional; the
+    # reaper backstops per-game timers across instances.
+    await db.init()
     await gamestore.init()
     await fanout.start()
     await telemetry.start()
@@ -27,6 +30,7 @@ async def lifespan(app: FastAPI):
         await telemetry.stop()
         await fanout.stop()
         await gamestore.close()
+        await db.close()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -64,5 +68,6 @@ if not FRONTEND_DIST:
 
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
+app.include_router(auth_router)
 app.include_router(http_router)
 app.include_router(ws_router)

@@ -142,6 +142,28 @@ async def stats_game(game_code: str) -> dict:
 # 5 letters (gamestore.make_code), so only that shape matches — anything else
 # 404s so this can't shadow favicons or other single-segment asset requests.
 # Declared last so the explicit routes above (/, /metrics, /stats/*) win.
+@router.get("/signin")
+async def signin_page() -> HTMLResponse:
+    return HTMLResponse(_index_html)
+
+
+@router.get("/welcome")
+async def welcome_page() -> HTMLResponse:
+    return HTMLResponse(_index_html)
+
+
+# Vanity profile URLs: tensies.app/@username. The @ prefix guarantees no
+# collision with game codes (which are [A-Za-z]{5}).
+@router.get("/@{username}")
+async def profile_vanity(username: str) -> HTMLResponse:
+    return HTMLResponse(_index_html)
+
+
+# Clean join URLs: GET /<code> serves the SPA, which reads the code from the
+# path, pre-fills the join screen, then replaces the URL with /. Game codes are
+# 5 letters (gamestore.make_code), so only that shape matches — anything else
+# 404s so this can't shadow favicons or other single-segment asset requests.
+# Declared last so the explicit routes above (/, /metrics, /stats/*) win.
 _GAME_CODE_RE = re.compile(r"[A-Za-z]{5}")
 
 

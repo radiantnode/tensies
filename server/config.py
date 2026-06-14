@@ -176,3 +176,15 @@ GRAFANA_USER = os.environ.get("GRAFANA_USER", "admin")
 GRAFANA_PASS = os.environ.get("GRAFANA_PASS", "admin")
 
 PING_INTERVAL = 5.0          # seconds between server→client WS pings
+
+
+# ─── WebAuthn / user accounts ─────────────────────────────────────────
+WEBAUTHN_RP_ID = os.environ.get("WEBAUTHN_RP_ID", "localhost")
+WEBAUTHN_RP_NAME = os.environ.get("WEBAUTHN_RP_NAME", "Tensies")
+WEBAUTHN_ORIGIN = [
+    o.strip()
+    for o in os.environ.get("WEBAUTHN_ORIGIN", APP_URL or "http://localhost:8888").split(",")
+    if o.strip()
+]
+JWT_SECRET = os.environ.get("JWT_SECRET", "dev-secret-change-in-prod")
+JWT_EXPIRY_DAYS = _int("JWT_EXPIRY_DAYS", 30)

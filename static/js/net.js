@@ -4,6 +4,7 @@ import { byId } from './dom.js';
 import { renderMyArea, renderPlayersBar } from './game-render.js';
 import { showWinner } from './overlays.js';
 import { showFor } from './router.js';
+import { getAuthToken, isSignedIn, getAuthUser } from './auth.js';
 import {
   savePlayerId, saveReconnectToken, readSession, hasSession, clearSession,
 } from './session.js';
@@ -138,6 +139,9 @@ function joinScreen() {
  * seeded placeholder. Captured before showLoading swaps the active screen.
  */
 function currentName() {
+  // Signed-in users use their account username as the player name.
+  const authUser = getAuthUser();
+  if (authUser) return authUser.username;
   const active = document.querySelector('.screen.active');
   const input = /** @type {HTMLInputElement} */ (
     byId(active?.id === 'join' ? 'join-name-input' : 'name-input')
@@ -202,6 +206,12 @@ function handleMessage(msg) {
     case 'welcome':
       state.myId = msg.player_id;
       savePlayerId(msg.player_id);
+      // If signed in, send auth token so the server knows who we are.
+      if (isSignedIn()) send('auth', { token: getAuthToken() });
+      return;
+    case 'auth_ok':
+      state.authUsername = msg.username;
+      state.authUserId = msg.user_id;
       return;
     case 'reconnect_token':
       saveReconnectToken(msg.token);

@@ -1,5 +1,7 @@
 // @ts-check
+import { isSignedIn, getAuthUser, signOut } from '../auth.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
+import { showSignin } from '../router.js';
 import { updateScrollFades } from '../scroll-fades.js';
 
 // Baked changelog HTML — content, not code; the changelog skill regenerates it.
@@ -154,6 +156,7 @@ export class NavMenu extends HTMLElement {
         <div class="menu-about">
           <h2 class="menu-about-heading">Built at the bar, because you don't have to go home but you can't stay there.</h2>
           <p class="menu-about-body">Someone had the bright idea to build a bar game instead of just playing one. That someone was me, and the bar was very much open. <strong>Tensies</strong> is what came out of it: ten dice, one target number, everyone racing to lock all ten first. It runs in your browser, takes forty seconds to explain, and has absolutely no business being as competitive as it gets. Works best with real people in the same room — which, if you're reading this, hopefully describes the situation.</p>
+          <button type="button" class="menu-auth-btn"></button>
           <button type="button" class="menu-whats-new-btn">See What's New</button>
           <a href="https://buymeacoffee.com/radiantnode" target="_blank" rel="noopener noreferrer" class="menu-beer-btn">
             <svg viewBox="0 3 26 26" width="30" height="30" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -182,6 +185,21 @@ export class NavMenu extends HTMLElement {
     document.addEventListener('menu-toggle', this.#onMenuToggle);
     document.addEventListener('keydown', this.#onKeydown);
 
+    this._updateAuthButton();
+    /** @type {HTMLElement} */ (this.querySelector('.menu-auth-btn'))
+      .addEventListener('click', () => {
+        if (isSignedIn()) {
+          signOut();
+          this._updateAuthButton();
+          // Refresh landing screen auth state if it exists
+          const landing = /** @type {any} */ (document.getElementById('landing'));
+          if (landing?.refreshAuth) landing.refreshAuth();
+          this.close();
+        } else {
+          this.close();
+          showSignin();
+        }
+      });
     /** @type {HTMLElement} */ (this.querySelector('.menu-whats-new-btn'))
       .addEventListener('click', () => {
         this.classList.add('show-changelog');
@@ -215,6 +233,7 @@ export class NavMenu extends HTMLElement {
     this.classList.add('open');
     this.setAttribute('aria-hidden', 'false');
     document.body.classList.add('nav-menu-open');
+    this._updateAuthButton();
     this.#syncButtons(true);
   }
 
@@ -236,6 +255,14 @@ export class NavMenu extends HTMLElement {
       btn.setAttribute('aria-expanded', String(open));
       btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
     });
+  }
+
+  /** Update the auth button label based on sign-in state. */
+  _updateAuthButton() {
+    const btn = /** @type {HTMLElement | null} */ (this.querySelector('.menu-auth-btn'));
+    if (!btn) return;
+    const user = getAuthUser();
+    btn.textContent = user ? `Sign out (@${user.username})` : 'Sign in or Sign up';
   }
 
   #updateFades() {

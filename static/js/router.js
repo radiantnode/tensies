@@ -20,7 +20,7 @@ import { showScreen, showLoading, leaveLoading } from './transitions.js';
  */
 
 /** @type {Record<string, string>} */
-const ROUTES = { '/': 'landing', '/join': 'join' };
+const ROUTES = { '/': 'landing', '/join': 'join', '/signin': 'signin', '/welcome': 'onboarding' };
 
 /**
  * Push (or replace) a history entry for `path` and show its screen.
@@ -57,6 +57,25 @@ export function showLanding() {
   return navigate('/');
 }
 
+/** Navigate to the sign-in screen. */
+export function showSignin() {
+  return navigate('/signin');
+}
+
+/**
+ * Navigate to the onboarding screen and display the confirmed username.
+ * @param {string} username
+ * @param {object | null} [stats]
+ */
+export function showOnboarding(username, stats) {
+  const transition = navigate('/welcome');
+  transition.updateCallbackDone.then(() => {
+    /** @type {import('./components/onboarding-screen.js').OnboardingScreen} */
+    (byId('onboarding')).show(username, stats ?? null);
+  });
+  return transition;
+}
+
 /**
  * Route the first paint. The inline #loading screen is already showing;
  * decide what replaces it without a landing flash: a saved session resumes
@@ -68,6 +87,14 @@ export function bootstrap({ resumeSession }) {
   window.addEventListener('popstate', () => {
     showScreen(ROUTES[location.pathname] ?? 'landing');
   });
+  // Named routes (signin, welcome) get their own screen directly — before
+  // the saved-session check, so a direct /signin URL isn't hijacked by a
+  // stale reconnect attempt.
+  const namedRoute = ROUTES[location.pathname];
+  if (namedRoute && namedRoute !== 'landing' && namedRoute !== 'join') {
+    leaveLoading(() => showScreen(namedRoute));
+    return;
+  }
   if (hasSession()) {
     resumeSession();
     return;

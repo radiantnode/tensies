@@ -20,6 +20,9 @@ services:
       METRICS_TOKEN: ${METRICS_TOKEN:-devmetrics}
       STATS_TOKEN: ${STATS_TOKEN:-devstats}
       CREATE_RATE_MAX: ${CREATE_RATE_MAX:-10}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-do-not-use-in-prod}
+      WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-tensies.app}
+      WEBAUTHN_ORIGIN: http://localhost:8888,https://dev.tensies.app
     depends_on:
       postgres:
         condition: service_healthy
