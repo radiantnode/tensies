@@ -18,6 +18,8 @@ Version 1.0 shipped on a Monday. I built the multi-instance rewrite (the one tha
 
 This is not serious software. It's a hobby project that got a little out of hand in the best way.
 
+&nbsp;
+
 <p align="center">
   <img src="docs/images/hero.png" alt="Tensies Screenshots" />
 </p>
