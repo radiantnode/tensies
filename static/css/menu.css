@@ -37,11 +37,16 @@
   }
 
   /* The shared nav menu (landing/join/lobby) is fixed so it covers the
-     viewport regardless of which screen is active. */
-  .nav-menu { position: fixed; }
+     viewport regardless of which screen is active. The safe-area padding
+     lives here (the non-scrolling container) so scrolled content can't
+     slide behind the iOS status bar. */
+  .nav-menu {
+    position: fixed;
+    padding-block-start: env(safe-area-inset-top);
+  }
 
   .nav-menu .menu-panel {
-    padding-block: calc(env(safe-area-inset-top) + 5rem) 2.5rem;
+    padding-block: 5rem 2.5rem;
     padding-inline: 2rem;
     overflow-y: auto;
     max-block-size: 100%;
@@ -147,6 +152,7 @@
     inset: 0;
     padding: calc(env(safe-area-inset-top) + 5rem) 2rem 2.5rem;
     overflow-y: auto;
+    max-block-size: 100%;
   }
 
   .game-menu.show-changelog .menu-panel { display: none; }

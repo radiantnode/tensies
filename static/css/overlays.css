@@ -7,10 +7,8 @@
   .overlay-dialog {
     position: fixed;
     inset: 0;
-    inline-size: 100vw;
-    inline-size: 100dvw;
-    block-size: 100vh;
-    block-size: 100dvh;
+    inline-size: 100%;
+    block-size: 100%;
     max-inline-size: none;
     max-block-size: none;
     padding: 0;
