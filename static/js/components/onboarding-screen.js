@@ -1,7 +1,10 @@
 // @ts-check
 import './app-header.js';
 import { byId } from '../dom.js';
+import { getAuthUser } from '../auth.js';
 import { showLanding } from '../router.js';
+
+const STASH_KEY = 'tensies_onboarding';
 
 /**
  * <onboarding-screen> — post-signup username confirmation + vanity URL reveal.
@@ -27,7 +30,29 @@ export class OnboardingScreen extends HTMLElement {
         <button id="onboarding-go-btn" type="button" class="btn btn-primary">Let's go</button>
       </div>`;
 
-    byId('onboarding-go-btn').addEventListener('click', () => showLanding());
+    byId('onboarding-go-btn').addEventListener('click', () => {
+      sessionStorage.removeItem(STASH_KEY);
+      showLanding();
+    });
+
+    // Restore from sessionStorage on refresh
+    this.#restore();
+  }
+
+  /** Try to restore username + stats from sessionStorage (survives refresh). */
+  #restore() {
+    try {
+      const raw = sessionStorage.getItem(STASH_KEY);
+      if (raw) {
+        const { username, stats } = JSON.parse(raw);
+        this.#render(username, stats);
+        return;
+      }
+    } catch { /* ignore parse errors */ }
+
+    // Fallback: if signed in, at least show the username
+    const user = getAuthUser();
+    if (user) this.#render(user.username, null);
   }
 
   /**
@@ -36,6 +61,18 @@ export class OnboardingScreen extends HTMLElement {
    * @param {object | null} stats
    */
   show(username, stats) {
+    // Stash for refresh survival
+    try {
+      sessionStorage.setItem(STASH_KEY, JSON.stringify({ username, stats }));
+    } catch { /* quota errors are fine to ignore */ }
+    this.#render(username, stats);
+  }
+
+  /**
+   * @param {string} username
+   * @param {object | null} stats
+   */
+  #render(username, stats) {
     const nameEl = document.getElementById('onboarding-username');
     const vanityEl = document.getElementById('onboarding-vanity');
     if (nameEl) nameEl.textContent = `@${username}`;
