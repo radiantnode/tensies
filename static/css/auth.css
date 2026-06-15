@@ -125,31 +125,4 @@
     letter-spacing: 0.06em;
   }
 
-  /* ── Landing auth link ───────────────────────────────────────────── */
-
-  .auth-link {
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-    margin-block-start: 0.75rem;
-    cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    transition: color 0.15s;
-  }
-
-  .auth-link:hover,
-  .auth-link:active {
-    color: var(--color-text);
-  }
-
-  .auth-status {
-    font-size: 0.75rem;
-    color: var(--color-text-muted);
-    margin-block-end: 0.5rem;
-  }
-
-  .auth-status strong {
-    color: var(--color-accent);
-    font-weight: 600;
-  }
 }
