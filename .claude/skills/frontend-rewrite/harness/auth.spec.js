@@ -128,12 +128,12 @@ async function hostGame(page, build, readySelector, { authed = false } = {}) {
   await page.waitForSelector(readySelector);
 }
 
-function gameBoardState(myPid) {
+function gameBoardState(myPid, myName = 'Alpha') {
   return {
     type: 'state', code: 'AYBD', started: true, paused: false, host: myPid,
     round_num: 1, target: 1,
     players: {
-      [myPid]: mk('Alpha', [1, 1, 1, 1, 2, 3, 4, 1, 5, 6]),
+      [myPid]: mk(myName, [1, 1, 1, 1, 2, 3, 4, 1, 5, 6]),
       guest_bravo: mk('Bravo', [1, 2, 1, 3, 1, 4, 5, 6, 1, 2]),
       guest_cosmo: mk('Cosmo', [1, 1, 1, 1, 1, 1, 1, 1, 2, 3]),
     },
@@ -144,7 +144,7 @@ test('game-board-signed-in', async ({ page }) => {
   // Game board with JWT: @TestUser pill visible next to the hamburger.
   await seedPage(page);
   await seedAuth(page);
-  await hostGame(page, (msg, myPid) => ({ ...msg, ...gameBoardState(myPid) }), '#game.active', { authed: true });
+  await hostGame(page, (msg, myPid) => ({ ...msg, ...gameBoardState(myPid, 'TestUser') }), '#game.active', { authed: true });
   await page.waitForFunction(() =>
     document.querySelector('.game-screen .header-username')?.textContent === '@TestUser');
   await settle(page);
