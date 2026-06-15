@@ -480,12 +480,11 @@ async def _h_round_won(con, ev):
         await con.execute(
             """
             INSERT INTO player_stats (
-                user_id, total_wins, total_rounds, fastest_win_ms, fastest_win_rolls, last_seen_ts
+                user_id, total_wins, fastest_win_ms, fastest_win_rolls, last_seen_ts
             )
-            VALUES ($1, 1, 1, $2, $3, to_timestamp($4 / 1000.0))
+            VALUES ($1, 1, $2, $3, to_timestamp($4 / 1000.0))
             ON CONFLICT (user_id) DO UPDATE
                SET total_wins = player_stats.total_wins + 1,
-                   total_rounds = player_stats.total_rounds + 1,
                    fastest_win_ms = CASE
                        WHEN $2 IS NULL THEN player_stats.fastest_win_ms
                        WHEN player_stats.fastest_win_ms IS NULL THEN $2
@@ -506,7 +505,18 @@ async def _h_round_won(con, ev):
 
 
 async def _h_round_ended(con, ev):
-    return
+    """Increment total_rounds for every participant in the round."""
+    await con.execute(
+        """
+        UPDATE player_stats ps
+           SET total_rounds = ps.total_rounds + 1,
+               last_seen_ts = GREATEST(ps.last_seen_ts, to_timestamp($3 / 1000.0))
+          FROM round_player rp
+         WHERE rp.game_code = $1 AND rp.round_num = $2
+           AND ps.user_id = rp.user_id
+        """,
+        ev["game_code"], ev["round_num"], ev.get("ts_ms", 0),
+    )
 
 
 _HANDLERS = {
