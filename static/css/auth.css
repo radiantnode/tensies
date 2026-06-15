@@ -133,7 +133,7 @@
     position: relative;
     block-size: 100%;
     overflow: visible;
-    background: var(--color-panel-screen);
+    background: rgba(6, 3, 1, 0.93);
   }
 
   .profile-screen .screen-body {

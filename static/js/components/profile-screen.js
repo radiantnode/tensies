@@ -1,5 +1,6 @@
 // @ts-check
 import './app-header.js';
+import { showLanding } from '../router.js';
 
 /**
  * <profile-screen> — public player profile at /@username.
@@ -25,6 +26,11 @@ export class ProfileScreen extends HTMLElement {
         <p class="error-msg" id="profile-error" role="alert" aria-live="polite"></p>
       </div>`;
 
+    const title = this.querySelector('.game-title');
+    if (title) {
+      title.style.cursor = 'pointer';
+      title.addEventListener('click', () => showLanding());
+    }
   }
 
   /**
