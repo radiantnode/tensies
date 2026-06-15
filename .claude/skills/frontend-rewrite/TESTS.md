@@ -1,6 +1,6 @@
 # Pixel Verification Tests
 
-32 tests, 32 mobile baselines (390×844 · 2× dpr · Chromium 140.0.7339.16; `rotate-overlay` is the one landscape capture, 844×390).
+38 tests, 38 mobile baselines (390×844 · 2× dpr · Chromium 140.0.7339.16; `rotate-overlay` is the one landscape capture, 844×390).
 Run with `npm run verify` from `harness/`; all must pass at `maxDiffPixels 0` before any frontend change ships.
 
 ---
@@ -92,3 +92,18 @@ The regular ivory bone die, clipped to the first unmatched `.die-scene` on the b
 | 30 | <img src="harness/baselines/play-die-4-mobile.png" width="60"> | Play die **4** — four corner pips | [stateful.spec.js:308](harness/stateful.spec.js#L308) |
 | 31 | <img src="harness/baselines/play-die-5-mobile.png" width="60"> | Play die **5** — four corners + centre | [stateful.spec.js:308](harness/stateful.spec.js#L308) |
 | 32 | <img src="harness/baselines/play-die-6-mobile.png" width="60"> | Play die **6** — six pips, two columns | [stateful.spec.js:308](harness/stateful.spec.js#L308) |
+
+---
+
+## Auth-dependent states — `auth.spec.js`
+
+States that require a fake JWT in `localStorage` before page load (so `refreshAuth()` / `getAuthUser()` see the signed-in state on first render). Server-driven views (game board) additionally intercept the outbound `auth` WS action and return a synthetic `auth_ok` — the fake JWT has a bogus signature the server would reject.
+
+| # | Screenshot | Checks | Spec |
+|---|-----------|--------|------|
+| 33 | <img src="harness/baselines/signin-mobile.png" width="60"> | Sign-in/sign-up screen reached via nav menu `.menu-auth-btn`; no JWT needed | [auth.spec.js:26](harness/auth.spec.js#L26) |
+| 34 | <img src="harness/baselines/landing-signed-in-mobile.png" width="60"> | Landing with JWT injected; name input hidden, label hidden, `@TestUser` pill in header | [auth.spec.js:39](harness/auth.spec.js#L39) |
+| 35 | <img src="harness/baselines/onboarding-mobile.png" width="60"> | Post-signup welcome screen; JWT + `sessionStorage('tensies_onboarding')` seeded, navigated to `/welcome`; `@TestUser` username and vanity URL | [auth.spec.js:51](harness/auth.spec.js#L51) |
+| 36 | <img src="harness/baselines/nav-menu-signed-in-mobile.png" width="60"> | Nav menu when signed in; shows "Sign out" instead of "Sign in or Sign up" | [auth.spec.js:67](harness/auth.spec.js#L67) |
+| 37 | <img src="harness/baselines/game-board-signed-in-mobile.png" width="60"> | Game board with JWT + WS auth intercept; `@TestUser` pill visible next to hamburger, same dice layout as signed-out for diffing | [auth.spec.js:143](harness/auth.spec.js#L143) |
+| 38 | <img src="harness/baselines/game-board-signed-out-mobile.png" width="60"> | Game board without JWT; no pill, same dice layout as signed-in companion | [auth.spec.js:154](harness/auth.spec.js#L154) |
