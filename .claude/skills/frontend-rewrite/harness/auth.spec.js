@@ -151,6 +151,84 @@ test('game-board-signed-in', async ({ page }) => {
   await expect(page).toHaveScreenshot('game-board-signed-in.png');
 });
 
+// ── Profile screen ──────────────────────────────────────────────────────────
+// The profile page fetches /api/profile/{username} — intercept the fetch to
+// return deterministic data so the baseline is byte-stable.
+
+const PROFILE_WITH_STATS = {
+  username: 'Mich',
+  member_since: '2026-01-15T00:00:00',
+  profile_photo_url: null,
+  stats: {
+    total_games: 42,
+    total_wins: 18,
+    total_rounds: 156,
+    total_rolls: 890,
+    fastest_win_ms: 3200,
+    total_time_played_ms: 7200000,
+  },
+};
+
+const PROFILE_WITH_PHOTO = {
+  ...PROFILE_WITH_STATS,
+  username: 'Mich',
+  profile_photo_url: '/static/images/avatar-default.svg',
+};
+
+const PROFILE_EMPTY = {
+  username: 'Newbie',
+  member_since: '2026-06-01T00:00:00',
+  profile_photo_url: null,
+  stats: null,
+};
+
+async function stubProfile(page, data) {
+  await page.route('**/api/profile/**', (route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(data),
+    });
+  });
+}
+
+test('profile-with-stats', async ({ page }) => {
+  await seedPage(page);
+  await stubProfile(page, PROFILE_WITH_STATS);
+  await page.goto('/@Mich');
+  await page.waitForSelector('#profile.active');
+  await page.waitForFunction(() =>
+    document.getElementById('profile-username')?.textContent === 'Mich');
+  await settle(page);
+  await expect(page).toHaveScreenshot('profile-with-stats.png');
+});
+
+test('profile-with-photo', async ({ page }) => {
+  await seedPage(page);
+  await stubProfile(page, PROFILE_WITH_PHOTO);
+  await page.goto('/@Mich');
+  await page.waitForSelector('#profile.active');
+  await page.waitForFunction(() =>
+    document.getElementById('profile-username')?.textContent === 'Mich');
+  await page.waitForFunction(() =>
+    document.querySelector('.profile-avatar')?.src?.includes('avatar-default.svg'));
+  await settle(page);
+  await expect(page).toHaveScreenshot('profile-with-photo.png');
+});
+
+test('profile-empty', async ({ page }) => {
+  await seedPage(page);
+  await stubProfile(page, PROFILE_EMPTY);
+  await page.goto('/@Newbie');
+  await page.waitForSelector('#profile.active');
+  await page.waitForFunction(() =>
+    document.getElementById('profile-username')?.textContent === 'Newbie');
+  await page.waitForFunction(() =>
+    document.getElementById('profile-empty')?.hidden === false);
+  await settle(page);
+  await expect(page).toHaveScreenshot('profile-empty.png');
+});
+
 test('game-board-signed-out', async ({ page }) => {
   // Game board without JWT: no pill, same dice layout for diffing.
   await seedPage(page);

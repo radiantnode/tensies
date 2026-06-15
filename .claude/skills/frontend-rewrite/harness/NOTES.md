@@ -131,7 +131,7 @@ Confirmed by observing a real game (`page.on('websocket')` → `framereceived`):
   "uvicorn"). Launch with `setsid … &` and kill by port, not by an `-f` pattern
   that matches the launcher.
 
-## The state catalog we built (23 states)
+## The state catalog we built (26 states)
 
 Use as the reference inventory. Approach: **static** = served files only;
 **synth** = `pinWebSocket` frame rewrite; **auth** = fake JWT in localStorage
@@ -167,6 +167,9 @@ Use as the reference inventory. Approach: **static** = served files only;
 | nav-menu-signed-in | auth | JWT injected → menu shows "Sign out" instead of "Sign in or Sign up" |
 | game-board-signed-in | auth | JWT + WS auth intercept (fake `auth_ok`) → board with `@username` pill next to hamburger |
 | game-board-signed-out | auth | same dice layout as signed-in, no JWT → no pill; companion for auth-aware diffing |
+| profile-with-stats | auth | `page.route` intercepts `/api/profile/*` with deterministic stats JSON; avatar ring + gold username + 6 stat cards |
+| profile-with-photo | auth | same as above but with `profile_photo_url` set (uses default SVG as stand-in for deterministic capture) |
+| profile-empty | auth | profile with `stats: null` → "No games played yet" empty state |
 
 **Deliberately not captured** (transient / external, no stable frame): the
 initial `#loading` flash, the mid-roll shake animation (frozen by

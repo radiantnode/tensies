@@ -1,6 +1,6 @@
 # Pixel Verification Tests
 
-38 tests, 38 mobile baselines (390×844 · 2× dpr · Chromium 140.0.7339.16; `rotate-overlay` is the one landscape capture, 844×390).
+41 tests, 41 mobile baselines (390×844 · 2× dpr · Chromium 140.0.7339.16; `rotate-overlay` is the one landscape capture, 844×390).
 Run with `npm run verify` from `harness/`; all must pass at `maxDiffPixels 0` before any frontend change ships.
 
 ---
@@ -107,3 +107,13 @@ States that require a fake JWT in `localStorage` before page load (so `refreshAu
 | 36 | <img src="harness/baselines/nav-menu-signed-in-mobile.png" width="60"> | Nav menu when signed in; shows "Sign out" instead of "Sign in or Sign up" | [auth.spec.js:67](harness/auth.spec.js#L67) |
 | 37 | <img src="harness/baselines/game-board-signed-in-mobile.png" width="60"> | Game board with JWT + WS auth intercept; `@TestUser` pill visible next to hamburger, same dice layout as signed-out for diffing | [auth.spec.js:143](harness/auth.spec.js#L143) |
 | 38 | <img src="harness/baselines/game-board-signed-out-mobile.png" width="60"> | Game board without JWT; no pill, same dice layout as signed-in companion | [auth.spec.js:154](harness/auth.spec.js#L154) |
+
+### Profile
+
+Profile pages use `page.route()` to intercept the `/api/profile/*` fetch with deterministic JSON, so baselines are stable without a live database user.
+
+| # | Screenshot | Checks | Spec |
+|---|-----------|--------|------|
+| 39 | <img src="harness/baselines/profile-with-stats-mobile.png" width="60"> | Profile with stats; avatar ring with default silhouette, gold gradient username, member-since date, 6 stat cards (Games, Wins, Rounds, Rolls, Best Win, Time Played) | [auth.spec.js:195](harness/auth.spec.js#L195) |
+| 40 | <img src="harness/baselines/profile-with-photo-mobile.png" width="60"> | Profile with `profile_photo_url` set; same layout as above but avatar src swapped to the photo URL | [auth.spec.js:206](harness/auth.spec.js#L206) |
+| 41 | <img src="harness/baselines/profile-empty-mobile.png" width="60"> | Profile with `stats: null`; avatar, username, member-since, "No games played yet" empty state | [auth.spec.js:219](harness/auth.spec.js#L219) |
