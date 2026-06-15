@@ -61,6 +61,7 @@ services:
       # whole policy (e.g. a Cloudflare Web Analytics beacon). Space/comma list.
       CSP_EXTRA_SCRIPT_SRC: "${CSP_EXTRA_SCRIPT_SRC:-}"
       CSP_EXTRA_CONNECT_SRC: "${CSP_EXTRA_CONNECT_SRC:-}"
+      CSP_EXTRA_IMG_SRC: "${CSP_EXTRA_IMG_SRC:-}"
       # Signs JWT auth tokens. Generate with: openssl rand -hex 32
       JWT_SECRET: "${JWT_SECRET:?set JWT_SECRET}"
       # WebAuthn relying party ID — the bare domain users register passkeys on
