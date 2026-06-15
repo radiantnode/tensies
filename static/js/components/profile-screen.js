@@ -168,6 +168,13 @@ export class ProfileScreen extends HTMLElement {
         recentEl.hidden = false;
       }
 
+      // Trigger shimmer animation once
+      const body = this.querySelector('.screen-body');
+      if (body) {
+        body.classList.add('profile-shimmer');
+        setTimeout(() => body.classList.remove('profile-shimmer'), 1500);
+      }
+
     } catch {
       errorEl.textContent = 'Could not load profile';
     }
