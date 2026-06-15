@@ -267,6 +267,7 @@
   .recent-game-body {
     flex: 1;
     min-width: 0;
+    text-align: center;
   }
 
   .recent-row {
@@ -356,7 +357,8 @@
     color: #d4a45c;
     text-shadow: 0 0 8px rgba(212, 164, 92, 0.4);
     flex-shrink: 0;
-    min-width: 2.5rem;
+    width: 3rem;
+    text-align: center;
   }
 
   .recent-score-loss {
@@ -376,6 +378,8 @@
     color: var(--color-text-muted);
     font-size: 0.75rem;
     flex-shrink: 0;
+    width: 3rem;
+    text-align: center;
   }
 
   .profile-empty {
