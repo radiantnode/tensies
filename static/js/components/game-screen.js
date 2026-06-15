@@ -73,15 +73,6 @@ export class GameScreen extends HTMLElement {
     this.#menuBtn.id = 'game-menu-btn';
     this.#menuBtn.setAttribute('aria-controls', 'game-menu');
 
-    // Show signed-in username next to the hamburger
-    const user = getAuthUser();
-    if (user) {
-      const tag = document.createElement('span');
-      tag.className = 'header-username';
-      tag.textContent = `@${user.username}`;
-      this.#menuBtn.parentElement?.insertBefore(tag, this.#menuBtn);
-    }
-
     // Hamburger toggles the GAME menu (not the nav menu).
     this.#menuBtn.addEventListener('click', () => {
       if (this.menuOpen()) this.closeMenu();
@@ -138,6 +129,17 @@ export class GameScreen extends HTMLElement {
    * @param {GameSnapshot} snap
    */
   render(snap) {
+    // Sync the username pill (auth may have changed since connectedCallback).
+    const existing = this.querySelector('.header-username');
+    const user = getAuthUser();
+    if (user && !existing) {
+      const tag = document.createElement('span');
+      tag.className = 'header-username';
+      tag.textContent = `@${user.username}`;
+      this.#menuBtn.parentElement?.insertBefore(tag, this.#menuBtn);
+    } else if (!user && existing) {
+      existing.remove();
+    }
     renderGame(snap);
   }
 }

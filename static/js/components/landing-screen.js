@@ -33,7 +33,14 @@ export class LandingScreen extends HTMLElement {
         </form>
       </div>`;
 
-    /** @type {HTMLInputElement} */ (byId('name-input')).placeholder = state.randomNamePlaceholder;
+    const nameInput = /** @type {HTMLInputElement} */ (byId('name-input'));
+    nameInput.placeholder = state.randomNamePlaceholder;
+
+    if (getAuthUser()) {
+      nameInput.hidden = true;
+      /** @type {HTMLElement} */ (this.querySelector('.field-hint[for="name-input"]')).hidden = true;
+    }
+
     byId('show-join-btn').addEventListener('click', () => showJoin());
     byId('landing-form').addEventListener('submit', (event) => {
       event.preventDefault();
@@ -46,10 +53,15 @@ export class LandingScreen extends HTMLElement {
    * Refresh the auth state (called after sign-in/sign-out from other screens).
    */
   refreshAuth() {
+    const user = getAuthUser();
+    const nameInput = /** @type {HTMLInputElement | null} */ (document.getElementById('name-input'));
+    const nameLabel = /** @type {HTMLElement | null} */ (this.querySelector('.field-hint[for="name-input"]'));
+    if (nameInput) nameInput.hidden = !!user;
+    if (nameLabel) nameLabel.hidden = !!user;
+
     const header = this.querySelector('app-header');
     if (!header) return;
     const existing = header.querySelector('.header-username');
-    const user = getAuthUser();
     if (user && !existing) {
       const tag = document.createElement('span');
       tag.className = 'header-username';
