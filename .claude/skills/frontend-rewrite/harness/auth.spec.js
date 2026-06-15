@@ -155,6 +155,15 @@ test('game-board-signed-in', async ({ page }) => {
 // The profile page fetches /api/profile/{username} — intercept the fetch to
 // return deterministic data so the baseline is byte-stable.
 
+const RECENT_GAMES = [
+  { rounds: 30, wins: 14, won_game: true, fastest_win_ms: 6800, avg_roll_speed_ms: 1362, duration_ms: 480000, opponents: [{ name: 'TestOpponent', photo: null }, { name: 'Jazzy Panda', photo: null }] },
+  { rounds: 10, wins: 7, won_game: true, fastest_win_ms: 3700, avg_roll_speed_ms: 1300, duration_ms: 180000, opponents: [{ name: 'Jazzy Panda', photo: null }, { name: 'Salty Penguin', photo: null }] },
+  { rounds: 12, wins: 7, won_game: true, fastest_win_ms: 5000, avg_roll_speed_ms: 1500, duration_ms: 240000, opponents: [{ name: 'Jazzy Panda', photo: null }, { name: 'Salty Penguin', photo: null }] },
+  { rounds: 11, wins: 8, won_game: true, fastest_win_ms: 6100, avg_roll_speed_ms: 1600, duration_ms: 240000, opponents: [{ name: 'Jazzy Panda', photo: null }, { name: 'Salty Penguin', photo: null }] },
+  { rounds: 7, wins: 4, won_game: true, fastest_win_ms: 13700, avg_roll_speed_ms: 1200, duration_ms: 180000, opponents: [{ name: 'TestOpponent', photo: null }] },
+  { rounds: 3, wins: 0, won_game: false, fastest_win_ms: null, avg_roll_speed_ms: 1200, duration_ms: 120000, opponents: [{ name: 'TestOpponent', photo: null }] },
+];
+
 const PROFILE_WITH_STATS = {
   username: 'Mich',
   member_since: '2026-01-15T00:00:00',
@@ -165,8 +174,10 @@ const PROFILE_WITH_STATS = {
     total_rounds: 156,
     total_rolls: 890,
     fastest_win_ms: 3200,
+    fastest_win_rolls: 4,
     total_time_played_ms: 7200000,
   },
+  recent: RECENT_GAMES,
 };
 
 const PROFILE_WITH_PHOTO = {
@@ -199,6 +210,10 @@ test('profile-with-stats', async ({ page }) => {
   await page.waitForSelector('#profile.active');
   await page.waitForFunction(() =>
     document.getElementById('profile-username')?.textContent === 'Mich');
+  // Wait for recent games to render and shimmer to finish
+  await page.waitForSelector('.recent-game');
+  await page.waitForFunction(() =>
+    !document.querySelector('.profile-shimmer'), { timeout: 3000 });
   await settle(page);
   await expect(page).toHaveScreenshot('profile-with-stats.png');
 });
@@ -212,6 +227,9 @@ test('profile-with-photo', async ({ page }) => {
     document.getElementById('profile-username')?.textContent === 'Mich');
   await page.waitForFunction(() =>
     document.querySelector('.profile-avatar')?.src?.includes('avatar-default.svg'));
+  await page.waitForSelector('.recent-game');
+  await page.waitForFunction(() =>
+    !document.querySelector('.profile-shimmer'), { timeout: 3000 });
   await settle(page);
   await expect(page).toHaveScreenshot('profile-with-photo.png');
 });

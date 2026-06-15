@@ -114,6 +114,6 @@ Profile pages use `page.route()` to intercept the `/api/profile/*` fetch with de
 
 | # | Screenshot | Checks | Spec |
 |---|-----------|--------|------|
-| 39 | <img src="harness/baselines/profile-with-stats-mobile.png" width="60"> | Profile with stats; avatar ring with default silhouette, gold gradient username, member-since date, 6 stat cards (Games, Wins, Rounds, Rolls, Best Win, Time Played) | [auth.spec.js:195](harness/auth.spec.js#L195) |
-| 40 | <img src="harness/baselines/profile-with-photo-mobile.png" width="60"> | Profile with `profile_photo_url` set; same layout as above but avatar src swapped to the photo URL | [auth.spec.js:206](harness/auth.spec.js#L206) |
-| 41 | <img src="harness/baselines/profile-empty-mobile.png" width="60"> | Profile with `stats: null`; avatar, username, member-since, "No games played yet" empty state | [auth.spec.js:219](harness/auth.spec.js#L219) |
+| 39 | <img src="harness/baselines/profile-with-stats-mobile.png" width="60"> | Profile with stats + recent games; 8 stat cards (Games, Wins, Win Rate, Rounds, Rolls, Best Time, Best Rolls, Time Played), recent multiplayer games with winner/loser avatars, gold/muted scores, per-game stats | [auth.spec.js:206](harness/auth.spec.js#L206) |
+| 40 | <img src="harness/baselines/profile-with-photo-mobile.png" width="60"> | Profile with `profile_photo_url` set + recent games; same layout as above but avatar src swapped to the photo URL | [auth.spec.js:221](harness/auth.spec.js#L221) |
+| 41 | <img src="harness/baselines/profile-empty-mobile.png" width="60"> | Profile with `stats: null`; avatar, username, member-since, "No games played yet" empty state | [auth.spec.js:234](harness/auth.spec.js#L234) |
