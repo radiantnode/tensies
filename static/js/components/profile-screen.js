@@ -22,6 +22,7 @@ export class ProfileScreen extends HTMLElement {
       </div>
       <div class="screen-body">
         <div class="profile-stats" id="profile-stats"></div>
+        <div class="profile-recent" id="profile-recent" hidden></div>
         <p class="profile-empty" id="profile-empty" hidden></p>
         <p class="error-msg" id="profile-error" role="alert" aria-live="polite"></p>
       </div>`;
@@ -87,11 +88,18 @@ export class ProfileScreen extends HTMLElement {
 
       if (s.total_games) cards.push({ label: 'Games', value: String(s.total_games) });
       if (s.total_wins) cards.push({ label: 'Wins', value: String(s.total_wins) });
+      if (s.total_rounds && s.total_wins) {
+        const pct = Math.round((s.total_wins / s.total_rounds) * 100);
+        cards.push({ label: 'Win Rate', value: `${pct}%` });
+      }
       if (s.total_rounds) cards.push({ label: 'Rounds', value: String(s.total_rounds) });
       if (s.total_rolls) cards.push({ label: 'Rolls', value: String(s.total_rolls) });
       if (s.fastest_win_ms) {
         const secs = (s.fastest_win_ms / 1000).toFixed(1);
-        cards.push({ label: 'Best Win', value: `${secs}s` });
+        cards.push({ label: 'Best Time', value: `${secs}s` });
+      }
+      if (s.fastest_win_rolls) {
+        cards.push({ label: 'Best Rolls', value: String(s.fastest_win_rolls) });
       }
       if (s.total_time_played_ms) {
         const mins = Math.round(s.total_time_played_ms / 60000);
@@ -110,6 +118,56 @@ export class ProfileScreen extends HTMLElement {
           <span class="stat-label">${c.label}</span>
         </div>
       `).join('');
+
+      // Recent games
+      const recentEl = document.getElementById('profile-recent');
+      if (recentEl && data.recent && data.recent.length > 0) {
+        recentEl.innerHTML = `
+          <p class="recent-label">Recent Games</p>
+          <div class="recent-rows">
+            ${data.recent.map((/** @type {any} */ r) => {
+              /** @type {string} */
+              let duration = '';
+              if (r.duration_ms) {
+                const totalSecs = Math.round(r.duration_ms / 1000);
+                duration = totalSecs < 60 ? `${totalSecs}s` : `${Math.round(totalSecs / 60)}m`;
+              }
+              const opps = r.opponents || [];
+              const userPhoto = data.profile_photo_url || '/static/images/avatar-default.svg';
+              const mkAvatar = (/** @type {string} */ src, /** @type {string} */ name, /** @type {boolean} */ winner) =>
+                `<span class="recent-avatar-ring${winner ? ' recent-avatar-winner' : ''}"><img class="recent-avatar" src="${src}" alt="${name}"></span>`;
+              const userAv = mkAvatar(userPhoto, data.username, !!r.won_game);
+              const oppAvs = opps.map((/** @type {any} */ o) =>
+                mkAvatar(o.photo || '/static/images/avatar-default.svg', o.name, false)
+              );
+              // Winner first; give glow only to the first avatar
+              const allAvatars = r.won_game
+                ? [userAv, ...oppAvs]
+                : [...oppAvs, userAv];
+              if (!r.won_game && allAvatars.length > 0) {
+                allAvatars[0] = allAvatars[0].replace('recent-avatar-ring', 'recent-avatar-ring recent-avatar-winner');
+              }
+              const vs = opps.length ? 'vs ' + opps.map((/** @type {any} */ o) => o.name).join(', ') : 'solo';
+              const fastest = r.fastest_win_ms ? (r.fastest_win_ms / 1000).toFixed(1) + 's' : '';
+              const speed = r.avg_roll_speed_ms ? (r.avg_roll_speed_ms / 1000).toFixed(1) + 's' : '';
+              const details = [fastest ? `best ${fastest}` : '', speed ? `${speed}/roll` : ''].filter(Boolean).join(' · ');
+              return `
+              <div class="recent-game">
+                <span class="recent-score ${r.won_game ? '' : 'recent-score-loss'}">${r.wins}/${r.rounds}</span>
+                <div class="recent-game-body">
+                  <div class="recent-avatars">${allAvatars.join('')}</div>
+                  <div class="recent-row">
+                    <span class="recent-vs">${vs}</span>
+                  </div>
+                  ${details ? `<div class="recent-details">${details}</div>` : ''}
+                </div>
+                <span class="recent-time">${duration}</span>
+              </div>`;
+            }).join('')}
+          </div>`;
+        recentEl.hidden = false;
+      }
+
     } catch {
       errorEl.textContent = 'Could not load profile';
     }

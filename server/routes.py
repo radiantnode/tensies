@@ -176,11 +176,74 @@ async def api_profile(username: str) -> dict:
             "FROM player_stats WHERE user_id = $1",
             str(user["id"]),
         )
+        recent = await con.fetch(
+            """
+            SELECT g.game_code, g.round_count, g.started_ts, g.ended_ts,
+                   EXTRACT(EPOCH FROM (g.ended_ts - g.started_ts)) * 1000 AS duration_ms,
+                   (SELECT count(*) FROM rounds r
+                     WHERE r.game_code = g.game_code
+                       AND r.winner_user_id = $1) AS wins,
+                   (SELECT count(*) FROM rounds r
+                     WHERE r.game_code = g.game_code
+                       AND r.winner_user_id = $1)
+                   >
+                   ALL(SELECT count(*) FROM rounds r2
+                        JOIN round_player rp3 USING (game_code, round_num)
+                       WHERE r2.game_code = g.game_code
+                         AND r2.winner_user_id = rp3.user_id
+                         AND rp3.user_id <> $1
+                       GROUP BY rp3.user_id) AS won_game,
+                   (SELECT min(r3.duration_ms) FROM rounds r3
+                     WHERE r3.game_code = g.game_code
+                       AND r3.winner_user_id = $1) AS fastest_win_ms,
+                   (SELECT avg(rp4.avg_dt_between_rolls_ms) FROM round_player rp4
+                     WHERE rp4.game_code = g.game_code
+                       AND rp4.user_id = $1
+                       AND rp4.avg_dt_between_rolls_ms IS NOT NULL) AS avg_roll_speed_ms,
+                   (SELECT json_agg(json_build_object(
+                             'name', sub.name, 'photo', sub.photo))
+                      FROM (SELECT DISTINCT ON (rp2.user_id)
+                                   COALESCE(u2.username, ps2.name_last, rp2.user_id) AS name,
+                                   u2.profile_photo_url AS photo
+                              FROM round_player rp2
+                              LEFT JOIN users u2 ON u2.id::text = rp2.user_id
+                              LEFT JOIN player_stats ps2 ON ps2.user_id = rp2.user_id
+                             WHERE rp2.game_code = g.game_code
+                               AND rp2.user_id <> $1) sub
+                   ) AS opponents
+              FROM games g
+             WHERE g.game_code IN (
+                     SELECT DISTINCT rp.game_code
+                       FROM round_player rp
+                      WHERE rp.user_id = $1
+                   )
+               AND g.ended_ts IS NOT NULL
+             ORDER BY g.ended_ts DESC
+             LIMIT 10
+            """,
+            str(user["id"]),
+        )
+        recent_list = []
+        for r in recent:
+            import json as _json
+            opps_raw = r["opponents"]
+            if isinstance(opps_raw, str):
+                opps_raw = _json.loads(opps_raw)
+            recent_list.append({
+                "rounds": r["round_count"],
+                "wins": r["wins"],
+                "won_game": r["won_game"],
+                "fastest_win_ms": int(r["fastest_win_ms"]) if r["fastest_win_ms"] else None,
+                "avg_roll_speed_ms": int(r["avg_roll_speed_ms"]) if r["avg_roll_speed_ms"] else None,
+                "duration_ms": int(r["duration_ms"]) if r["duration_ms"] else None,
+                "opponents": opps_raw or [],
+            })
     return {
         "username": user["username"],
         "member_since": user["created_ts"].isoformat() if user["created_ts"] else None,
         "profile_photo_url": user["profile_photo_url"],
         "stats": dict(stats) if stats else None,
+        "recent": recent_list or None,
     }
 
 

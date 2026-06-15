@@ -132,7 +132,7 @@
     flex-direction: column;
     position: relative;
     block-size: 100%;
-    overflow: visible;
+    overflow: hidden;
     background: rgba(6, 3, 1, 0.93);
   }
 
@@ -142,8 +142,10 @@
     align-items: center;
     justify-content: flex-start;
     flex: 1;
+    overflow-y: auto;
     padding-inline: 2rem;
     padding-block-start: 1.5rem;
+    padding-block-end: 2rem;
     text-align: center;
     position: relative;
   }
@@ -228,6 +230,150 @@
 
   body.nav-menu-open .profile-card {
     visibility: hidden;
+  }
+
+  /* ── Recent rounds ──────────────────────────────────────────────── */
+
+  .profile-recent {
+    width: 100%;
+    max-width: 320px;
+    margin-block-end: 1.5rem;
+  }
+
+  .recent-label {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-align: center;
+    margin-block-end: 0.5rem;
+  }
+
+  .recent-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .recent-game {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--color-raised);
+    border-radius: var(--radius-md);
+    padding: 0.6rem 0.75rem;
+  }
+
+  .recent-game-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .recent-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .recent-details {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    margin-block-start: 0.15rem;
+    text-align: center;
+  }
+
+  .recent-avatars {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-block-end: 0.25rem;
+  }
+
+  .recent-avatars .recent-avatar-ring + .recent-avatar-ring {
+    margin-inline-start: -0.5rem;
+  }
+
+  .recent-avatar-ring {
+    position: relative;
+    display: inline-block;
+    width: 1.85rem;
+    height: 1.85rem;
+    border-radius: 50%;
+  }
+
+  .recent-avatars .recent-avatar-ring:nth-child(1) { z-index: 3; }
+  .recent-avatars .recent-avatar-ring:nth-child(2) { z-index: 2; }
+  .recent-avatars .recent-avatar-ring:nth-child(3) { z-index: 1; }
+
+  .recent-avatar-winner {
+    box-shadow:
+      inset -1px 1px 3px rgba(255, 200, 122, 0.35),
+      inset 1px -1px 4px rgba(70, 28, 8, 0.3),
+      1px -1px 6px rgba(255, 186, 102, 0.3),
+      0 2px 8px rgba(0, 0, 0, 0.4),
+      0 0 12px rgba(255, 186, 102, 0.15);
+  }
+
+  .recent-avatar-winner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1.5px;
+    border-radius: inherit;
+    background: linear-gradient(to bottom left,
+      rgba(252, 200, 126, 1) 0%,
+      rgba(216, 148, 80, 0.85) 38%,
+      rgba(150, 96, 46, 0.5) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .recent-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .recent-avatar-ring:not(.recent-avatar-winner) {
+    width: 1.5rem;
+    height: 1.5rem;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+
+  .recent-avatar-ring:not(.recent-avatar-winner) .recent-avatar {
+    opacity: 0.4;
+  }
+
+  .recent-score {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #d4a45c;
+    flex-shrink: 0;
+    min-width: 2.5rem;
+  }
+
+  .recent-score-loss {
+    color: var(--color-text-muted);
+  }
+
+  .recent-vs {
+    flex: 1;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .recent-time {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    flex-shrink: 0;
   }
 
   .profile-empty {
