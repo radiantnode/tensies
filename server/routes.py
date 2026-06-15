@@ -218,6 +218,8 @@ async def api_profile(username: str) -> dict:
                       WHERE rp.user_id = $1
                    )
                AND g.ended_ts IS NOT NULL
+               AND (SELECT count(DISTINCT rp5.user_id) FROM round_player rp5
+                     WHERE rp5.game_code = g.game_code) > 1
              ORDER BY g.ended_ts DESC
              LIMIT 10
             """,
