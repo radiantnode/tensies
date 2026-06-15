@@ -61,6 +61,17 @@ services:
       # whole policy (e.g. a Cloudflare Web Analytics beacon). Space/comma list.
       CSP_EXTRA_SCRIPT_SRC: "${CSP_EXTRA_SCRIPT_SRC:-}"
       CSP_EXTRA_CONNECT_SRC: "${CSP_EXTRA_CONNECT_SRC:-}"
+      # Signs JWT auth tokens. Generate with: openssl rand -hex 32
+      JWT_SECRET: "${JWT_SECRET:?set JWT_SECRET}"
+      # WebAuthn relying party ID — the bare domain users register passkeys on
+      # (no scheme, no port). e.g. "tensies.app"
+      WEBAUTHN_RP_ID: "${WEBAUTHN_RP_ID:?set WEBAUTHN_RP_ID}"
+      # Display name shown in the browser's passkey prompt. Defaults to "Tensies".
+      WEBAUTHN_RP_NAME: "${WEBAUTHN_RP_NAME:-Tensies}"
+      # Allowed origins for WebAuthn ceremonies (scheme + domain, no trailing
+      # slash). Defaults to ALLOWED_ORIGINS, which is correct when the app and
+      # the passkey domain are the same. e.g. "https://tensies.app"
+      WEBAUTHN_ORIGIN: "${WEBAUTHN_ORIGIN:-${ALLOWED_ORIGINS}}"
       TELEMETRY_ENABLED: "1"
       # Prod static-asset mode: serve the prebuilt, fingerprinted index.html that
       # the build baked into the image (nginx serves everything under /static).
