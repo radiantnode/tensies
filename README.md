@@ -48,7 +48,7 @@ Everything else:
 - Reconnect grace period: 30 seconds normally, an hour if the game is paused. Phone goes dark mid-round, you get your seat back.
 - Host pause, for a bar run, a bathroom break, or figuring out who's buying the next round. Hangs for up to an hour.
 - If the host vanishes, the next person in the room quietly takes over. Nobody waits.
-- Share by link or SMS from the lobby.
+- Share by link, SMS, or [audio](docs/audio-sharing/README.md) from the lobby. One phone chirps the code, the other listens and fills it in.
 - Dice positions stay put across refreshes.
 - Scales horizontally: game state lives in Redis, so you can run as many server instances as you want behind a plain round-robin load balancer. Any instance can serve any game.
 
