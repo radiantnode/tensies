@@ -8,6 +8,7 @@ import './components/lobby-screen.js';
 import './components/game-screen.js';
 import './components/signin-screen.js';
 import './components/onboarding-screen.js';
+import './components/profile-screen.js';
 import './components/nav-menu.js';
 
 import { maybeReconnect } from './net.js';

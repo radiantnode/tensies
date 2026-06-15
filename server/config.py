@@ -150,6 +150,7 @@ CSP_OVERRIDE = os.environ.get("CONTENT_SECURITY_POLICY") or None
 # CONTENT_SECURITY_POLICY override above is set.
 CSP_EXTRA_SCRIPT_SRC = _list("CSP_EXTRA_SCRIPT_SRC")
 CSP_EXTRA_CONNECT_SRC = _list("CSP_EXTRA_CONNECT_SRC")
+CSP_EXTRA_IMG_SRC = _list("CSP_EXTRA_IMG_SRC")
 
 # HSTS is only honoured by browsers over HTTPS, so it's off by default (plain
 # http dev) and turned on in docker-compose.prod.yml. Enabling it also adds

@@ -2,7 +2,7 @@
 import './app-header.js';
 import { byId } from '../dom.js';
 import { getAuthUser } from '../auth.js';
-import { showLanding } from '../router.js';
+import { showLanding, showProfile } from '../router.js';
 
 const STASH_KEY = 'tensies_onboarding';
 
@@ -76,7 +76,11 @@ export class OnboardingScreen extends HTMLElement {
     const nameEl = document.getElementById('onboarding-username');
     const vanityEl = document.getElementById('onboarding-vanity');
     if (nameEl) nameEl.textContent = `@${username}`;
-    if (vanityEl) vanityEl.textContent = `tensies.app/@${username}`;
+    if (vanityEl) {
+      vanityEl.textContent = `tensies.app/@${username}`;
+      vanityEl.style.cursor = 'pointer';
+      vanityEl.onclick = (e) => { e.preventDefault(); showProfile(username); };
+    }
 
     const statsEl = document.getElementById('onboarding-stats');
     const tagline = document.getElementById('onboarding-tagline');

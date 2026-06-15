@@ -125,4 +125,114 @@
     letter-spacing: 0.06em;
   }
 
+  /* ── Profile screen ────────────────────────────────────────────── */
+
+  .profile-screen {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    block-size: 100%;
+    overflow: visible;
+    background: var(--color-panel-screen);
+  }
+
+  .profile-screen .screen-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    flex: 1;
+    padding-inline: 2rem;
+    padding-block-start: 1.5rem;
+    text-align: center;
+    position: relative;
+  }
+
+  .profile-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 1.5rem 1.25rem;
+    margin-block-start: -12px;
+    text-align: center;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 101;
+    position: relative;
+  }
+
+  .profile-avatar-ring {
+    position: relative;
+    inline-size: 72px;
+    block-size: 72px;
+    border-radius: 50%;
+    margin-block-end: 0.75rem;
+    box-shadow:
+      inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.35),
+      inset 2px -2px 6px rgba(70, 28, 8, 0.3),
+      2px -2px 9px rgba(255, 186, 102, 0.3),
+      0 3px 12px rgba(0, 0, 0, 0.4),
+      0 0 18px rgba(255, 186, 102, 0.15);
+  }
+
+  .profile-avatar-ring::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1.5px;
+    border-radius: inherit;
+    background: linear-gradient(to bottom left,
+      rgba(252, 200, 126, 0.8) 0%,
+      rgba(216, 148, 80, 0.55) 38%,
+      rgba(150, 96, 46, 0.25) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .profile-avatar {
+    inline-size: 100%;
+    block-size: 100%;
+    border-radius: 50%;
+    display: block;
+  }
+
+  .profile-username {
+    font-size: clamp(1.4rem, 5.5vw, 1.75rem);
+    font-weight: 700;
+    letter-spacing: 0.005em;
+    line-height: 1.5;
+    -webkit-text-stroke: 0.5px #f1cf98;
+    background: linear-gradient(180deg, #ffe6b0 0%, #d4a45c 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+    margin-block-end: 0.35rem;
+  }
+
+  .profile-member-since {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+  }
+
+  .profile-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+    width: 100%;
+    max-width: 320px;
+    margin-block-end: 2.5rem;
+  }
+
+  body.nav-menu-open .profile-card {
+    visibility: hidden;
+  }
+
+  .profile-empty {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+  }
+
 }

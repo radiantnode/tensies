@@ -23,6 +23,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-do-not-use-in-prod}
       WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-tensies.app}
       WEBAUTHN_ORIGIN: http://localhost:8888,https://dev.tensies.app
+      CSP_EXTRA_IMG_SRC: ${CSP_EXTRA_IMG_SRC:-}
     depends_on:
       postgres:
         condition: service_healthy

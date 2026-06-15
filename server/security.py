@@ -14,6 +14,7 @@ from starlette.datastructures import MutableHeaders
 
 from .config import (
     CSP_EXTRA_CONNECT_SRC,
+    CSP_EXTRA_IMG_SRC,
     CSP_EXTRA_SCRIPT_SRC,
     CSP_OVERRIDE,
     HSTS_ENABLED,
@@ -38,7 +39,7 @@ def build_csp() -> str:
         "default-src 'self'",
         _directive("script-src", "'self'", *CSP_EXTRA_SCRIPT_SRC),
         "style-src 'self'",
-        "img-src 'self' data:",
+        _directive("img-src", "'self'", "data:", *CSP_EXTRA_IMG_SRC),
         "font-src 'self'",
         _directive("connect-src", "'self'", *CSP_EXTRA_CONNECT_SRC),
         "base-uri 'self'",

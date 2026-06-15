@@ -157,6 +157,33 @@ async def welcome_page() -> HTMLResponse:
     return HTMLResponse(_index_html)
 
 
+@router.get("/api/profile/{username}")
+async def api_profile(username: str) -> dict:
+    """Public profile: username + lifetime stats. No auth required."""
+    if not TELEMETRY_ENABLED:
+        raise HTTPException(status_code=503, detail="profiles unavailable")
+    from server.telemetry import store
+    async with store.pool().acquire() as con:
+        user = await con.fetchrow(
+            "SELECT id, username, created_ts, profile_photo_url FROM users WHERE username_lower = $1",
+            username.lower(),
+        )
+        if user is None:
+            raise HTTPException(status_code=404, detail="Player not found")
+        stats = await con.fetchrow(
+            "SELECT total_games, total_wins, total_rounds, total_rolls, "
+            "fastest_win_ms, fastest_win_rolls, total_time_played_ms "
+            "FROM player_stats WHERE user_id = $1",
+            str(user["id"]),
+        )
+    return {
+        "username": user["username"],
+        "member_since": user["created_ts"].isoformat() if user["created_ts"] else None,
+        "profile_photo_url": user["profile_photo_url"],
+        "stats": dict(stats) if stats else None,
+    }
+
+
 # Vanity profile URLs: tensies.app/@username. The @ prefix guarantees no
 # collision with game codes (which are [A-Za-z]{5}).
 @router.get("/@{username}")

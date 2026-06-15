@@ -20,7 +20,7 @@ import { showScreen, showLoading, leaveLoading } from './transitions.js';
  */
 
 /** @type {Record<string, string>} */
-const ROUTES = { '/': 'landing', '/join': 'join', '/signin': 'signin', '/welcome': 'onboarding' };
+const ROUTES = { '/': 'landing', '/join': 'join', '/signin': 'signin', '/welcome': 'onboarding', '/profile': 'profile' };
 
 /**
  * Push (or replace) a history entry for `path` and show its screen.
@@ -67,6 +67,18 @@ export function showSignin() {
 }
 
 /**
+ * Navigate to a player's public profile.
+ * @param {string} username
+ */
+export function showProfile(username) {
+  const path = `/@${username}`;
+  history.pushState({ id: 'profile', username }, '', path);
+  return showScreen('profile', {
+    onSwap: () => /** @type {import('./components/profile-screen.js').ProfileScreen} */ (byId('profile')).show(username),
+  });
+}
+
+/**
  * Navigate to the onboarding screen and display the confirmed username.
  * @param {string} username
  * @param {object | null} [stats]
@@ -88,9 +100,26 @@ export function showOnboarding(username, stats) {
  * @param {{ resumeSession: () => void }} deps
  */
 export function bootstrap({ resumeSession }) {
-  window.addEventListener('popstate', () => {
+  window.addEventListener('popstate', (e) => {
+    const profileMatch = location.pathname.match(/^\/@(.+)$/);
+    if (profileMatch) {
+      const username = decodeURIComponent(profileMatch[1]);
+      showScreen('profile', {
+        onSwap: () => /** @type {import('./components/profile-screen.js').ProfileScreen} */ (byId('profile')).show(username),
+      });
+      return;
+    }
     showScreen(ROUTES[location.pathname] ?? 'landing');
   });
+  // Vanity profile URLs: /@username → profile screen.
+  const profileMatch = location.pathname.match(/^\/@(.+)$/);
+  if (profileMatch) {
+    const username = decodeURIComponent(profileMatch[1]);
+    leaveLoading(() => showScreen('profile', {
+      onSwap: () => /** @type {import('./components/profile-screen.js').ProfileScreen} */ (byId('profile')).show(username),
+    }));
+    return;
+  }
   // Named routes (signin, welcome) get their own screen directly — before
   // the saved-session check, so a direct /signin URL isn't hijacked by a
   // stale reconnect attempt.
