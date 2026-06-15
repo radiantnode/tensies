@@ -1,4 +1,5 @@
 // @ts-check
+import { getAuthUser } from '../auth.js';
 import { byId } from '../dom.js';
 import { renderGame } from '../game-render.js';
 import { RESUME_CLOSE_DELAY_MS } from '../overlays.js';
@@ -128,6 +129,17 @@ export class GameScreen extends HTMLElement {
    * @param {GameSnapshot} snap
    */
   render(snap) {
+    // Sync the username pill (auth may have changed since connectedCallback).
+    const existing = this.querySelector('.header-username');
+    const user = getAuthUser();
+    if (user && !existing) {
+      const tag = document.createElement('span');
+      tag.className = 'header-username';
+      tag.textContent = `@${user.username}`;
+      this.#menuBtn.parentElement?.insertBefore(tag, this.#menuBtn);
+    } else if (!user && existing) {
+      existing.remove();
+    }
     renderGame(snap);
   }
 }

@@ -5,9 +5,12 @@ import uuid
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+import jwt as pyjwt
+
 from . import gamestore, state
 from .broadcast import advance_round, broadcast, delayed_broadcast, drop_player, pause_timeout, send
 from .config import (
+    JWT_SECRET,
     ALLOWED_ORIGINS,
     CREATE_RATE_MAX,
     CREATE_RATE_WINDOW,
@@ -33,6 +36,8 @@ class Session:
     """Mutable per-connection state shared between the receive loop and action handlers."""
     __slots__ = (
         "ws", "pid", "code", "name", "ip",
+        # Authenticated account (set by handle_auth if the client sends a JWT).
+        "user_id", "username",
         # Telemetry meta — populated on connect, used by send() and the
         # disconnect finally block to attribute counters and emit lifecycle
         # events. Cheap (one allocation per WS), no global maps required.
@@ -60,6 +65,8 @@ class Session:
         self.bytes_out = 0
         self.rolls = 0
         self.games_joined = 0
+        self.user_id: str | None = None
+        self.username: str | None = None
         self.session_started_emitted = False
         self.send_lock = asyncio.Lock()
         self.pinger: Pinger | None = None
@@ -80,8 +87,27 @@ def _ensure_session_started(session: Session) -> None:
          peer=session.peer, user_agent=session.user_agent)
 
 
+async def handle_auth(session: Session, msg: dict) -> None:
+    """Authenticate the WS session with a JWT from the passkey auth flow."""
+    token = msg.get("token", "")
+    try:
+        payload = pyjwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        session.user_id = payload.get("sub")
+        session.username = payload.get("username")
+        await send(session.ws, {
+            "type": "auth_ok",
+            "username": session.username,
+            "user_id": session.user_id,
+        })
+        log.info("auth     pid=%s  user=%s", session.pid[:8], session.username)
+    except pyjwt.InvalidTokenError:
+        await _error(session.ws, "Invalid auth token")
+
+
 async def handle_create(session: Session, msg: dict) -> None:
-    name = sanitize_name(msg.get("name") or "Player") or "Player"
+    # Signed-in users use their account username as the player name.
+    raw_name = session.username or msg.get("name") or "Player"
+    name = sanitize_name(raw_name) or "Player"
     session.name = name
     if not await gamestore.rate_allow("create", session.ip, CREATE_RATE_MAX, CREATE_RATE_WINDOW):
         log.warning("create   ip=%s  RATE LIMIT", session.ip)
@@ -110,7 +136,8 @@ async def handle_create(session: Session, msg: dict) -> None:
 
 async def handle_join(session: Session, msg: dict) -> None:
     join_code = (msg.get("code") or "").upper().strip()
-    name = sanitize_name(msg.get("name") or "Player") or "Player"
+    raw_name = session.username or msg.get("name") or "Player"
+    name = sanitize_name(raw_name) or "Player"
     session.name = name
     if not await gamestore.rate_allow("join", session.ip, JOIN_RATE_MAX, JOIN_RATE_WINDOW):
         log.warning("join     ip=%s  RATE LIMIT", session.ip)
@@ -359,6 +386,7 @@ async def handle_pong(session: Session, msg: dict) -> None:
 
 
 ACTIONS = {
+    "auth": handle_auth,
     "create": handle_create,
     "join": handle_join,
     "start": handle_start,

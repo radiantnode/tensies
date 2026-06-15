@@ -1,5 +1,7 @@
 // @ts-check
+import { isSignedIn, getAuthUser, signOut } from '../auth.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
+import { showSignin } from '../router.js';
 import { updateScrollFades } from '../scroll-fades.js';
 
 // Baked changelog HTML — content, not code; the changelog skill regenerates it.
@@ -166,6 +168,8 @@ export class NavMenu extends HTMLElement {
             </svg>
             Buy me a beer
           </a>
+          <div class="menu-divider"></div>
+          <button type="button" class="btn btn-secondary menu-auth-btn"></button>
         </div>
       </nav>
       <div class="menu-changelog-panel">
@@ -182,6 +186,23 @@ export class NavMenu extends HTMLElement {
     document.addEventListener('menu-toggle', this.#onMenuToggle);
     document.addEventListener('keydown', this.#onKeydown);
 
+    this._updateAuthButton();
+    /** @type {HTMLElement} */ (this.querySelector('.menu-auth-btn'))
+      .addEventListener('click', () => {
+        if (isSignedIn()) {
+          signOut();
+          this._updateAuthButton();
+          // Remove header username badges from all app-headers
+          document.querySelectorAll('.header-username').forEach((el) => el.remove());
+          // Refresh landing screen auth state if it exists
+          const landing = /** @type {any} */ (document.getElementById('landing'));
+          if (landing?.refreshAuth) landing.refreshAuth();
+          this.close();
+        } else {
+          this.close();
+          showSignin();
+        }
+      });
     /** @type {HTMLElement} */ (this.querySelector('.menu-whats-new-btn'))
       .addEventListener('click', () => {
         this.classList.add('show-changelog');
@@ -215,6 +236,7 @@ export class NavMenu extends HTMLElement {
     this.classList.add('open');
     this.setAttribute('aria-hidden', 'false');
     document.body.classList.add('nav-menu-open');
+    this._updateAuthButton();
     this.#syncButtons(true);
   }
 
@@ -236,6 +258,14 @@ export class NavMenu extends HTMLElement {
       btn.setAttribute('aria-expanded', String(open));
       btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
     });
+  }
+
+  /** Update the auth button label based on sign-in state. */
+  _updateAuthButton() {
+    const btn = /** @type {HTMLElement | null} */ (this.querySelector('.menu-auth-btn'));
+    if (!btn) return;
+    const user = getAuthUser();
+    btn.textContent = user ? 'Sign out' : 'Sign in or Sign up';
   }
 
   #updateFades() {

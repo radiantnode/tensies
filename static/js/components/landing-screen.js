@@ -1,6 +1,7 @@
 // @ts-check
 import './app-header.js';
 import { byId } from '../dom.js';
+import { getAuthUser } from '../auth.js';
 import { createGame } from '../net.js';
 import { showJoin } from '../router.js';
 import { state } from '../state.js';
@@ -31,12 +32,43 @@ export class LandingScreen extends HTMLElement {
           <p class="error-msg" id="landing-error" role="alert" aria-live="polite"></p>
         </form>
       </div>`;
-    /** @type {HTMLInputElement} */ (byId('name-input')).placeholder = state.randomNamePlaceholder;
+
+    const nameInput = /** @type {HTMLInputElement} */ (byId('name-input'));
+    nameInput.placeholder = state.randomNamePlaceholder;
+
+    this.refreshAuth();
+
     byId('show-join-btn').addEventListener('click', () => showJoin());
     byId('landing-form').addEventListener('submit', (event) => {
       event.preventDefault();
       createGame();
     });
+
+  }
+
+  /**
+   * Refresh the auth state (called after sign-in/sign-out from other screens).
+   */
+  refreshAuth() {
+    const user = getAuthUser();
+    const nameInput = /** @type {HTMLInputElement | null} */ (document.getElementById('name-input'));
+    const nameLabel = /** @type {HTMLElement | null} */ (this.querySelector('.field-hint[for="name-input"]'));
+    if (nameInput) nameInput.hidden = !!user;
+    if (nameLabel) nameLabel.hidden = !!user;
+
+    const header = this.querySelector('app-header');
+    if (!header) return;
+    const existing = header.querySelector('.header-username');
+    if (user && !existing) {
+      const tag = document.createElement('a');
+      tag.className = 'header-username';
+      tag.textContent = `@${user.username}`;
+      tag.href = `/@${user.username}`;
+      const btn = header.querySelector('.game-menu-btn');
+      btn?.parentElement?.insertBefore(tag, btn);
+    } else if (!user && existing) {
+      existing.remove();
+    }
   }
 
   /**

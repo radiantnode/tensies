@@ -63,22 +63,25 @@
 
 @layer elements {
   html {
-    block-size: 100%;
+    block-size: calc(100% + env(safe-area-inset-top) + env(safe-area-inset-bottom));
     overflow: hidden;
     overscroll-behavior: none;
+    background: var(--color-bg) url('/static/images/bar-top.webp') center 10% / cover no-repeat;
   }
 
   body {
     position: fixed;
-    inline-size: 100%;
-    block-size: 100vh;
-    block-size: 100dvh;
+    inset: 0;
+    bottom: calc(0px - env(safe-area-inset-bottom));
     overflow: hidden;
     font-family: var(--font-family-base);
     color: var(--color-text);
-    background: var(--color-bg) url('/static/images/bar-top.webp') center 10% / cover no-repeat;
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  main {
+    block-size: 100%;
   }
 }
 
@@ -110,8 +113,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    block-size: 100vh;
-    block-size: 100dvh;
+    block-size: 100%;
     padding-block: calc(2rem + env(safe-area-inset-top)) calc(2rem + env(safe-area-inset-bottom));
     padding-inline: 2rem;
     overflow: hidden;

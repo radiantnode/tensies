@@ -88,6 +88,7 @@ devices being targeted — pixel-perfect is meaningless without a fixed viewport
 | `states.json` | catalog of single-page "static" states (copy from `states.example.json`) |
 | `views.spec.js` | data-driven specs for every `type:"static"` state |
 | `stateful.spec.js` | worked reference: synthesized server-driven states (lobby/board/pause/winner/disconnect/fatal) |
+| `auth.spec.js` | auth-dependent states: signin, signed-in landing/nav/game board, onboarding (fake JWT + WS auth intercept) |
 | `extras.spec.js` | real-interaction states (join-error, changelog) |
 | `multiplayer.example.spec.js` | minimal copy-me template (superseded by `stateful.spec.js`) |
 | `baselines/` | committed ground-truth PNGs (one per catalogued state, mobile viewport only) |

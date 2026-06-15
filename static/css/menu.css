@@ -37,12 +37,33 @@
   }
 
   /* The shared nav menu (landing/join/lobby) is fixed so it covers the
-     viewport regardless of which screen is active. */
-  .nav-menu { position: fixed; }
+     viewport regardless of which screen is active. The safe-area padding
+     lives here (the non-scrolling container) so scrolled content can't
+     slide behind the iOS status bar. */
+  .nav-menu {
+    position: fixed;
+    padding-block-start: env(safe-area-inset-top);
+  }
+
+  /* Opaque shield behind the iOS status bar so scrolled menu content
+     doesn't show through the clock/signal area. */
+  .nav-menu::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    block-size: env(safe-area-inset-top);
+    background: rgba(8, 4, 1, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1;
+  }
 
   .nav-menu .menu-panel {
-    padding-block: calc(env(safe-area-inset-top) + 5rem) 2.5rem;
+    padding-block: 5rem 2.5rem;
     padding-inline: 2rem;
+    overflow-y: auto;
+    max-block-size: 100%;
   }
 
   .menu-panel {
@@ -108,6 +129,14 @@
     border-color: rgba(230, 170, 55, 0.7);
   }
 
+  .menu-auth-btn { inline-size: 100%; }
+
+  .menu-divider {
+    margin-block: 1.5rem;
+    block-size: 1px;
+    background: rgba(180, 180, 220, 0.15);
+  }
+
   /* "See What's New" button */
   .menu-whats-new-btn {
     inline-size: 100%;
@@ -137,6 +166,7 @@
     inset: 0;
     padding: calc(env(safe-area-inset-top) + 5rem) 2rem 2.5rem;
     overflow-y: auto;
+    max-block-size: 100%;
   }
 
   .game-menu.show-changelog .menu-panel { display: none; }
@@ -160,7 +190,6 @@
 
   .menu-changelog-body {
     flex: 1;
-    overflow-y: auto;
     font-size: 1rem;
     line-height: 1.7;
     color: rgba(235, 215, 195, 0.8);

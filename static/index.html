@@ -43,6 +43,7 @@
   <link rel="stylesheet" href="/static/css/dice.css">
   <link rel="stylesheet" href="/static/css/menu.css">
   <link rel="stylesheet" href="/static/css/overlays.css">
+  <link rel="stylesheet" href="/static/css/auth.css">
 
   <!-- Preload the whole module graph so it fetches in parallel instead of
        waterfalling app -> router/net -> components. -->
@@ -70,6 +71,10 @@
   <link rel="modulepreload" href="/static/js/components/app-header.js">
   <link rel="modulepreload" href="/static/js/components/player-card.js">
   <link rel="modulepreload" href="/static/js/components/round-target.js">
+  <link rel="modulepreload" href="/static/js/auth.js">
+  <link rel="modulepreload" href="/static/js/components/signin-screen.js">
+  <link rel="modulepreload" href="/static/js/components/onboarding-screen.js">
+  <link rel="modulepreload" href="/static/js/components/profile-screen.js">
   <link rel="modulepreload" href="/static/js/components/landing-screen.js">
   <link rel="modulepreload" href="/static/js/components/join-screen.js">
   <link rel="modulepreload" href="/static/js/components/lobby-screen.js">
@@ -94,6 +99,9 @@
   <join-screen></join-screen>
   <lobby-screen></lobby-screen>
   <game-screen></game-screen>
+  <signin-screen></signin-screen>
+  <onboarding-screen></onboarding-screen>
+  <profile-screen></profile-screen>
 
 </main>
 

@@ -22,6 +22,10 @@ export const state = {
   /** @type {GameSnapshot | null} Last server snapshot. */
   currentState: null,
   reconnecting: false,
+  /** @type {string | null} Authenticated account username (from JWT). */
+  authUsername: null,
+  /** @type {string | null} Authenticated account user ID (from JWT). */
+  authUserId: null,
   // The "Zesty Pickle" name shared by both name-field placeholders. Seeded
   // here because state.js evaluates before any component module — this must
   // stay the FIRST Math.random consumer (the pixel harness pins the RNG).

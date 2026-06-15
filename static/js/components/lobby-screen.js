@@ -1,5 +1,6 @@
 // @ts-check
 import './app-header.js';
+import { getAuthUser } from '../auth.js';
 import { playCode } from '../audio-share.js';
 import { byId } from '../dom.js';
 import { EQ_ICON_HTML } from '../eq-icon.js';
@@ -84,6 +85,23 @@ export class LobbyScreen extends HTMLElement {
    * @param {GameSnapshot} snap
    */
   render(snap) {
+    // Sync the username pill in the header.
+    const header = this.querySelector('app-header');
+    if (header) {
+      const existing = header.querySelector('.header-username');
+      const user = getAuthUser();
+      if (user && !existing) {
+        const tag = document.createElement('a');
+        tag.className = 'header-username';
+        tag.textContent = `@${user.username}`;
+        tag.href = `/@${user.username}`;
+        const btn = header.querySelector('.game-menu-btn');
+        btn?.parentElement?.insertBefore(tag, btn);
+      } else if (!user && existing) {
+        existing.remove();
+      }
+    }
+
     state.gameCode = snap.code;
     byId('lobby-code').textContent = snap.code;
 

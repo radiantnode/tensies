@@ -14,6 +14,7 @@ export class AppHeader extends HTMLElement {
     this.dataset.rendered = 'true';
     this.className = 'game-topbar app-header';
     this.innerHTML = TITLE_ROW_HTML;
+
     const btn = /** @type {HTMLButtonElement} */ (this.querySelector('.game-menu-btn'));
     // Per-screen id (landing-menu-btn / join-menu-btn / lobby-menu-btn): the
     // host screen sets its own id before this header connects.
