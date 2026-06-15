@@ -7,6 +7,7 @@ loop across two isolated Playwright instances.
 
 | Date | Scope | Result | Passed | Total | Highlight |
 |------|-------|--------|--------|-------|-----------|
+| [2026-06-15T17:49:00](2026-06-15T17-49-00.md) | Game | ✅ PASS | 34 | 34 | First 34-step run with auth (WebAuthn CDP Virtual Authenticator); celebration-echo guard held (0 flashes across 20 overlays); all overlay durations 3002–3045ms |
 | [2026-06-11T08:45:00](2026-06-11T08-45-00.md) | Game | ✅ PASS | 28 | 28 | First full suite against rewrite-v2 (blank-canvas frontend, 25/25 pixel baselines at zero diff); all invariants held; known post-reveal `showFor()` race recurred once on prod (759ms, pre-existing — noted on Step 27) |
 | [2026-06-08T17:15:00](2026-06-08T17-15-00.md) | Game + Asset Pipeline | ✅ PASS | 28 | 28 | First 28-step run incl. asset pipeline smoketest; Step 22 prior FAIL cleared (all overlays 3002–3040ms); prod build: 7 resources, 12.2KB JS gz, gzip+immutable |
 | [2026-06-08T11:35:00](2026-06-08T11-35-00.md) | Game | 🔴 FAIL | 22 | 23 | Step 22: Alpha Winner R8 overlay closed at 1153ms — post-reveal `showFor()` closes live overlay when opponent rolls; widened by 5916a72 (overlay now opens ~350ms sooner) |

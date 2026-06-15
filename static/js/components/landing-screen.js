@@ -36,10 +36,7 @@ export class LandingScreen extends HTMLElement {
     const nameInput = /** @type {HTMLInputElement} */ (byId('name-input'));
     nameInput.placeholder = state.randomNamePlaceholder;
 
-    if (getAuthUser()) {
-      nameInput.hidden = true;
-      /** @type {HTMLElement} */ (this.querySelector('.field-hint[for="name-input"]')).hidden = true;
-    }
+    this.refreshAuth();
 
     byId('show-join-btn').addEventListener('click', () => showJoin());
     byId('landing-form').addEventListener('submit', (event) => {

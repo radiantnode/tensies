@@ -1,6 +1,6 @@
 ---
 name: test-game
-description: "Comprehensive end-to-end regression suite for Tensies — the deliberate full pass, not a quick check. Runs all 28 steps across two Playwright clients (gameplay, multiplayer sync, reconnect, host transfer, pause, every known bug class), then tears down the dev stack to rebuild and smoketest the prod bundle, and writes a dated run log. Long-running (10-15+ min) and has side effects: rebuilds the Docker stack and commits a log file. Use for a pre-merge or pre-release confidence pass, or when the user explicitly asks for the full game test suite or invokes /test-game. For a quick one-off spot-check of a single change, do NOT use this — use the verify skill instead."
+description: "Comprehensive end-to-end regression suite for Tensies — the deliberate full pass, not a quick check. Runs all 34 steps across two Playwright clients (gameplay, multiplayer sync, reconnect, host transfer, pause, auth/WebAuthn sign-up + sign-in, every known bug class), then tears down the dev stack to rebuild and smoketest the prod bundle, and writes a dated run log. Long-running (10-15+ min) and has side effects: rebuilds the Docker stack and commits a log file. Use for a pre-merge or pre-release confidence pass, or when the user explicitly asks for the full game test suite or invokes /test-game. For a quick one-off spot-check of a single change, do NOT use this — use the verify skill instead."
 user_invocable: true
 ---
 
@@ -13,6 +13,7 @@ You are about to run a full integration test of the Tensies multiplayer dice gam
 - Winner/loser overlay consistency across multiple rounds (round-end flash regression)
 - Every specific bug that was previously fixed
 - Animation-integrity spot checks via screenshots and console errors
+- WebAuthn passkey sign-up, sign-in, sign-out, and signed-in gameplay
 
 **Do not ask for confirmation. Run everything and report results.**
 
@@ -722,13 +723,270 @@ At the end of all tests, collect all browser console messages from both instance
 
 ---
 
-## Steps 24–28 — Asset pipeline smoketest (prod build)
+## Steps 24–29 — Auth: WebAuthn sign-up, sign-in, signed-in gameplay
 
-These steps switch to the prod Docker stack, verify the esbuild pipeline produced correct bundle outputs, then play a 3-round game to confirm the prod build is functionally identical to dev. Run these after Step 23.
+These steps exercise the passkey auth system end-to-end: real WebAuthn ceremonies against the server's `py_webauthn` verification, JWT session management, and the UI changes that follow sign-in (name field hidden, username pill, username as player name).
+
+### How WebAuthn is mocked — CDP Virtual Authenticator
+
+Real WebAuthn requires a hardware security key or platform biometric. In a headless Playwright browser there's neither, so the test uses Chrome DevTools Protocol's **virtual authenticator** — a software authenticator built into Chromium that produces cryptographically valid attestations and assertions. The server verifies them with the same `py_webauthn` code path as a real passkey; no server-side mocking or JWT injection is needed.
+
+The virtual authenticator is installed via `browser_run_code_unsafe`, which has access to the Playwright `page` object and therefore CDP:
+
+```js
+const cdp = await page.context().newCDPSession(page);
+await cdp.send('WebAuthn.enable');
+const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', {
+  options: {
+    protocol: 'ctap2',
+    transport: 'internal',
+    hasResidentKey: true,
+    hasUserVerification: true,
+    isUserVerified: true,
+  }
+});
+return { authenticatorId };
+```
+
+Once installed, `navigator.credentials.create()` and `navigator.credentials.get()` work transparently — the browser routes them to the virtual authenticator instead of prompting for biometrics. The authenticator auto-approves (no user interaction dialog), so the test can drive the sign-up and sign-in buttons without blocking.
+
+**Install the virtual authenticator on both instances at the start of Step 24**, before any auth interaction. It persists for the life of the CDP session (i.e., the browser instance). If `browser_run_code_unsafe` is unavailable or errors on the CDP call, fall back to **JWT injection** as a degraded path:
+
+```js
+// Fallback: mint a JWT client-side using the known dev secret.
+// This tests signed-in UI behaviour but skips the WebAuthn ceremony.
+() => {
+  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).replace(/=+$/, '');
+  const now = Math.floor(Date.now() / 1000);
+  const payload = btoa(JSON.stringify({
+    sub: crypto.randomUUID(), username: 'TestAlpha',
+    iat: now, exp: now + 86400
+  })).replace(/=+$/, '');
+  // HMAC-SHA256 requires SubtleCrypto — but for dev-only (JWT_SECRET = 'dev-secret-change-in-prod')
+  // the server also accepts the token, so we can shortcut by importing it via fetch:
+  // POST to a test-only endpoint or just set the token directly.
+  // Simplest degraded path: create user via SQL + mint via server CLI:
+  return 'use docker exec fallback';
+}
+```
+
+For the degraded path, mint the JWT server-side:
+```bash
+docker compose exec -T web python -c "
+from server.auth import _mint_jwt
+import uuid
+uid = str(uuid.uuid4())
+print(uid, _mint_jwt(uid, 'TestAlpha'))
+"
+```
+Then inject into localStorage via `evaluate`:
+```js
+localStorage.setItem('tensies_auth_token', '<token from above>');
+```
+
+Mark the step as **📝 NOTE (degraded: JWT injection, WebAuthn ceremony not tested)** if using the fallback.
 
 ---
 
-## Step 24 — Switch to prod build
+## Step 24 — Virtual authenticator setup + signin screen
+
+Install the virtual authenticator on **instance #1** via `browser_run_code_unsafe` (see the CDP snippet above). Verify the call returns an `authenticatorId`.
+
+Then navigate instance #1 to the signin screen. The entry point is the nav menu:
+
+1. On instance #1 (at `http://localhost:8888/`), click the hamburger button (`.game-menu-btn` on the landing screen's `<app-header>`).
+2. The nav menu opens — find and click the sign-in link within it. The nav menu component (`static/js/components/nav-menu.js`) contains a "Sign In" item that calls `showSignin()`.
+3. Wait for `#signin` to become `.active`.
+
+Verify on the signin screen:
+- `#username-input` is visible
+- `#signup-btn` ("Sign Up") and `#signin-btn` ("Sign In") are both visible and enabled
+- `#signin-error` is empty
+- The back button (`#signin-back-btn`) is present
+
+Take screenshot **`.playwright-mcp/24-signin.png`**.
+
+---
+
+## Step 25 — Sign-up flow (register passkey)
+
+On instance #1 (signin screen with virtual authenticator installed):
+
+1. Type `TestAlpha` into `#username-input`.
+2. Click `#signup-btn` (the "Sign Up" submit button).
+
+The virtual authenticator auto-approves the `navigator.credentials.create()` call. The client sends the attestation to `/auth/register/verify`, the server verifies it with `py_webauthn`, creates the user in Postgres, and returns a JWT.
+
+Wait (up to 5 seconds) for the onboarding screen (`#onboarding`) to become `.active`. Verify:
+- `#onboarding-username` contains `@TestAlpha`
+- `#onboarding-vanity` contains `tensies.app/@TestAlpha`
+- `#onboarding-go-btn` ("Let's go") is visible
+
+Verify the JWT was saved:
+```js
+() => {
+  const token = localStorage.getItem('tensies_auth_token');
+  if (!token) return { saved: false };
+  const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+  return { saved: true, username: payload.username, hasExp: !!payload.exp };
+}
+```
+Expect `saved: true`, `username: 'TestAlpha'`, `hasExp: true`.
+
+Verify the user was created in Postgres:
+```bash
+docker compose exec -T postgres psql -U tensies -tA -c "SELECT username FROM users WHERE username_lower = 'testalpha'"
+```
+Expect output: `TestAlpha`.
+
+Take screenshot **`.playwright-mcp/25-onboarding.png`**.
+
+---
+
+## Step 26 — Signed-in landing state
+
+On instance #1, click `#onboarding-go-btn` to return to landing. Wait for `#landing` to become `.active`.
+
+Verify the signed-in landing state:
+- `#name-input` is **hidden** (signed-in users don't choose a name)
+- The `.field-hint[for="name-input"]` label is **hidden**
+- The `<app-header>` on the landing screen contains a `.header-username` element with text `@TestAlpha`
+- The "Create Game" and "Join Game with Code" buttons are still visible and enabled
+
+```js
+() => ({
+  nameHidden: document.getElementById('name-input')?.hidden,
+  labelHidden: document.querySelector('.field-hint[for="name-input"]')?.hidden,
+  usernamePill: document.querySelector('#landing app-header .header-username')?.textContent,
+  createBtnVisible: !document.querySelector('#landing-form button[type="submit"]')?.hidden,
+})
+```
+
+Expect: `nameHidden: true`, `labelHidden: true`, `usernamePill: '@TestAlpha'`, `createBtnVisible: true`.
+
+Take screenshot **`.playwright-mcp/26-signed-in-landing.png`**.
+
+---
+
+## Step 27 — Signed-in gameplay (username as player name)
+
+With instance #1 signed in as TestAlpha, create a game:
+
+1. Submit the landing form (click the Create Game button). No name input needed — the signed-in username is used.
+2. Wait for `#lobby` to become `.active`.
+
+Verify on the lobby:
+- The player list (`#lobby-players`) shows `TestAlpha` (the account username, not a random name)
+- The lobby's `<app-header>` contains `.header-username` with `@TestAlpha`
+
+```js
+() => ({
+  playerName: document.querySelector('#lobby-players .player-list-item')?.textContent,
+  usernamePill: document.querySelector('#lobby app-header .header-username')?.textContent,
+})
+```
+
+The `playerName` will include badge text (e.g. "TestAlphaYOUHOST"); verify it **starts with** `TestAlpha`.
+
+Now start the game solo (click `#start-btn`). Wait for `#game` to become `.active`. Verify:
+- The players bar shows `TestAlpha` as the player name
+- The game screen header contains `.header-username` with `@TestAlpha`
+
+```js
+() => ({
+  playersBarText: document.getElementById('players-bar')?.textContent,
+  usernamePill: document.querySelector('#game .header-username')?.textContent,
+})
+```
+
+Expect `playersBarText` to contain `TestAlpha`, `usernamePill` to be `@TestAlpha`.
+
+Roll once to confirm gameplay works while signed in — click `#roll-btn`, wait for `roll_count` to increment. The game loop must not be affected by auth state.
+
+Take screenshot **`.playwright-mcp/27-signed-in-game.png`**.
+
+After verifying, close this game's WebSocket so the game cleans up:
+```js
+() => { _state.ws.onclose = null; _state.ws.close(); return 'closed'; }
+```
+
+---
+
+## Step 28 — Sign-out
+
+On instance #1, navigate back to landing (`http://localhost:8888/`). Clear any stale session first:
+```js
+() => { localStorage.removeItem('tensies_pid'); localStorage.removeItem('tensies_code'); localStorage.removeItem('tensies_token'); return true; }
+```
+Then re-navigate to `http://localhost:8888/`.
+
+Open the nav menu (click the hamburger `.game-menu-btn`). The nav menu should show a "Sign Out" option when signed in. Click it.
+
+After sign-out, verify the landing screen returns to the anonymous state:
+- `#name-input` is **not hidden** (anonymous users choose a name)
+- The `.field-hint[for="name-input"]` label is **not hidden**
+- No `.header-username` element in the landing's `<app-header>` (or it's been removed)
+- `localStorage.getItem('tensies_auth_token')` is `null`
+
+```js
+() => ({
+  nameHidden: document.getElementById('name-input')?.hidden,
+  labelHidden: document.querySelector('.field-hint[for="name-input"]')?.hidden,
+  usernamePill: document.querySelector('#landing app-header .header-username')?.textContent ?? null,
+  tokenGone: localStorage.getItem('tensies_auth_token') === null,
+})
+```
+
+Expect: `nameHidden: false`, `labelHidden: false`, `usernamePill: null`, `tokenGone: true`.
+
+Take screenshot **`.playwright-mcp/28-signed-out.png`**.
+
+---
+
+## Step 29 — Sign-in flow (existing account)
+
+Still on instance #1 with the virtual authenticator active. Navigate to the signin screen again (hamburger → sign in link).
+
+1. Type `TestAlpha` into `#username-input`.
+2. Click `#signin-btn` (the "Sign In" button, **not** Sign Up).
+
+The virtual authenticator auto-approves `navigator.credentials.get()`. The server verifies the assertion against the stored credential and returns a fresh JWT.
+
+Wait (up to 5 seconds) for the landing screen (`#landing`) to become `.active` (sign-in redirects to landing, unlike sign-up which goes to onboarding).
+
+Verify signed-in state is restored:
+```js
+() => ({
+  nameHidden: document.getElementById('name-input')?.hidden,
+  usernamePill: document.querySelector('#landing app-header .header-username')?.textContent,
+  token: !!localStorage.getItem('tensies_auth_token'),
+})
+```
+
+Expect: `nameHidden: true`, `usernamePill: '@TestAlpha'`, `token: true`.
+
+**Negative check — wrong username:**
+Navigate to signin again. Type `NonexistentUser` into `#username-input`, click `#signin-btn`. Verify `#signin-error` contains "No account with that username" (the 404 from `/auth/login/options`). Navigate back to landing.
+
+**Negative check — duplicate registration:**
+Navigate to signin again. Type `TestAlpha` into `#username-input`, click `#signup-btn` (Sign Up, not Sign In). Verify `#signin-error` contains "Username already taken" (the 409 from `/auth/register/options`). Navigate back to landing.
+
+**Cleanup:** Remove the test user from Postgres so it doesn't interfere with future runs:
+```bash
+docker compose exec -T postgres psql -U tensies -c "DELETE FROM users WHERE username_lower = 'testalpha'"
+```
+
+Take screenshot **`.playwright-mcp/29-signed-in-again.png`**.
+
+---
+
+## Steps 30–34 — Asset pipeline smoketest (prod build)
+
+These steps switch to the prod Docker stack, verify the esbuild pipeline produced correct bundle outputs, then play a 3-round game to confirm the prod build is functionally identical to dev. Run these after Step 29.
+
+---
+
+## Step 30 — Switch to prod build
 
 The dev stack uses unbundled modules served by FastAPI's `StaticFiles`. The prod stack runs the esbuild pipeline in a Docker builder stage, then serves pre-compressed content-hashed bundles from nginx. These five steps exercise that pipeline.
 
@@ -753,11 +1011,11 @@ done
 
 If the loop exits without printing "OK", stop and report FAIL with the last few lines of `docker compose -f docker-compose.prod.yml --env-file .env.prod logs nginx web`.
 
-Take screenshot **`.playwright-mcp/24-prod-landing.png`** after navigating instance #1 to `http://localhost:8888/`.
+Take screenshot **`.playwright-mcp/30-prod-landing.png`** after navigating instance #1 to `http://localhost:8888/`.
 
 ---
 
-## Step 25 — Bundle structure check
+## Step 31 — Bundle structure check
 
 Verify the build produced hashed bundles and not unbundled module trees. Run these checks with `curl` — no browser needed.
 
@@ -804,7 +1062,7 @@ curl -sI "http://localhost:8888${CSS_URL}" | grep -iE 'content-encoding|cache-co
 
 ---
 
-## Step 26 — Browser resource count
+## Step 32 — Browser resource count
 
 In prod, all JS loads as one bundle (vs. ~24 modules + 24 modulepreload entries in dev), and 9 CSS files merge to one. The total resource count from `performance.getEntriesByType('resource')` should be well under 15 — typically ~7–9.
 
@@ -840,9 +1098,9 @@ Then re-navigate and read the resource list:
 
 ---
 
-## Step 27 — 3-round game on prod build
+## Step 33 — 3-round game on prod build
 
-With both instances on the prod build at `http://localhost:8888/`, play a full 3-round game to confirm the bundle is functionally correct. Use the same pattern as Steps 3–14, but abbreviated: just get through 3 complete rounds.
+With both instances on the prod build at `http://localhost:8888/`, play a full 3-round game to confirm the bundle is functionally correct. Use the same pattern as Steps 3–14, but abbreviated: just get through 3 complete rounds. (The auth virtual authenticator is not available in the prod stack — play as anonymous users.)
 
 1. **Clear and setup** — localStorage is already cleared from Step 26. In Tab 1, create a game:
    - Type `Alpha` → submit landing form
@@ -879,7 +1137,7 @@ With both instances on the prod build at `http://localhost:8888/`, play a full 3
    - No `Error:` or `Uncaught` in console messages on either instance
    - `document.getElementById('game').classList.contains('active')` = `true`
 
-Take screenshot **`.playwright-mcp/27-prod-game-r3.png`** after round 3 completes.
+Take screenshot **`.playwright-mcp/33-prod-game-r3.png`** after round 3 completes.
 
 **Pass criteria:**
 - 3 rounds played to completion
@@ -888,7 +1146,7 @@ Take screenshot **`.playwright-mcp/27-prod-game-r3.png`** after round 3 complete
 
 ---
 
-## Step 28 — Restore dev stack
+## Step 34 — Restore dev stack
 
 Stop the prod stack and restart the dev stack so the session ends in the normal state.
 
@@ -909,7 +1167,7 @@ curl -sf http://localhost:8888/ | grep -q 'modulepreload' && echo "OK: dev HTML"
 
 ## Reporting
 
-Print a summary table. Preflight (self-update, prior-run review) is reported as a one-line note, not a scored row. The 28 numbered rows map 1:1 to Steps 1–28.
+Print a summary table. Preflight (self-update, prior-run review) is reported as a one-line note, not a scored row. The 34 numbered rows map 1:1 to Steps 1–34.
 
 TENSIES TEST RESULTS
 
@@ -940,13 +1198,19 @@ Preflight: self-update <ran|none>, prior-run review <ran|none> (not scored)
 | 21 | ✅ PASS | Animation integrity (no tearing) |
 | 22 | ✅ PASS | Winner/loser overlay consistency (multi-round, no flash) |
 | 23 | ✅ PASS | Console clean (no JS errors) |
-| 24 | ✅ PASS | Switch to prod build |
-| 25 | ✅ PASS | Bundle structure (hashed URLs, gzip, immutable) |
-| 26 | ✅ PASS | Browser resource count (bundled, no individual modules) |
-| 27 | ✅ PASS | 3-round game on prod build |
-| 28 | ✅ PASS | Restore dev stack |
+| 24 | ✅ PASS | Virtual authenticator setup + signin screen |
+| 25 | ✅ PASS | Sign-up flow (register passkey) |
+| 26 | ✅ PASS | Signed-in landing state |
+| 27 | ✅ PASS | Signed-in gameplay (username as player name) |
+| 28 | ✅ PASS | Sign-out |
+| 29 | ✅ PASS | Sign-in flow (existing account) |
+| 30 | ✅ PASS | Switch to prod build |
+| 31 | ✅ PASS | Bundle structure (hashed URLs, gzip, immutable) |
+| 32 | ✅ PASS | Browser resource count (bundled, no individual modules) |
+| 33 | ✅ PASS | 3-round game on prod build |
+| 34 | ✅ PASS | Restore dev stack |
 
-28/28 passed
+34/34 passed
 
 Replace `✅ PASS` with `❌ FAIL` or `📝 NOTE` and append a one-line description for any issue. If any test FAILs, describe exactly what went wrong and where to look.
 
