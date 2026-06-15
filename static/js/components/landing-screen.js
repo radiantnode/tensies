@@ -60,9 +60,10 @@ export class LandingScreen extends HTMLElement {
     if (!header) return;
     const existing = header.querySelector('.header-username');
     if (user && !existing) {
-      const tag = document.createElement('span');
+      const tag = document.createElement('a');
       tag.className = 'header-username';
       tag.textContent = `@${user.username}`;
+      tag.href = `/@${user.username}`;
       const btn = header.querySelector('.game-menu-btn');
       btn?.parentElement?.insertBefore(tag, btn);
     } else if (!user && existing) {

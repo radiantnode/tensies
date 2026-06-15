@@ -1,5 +1,6 @@
 // @ts-check
 import './app-header.js';
+import { getAuthUser } from '../auth.js';
 import { showLanding } from '../router.js';
 
 /**
@@ -31,6 +32,20 @@ export class ProfileScreen extends HTMLElement {
     if (title) {
       title.style.cursor = 'pointer';
       title.addEventListener('click', () => showLanding());
+    }
+
+    // Sync signed-in username pill
+    const header = this.querySelector('app-header');
+    if (header) {
+      const user = getAuthUser();
+      if (user) {
+        const tag = document.createElement('a');
+        tag.className = 'header-username';
+        tag.textContent = `@${user.username}`;
+        tag.href = `/@${user.username}`;
+        const btn = header.querySelector('.game-menu-btn');
+        btn?.parentElement?.insertBefore(tag, btn);
+      }
     }
   }
 
