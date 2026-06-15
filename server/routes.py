@@ -142,6 +142,11 @@ async def stats_game(game_code: str) -> dict:
 # 5 letters (gamestore.make_code), so only that shape matches — anything else
 # 404s so this can't shadow favicons or other single-segment asset requests.
 # Declared last so the explicit routes above (/, /metrics, /stats/*) win.
+@router.get("/join")
+async def join_page() -> HTMLResponse:
+    return HTMLResponse(_index_html)
+
+
 @router.get("/signin")
 async def signin_page() -> HTMLResponse:
     return HTMLResponse(_index_html)

@@ -95,7 +95,7 @@ export function bootstrap({ resumeSession }) {
   // the saved-session check, so a direct /signin URL isn't hijacked by a
   // stale reconnect attempt.
   const namedRoute = ROUTES[location.pathname];
-  if (namedRoute && namedRoute !== 'landing' && namedRoute !== 'join') {
+  if (namedRoute && namedRoute !== 'landing') {
     leaveLoading(() => showScreen(namedRoute));
     return;
   }
