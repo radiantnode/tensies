@@ -1,4 +1,4 @@
-# Audio sharing
+# Tensies Audio Sharing
 
 Share a game code by playing it out loud. One phone chirps a melody, the other one listens and fills in the code.
 
@@ -61,7 +61,7 @@ The live production voice is `current` (Pure Sine). Plain sine wave at full gain
 
 ### The soundboard
 
-The voice iteration tool lives at `tools/soundboard/index.html`. Standalone page, no build step, no server dependency. You can audition any voice through the speaker, test it with a real speaker-to-mic round trip (play the code, record through the mic, try to decode what it heard), batch-run all twenty-four voices, and export results as JSON with device metadata, ambient noise measurement, GPS, and per-test decode traces.
+The voice iteration tool lives at [`tools/soundboard/index.html`](https://radiantnode.github.io/tensies/tools/soundboard/). Standalone page, no build step, no server dependency. You can audition any voice through the speaker, test it with a real speaker-to-mic round trip (play the code, record through the mic, try to decode what it heard), batch-run all twenty-four voices, and export results as JSON with device metadata, ambient noise measurement, GPS, and per-test decode traces.
 
 Each test runs six codes: whatever you typed in, plus AABCD (repeated letter), ZZZZY (heavily repeated), ABCDE (sequential), and two random codes. The mix stresses different decoder edge cases.
 
