@@ -352,6 +352,17 @@ async def _h_game_ended(con, ev):
         ev["game_code"], ev["ts_ms"], ev.get("reason"),
         ev.get("round_count", 0), ev.get("total_rolls", 0),
     )
+    # Increment total_games for every player who participated
+    await con.execute(
+        """
+        UPDATE player_stats
+           SET total_games = total_games + 1
+         WHERE user_id IN (
+             SELECT DISTINCT user_id FROM round_player WHERE game_code = $1
+         )
+        """,
+        ev["game_code"],
+    )
     await con.execute("DELETE FROM live_games WHERE game_code = $1", ev["game_code"])
     await con.execute("DELETE FROM live_players WHERE game_code = $1", ev["game_code"])
 
