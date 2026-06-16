@@ -3,3 +3,4 @@ node_modules/
 commitment.json
 reveal.json
 .DS_Store
+widget-preview.html

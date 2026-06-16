@@ -37,7 +37,8 @@
       import './dice-verifier.mjs';
       const dv = document.getElementById('dv');
       const params = new URLSearchParams(location.search);
-      if (params.get('src')) dv.setAttribute('src', params.get('src'));
+      // Default to the committed sample reveal so the page self-demonstrates.
+      dv.setAttribute('src', params.get('src') || 'sample-reveal.json');
       document.getElementById('go').addEventListener('click', () => {
         try {
           dv.reveal = JSON.parse(document.getElementById('json').value);
