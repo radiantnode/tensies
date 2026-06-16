@@ -29,6 +29,14 @@ GET /stats/player/{user_id}
 GET /stats/game/{game_code}
 ```
 
+Public game-audit endpoint (no auth — see [Game audit](#game-audit)):
+
+```
+GET /api/games/{code}/audit            # JSON report (default)
+GET /api/games/{code}/audit?format=text     # human-readable
+GET /api/games/{code}/audit?format=markdown
+```
+
 > Note: web and Grafana are on non-default ports (8888 / 8889) to coexist with other local projects. The container-internal ports (8000 / 3000) are unchanged — only the host bindings differ. Override in the `ports` section of `docker-compose.yml`.
 
 ---
@@ -362,6 +370,64 @@ SELECT seq, ts, type, user_id, payload
 Replay this stream into the client renderer components in `static/js/components/` and the round plays back frame-by-frame. The UI for that doesn't exist yet — the data does.
 
 ---
+
+## Game audit
+
+Because every roll is recorded with its full before/after dice + lock state
+(see [Replayability](#replayability)), any finished or in-progress game can be
+**independently verified** from the event log — no trust in the live server
+required. `server/audit.py` is the engine; it reconstructs every roll and checks
+three things:
+
+- **Accuracy (the rules).** Each roll is re-derived from its own recorded
+  `dice_before` + `target`: locked dice never re-roll or unlock, every unlocked
+  die is freshly drawn, auto-lock fires *exactly* on a target match, and
+  `matched` / `newly_locked` / `round_roll_num` / the per-round `seq` all
+  reconstruct. Each player's `dice_before` is chained to their previous
+  `dice_after`, proving the server never altered a board between rolls.
+- **Realism.** Every inter-roll `dt_ms` respects the 250 ms server rate limit (a
+  faster roll is impossible through the normal path → injected/tampered data),
+  the win flag (`matched == 10`) lines up with the emitted `round_won`, there is
+  one winner per round (the first to ten by `seq`), and the target cycles
+  1→2→…→6→1.
+- **Fairness.** A chi-square goodness-of-fit test of newly-rolled faces against
+  uniform 1/6 (overall *and* per player — only `rolled_values`, so dice locked
+  on target don't inflate the target face), plus a per-player target-match-rate
+  test, so no participant can be statistically advantaged. The stats are pure
+  Python (no numpy/scipy); p-values are exact against textbook critical values.
+
+The report ends in a **PASS/FAIL verdict** (FAIL only on a rule/timing/winner
+violation; fairness anomalies are WARN — a single statistical flag is expected
+by chance and is not proof of bias).
+
+### HTTP API (public, read-only)
+
+```
+GET /api/games/{code}/audit?alpha=0.01&format=json|text|markdown
+```
+
+Unauthenticated by design — the point is that *anyone* with a game code can
+verify the game was fair. It reads only the append-only `events` log (never live
+state) and redacts raw player IDs to 8-char prefixes. `alpha` tunes the fairness
+significance threshold (default 0.01, clamped to [1e-6, 0.5]). 404 if the code
+has no recorded events; 503 if telemetry is disabled.
+
+```bash
+curl -s "https://tensies.app/api/games/ABCDE/audit?format=text"
+```
+
+### CLI (ops)
+
+The same engine backs a script for forensic/offline use; it connects straight to
+Postgres (`$POSTGRES_DSN`) so it works even with the app down:
+
+```bash
+docker compose exec web python scripts/audit_game.py ABCDE          # text report
+docker compose exec web python scripts/audit_game.py ABCDE --json    # machine-readable
+docker compose exec web python scripts/audit_game.py ABCDE --markdown report.md
+```
+
+Exit status: 0 PASS, 1 if any ERROR-level finding, 2 on usage/connection error.
 
 ## Deferred
 

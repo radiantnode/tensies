@@ -1,7 +1,7 @@
 import re
 
 from fastapi import APIRouter, Depends, Header, HTTPException
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, PlainTextResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from pathlib import Path
@@ -247,6 +247,39 @@ async def api_profile(username: str) -> dict:
         "stats": dict(stats) if stats else None,
         "recent": recent_list or None,
     }
+
+
+@router.get("/api/games/{code}/audit")
+async def api_game_audit(code: str, alpha: float = 0.01, format: str = "json"):
+    """Public, read-only forensic audit of one game's recorded events.
+
+    Reconstructs every roll from the telemetry event log and verifies it for
+    accuracy (the dice rules), realism (timing / win conditions / target cycle)
+    and fairness (chi-square dice tests), returning a pass/fail report so anyone
+    with a game code can technically verify the game was fair. Reads only the
+    append-only `events` log (never live state); player IDs are redacted to
+    short prefixes. See server/audit.py for every check.
+
+    Query params: `alpha` (fairness significance, default 0.01) and
+    `format` = json (default) | text | markdown.
+    """
+    if not TELEMETRY_ENABLED:
+        raise HTTPException(status_code=503, detail="audit unavailable (telemetry disabled)")
+    if not _GAME_CODE_RE.fullmatch(code):
+        raise HTTPException(status_code=404, detail="not found")
+    from server.audit import (
+        redact_report, render_markdown, render_text, report_to_dict, run_audit,
+    )
+    alpha = min(max(alpha, 1e-6), 0.5)
+    rep = await run_audit(code, alpha=alpha)
+    if not rep.summary.get("total_events"):
+        raise HTTPException(status_code=404, detail="no events recorded for that game")
+    redact_report(rep)  # public endpoint: trim raw player IDs in every format
+    if format == "text":
+        return PlainTextResponse(render_text(rep))
+    if format == "markdown":
+        return PlainTextResponse(render_markdown(rep), media_type="text/markdown")
+    return report_to_dict(rep)
 
 
 # Vanity profile URLs: tensies.app/@username. The @ prefix guarantees no
