@@ -1,0 +1,5 @@
+node_modules/
+*.log
+commitment.json
+reveal.json
+.DS_Store
