@@ -200,6 +200,16 @@ export function renderMenu(snap) {
   if (!btn) return;
   const isHost = snap.host === state.myId;
   const paused = Boolean(snap.paused);
+
+  // End Game button — host-only, reset confirm state on each render.
+  const endBtn = document.getElementById('menu-end-btn');
+  if (endBtn) {
+    endBtn.hidden = !isHost;
+    endBtn.classList.remove('confirming');
+    const endLabel = endBtn.querySelector('.menu-item-label');
+    if (endLabel) endLabel.textContent = 'End Game';
+  }
+
   btn.hidden = !isHost;
   btn.classList.toggle('active', paused);
   btn.setAttribute('aria-pressed', String(paused));

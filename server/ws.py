@@ -94,10 +94,14 @@ async def handle_auth(session: Session, msg: dict) -> None:
         payload = pyjwt.decode(token, JWT_SECRET, algorithms=["HS256"])
         session.user_id = payload.get("sub")
         session.username = payload.get("username")
+        # Use the account UUID as the player ID so telemetry and game state
+        # are keyed by the durable account, not the ephemeral session PID.
+        session.pid = session.user_id
         await send(session.ws, {
             "type": "auth_ok",
             "username": session.username,
             "user_id": session.user_id,
+            "player_id": session.pid,
         })
         log.info("auth     pid=%s  user=%s", session.pid[:8], session.username)
     except pyjwt.InvalidTokenError:
@@ -374,6 +378,42 @@ async def handle_pause(session: Session, msg: dict) -> None:
             await broadcast(code, state_msg(snap, code))
 
 
+async def handle_end_game(session: Session, msg: dict) -> None:
+    """Host-only: end the game immediately, broadcasting final stats to all."""
+    code = session.code
+    if not code:
+        return
+    meta = await gamestore.get_meta(code)
+    if meta is None or meta["host"] != session.pid or not meta["started"]:
+        return
+    snap = await gamestore.snapshot(code)
+    if snap is None:
+        return
+    log.info("end_game game=%s  by=%s", code, session.name)
+    duration_ms = gamestore.now_ms() - snap["created_ms"]
+    emit("game_ended", game_code=code, reason="host_ended",
+         duration_ms=duration_ms, round_count=snap["round_count"],
+         total_rolls=snap["total_rolls"])
+    metrics.games_ended_total.labels(reason="host_ended").inc()
+    metrics.game_duration_seconds.observe(duration_ms / 1000.0)
+    # Build the game_ended frame with final player stats.
+    ended_msg = {
+        "type": "game_ended",
+        "ended_by": session.name,
+        "round_num": snap["round_num"],
+        "players": {
+            pid: {"name": p["name"], "wins": p["wins"]}
+            for pid, p in snap["players"].items()
+        },
+    }
+    await broadcast(code, ended_msg)
+    await gamestore.delete_game(code)
+    state.connections.pop(code, None)
+    t = state.pause_tasks.pop(code, None)
+    if t:
+        t.cancel()
+
+
 async def handle_roll_done(session: Session, msg: dict) -> None:
     ev = state.ack_events.get(session.pid)
     if ev is not None:
@@ -393,6 +433,7 @@ ACTIONS = {
     "reconnect": handle_reconnect,
     "roll": handle_roll,
     "pause": handle_pause,
+    "end_game": handle_end_game,
     "roll_done": handle_roll_done,
     "pong": handle_pong,
 }

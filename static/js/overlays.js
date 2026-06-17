@@ -8,13 +8,16 @@
  */
 
 /** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
+/** @typedef {import('./types.js').GameEndedMessage} GameEndedMessage */
 
 const winner = /** @type {HTMLDialogElement | null} */ (document.getElementById('winner-overlay'));
 const pauseOverlay = /** @type {HTMLDialogElement | null} */ (document.getElementById('pause-overlay'));
+const gameEndedOverlay = /** @type {HTMLDialogElement | null} */ (document.getElementById('game-ended-overlay'));
 
 // Neither dialog may be Escape-dismissed — only game state closes them.
 winner?.addEventListener('cancel', (event) => event.preventDefault());
 pauseOverlay?.addEventListener('cancel', (event) => event.preventDefault());
+gameEndedOverlay?.addEventListener('cancel', (event) => event.preventDefault());
 
 /**
  * On resume, hold the pause overlay / menu a beat so the toggle's slide-off
@@ -112,4 +115,39 @@ export function showWinner(name, target, round, isLoser = false) {
 export function hideWinner() {
   clearInterval(winTimer);
   if (winner?.open) winner.close();
+}
+
+// ── Game ended overlay ──
+
+/**
+ * Show the game-ended overlay with final player stats.
+ * @param {GameEndedMessage} msg
+ */
+export function showGameEnded(msg) {
+  const title = document.getElementById('game-ended-title');
+  if (title) title.textContent = `Game ended by ${msg.ended_by}`;
+  const list = document.getElementById('game-ended-stats');
+  if (list) {
+    const totalRounds = Math.max(0, msg.round_num - 1);
+    const sorted = Object.values(msg.players).sort((a, b) => b.wins - a.wins);
+    list.innerHTML = sorted.map((p) => {
+      const losses = totalRounds - p.wins;
+      return `<li class="game-ended-player">
+        <span class="game-ended-player-name">${p.name}</span>
+        <span class="game-ended-player-record">
+          <span class="game-ended-wins">${p.wins}W</span>
+          <span class="game-ended-losses">${losses}L</span>
+        </span>
+      </li>`;
+    }).join('');
+  }
+  // Close any other overlays that might be open.
+  hideWinner();
+  hidePaused();
+  if (gameEndedOverlay && !gameEndedOverlay.open) gameEndedOverlay.showModal();
+}
+
+/** Close the game-ended overlay. */
+export function hideGameEnded() {
+  if (gameEndedOverlay?.open) gameEndedOverlay.close();
 }

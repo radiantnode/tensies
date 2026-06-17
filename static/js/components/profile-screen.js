@@ -148,6 +148,7 @@ export class ProfileScreen extends HTMLElement {
                 duration = totalSecs < 60 ? `${totalSecs}s` : `${Math.round(totalSecs / 60)}m`;
               }
               const opps = r.opponents || [];
+              const unknownCount = Math.max(0, (r.player_count || 1) - 1 - opps.length);
               const userPhoto = data.profile_photo_url || '/static/images/avatar-default.svg';
               const mkAvatar = (/** @type {string} */ src, /** @type {string} */ name, /** @type {boolean} */ winner) =>
                 `<span class="recent-avatar-ring${winner ? ' recent-avatar-winner' : ''}"><img class="recent-avatar" src="${src}" alt="${name}"></span>`;
@@ -155,6 +156,10 @@ export class ProfileScreen extends HTMLElement {
               const oppAvs = opps.map((/** @type {any} */ o) =>
                 mkAvatar(o.photo || '/static/images/avatar-default.svg', o.name, false)
               );
+              // Add placeholder avatars for opponents who never rolled
+              for (let i = 0; i < unknownCount; i++) {
+                oppAvs.push(mkAvatar('/static/images/avatar-default.svg', 'opponent', false));
+              }
               // Winner first; give glow only to the first avatar
               const allAvatars = r.won_game
                 ? [userAv, ...oppAvs]
@@ -162,7 +167,15 @@ export class ProfileScreen extends HTMLElement {
               if (!r.won_game && allAvatars.length > 0) {
                 allAvatars[0] = allAvatars[0].replace('recent-avatar-ring', 'recent-avatar-ring recent-avatar-winner');
               }
-              const vs = opps.length ? 'vs ' + opps.map((/** @type {any} */ o) => o.name).join(', ') : 'solo';
+              let vs;
+              if (opps.length) {
+                vs = 'vs ' + opps.map((/** @type {any} */ o) => o.name).join(', ');
+                if (unknownCount) vs += ` + ${unknownCount} other${unknownCount > 1 ? 's' : ''}`;
+              } else if (unknownCount) {
+                vs = `vs ${unknownCount} other${unknownCount > 1 ? 's' : ''}`;
+              } else {
+                vs = 'solo';
+              }
               const fastest = r.fastest_win_ms ? (r.fastest_win_ms / 1000).toFixed(1) + 's' : '';
               const speed = r.avg_roll_speed_ms ? (r.avg_roll_speed_ms / 1000).toFixed(1) + 's' : '';
               const details = [fastest ? `best ${fastest}` : '', speed ? `${speed}/roll` : ''].filter(Boolean).join(' · ');

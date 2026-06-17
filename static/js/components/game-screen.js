@@ -51,6 +51,10 @@ export class GameScreen extends HTMLElement {
       </header>
       <div id="game-menu" class="game-menu" aria-hidden="true">
         <nav class="menu-panel" aria-label="Game menu">
+          <button id="menu-end-btn" type="button" class="menu-item menu-item--danger" hidden>
+            <span class="menu-item-label">End Game</span>
+          </button>
+          <div class="menu-spacer"></div>
           <button id="menu-pause-btn" type="button" class="menu-item menu-toggle" aria-pressed="false" hidden>
             <span class="menu-item-label">Pause Game</span>
             <span class="menu-switch" aria-hidden="true"></span>
@@ -77,6 +81,21 @@ export class GameScreen extends HTMLElement {
     this.#menuBtn.addEventListener('click', () => {
       if (this.menuOpen()) this.closeMenu();
       else this.openMenu();
+    });
+
+    // End Game — tap-to-confirm: first tap swaps the label, second tap sends.
+    // Resets when the menu closes.
+    const endBtn = byId('menu-end-btn');
+    endBtn.addEventListener('click', () => {
+      if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+      if (endBtn.classList.contains('confirming')) {
+        state.ws.send(JSON.stringify({ action: 'end_game' }));
+        endBtn.classList.remove('confirming');
+      } else {
+        endBtn.classList.add('confirming');
+        const label = endBtn.querySelector('.menu-item-label');
+        if (label) label.textContent = 'Tap to confirm';
+      }
     });
 
     // Pause/Resume — send intent; the broadcast flips the flag and renderMenu
@@ -122,6 +141,13 @@ export class GameScreen extends HTMLElement {
     this.#menuBtn?.classList.remove('open');
     this.#menuBtn?.setAttribute('aria-expanded', 'false');
     this.#menuBtn?.setAttribute('aria-label', 'Open menu');
+    // Reset end-game confirm state so re-opening starts fresh.
+    const endBtn = document.getElementById('menu-end-btn');
+    if (endBtn) {
+      endBtn.classList.remove('confirming');
+      const label = endBtn.querySelector('.menu-item-label');
+      if (label) label.textContent = 'End Game';
+    }
   }
 
   /**

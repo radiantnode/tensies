@@ -2,7 +2,7 @@
 import { myDiceKey } from './dice.js';
 import { byId } from './dom.js';
 import { renderMyArea, renderPlayersBar } from './game-render.js';
-import { showWinner } from './overlays.js';
+import { showWinner, showGameEnded, hideGameEnded } from './overlays.js';
 import { showFor } from './router.js';
 import { getAuthToken, isSignedIn, getAuthUser } from './auth.js';
 import {
@@ -13,6 +13,14 @@ import { showScreen, showLoading, leaveLoading } from './transitions.js';
 
 /** @typedef {import('./types.js').ServerMessage} ServerMessage */
 /** @typedef {import('./types.js').ErrorMessage} ErrorMessage */
+
+// Game-ended close button: clear session and return to landing.
+document.getElementById('game-ended-close')?.addEventListener('click', () => {
+  hideGameEnded();
+  clearSession();
+  state.currentState = null;
+  showScreen('landing', { force: true });
+});
 
 /**
  * WebSocket client: connection lifecycle, the create/join/start intents,
@@ -119,7 +127,12 @@ function attemptReconnect(playerId, gameCode, deadline) {
 function connectWs(afterConnect) {
   const ws = new WebSocket(wsUrl());
   state.ws = ws;
-  ws.onopen = afterConnect;
+  ws.onopen = () => {
+    // Authenticate before the intent so the server knows the account UUID
+    // before create/join writes it into the game state.
+    if (isSignedIn()) send('auth', { token: getAuthToken() });
+    afterConnect();
+  };
   ws.onmessage = (event) => handleMessage(JSON.parse(event.data));
   ws.onclose = handleWsClose;
 }
@@ -206,12 +219,15 @@ function handleMessage(msg) {
     case 'welcome':
       state.myId = msg.player_id;
       savePlayerId(msg.player_id);
-      // If signed in, send auth token so the server knows who we are.
-      if (isSignedIn()) send('auth', { token: getAuthToken() });
       return;
     case 'auth_ok':
       state.authUsername = msg.username;
       state.authUserId = msg.user_id;
+      // Server swapped the PID to the account UUID — update the client to match.
+      if (msg.player_id) {
+        state.myId = msg.player_id;
+        savePlayerId(msg.player_id);
+      }
       return;
     case 'reconnect_token':
       saveReconnectToken(msg.token);
@@ -265,6 +281,11 @@ function handleMessage(msg) {
         });
         showWinner(myName, msg.target, msg.round_num, !iWon);
       }
+      return;
+    }
+    case 'game_ended': {
+      resetRollState();
+      showGameEnded(msg);
       return;
     }
     case 'error':

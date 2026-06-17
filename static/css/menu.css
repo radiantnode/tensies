@@ -71,6 +71,8 @@
     flex-direction: column;
     gap: 0.75rem;
     padding: calc(env(safe-area-inset-top) + 4.25rem) 1.25rem 2rem;
+    min-block-size: 100%;
+    box-sizing: border-box;
   }
 
   /* About section */
@@ -297,6 +299,9 @@
     block-size: 1rem;
   }
 
+  /* Pushes the pause toggle to the bottom of the menu panel. */
+  .menu-spacer { flex: 1; }
+
   /* ── In-game menu items (pause toggle + status) ── */
   .menu-item {
     display: flex;
@@ -319,6 +324,18 @@
 
   .menu-item:hover { background: rgba(40, 20, 6, 0.6); }
   .menu-item[hidden] { display: none; }
+
+  /* Danger variant (End Game). */
+  .menu-item--danger {
+    border-color: rgba(180, 70, 50, 0.35);
+    color: rgba(240, 160, 140, 0.92);
+  }
+  .menu-item--danger:hover { background: rgba(80, 20, 10, 0.45); }
+  .menu-item--danger.confirming {
+    background: rgba(140, 35, 20, 0.5);
+    border-color: rgba(220, 80, 50, 0.55);
+    color: rgba(255, 200, 180, 0.95);
+  }
 
   /* Toggle switch */
   .menu-switch {
