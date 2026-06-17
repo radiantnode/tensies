@@ -6,159 +6,172 @@ import { updateScrollFades } from '../scroll-fades.js';
 
 // Baked changelog HTML — content, not code; the changelog skill regenerates it.
 const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
-<h2>1.15.0 ("The Regulars")</h2>
+<h2>1.15.0 ("Last Call")</h2>
+<p>Wednesday, June 17, 2026</p>
+<ul>
+<li>The host can end the game from the menu. First tap says "Tap to confirm," second tap sends everyone home.</li>
+<li>When a game ends, both players see a scoreboard overlay with avatars, round wins, and a gold ring on whoever's ahead. Hit "Bummer!" to get back to the landing. 🎲</li>
+<li>Profile recent games got some polish. Better spacing, cleaner score glow.</li>
+<li><em>Behind the scenes: the game-ended state persists through refresh so you don't lose the scoreboard if your phone hiccups.</em></li>
+</ul>
+<h2>1.14.1 ("Coaster Notes")</h2>
+<p>Tuesday, June 16, 2026</p>
+<ul>
+<li><em>Behind the scenes: collected outside feedback and updated the status tracker. Nothing player-facing, just listening.</em></li>
+</ul>
+<h2>1.14.0 ("The Regulars")</h2>
 <p>Monday, June 15, 2026</p>
 <ul>
-<li>Your profile page is live. Hit /@username to see lifetime stats, recent games, win rate, best time. Show it off or don't.</li>
-<li>Recent games on your profile show who you played, who won, how fast, with stacked avatars and a gold glow on the winner. Solo games don't show up.</li>
+<li>Your profile page is live at /@username. Lifetime stats, recent games, win rate, best time.</li>
+<li>Recent games show who you played, who won, and how fast. Stacked avatars, gold glow on the winner. Solo games don't show up.</li>
 <li>A gradient shimmer runs across the stat cards when the profile first loads. Once, then it's done. ✨</li>
-<li>The username pill in the header links to your profile from the landing and lobby. One tap to your stats.</li>
-<li>Fixed a bug where total_games was stuck at zero. Backfilled everyone's count from the actual game history.</li>
-<li><em>Behind the scenes: data-repair scripts and prod config fixes keep the stats honest.</em></li>
+<li>The username pill in the header links straight to your profile from the landing and lobby.</li>
+<li>Fixed a bug where total_games was stuck at zero. Backfilled from actual game history.</li>
+<li><em>Behind the scenes: data-repair scripts and prod config fixes keep the numbers honest.</em></li>
 </ul>
-<h2>1.14.0 ("Wristband Night")</h2>
+<h2>1.13.0 ("Wristband Night")</h2>
 <p>Sunday, June 14, 2026</p>
 <ul>
 <li>Signed-in players see their username pill next to the hamburger on every screen, in-game included.</li>
-<li>The changelog scrolls as one page, same as the menu panel. No more nested scrolling.</li>
-<li>iOS standalone users: screens fill edge-to-edge at the bottom, and nothing bleeds through behind the status bar. 📱</li>
-<li><em>Behind the scenes: the README picked up some hero screenshots for GitHub.</em></li>
+<li>The changelog scrolls as one page now, same as the menu panel.</li>
+<li>iOS standalone screens fill edge-to-edge at the bottom, and nothing bleeds through behind the status bar. 📱</li>
+<li><em>Behind the scenes: the README got some hero screenshots for GitHub.</em></li>
 </ul>
-<h2>1.13.0 ("VIP List")</h2>
+<h2>1.12.0 ("Backstage Pass")</h2>
 <p>Saturday, June 13, 2026</p>
 <ul>
-<li>Passkey sign-up is here. Tap, scan your face or fingerprint, done. Your anonymous stats carry over and you get a vanity URL. 🔑</li>
-<li>The onboarding screen shows your profile card, vanity link, and stats. Survives a refresh.</li>
-<li>Signed-in players skip the name field on the landing page. You're already you.</li>
-<li>Lobby Share and Play buttons sit side-by-side, with more room around Start.</li>
-<li>The landing dice logo wiggles when you arrive. Primary buttons picked up a shimmer sweep. Little things.</li>
-<li>Player list shows both YOU and HOST badges. You're always sorted to the top.</li>
-<li><em>Behind the scenes: pixel baselines updated for the new auth and lobby states.</em></li>
-</ul>
-<h2>1.12.0 ("Karaoke Night")</h2>
-<p>Saturday, June 13, 2026</p>
-<ul>
-<li>The soundboard is a standalone tool for field-testing audio share. Tap through every voice the browser offers, record what you hear, export diagnostics. It went out for 6 sessions and 744 tests across beaches, bars, and a pool. 🎤</li>
-<li><em>Behind the scenes: all the soundboard data and analysis are in the repo if you want to see what actually works when you chirp a game code through a phone speaker.</em></li>
+<li>Passkey sign-up is here. Tap, scan your face or fingerprint, done. Anonymous stats carry over and you get a vanity URL. 🔑</li>
+<li>The onboarding screen shows your profile card, vanity link, and stat history. Survives a refresh.</li>
+<li>Signed-in players skip the name field on landing. You're already you.</li>
+<li>The soundboard shipped as a standalone tool for field-testing audio share. It went out for 6 sessions and 744 tests across beaches, bars, and a pool.</li>
+<li>Lobby Share and Play buttons sit side-by-side with more room around Start.</li>
+<li>The landing dice logo wiggles when you arrive. Primary buttons picked up a shimmer sweep.</li>
+<li>Player list shows both YOU and HOST badges, and you're always sorted to the top.</li>
+<li><em>Behind the scenes: pixel baselines updated for the new auth and lobby states, and all the soundboard data is in the repo.</em></li>
 </ul>
 <h2>1.11.0 ("Jukebox")</h2>
 <p>Friday, June 12, 2026</p>
 <ul>
 <li>Tensies installs to your home screen. Launches standalone, no browser chrome.</li>
-<li>The lobby Share button opens AirDrop, Messages, WhatsApp, whatever your phone has. The SMS fallback is still there.</li>
-<li>Experimental: the lobby "Play" button chirps your game code through the speaker. A friend on the join screen taps "Listen" and their mic picks it up. Works best when it's not too loud. 🔊</li>
+<li>The lobby Share button opens AirDrop, Messages, WhatsApp, whatever your phone offers. SMS fallback still works.</li>
+<li>Experimental: the lobby "Play" button chirps your game code through the speaker. A friend taps "Listen" on the join screen and their mic picks it up. Works best when it's not too loud. 🔊</li>
 <li>Turn your phone sideways and you'll get a nudge to rotate back. Portrait game.</li>
-<li><em>Behind the scenes: the audio share got another round of tuning, louder transmission and better error correction to stretch the range.</em></li>
+<li><em>Behind the scenes: the audio share got another round of tuning for louder transmission and better error correction.</em></li>
 </ul>
-<h2>1.10.0 ("Last Call")</h2>
+<h2>1.10.0 ("Fresh Coat")</h2>
 <p>Thursday, June 11, 2026</p>
 <ul>
-<li>The frontend got rebuilt from scratch: layered CSS, typed JS modules, one concern per file. Every screen was pixel-verified against the original at zero diff. If you spot anything different, that's a bug.</li>
+<li>The whole frontend got rebuilt from scratch. Layered CSS, typed JS modules, one concern per file. Every screen was pixel-verified against the original at zero diff. If you spot anything different, that's a bug.</li>
 <li>Fixed the winner overlay closing early when an opponent's roll echo snuck in during the celebration.</li>
-<li>Dice scatter into place before the board paints, so there's no flash of nothing.</li>
-<li>The loading overlay holds until dice are rendered, then dissolves. No blank-board flicker.</li>
-<li>Safari: 3D dice no longer flatten during screen transitions. 🎲</li>
-<li><em>Behind the scenes: the rewrite means future changes land without breaking something three files away.</em></li>
+<li>Dice scatter into place before the board paints, so there's no blank flash.</li>
+<li>The loading overlay holds until dice are rendered, then dissolves.</li>
+<li>Safari stopped flattening the 3D dice during screen transitions. 🎲</li>
+<li><em>Behind the scenes: the rewrite means changes land without quietly breaking something three files away.</em></li>
+</ul>
+<h2>1.9.2 ("Bar Back")</h2>
+<p>Wednesday, June 10, 2026</p>
+<ul>
+<li><em>Behind the scenes: documentation cleanup, test tooling sharpened, and the groundwork laid for the frontend rebuild that shipped the next day.</em></li>
 </ul>
 <h2>1.9.1 ("Garnish")</h2>
 <p>Monday, June 8, 2026</p>
 <ul>
-<li>The winner overlay pops right after the scatter reveal. No extra beat of staring at the board.</li>
-<li>Prod gets a real asset pipeline: one bundled, minified file instead of a dozen loose modules. Faster first load. ⚡</li>
+<li>The winner overlay pops right after the scatter reveal. You don't sit there staring at the board anymore.</li>
+<li>Prod gets a real asset pipeline. One bundled, minified JS file instead of a dozen loose modules. Faster cold load. ⚡</li>
 <li><em>Behind the scenes: nginx handles static files so the app server just runs the game.</em></li>
 </ul>
 <h2>1.9.0 ("Open Mic")</h2>
 <p>Sunday, June 7, 2026</p>
 <ul>
 <li>Join URLs are shorter: tensies.app/ABCD instead of tensies.app/?join=ABCD. Old links still work.</li>
-<li>Fixed the winner overlay flashing away when a broadcast landed mid-reveal. It stays put until the countdown finishes.</li>
-<li>Strict CSP and HSTS on every response. Your browser won't load anything we didn't put there. 🔒</li>
+<li>Fixed the winner overlay flashing away when a broadcast landed mid-reveal. It stays put until the countdown finishes now.</li>
+<li>Strict CSP and HSTS on every response. Your browser won't load anything we didn't serve. 🔒</li>
 <li>The nav menu stopped flashing on the loading screen.</li>
-<li><em>Behind the scenes: abuse limits read the real client IP behind a proxy, and metrics endpoints require auth in dev too.</em></li>
+<li><em>Behind the scenes: abuse limits read the real client IP behind a proxy, and metrics require auth in dev too.</em></li>
 </ul>
 <h2>1.8.0 ("Vacation Pour")</h2>
 <p>Monday, June 1, 2026</p>
 <ul>
-<li>Game state lives in Redis. The server runs as multiple instances behind a load balancer, no sticky sessions. Your game keeps going if one instance restarts.</li>
-<li>A reaper sweeps up abandoned games and publishes the active count across instances.</li>
-<li>Security audit: Starlette and h11 bumped for CVEs, lockfile pinned, Docker image runs non-root.</li>
-<li>The frontend was rebuilt as web components. Each screen is its own element, the HTML shell is thin, and the loading screen paints before JS runs. Same design, new wiring. 🔧</li>
-<li><em>Behind the scenes: a pixel-regression harness verified every view at zero diff before and after. 25 views, two viewports, all green.</em></li>
+<li>Game state lives in Redis now. The server can run as multiple instances behind a load balancer, no sticky sessions needed. Your game keeps going if one instance restarts.</li>
+<li>A reaper cleans up abandoned games and publishes the active count across instances.</li>
+<li>Security pass: Starlette and h11 bumped for CVEs, lockfile pinned, Docker image runs non-root.</li>
+<li>The frontend was rebuilt as web components. Each screen is its own element. The loading screen paints before JS even runs. Same design, better wiring. 🔧</li>
+<li><em>Behind the scenes: a pixel-regression harness verified every view at zero diff. 25 views, all green.</em></li>
 </ul>
 <h2>1.7.0 ("Open Bar")</h2>
 <p>Sunday, May 31, 2026</p>
 <ul>
-<li>Everything got warmer. Landing, lobby, join, board, winner, loser: it all feels like the same bar.</li>
+<li>Everything got warmer. Landing, lobby, join, board, winner, loser. It all feels like the same bar now.</li>
 <li>Dice look real. Soft edges, lit from the same direction as the wood underneath.</li>
-<li>The winner overlay is something to see. A 3D die flies at you, your name glows in gold, a countdown bar ticks to the next round.</li>
+<li>The winner overlay is something to see. A 3D die flies at you, your name glows in gold, and a countdown bar ticks to the next round.</li>
 <li>Losers get a cracked die. Black and broken. 💔</li>
 <li>The roll button looks like a leather coaster sitting on the bartop.</li>
-<li>Nav menu slides in from the hamburger. It has an About section and a "What's New" changelog (hi).</li>
+<li>Nav menu slides in from the hamburger with an About section and a "What's New" changelog (hi).</li>
 <li>Round target goes 1, 2, 3, 4, 5, 6. Ascending, the way you'd count.</li>
-<li><em>Behind the scenes: Inter is self-hosted for consistent type across phones, and the player-list scroll fades took some real CSS work.</em></li>
+<li><em>Behind the scenes: Inter is self-hosted for consistent type across phones, and the scroll fades on the player list took some real CSS.</em></li>
 </ul>
 <h2>1.6.0 ("Saturday Sipper")</h2>
 <p>Saturday, May 30, 2026</p>
 <ul>
-<li>The host can pause the game. Good for a bar run, a bathroom break, or figuring out who's buying. ⏸️</li>
-<li>Non-host players see a "waiting for host" overlay while paused. The board stays live underneath so dice keep their places.</li>
-<li>If the host vanishes, another connected player gets promoted automatically.</li>
-<li>Paused games last up to an hour. If nobody comes back, the game ends on its own.</li>
-<li>Reconnect tokens: if your connection drops and you come back, the server recognizes you. No duplicate ghosts in the player list.</li>
-<li>The pause menu has a countdown, a connected-player count, and the resume toggle.</li>
+<li>The host can pause the game. Good for a bar run, a bathroom break, or settling who's buying the next round. ⏸️</li>
+<li>Non-host players see a "waiting for host" overlay while paused. The board stays live underneath.</li>
+<li>If the host disappears, another connected player gets promoted.</li>
+<li>Paused games survive up to an hour. If nobody returns, the game ends on its own.</li>
+<li>Reconnect tokens work now. Drop and come back, the server knows it's you.</li>
+<li>The pause menu has a countdown, connected-player count, and the resume toggle.</li>
 <li><em>Behind the scenes: telemetry dashboards picked up a luck balance chart, per-game event logs, and a luckiest-players leaderboard.</em></li>
 </ul>
 <h2>1.5.0 ("Back Booth")</h2>
 <p>Friday, May 29, 2026</p>
 <ul>
-<li>Multiplayer got a stress test: a headless driver spins up hundreds of games to find leaks and race conditions. It found one. Fixed. 🧪</li>
-<li>The test harness runs two isolated browser profiles so each player has their own identity.</li>
+<li>Multiplayer got a stress test. A headless driver spins up hundreds of games looking for leaks and race conditions. It found one. Fixed. 🧪</li>
+<li>The test harness runs two isolated browser profiles so each player keeps their own identity.</li>
 <li><em>Behind the scenes: two SQL bugs in the telemetry pipeline were caught and fixed during the first automated run.</em></li>
 </ul>
 <h2>1.4.0 ("Double Shot")</h2>
 <p>Thursday, May 28, 2026</p>
 <ul>
 <li>Dice stay put when you refresh or your phone naps. Scatter positions are saved. 🎲</li>
-<li>A single loading screen replaces the old disconnect/reconnect dialogs. 600ms minimum so it doesn't blink in and out.</li>
-<li>The winner overlay no longer sticks around when a stray roll queues up during the celebration.</li>
-<li>Telemetry pipeline is running: rolls, wins, games, all flowing into Postgres and Grafana.</li>
-<li>The server, CSS, and JS each got split into proper packages. Nothing changed for you, but it made everything after this possible.</li>
-<li><em>Behind the scenes: cache-busting covers the full module import graph, not just the entry scripts.</em></li>
+<li>A unified loading screen replaces the old disconnect and reconnect dialogs. 600ms minimum so it doesn't blink in and out.</li>
+<li>The winner overlay stopped sticking around when a stray roll queued during the celebration.</li>
+<li>Telemetry is running. Rolls, wins, games, all flowing into Postgres and Grafana.</li>
+<li>The server, CSS, and JS each got split into proper packages. Same game, cleaner foundation.</li>
+<li><em>Behind the scenes: cache-busting covers the full ES module import graph, not just the entry scripts.</em></li>
 </ul>
 <h2>1.3.0 ("Whiskey Neat")</h2>
 <p>Wednesday, May 27, 2026</p>
 <ul>
-<li>Fixed a freeze when your re-roll landed on the exact same numbers. Rare, but it locked the game up.</li>
-<li>Other players' dice update in sync with the roller's reveal animation. No spoilers before the shake finishes.</li>
+<li>Fixed a freeze when your re-roll landed on the exact same numbers. Rare, but it locked the whole game up.</li>
+<li>Other players' dice update in sync with the roller's reveal animation now. You won't see the result before the shake finishes.</li>
 <li>If your phone drops the connection, you get 30 seconds to come back. A reconnecting overlay holds your spot. 🔌</li>
 <li>The dice logo landed in the game header, overlapping the wordmark.</li>
-<li>Warmer in-game text, animated progress bars, and the bar background shifted to a better spot.</li>
-<li><em>Behind the scenes: join errors show on the right screen, and a dice-tearing fix freezes the transform before clearing the animation.</em></li>
+<li>Warmer in-game text, animated progress bars, bar background shifted to a better focal point.</li>
+<li><em>Behind the scenes: join errors route to the right screen now, and a dice-tearing fix freezes the transform before clearing the animation.</em></li>
 </ul>
 <h2>1.2.0 ("Pint Glass")</h2>
 <p>Tuesday, May 26, 2026</p>
 <ul>
 <li>Dice rolls are server-authoritative. Everyone sees the same result.</li>
 <li>The dice logo and favicon give Tensies its own face in the browser tab. 🎲</li>
-<li><em>Behind the scenes: the fairness engine got a quiet but real upgrade.</em></li>
+<li><em>Behind the scenes: the fairness engine is quiet but real.</em></li>
 </ul>
 <h2>1.1.0 ("First Round")</h2>
 <p>Monday, May 25, 2026</p>
 <ul>
-<li>Invite friends with a tap. Share a link or send a text. 📲</li>
-<li>Dice physics: gather, shake, scatter, and they don't pile on top of each other. Matched dice lock in.</li>
+<li>Invite friends with a tap. Share a link or fire off a text. 📲</li>
+<li>Dice physics: gather, shake, scatter, and they never pile on top of each other. Matched dice lock in.</li>
 <li>The board looks like a bartop. Warm wood photo, soft shadows, lit from the top left.</li>
-<li>Players bar fits five, the join screen is separate, and random names fill in so nobody has to think.</li>
-<li>iOS plays nice: no scroll, no zoom, fast taps still register.</li>
+<li>Players bar fits five, the join screen is its own page, and random names fill in so nobody has to think.</li>
+<li>iOS plays nice. No scroll, no zoom, fast taps still register.</li>
 <li><em>Behind the scenes: animations run on the GPU, placement uses a jittered grid, and static assets get cache-busted on deploy.</em></li>
 </ul>
 <h2>1.0.0 ("Opening Tab")</h2>
 <p>Monday, May 25, 2026</p>
 <ul>
-<li>A bar regular and his friends love playing Tensies, the dice game. One night, a few rounds deep and drinks in, he thought it'd be great to play anywhere, even when you forget the dice. So he started having Claude build the game, sketched the first board himself, and kept tinkering from his barstool between rounds. 🍺</li>
+<li>A bar regular and his friends love playing Tensies, the dice game. One night, a few rounds deep and drinks in, he thought it'd be great to play anywhere, even when you forget the dice. So he started having Claude build the game, sketched the first board himself, and kept tinkering from his barstool between rounds.</li>
 <li>Ten dice, one target number, fastest to lock all ten wins. Simple rules, good trash talk.</li>
-<li>Multiplayer over WebSockets: create a game, share the code, roll against your friends live.</li>
-<li>Your opponent sits up top, your dice down below, right where your thumbs are.</li>
+<li>Multiplayer over WebSockets. Create a game, share the code, roll against your friends live.</li>
+<li>Your opponent sits up top, your dice down below, right where your thumbs are. 🍺</li>
 <li><em>Behind the scenes: the git history starts here because he forgot to git init until the game already worked.</em></li>
 </ul>
 <div class="menu-changelog-footer">
