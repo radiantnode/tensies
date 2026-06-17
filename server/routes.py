@@ -218,7 +218,7 @@ async def api_profile(username: str) -> dict:
                       WHERE rp.user_id = $1
                    )
                AND g.ended_ts IS NOT NULL
-               AND g.player_count > 1
+               AND g.peak_players > 1
              ORDER BY g.ended_ts DESC
              LIMIT 10
             """,
