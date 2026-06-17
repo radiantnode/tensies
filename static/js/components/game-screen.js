@@ -51,10 +51,6 @@ export class GameScreen extends HTMLElement {
       </header>
       <div id="game-menu" class="game-menu" aria-hidden="true">
         <nav class="menu-panel" aria-label="Game menu">
-          <button id="menu-end-btn" type="button" class="menu-item menu-item--danger" hidden>
-            <span class="menu-item-label">End Game</span>
-          </button>
-          <div class="menu-spacer"></div>
           <button id="menu-pause-btn" type="button" class="menu-item menu-toggle" aria-pressed="false" hidden>
             <span class="menu-item-label">Pause Game</span>
             <span class="menu-switch" aria-hidden="true"></span>
@@ -66,6 +62,9 @@ export class GameScreen extends HTMLElement {
             </div>
             <p id="pause-players" class="menu-status-players"></p>
           </div>
+          <button id="menu-end-btn" type="button" class="menu-item menu-item--danger" hidden>
+            <span class="menu-item-label">End Game</span>
+          </button>
         </nav>
       </div>
       <div class="my-area" id="my-area"></div>`;

@@ -365,7 +365,7 @@
   .menu-toggle.active .menu-switch::after { transform: translateX(20px); }
 
   /* Pause status (host, while paused) */
-  .menu-status { padding: 0.25rem 1.1rem 0; }
+  .menu-status { padding: 0.25rem 1.1rem 0.75rem; }
   .menu-status[hidden] { display: none; }
 
   .menu-status-row {
