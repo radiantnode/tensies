@@ -197,6 +197,55 @@ test('disconnect-waiting', async ({ page }) => {
   await expect(page).toHaveScreenshot('disconnect-waiting.png');
 });
 
+test('game-ended', async ({ page }) => {
+  // The host ends the game mid-round: the server sends a `game_ended` frame
+  // with final stats. The overlay shows player scores, avatars, and a
+  // "Bummer!" dismiss button. Like fatal-error, the game_ended frame is a
+  // separate message type — inject it after the started state settles.
+  await seedPage(page);
+  let myPid = null;
+  await page.routeWebSocket(/\/ws$/, (ws) => {
+    const server = ws.connectToServer();
+    server.onMessage((raw) => {
+      let m; try { m = JSON.parse(raw); } catch { return ws.send(raw); }
+      if (m.type === 'welcome') { myPid = m.player_id; ws.send(raw); return; }
+      if (m.type === 'state') {
+        // Rewrite into a started 3-player game at round 4.
+        ws.send(JSON.stringify({
+          ...m, type: 'state', code: 'AYBD', started: true, paused: false, host: myPid,
+          round_num: 4, target: 4,
+          players: {
+            [myPid]: mk('Alpha', [4, 4, 4, 1, 2, 3, 5, 6, 4, 2], { wins: 1 }),
+            guest_bravo: mk('Bravo', [4, 4, 1, 2, 3, 5, 6, 4, 4, 3], { wins: 2 }),
+            guest_cosmo: mk('Cosmo', [4, 4, 4, 4, 1, 2, 3, 5, 6, 1], { wins: 0 }),
+          },
+        }));
+        // After the game screen settles, inject the game_ended message.
+        setTimeout(() => ws.send(JSON.stringify({
+          type: 'game_ended',
+          ended_by: 'Alpha',
+          round_num: 4,
+          players: {
+            [myPid]: { name: 'Alpha', wins: 1 },
+            guest_bravo: { name: 'Bravo', wins: 2 },
+            guest_cosmo: { name: 'Cosmo', wins: 0 },
+          },
+        })), 600);
+        return;
+      }
+      ws.send(raw);
+    });
+    ws.onMessage((raw) => server.send(raw));
+  });
+  await page.goto('/');
+  await page.waitForSelector('#landing.active');
+  await page.fill('#name-input', 'Alpha');
+  await page.click('#landing-form button[type="submit"]');
+  await page.waitForSelector('#game-ended-overlay[open]');
+  await settle(page);
+  await expect(page).toHaveScreenshot('game-ended.png');
+});
+
 test('fatal-error', async ({ page }) => {
   // A terminal `error` frame (the pause cap is the only producer) drops the
   // session and bounces back to landing with the reason shown inline.

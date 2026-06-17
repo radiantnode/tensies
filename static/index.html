@@ -129,6 +129,19 @@
   </div>
 </dialog>
 
+<!-- Game ended by host. Body-level <dialog> with final stats; user-dismissed. -->
+<dialog id="game-ended-overlay" class="overlay-dialog game-ended-overlay" aria-labelledby="game-ended-title">
+  <div class="game-ended-box">
+    <div class="game-ended-spacer"></div>
+    <div class="game-ended-content">
+      <h2 class="game-ended-title" id="game-ended-title"></h2>
+      <ul class="game-ended-stats" id="game-ended-stats"></ul>
+    </div>
+    <div class="game-ended-spacer"></div>
+    <button type="button" class="btn btn-primary game-ended-close" id="game-ended-close">Bummer!</button>
+  </div>
+</dialog>
+
 <!-- Orientation guard: Tensies is portrait-only. The web has no true orientation
      lock (the manifest only locks an installed PWA), so on a phone held landscape
      this covers the sideways layout with a rotate prompt. Pure CSS via a

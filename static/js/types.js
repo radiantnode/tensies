@@ -58,7 +58,21 @@
  */
 
 /**
- * @typedef {WelcomeMessage | ReconnectTokenMessage | PingMessage | ErrorMessage | GameSnapshot} ServerMessage
+ * @typedef {object} GameEndedPlayer
+ * @property {string} name
+ * @property {number} wins
+ */
+
+/**
+ * @typedef {object} GameEndedMessage
+ * @property {'game_ended'} type
+ * @property {string} ended_by Name of the host who ended the game.
+ * @property {number} round_num The in-progress round number (completed = round_num - 1).
+ * @property {Record<string, GameEndedPlayer>} players
+ */
+
+/**
+ * @typedef {WelcomeMessage | ReconnectTokenMessage | PingMessage | ErrorMessage | GameEndedMessage | GameSnapshot} ServerMessage
  */
 
 export {};

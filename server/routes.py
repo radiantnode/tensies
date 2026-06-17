@@ -178,7 +178,7 @@ async def api_profile(username: str) -> dict:
         )
         recent = await con.fetch(
             """
-            SELECT g.game_code, g.round_count, g.started_ts, g.ended_ts,
+            SELECT g.game_code, g.round_count, g.player_count, g.started_ts, g.ended_ts,
                    EXTRACT(EPOCH FROM (g.ended_ts - g.started_ts)) * 1000 AS duration_ms,
                    (SELECT count(*) FROM rounds r
                      WHERE r.game_code = g.game_code
@@ -218,8 +218,7 @@ async def api_profile(username: str) -> dict:
                       WHERE rp.user_id = $1
                    )
                AND g.ended_ts IS NOT NULL
-               AND (SELECT count(DISTINCT rp5.user_id) FROM round_player rp5
-                     WHERE rp5.game_code = g.game_code) > 1
+               AND g.player_count > 1
              ORDER BY g.ended_ts DESC
              LIMIT 10
             """,
@@ -239,6 +238,7 @@ async def api_profile(username: str) -> dict:
                 "avg_roll_speed_ms": int(r["avg_roll_speed_ms"]) if r["avg_roll_speed_ms"] else None,
                 "duration_ms": int(r["duration_ms"]) if r["duration_ms"] else None,
                 "opponents": opps_raw or [],
+                "player_count": r["player_count"],
             })
     return {
         "username": user["username"],
