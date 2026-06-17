@@ -132,12 +132,15 @@ export function showGameEnded(msg) {
     const sorted = Object.values(msg.players).sort((a, b) => b.wins - a.wins);
     list.innerHTML = sorted.map((p) => {
       const losses = totalRounds - p.wins;
+      const score = `${p.wins}/${totalRounds}`;
+      const isWinner = p.wins > 0 && p.wins >= sorted[0].wins;
       return `<li class="game-ended-player">
-        <span class="game-ended-player-name">${p.name}</span>
-        <span class="game-ended-player-record">
-          <span class="game-ended-wins">${p.wins}W</span>
-          <span class="game-ended-losses">${losses}L</span>
+        <span class="game-ended-score${isWinner ? '' : ' game-ended-score-loss'}">${score}</span>
+        <span class="game-ended-player-body">
+          <span class="game-ended-avatar-ring${isWinner ? ' game-ended-avatar-winner' : ''}"><img class="game-ended-avatar" src="/static/images/avatar-default.svg" alt="" aria-hidden="true"></span>
+          <span class="game-ended-player-name">${p.name}</span>
         </span>
+        <span class="game-ended-losses">${losses}L</span>
       </li>`;
     }).join('');
   }
