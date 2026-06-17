@@ -17,6 +17,7 @@ import { showScreen, showLoading, leaveLoading } from './transitions.js';
 // Game-ended close button: clear session and return to landing.
 document.getElementById('game-ended-close')?.addEventListener('click', () => {
   hideGameEnded();
+  sessionStorage.removeItem('tensies_game_ended');
   clearSession();
   state.currentState = null;
   showScreen('landing', { force: true });
@@ -285,7 +286,10 @@ function handleMessage(msg) {
     }
     case 'game_ended': {
       resetRollState();
+      sessionStorage.setItem('tensies_game_ended', JSON.stringify(msg));
       showGameEnded(msg);
+      clearSession();
+      state.currentState = null;
       return;
     }
     case 'error':

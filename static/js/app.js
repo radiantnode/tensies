@@ -12,8 +12,18 @@ import './components/profile-screen.js';
 import './components/nav-menu.js';
 
 import { maybeReconnect } from './net.js';
+import { showGameEnded } from './overlays.js';
 import { bootstrap } from './router.js';
 import { installTouchGuard } from './touch.js';
 
 installTouchGuard();
+
 bootstrap({ resumeSession: maybeReconnect });
+
+// Restore game-ended overlay if the page was refreshed before dismissing it.
+const savedEnded = sessionStorage.getItem('tensies_game_ended');
+if (savedEnded) {
+  setTimeout(() => {
+    try { showGameEnded(JSON.parse(savedEnded)); } catch { /* ignore corrupt data */ }
+  }, 1500);
+}

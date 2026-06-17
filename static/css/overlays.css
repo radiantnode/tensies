@@ -223,7 +223,7 @@
   }
 
   /* ── Game ended overlay ── */
-  .game-ended-overlay { background: rgb(6, 3, 1); }
+  .game-ended-overlay { background: rgb(6, 3, 1); z-index: 9999; }
   .game-ended-overlay[open] { flex-direction: column; }
 
   .game-ended-box {

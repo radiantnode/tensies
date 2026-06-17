@@ -280,6 +280,7 @@
   .recent-details {
     font-size: 0.7rem;
     color: var(--color-text-muted);
+    opacity: 0.5;
     margin-block-start: 0.15rem;
     text-align: center;
   }
@@ -303,9 +304,12 @@
     border-radius: 50%;
   }
 
-  .recent-avatars .recent-avatar-ring:nth-child(1) { z-index: 3; }
-  .recent-avatars .recent-avatar-ring:nth-child(2) { z-index: 2; }
-  .recent-avatars .recent-avatar-ring:nth-child(3) { z-index: 1; }
+  .recent-avatars .recent-avatar-ring:nth-child(1) { z-index: 6; }
+  .recent-avatars .recent-avatar-ring:nth-child(2) { z-index: 5; }
+  .recent-avatars .recent-avatar-ring:nth-child(3) { z-index: 4; }
+  .recent-avatars .recent-avatar-ring:nth-child(4) { z-index: 3; }
+  .recent-avatars .recent-avatar-ring:nth-child(5) { z-index: 2; }
+  .recent-avatars .recent-avatar-ring:nth-child(6) { z-index: 1; }
 
   .recent-avatar-winner {
     box-shadow:
@@ -348,7 +352,7 @@
   }
 
   .recent-avatar-ring:not(.recent-avatar-winner) .recent-avatar {
-    opacity: 0.4;
+    opacity: 1;
   }
 
   .recent-score {
