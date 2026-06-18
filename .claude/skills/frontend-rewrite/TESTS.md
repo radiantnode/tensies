@@ -1,6 +1,6 @@
 # Pixel Verification Tests
 
-42 tests, 42 mobile baselines (390×844 · 2× dpr · Chromium 140.0.7339.16; `rotate-overlay` is the one landscape capture, 844×390).
+44 tests, 44 mobile baselines (390×844 · 2× dpr · Chromium 140.0.7339.16; `rotate-overlay` is the one landscape capture, 844×390).
 Run with `npm run verify` from `harness/`; all must pass at `maxDiffPixels 0` before any frontend change ships.
 
 ---
@@ -68,6 +68,44 @@ A single real WebSocket connection; `pinWebSocket` rewrites every inbound `state
 |---|-----------|--------|------|
 | 21 | <img src="harness/baselines/players-bar-variants-mobile.png" width="60"> | Bar clipped to show all four card states at once: **is-me**, **leading** (most wins), **hot** (≥7 matched), **disconnected** — needs a paused game so the board stays visible with a disconnected peer | [stateful.spec.js:296](harness/stateful.spec.js#L296) |
 
+---
+
+## Auth-dependent states — `auth.spec.js`
+
+States that require a fake JWT in `localStorage` before page load (so `refreshAuth()` / `getAuthUser()` see the signed-in state on first render). Server-driven views (game board) additionally intercept the outbound `auth` WS action and return a synthetic `auth_ok` — the fake JWT has a bogus signature the server would reject.
+
+| # | Screenshot | Checks | Spec |
+|---|-----------|--------|------|
+| 34 | <img src="harness/baselines/signin-mobile.png" width="60"> | Sign-in/sign-up screen reached via nav menu `.menu-auth-btn`; no JWT needed | [auth.spec.js:26](harness/auth.spec.js#L26) |
+| 35 | <img src="harness/baselines/landing-signed-in-mobile.png" width="60"> | Landing with JWT injected; name input hidden, label hidden, `@TestUser` pill in header | [auth.spec.js:39](harness/auth.spec.js#L39) |
+| 36 | <img src="harness/baselines/onboarding-mobile.png" width="60"> | Post-signup welcome screen; JWT + `sessionStorage('tensies_onboarding')` seeded, navigated to `/welcome`; `@TestUser` username and vanity URL | [auth.spec.js:51](harness/auth.spec.js#L51) |
+| 37 | <img src="harness/baselines/nav-menu-signed-in-mobile.png" width="60"> | Nav menu when signed in; shows "Sign out" instead of "Sign in or Sign up" | [auth.spec.js:67](harness/auth.spec.js#L67) |
+| 38 | <img src="harness/baselines/game-board-signed-in-mobile.png" width="60"> | Game board with JWT + WS auth intercept; `@TestUser` pill visible next to hamburger, same dice layout as signed-out for diffing | [auth.spec.js:143](harness/auth.spec.js#L143) |
+| 39 | <img src="harness/baselines/game-board-signed-out-mobile.png" width="60"> | Game board without JWT; no pill, same dice layout as signed-in companion | [auth.spec.js:154](harness/auth.spec.js#L154) |
+
+### Profile
+
+Profile pages use `page.route()` to intercept the `/api/profile/*` fetch with deterministic JSON, so baselines are stable without a live database user.
+
+| # | Screenshot | Checks | Spec |
+|---|-----------|--------|------|
+| 40 | <img src="harness/baselines/profile-with-stats-mobile.png" width="60"> | Profile with stats + recent games; 8 stat cards (Games, Wins, Win Rate, Rounds, Rolls, Best Time, Best Rolls, Time Played), recent multiplayer games with winner/loser avatars, gold/muted scores, per-game stats | [auth.spec.js:206](harness/auth.spec.js#L206) |
+| 41 | <img src="harness/baselines/profile-with-photo-mobile.png" width="60"> | Profile with `profile_photo_url` set + recent games; same layout as above but avatar src swapped to the photo URL | [auth.spec.js:221](harness/auth.spec.js#L221) |
+| 42 | <img src="harness/baselines/profile-empty-mobile.png" width="60"> | Profile with `stats: null`; avatar, username, member-since, "No games played yet" empty state | [auth.spec.js:237](harness/auth.spec.js#L237) |
+
+### Game detail
+
+Game detail pages use `page.route()` to intercept `/api/game/*` and `/api/game/*/verify` fetches with deterministic JSON. The verification animation runs through its JS-driven phases (setTimeout-based, not CSS) before the final state is captured.
+
+| # | Screenshot | Checks | Spec |
+|---|-----------|--------|------|
+| 43 | <img src="harness/baselines/game-detail-verified-mobile.png" width="60"> | Game detail with all 95 rolls verified via drand beacons; game code, play time, duration, player list with wins, Roll Trust shield badge, green checkmarks per player, "All 95 rolls verified" verdict, drand attribution | [auth.spec.js:311](harness/auth.spec.js#L311) |
+| 44 | <img src="harness/baselines/game-detail-no-data-mobile.png" width="60"> | Game detail for a pre-drand game with no beacon data; same layout but "No beacon data for this game" verdict instead of checkmarks, no per-player rows | [auth.spec.js:326](harness/auth.spec.js#L326) |
+
+---
+
+## Element clips — `stateful.spec.js`
+
 ### Round target die — each face value
 
 `<round-target>` clipped to the element, independent of board scatter.
@@ -93,28 +131,3 @@ The regular ivory bone die, clipped to the first unmatched `.die-scene` on the b
 | 31 | <img src="harness/baselines/play-die-4-mobile.png" width="60"> | Play die **4** — four corner pips | [stateful.spec.js:358](harness/stateful.spec.js#L358) |
 | 32 | <img src="harness/baselines/play-die-5-mobile.png" width="60"> | Play die **5** — four corners + centre | [stateful.spec.js:358](harness/stateful.spec.js#L358) |
 | 33 | <img src="harness/baselines/play-die-6-mobile.png" width="60"> | Play die **6** — six pips, two columns | [stateful.spec.js:358](harness/stateful.spec.js#L358) |
-
----
-
-## Auth-dependent states — `auth.spec.js`
-
-States that require a fake JWT in `localStorage` before page load (so `refreshAuth()` / `getAuthUser()` see the signed-in state on first render). Server-driven views (game board) additionally intercept the outbound `auth` WS action and return a synthetic `auth_ok` — the fake JWT has a bogus signature the server would reject.
-
-| # | Screenshot | Checks | Spec |
-|---|-----------|--------|------|
-| 34 | <img src="harness/baselines/signin-mobile.png" width="60"> | Sign-in/sign-up screen reached via nav menu `.menu-auth-btn`; no JWT needed | [auth.spec.js:26](harness/auth.spec.js#L26) |
-| 35 | <img src="harness/baselines/landing-signed-in-mobile.png" width="60"> | Landing with JWT injected; name input hidden, label hidden, `@TestUser` pill in header | [auth.spec.js:39](harness/auth.spec.js#L39) |
-| 36 | <img src="harness/baselines/onboarding-mobile.png" width="60"> | Post-signup welcome screen; JWT + `sessionStorage('tensies_onboarding')` seeded, navigated to `/welcome`; `@TestUser` username and vanity URL | [auth.spec.js:51](harness/auth.spec.js#L51) |
-| 37 | <img src="harness/baselines/nav-menu-signed-in-mobile.png" width="60"> | Nav menu when signed in; shows "Sign out" instead of "Sign in or Sign up" | [auth.spec.js:67](harness/auth.spec.js#L67) |
-| 38 | <img src="harness/baselines/game-board-signed-in-mobile.png" width="60"> | Game board with JWT + WS auth intercept; `@TestUser` pill visible next to hamburger, same dice layout as signed-out for diffing | [auth.spec.js:143](harness/auth.spec.js#L143) |
-| 39 | <img src="harness/baselines/game-board-signed-out-mobile.png" width="60"> | Game board without JWT; no pill, same dice layout as signed-in companion | [auth.spec.js:154](harness/auth.spec.js#L154) |
-
-### Profile
-
-Profile pages use `page.route()` to intercept the `/api/profile/*` fetch with deterministic JSON, so baselines are stable without a live database user.
-
-| # | Screenshot | Checks | Spec |
-|---|-----------|--------|------|
-| 40 | <img src="harness/baselines/profile-with-stats-mobile.png" width="60"> | Profile with stats + recent games; 8 stat cards (Games, Wins, Win Rate, Rounds, Rolls, Best Time, Best Rolls, Time Played), recent multiplayer games with winner/loser avatars, gold/muted scores, per-game stats | [auth.spec.js:206](harness/auth.spec.js#L206) |
-| 41 | <img src="harness/baselines/profile-with-photo-mobile.png" width="60"> | Profile with `profile_photo_url` set + recent games; same layout as above but avatar src swapped to the photo URL | [auth.spec.js:221](harness/auth.spec.js#L221) |
-| 42 | <img src="harness/baselines/profile-empty-mobile.png" width="60"> | Profile with `stats: null`; avatar, username, member-since, "No games played yet" empty state | [auth.spec.js:237](harness/auth.spec.js#L237) |

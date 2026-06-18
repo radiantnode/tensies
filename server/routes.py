@@ -1,5 +1,6 @@
 import re
 
+import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import HTMLResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
@@ -239,6 +240,7 @@ async def api_profile(username: str) -> dict:
                 "duration_ms": int(r["duration_ms"]) if r["duration_ms"] else None,
                 "opponents": opps_raw or [],
                 "player_count": r["player_count"],
+                "game_code": r["game_code"],
             })
     return {
         "username": user["username"],
@@ -250,6 +252,199 @@ async def api_profile(username: str) -> dict:
         "stats": dict(stats) if stats else None,
         "recent": recent_list or None,
     }
+
+
+@router.get("/api/game/{code}")
+async def api_game(code: str) -> dict:
+    """Public game detail: rounds, players, results. No auth required."""
+    if not TELEMETRY_ENABLED:
+        raise HTTPException(status_code=503, detail="game history unavailable")
+    from server.telemetry import store
+    code = code.upper().strip()
+    async with store.pool().acquire() as con:
+        game = await con.fetchrow("SELECT * FROM games WHERE game_code = $1", code)
+        if game is None:
+            raise HTTPException(status_code=404, detail="Game not found")
+        rounds = await con.fetch(
+            """
+            SELECT r.round_num, r.target, r.duration_ms, r.total_rolls,
+                   r.winner_user_id,
+                   COALESCE(u.username, ps.name_last, r.winner_user_id) AS winner_name
+              FROM rounds r
+              LEFT JOIN users u ON u.id::text = r.winner_user_id
+              LEFT JOIN player_stats ps ON ps.user_id = r.winner_user_id
+             WHERE r.game_code = $1
+             ORDER BY r.round_num
+            """,
+            code,
+        )
+        players = await con.fetch(
+            """
+            SELECT rp.user_id,
+                   COALESCE(u.username, ps.name_last, rp.user_id) AS name,
+                   u.profile_photo_url AS photo,
+                   sum(rp.rolls)::int AS total_rolls,
+                   count(*) FILTER (WHERE r.winner_user_id = rp.user_id)::int AS wins,
+                   count(*)::int AS rounds_played
+              FROM round_player rp
+              JOIN rounds r USING (game_code, round_num)
+              LEFT JOIN users u ON u.id::text = rp.user_id
+              LEFT JOIN player_stats ps ON ps.user_id = rp.user_id
+             WHERE rp.game_code = $1
+             GROUP BY rp.user_id, u.username, ps.name_last, u.profile_photo_url
+             ORDER BY wins DESC, total_rolls ASC
+            """,
+            code,
+        )
+    duration_ms = None
+    if game["started_ts"] and game["ended_ts"]:
+        duration_ms = int((game["ended_ts"] - game["started_ts"]).total_seconds() * 1000)
+    return {
+        "game_code": code,
+        "started_at": game["started_ts"].isoformat() if game["started_ts"] else None,
+        "ended_at": game["ended_ts"].isoformat() if game["ended_ts"] else None,
+        "duration_ms": duration_ms,
+        "num_rounds": game["round_count"],
+        "num_players": game["peak_players"],
+        "players": [dict(p) for p in players],
+        "rounds": [dict(r) for r in rounds],
+    }
+
+
+@router.get("/api/game/{code}/verify")
+async def api_game_verify(code: str) -> dict:
+    """Batch-verify all drand-backed rolls for a completed game from Postgres."""
+    if not TELEMETRY_ENABLED:
+        raise HTTPException(status_code=503, detail="telemetry unavailable")
+    from .drand import derive_dice
+    from server.telemetry import store
+
+    code = code.upper().strip()
+    async with store.pool().acquire() as con:
+        rows = await con.fetch(
+            """
+            SELECT e.user_id,
+                   COALESCE(u.username, ps.name_last, e.user_id) AS name,
+                   payload->>'drand_round' AS drand_round,
+                   payload->>'round_roll_num' AS roll_count,
+                   payload->'rolled_values' AS rolled_values
+              FROM events e
+              LEFT JOIN users u ON u.id::text = e.user_id
+              LEFT JOIN player_stats ps ON ps.user_id = e.user_id
+             WHERE e.game_code = $1 AND e.type = 'roll'
+               AND payload->>'drand_round' IS NOT NULL
+             ORDER BY e.ts
+            """,
+            code,
+        )
+    if not rows:
+        return {"game_code": code, "total": 0, "verified": 0, "failed": 0, "players": {}}
+
+    # Collect unique beacon rounds to fetch
+    import json as _json
+    unique_rounds: set[int] = set()
+    rolls = []
+    for r in rows:
+        dr = int(r["drand_round"])
+        rc = int(r["roll_count"])
+        vals = r["rolled_values"]
+        if isinstance(vals, str):
+            vals = _json.loads(vals)
+        rolls.append({"user_id": r["user_id"], "name": r["name"],
+                       "drand_round": dr, "roll_count": rc, "rolled_values": vals})
+        unique_rounds.add(dr)
+
+    # Batch-fetch beacons from public drand API
+    from .config import DRAND_BASE_URL, DRAND_CHAIN_HASH
+    beacons: dict[int, str | None] = {}
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        for rnd in sorted(unique_rounds):
+            try:
+                resp = await client.get(
+                    f"{DRAND_BASE_URL}/{DRAND_CHAIN_HASH}/public/{rnd}"
+                )
+                if resp.status_code == 200:
+                    beacons[rnd] = resp.json()["randomness"]
+                else:
+                    beacons[rnd] = None
+            except Exception:
+                beacons[rnd] = None
+
+    # Verify each roll
+    verified = 0
+    failed = 0
+    no_beacon = 0
+    player_results: dict[str, dict] = {}
+    for roll in rolls:
+        pid = roll["user_id"]
+        if pid not in player_results:
+            player_results[pid] = {"name": roll["name"], "total": 0, "verified": 0, "failed": 0}
+        player_results[pid]["total"] += 1
+
+        randomness = beacons.get(roll["drand_round"])
+        if randomness is None:
+            no_beacon += 1
+            continue
+
+        derived = derive_dice(randomness, pid, roll["roll_count"], code, num_dice=10)
+        # rolled_values may be fewer than 10 (only unlocked dice); compare prefix
+        actual = roll["rolled_values"]
+        match = derived[:len(actual)] == actual
+        if match:
+            verified += 1
+            player_results[pid]["verified"] += 1
+        else:
+            failed += 1
+            player_results[pid]["failed"] += 1
+
+    return {
+        "game_code": code,
+        "total": len(rolls),
+        "verified": verified,
+        "failed": failed,
+        "no_beacon": no_beacon,
+        "players": player_results,
+    }
+
+
+@router.get("/api/verify/{code}/{pid}/{roll_count}")
+async def verify_roll(code: str, pid: str, roll_count: int) -> dict:
+    """Re-derive dice from the stored drand round and confirm they match."""
+    from .config import DRAND_BASE_URL, DRAND_CHAIN_HASH, ENABLE_DRAND_ROLLING
+    from .drand import derive_dice
+
+    if not ENABLE_DRAND_ROLLING:
+        raise HTTPException(status_code=404, detail="drand not enabled")
+
+    code = code.upper().strip()
+    from . import gamestore
+    drand_round = await gamestore.get_drand_round(code, pid, roll_count)
+    if drand_round is None:
+        raise HTTPException(status_code=404, detail="no drand data for this roll")
+
+    url = f"{DRAND_BASE_URL}/{DRAND_CHAIN_HASH}/public/{drand_round}"
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(url)
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail="cannot fetch drand beacon")
+    beacon = resp.json()
+
+    derived = derive_dice(beacon["randomness"], pid, roll_count, code, num_dice=10)
+
+    return {
+        "game_code": code,
+        "player_id": pid,
+        "roll_count": roll_count,
+        "drand_round": drand_round,
+        "drand_randomness": beacon["randomness"],
+        "derived_dice": derived,
+        "beacon_url": url,
+    }
+
+
+@router.get("/games/{code}")
+async def game_detail_page(code: str) -> HTMLResponse:
+    return HTMLResponse(_index_html)
 
 
 # Vanity profile URLs: tensies.app/@username. The @ prefix guarantees no

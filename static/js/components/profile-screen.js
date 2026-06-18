@@ -1,7 +1,7 @@
 // @ts-check
 import './app-header.js';
 import { getAuthUser } from '../auth.js';
-import { showLanding } from '../router.js';
+import { showLanding, showGameDetail } from '../router.js';
 
 /**
  * <profile-screen> — public player profile at /@username.
@@ -193,7 +193,7 @@ export class ProfileScreen extends HTMLElement {
               const speed = r.avg_roll_speed_ms ? (r.avg_roll_speed_ms / 1000).toFixed(1) + 's' : '';
               const details = [fastest ? `best ${fastest}` : '', speed ? `${speed}/roll` : ''].filter(Boolean).join(' · ');
               return `
-              <div class="recent-game">
+              <div class="recent-game" data-game-code="${r.game_code || ''}"
                 <span class="recent-score ${r.won_game ? '' : 'recent-score-loss'}">${r.wins}/${r.rounds}</span>
                 <div class="recent-game-body">
                   <div class="recent-avatars">${allAvatars.join('')}</div>
@@ -207,6 +207,10 @@ export class ProfileScreen extends HTMLElement {
             }).join('')}
           </div>`;
         recentEl.hidden = false;
+        recentEl.addEventListener('click', (e) => {
+          const row = /** @type {HTMLElement} */ (e.target).closest('.recent-game[data-game-code]');
+          if (row?.dataset.gameCode) showGameDetail(row.dataset.gameCode);
+        });
       }
 
       // Trigger shimmer animation once

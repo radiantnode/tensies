@@ -132,7 +132,7 @@ Confirmed by observing a real game (`page.on('websocket')` → `framereceived`):
   "uvicorn"). Launch with `setsid … &` and kill by port, not by an `-f` pattern
   that matches the launcher.
 
-## The state catalog we built (26 states)
+## The state catalog we built (28 states)
 
 Use as the reference inventory. Approach: **static** = served files only;
 **synth** = `pinWebSocket` frame rewrite; **auth** = fake JWT in localStorage
@@ -172,6 +172,8 @@ Use as the reference inventory. Approach: **static** = served files only;
 | profile-with-stats | auth | `page.route` intercepts `/api/profile/*` with deterministic stats JSON; avatar ring + gold username + 6 stat cards |
 | profile-with-photo | auth | same as above but with `profile_photo_url` set (uses default SVG as stand-in for deterministic capture) |
 | profile-empty | auth | profile with `stats: null` → "No games played yet" empty state |
+| game-detail-verified | auth | `page.route` intercepts `/api/game/*` + `/api/game/*/verify`; all 95 rolls pass drand verification |
+| game-detail-no-data | auth | same stub pattern; verify returns `total: 0` → "No beacon data for this game" |
 
 **Deliberately not captured** (transient / external, no stable frame): the
 initial `#loading` flash, the mid-roll shake animation (frozen by

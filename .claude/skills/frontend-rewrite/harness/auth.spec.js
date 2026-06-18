@@ -247,6 +247,97 @@ test('profile-empty', async ({ page }) => {
   await expect(page).toHaveScreenshot('profile-empty.png');
 });
 
+// ── Game detail screen ──────────────────────────────────────────────────────
+// The game detail view fetches /api/game/{code} and /api/game/{code}/verify —
+// intercept both with deterministic JSON so baselines are stable.
+
+const GAME_DETAIL_DATA = {
+  game_code: 'HTVEC',
+  started_at: '2026-01-15T14:12:00Z',
+  ended_at: '2026-01-15T14:14:20Z',
+  duration_ms: 140000,
+  num_rounds: 5,
+  num_players: 2,
+  players: [
+    { user_id: 'uid-alpha', name: 'Shifty Octopus', photo: null, wins: 2 },
+    { user_id: 'uid-bravo', name: 'notheruser', photo: null, wins: 2 },
+  ],
+  rounds: [],
+};
+
+const GAME_VERIFY_PASS = {
+  game_code: 'HTVEC',
+  total: 95,
+  verified: 95,
+  failed: 0,
+  no_beacon: 0,
+  players: {
+    'uid-alpha': { name: 'Shifty Octopus', total: 41, verified: 41, failed: 0 },
+    'uid-bravo': { name: 'notheruser', total: 54, verified: 54, failed: 0 },
+  },
+};
+
+const GAME_VERIFY_NO_DATA = {
+  game_code: 'OLDGM',
+  total: 0,
+  verified: 0,
+  failed: 0,
+  no_beacon: 0,
+  players: {},
+};
+
+async function stubGameDetail(page, gameData, verifyData) {
+  await page.route('**/api/game/*/verify', (route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(verifyData),
+    });
+  });
+  await page.route('**/api/game/*', (route) => {
+    // Don't intercept the verify route (already handled above)
+    if (route.request().url().includes('/verify')) {
+      route.fallback();
+      return;
+    }
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(gameData),
+    });
+  });
+}
+
+test('game-detail-verified', async ({ page }) => {
+  // Game detail with all rolls verified via drand beacons.
+  await seedPage(page);
+  await stubGameDetail(page, GAME_DETAIL_DATA, GAME_VERIFY_PASS);
+  await page.goto('/games/HTVEC');
+  await page.waitForSelector('#game-detail.active');
+  // Wait for the verification animation to complete
+  await page.waitForFunction(() =>
+    document.querySelector('.gd-trust-done') !== null, { timeout: 15000 });
+  await page.waitForFunction(() =>
+    document.querySelector('.gd-trust-verdict')?.textContent?.includes('rolls verified'));
+  await settle(page);
+  await expect(page).toHaveScreenshot('game-detail-verified.png');
+});
+
+test('game-detail-no-data', async ({ page }) => {
+  // Game detail for a pre-drand game with no beacon data to verify.
+  const oldGame = { ...GAME_DETAIL_DATA, game_code: 'OLDGM' };
+  await seedPage(page);
+  await stubGameDetail(page, oldGame, GAME_VERIFY_NO_DATA);
+  await page.goto('/games/OLDGM');
+  await page.waitForSelector('#game-detail.active');
+  await page.waitForFunction(() =>
+    document.querySelector('.gd-trust-done') !== null, { timeout: 15000 });
+  await page.waitForFunction(() =>
+    document.querySelector('.gd-trust-verdict')?.textContent?.includes('No beacon data'));
+  await settle(page);
+  await expect(page).toHaveScreenshot('game-detail-no-data.png');
+});
+
 test('game-board-signed-out', async ({ page }) => {
   // Game board without JWT: no pill, same dice layout for diffing.
   await seedPage(page);

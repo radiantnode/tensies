@@ -1,0 +1,324 @@
+@layer components {
+  .game-detail-screen {
+    display: flex;
+    flex-direction: column;
+    block-size: 100%;
+    overflow: hidden;
+    background: rgba(6, 3, 1, 0.93);
+  }
+
+  .game-detail-screen .screen-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    flex: 1;
+    overflow-y: auto;
+    padding-inline: 1.25rem;
+    padding-block: 1.5rem 2rem;
+    text-align: center;
+  }
+
+  .game-detail-screen .screen-body {
+    position: relative;
+  }
+
+  .game-detail-screen .btn-back {
+    position: absolute;
+    inset-block-start: 1rem;
+    inset-inline-start: 1rem;
+    z-index: 1;
+  }
+
+  .gd-code {
+    font-size: clamp(1.4rem, 5.5vw, 1.75rem);
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    -webkit-text-stroke: 0.5px #f1cf98;
+    background: linear-gradient(180deg, #ffe6b0 0%, #d4a45c 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+    margin-block-end: 0.25rem;
+  }
+
+  .gd-time {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-block-end: 1.5rem;
+  }
+
+  .gd-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+    width: 100%;
+    max-width: 400px;
+    margin-block-end: 2rem;
+  }
+
+  .gd-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+  }
+
+  .gd-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text);
+  }
+
+  .gd-stat-label {
+    font-size: 0.6rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .gd-section {
+    width: 100%;
+    max-width: 400px;
+    margin-block-end: 1.5rem;
+  }
+
+  .gd-section-label {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-align: center;
+    margin-block-end: 0.5rem;
+  }
+
+  .gd-players {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .gd-player {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--color-raised);
+    border-radius: var(--radius-md);
+    padding: 0.6rem 0.75rem;
+  }
+
+  .gd-player-avatar-ring {
+    inline-size: 36px;
+    block-size: 36px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: relative;
+    box-shadow:
+      inset -1px 1px 3px rgba(255, 200, 122, 0.3),
+      inset 1px -1px 4px rgba(70, 28, 8, 0.25),
+      0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .gd-player-avatar-ring::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1.5px;
+    border-radius: inherit;
+    background: linear-gradient(to bottom left,
+      rgba(252, 200, 126, 0.8) 0%,
+      rgba(216, 148, 80, 0.55) 38%,
+      rgba(150, 96, 46, 0.25) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .gd-player-avatar {
+    inline-size: 100%;
+    block-size: 100%;
+    border-radius: 50%;
+    display: block;
+  }
+
+  .gd-player-name {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+    text-align: left;
+  }
+
+  .gd-player-wins {
+    font-size: 0.75rem;
+    color: #d4a85c;
+    white-space: nowrap;
+  }
+
+  /* ── Roll Trust verification ──────────────────────────────────── */
+
+  .gd-trust-box {
+    background: var(--color-raised);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .gd-trust-badge {
+    width: 72px;
+    height: auto;
+    margin-block-end: 0.35rem;
+    animation: gd-badge-float 3s ease-in-out infinite;
+  }
+
+  @keyframes gd-badge-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-3px); }
+  }
+
+  .gd-trust-done .gd-trust-badge {
+    animation: none;
+  }
+
+  .gd-trust-scanner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    position: relative;
+  }
+
+  .gd-trust-scan-line {
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(74, 222, 128, 0.6) 30%,
+      rgba(74, 222, 128, 1) 50%,
+      rgba(74, 222, 128, 0.6) 70%,
+      transparent 100%);
+    border-radius: 1px;
+    animation: gd-scan 1.5s ease-in-out infinite;
+    box-shadow: 0 0 12px rgba(74, 222, 128, 0.4);
+  }
+
+  .gd-trust-scan-done .gd-trust-scan-line {
+    animation: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  @keyframes gd-scan {
+    0%, 100% { opacity: 0.3; transform: scaleX(0.5); }
+    50%      { opacity: 1;   transform: scaleX(1); }
+  }
+
+  .gd-trust-status {
+    font-size: 0.7rem;
+    color: rgba(74, 222, 128, 0.8);
+    letter-spacing: 0.04em;
+    animation: gd-pulse 1.2s ease-in-out infinite;
+  }
+
+  @keyframes gd-pulse {
+    0%, 100% { opacity: 0.6; }
+    50%      { opacity: 1; }
+  }
+
+  .gd-trust-done {
+    animation: gd-fade-in 0.4s ease-out;
+  }
+
+  @keyframes gd-fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .gd-trust-result {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-block-end: 1rem;
+    padding-block-end: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .gd-trust-check {
+    flex-shrink: 0;
+  }
+
+  .gd-trust-result .gd-trust-check {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .gd-trust-verdict {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .gd-trust-pass .gd-trust-verdict {
+    color: #4ade80;
+  }
+
+  .gd-trust-fail .gd-trust-verdict {
+    color: #f87171;
+  }
+
+  .gd-trust-players {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-block-end: 1rem;
+  }
+
+  .gd-trust-player-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0;
+  }
+
+  .gd-trust-player-row .gd-trust-check {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  .gd-trust-player-name {
+    flex: 1;
+    font-size: 0.8rem;
+    color: var(--color-text);
+    text-align: left;
+  }
+
+  .gd-trust-player-count {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .gd-trust-source {
+    font-size: 0.6rem;
+    color: var(--color-text-muted);
+    letter-spacing: 0.03em;
+    margin-block-start: 0.25rem;
+  }
+
+  .gd-trust-highlight {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .gd-trust-learn {
+    display: block;
+    font-size: 0.65rem;
+    color: var(--color-text-muted);
+    text-align: center;
+    margin-block-start: 0.75rem;
+  }
+}
