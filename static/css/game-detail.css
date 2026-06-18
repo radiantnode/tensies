@@ -313,4 +313,12 @@
     color: #fff;
     font-weight: 600;
   }
+
+  .gd-trust-learn {
+    display: block;
+    font-size: 0.65rem;
+    color: var(--color-text-muted);
+    text-align: center;
+    margin-block-start: 0.75rem;
+  }
 }
