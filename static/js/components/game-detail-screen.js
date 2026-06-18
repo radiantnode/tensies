@@ -159,10 +159,20 @@ export class GameDetailScreen extends HTMLElement {
 
       // Build results
       const allPassed = v.failed === 0 && v.total > 0;
+      const noData = v.total === 0;
       const playerMap = v.players || {};
       const checkSvg = `<svg class="gd-trust-check" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#166534" stroke="#4ade80" stroke-width="1.2"/><path d="M7 12.5 L10.5 16 L17 9" fill="none" stroke="#4ade80" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
       const failSvg = `<svg class="gd-trust-check" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#7f1d1d" stroke="#f87171" stroke-width="1.2"/><path d="M8 8 L16 16 M16 8 L8 16" fill="none" stroke="#f87171" stroke-width="2.2" stroke-linecap="round"/></svg>`;
       let resultsHtml = `<img class="gd-trust-badge" src="/static/images/roll-trust.svg?v=2" alt="" aria-hidden="true">`;
+
+      if (noData) {
+        resultsHtml += `<div class="gd-trust-result"><span class="gd-trust-verdict">No beacon data for this game</span></div>`;
+        resultsHtml += `<p class="gd-trust-source">Verified against <span class="gd-trust-highlight">drand</span> League of Entropy beacons</p>`;
+        boxEl.innerHTML = resultsHtml;
+        boxEl.classList.add('gd-trust-done');
+        return;
+      }
+
       resultsHtml += `<div class="gd-trust-result ${allPassed ? 'gd-trust-pass' : 'gd-trust-fail'}">
         ${allPassed ? checkSvg : failSvg}
         <span class="gd-trust-verdict">${allPassed ? `All ${v.total} rolls verified` : `${v.failed} of ${v.total} rolls failed`}</span>
