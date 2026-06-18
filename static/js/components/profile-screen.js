@@ -19,10 +19,10 @@ export class ProfileScreen extends HTMLElement {
       <div class="profile-card" id="profile-card">
         <div class="profile-avatar-ring"><img class="profile-avatar" src="/static/images/avatar-default.svg" alt="" aria-hidden="true"></div>
         <p class="profile-username" id="profile-username"></p>
-        <p class="profile-bio" id="profile-bio"></p>
-        <div class="profile-pills" id="profile-pills" hidden></div>
       </div>
       <div class="screen-body">
+        <p class="profile-bio" id="profile-bio"></p>
+        <div class="profile-pills" id="profile-pills" hidden></div>
         <div class="profile-stats" id="profile-stats"></div>
         <div class="profile-recent" id="profile-recent" hidden></div>
         <p class="profile-empty" id="profile-empty" hidden></p>
