@@ -20,7 +20,7 @@ import { showScreen, showLoading, leaveLoading } from './transitions.js';
  */
 
 /** @type {Record<string, string>} */
-const ROUTES = { '/': 'landing', '/join': 'join', '/signin': 'signin', '/welcome': 'onboarding', '/profile': 'profile' };
+const ROUTES = { '/': 'landing', '/join': 'join', '/signin': 'signin', '/welcome': 'onboarding', '/profile': 'profile', '/games': 'game-detail' };
 
 /**
  * Push (or replace) a history entry for `path` and show its screen.
@@ -83,6 +83,18 @@ export function showProfile(username) {
  * @param {string} username
  * @param {object | null} [stats]
  */
+/**
+ * Navigate to a game's post-game detail view.
+ * @param {string} code
+ */
+export function showGameDetail(code) {
+  const path = `/games/${code}`;
+  history.pushState({ id: 'game-detail', code }, '', path);
+  return showScreen('game-detail', {
+    onSwap: () => /** @type {import('./components/game-detail-screen.js').GameDetailScreen} */ (byId('game-detail')).show(code),
+  });
+}
+
 export function showOnboarding(username, stats) {
   const transition = navigate('/welcome');
   transition.updateCallbackDone.then(() => {
@@ -101,6 +113,14 @@ export function showOnboarding(username, stats) {
  */
 export function bootstrap({ resumeSession }) {
   window.addEventListener('popstate', (e) => {
+    const gameMatch = location.pathname.match(/^\/games\/(.+)$/);
+    if (gameMatch) {
+      const code = decodeURIComponent(gameMatch[1]);
+      showScreen('game-detail', {
+        onSwap: () => /** @type {import('./components/game-detail-screen.js').GameDetailScreen} */ (byId('game-detail')).show(code),
+      });
+      return;
+    }
     const profileMatch = location.pathname.match(/^\/@(.+)$/);
     if (profileMatch) {
       const username = decodeURIComponent(profileMatch[1]);
@@ -111,6 +131,15 @@ export function bootstrap({ resumeSession }) {
     }
     showScreen(ROUTES[location.pathname] ?? 'landing');
   });
+  // Game detail URLs: /games/<code> → game-detail screen.
+  const gameMatch = location.pathname.match(/^\/games\/(.+)$/);
+  if (gameMatch) {
+    const code = decodeURIComponent(gameMatch[1]);
+    leaveLoading(() => showScreen('game-detail', {
+      onSwap: () => /** @type {import('./components/game-detail-screen.js').GameDetailScreen} */ (byId('game-detail')).show(code),
+    }));
+    return;
+  }
   // Vanity profile URLs: /@username → profile screen.
   const profileMatch = location.pathname.match(/^\/@(.+)$/);
   if (profileMatch) {

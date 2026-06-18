@@ -1,0 +1,13 @@
+@layer components {
+  .game-detail-screen {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    background: rgba(6, 3, 1, 0.93);
+  }
+
+  .game-detail-summary {
+    color: var(--color-text-muted);
+    text-align: center;
+  }
+}
