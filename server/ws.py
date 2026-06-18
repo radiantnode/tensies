@@ -264,11 +264,20 @@ async def handle_roll(session: Session, msg: dict) -> None:
         "has_rolled": player["has_rolled"],
         "roll_count": player["roll_count"],
     }
-    result = apply_roll(p, target)
+
+    # Generate dice values (drand-derived when enabled, else random).
+    # Always derive 10 so the verify endpoint can re-derive without knowing
+    # the locked state; apply_roll consumes the first N (unlocked count).
+    from server.drand import generate_dice
+    dice_values, drand_round = generate_dice(
+        session.pid, p["roll_count"] + 1, code, num_dice=10,
+    )
+    result = apply_roll(p, target, dice_values=dice_values)
     matched = result["matched"]
     await gamestore.set_player_after_roll(
         code, session.pid, dice=p["dice"], locked=p["locked"],
         roll_count=p["roll_count"], last_roll_ms=now_ms,
+        drand_round=drand_round,
     )
     total_rolls, round_seq = await gamestore.incr_counters(code)
     session.rolls += 1
@@ -293,7 +302,8 @@ async def handle_roll(session: Session, msg: dict) -> None:
          dice_before=result["dice_before"],
          dice_after=result["dice_after"],
          locked_before=result["locked_before"],
-         locked_after=result["locked_after"])
+         locked_after=result["locked_after"],
+         drand_round=drand_round)
 
     if matched == 10:
         # Atomic CAS: only the first finisher across all instances wins.

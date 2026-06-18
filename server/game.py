@@ -47,12 +47,16 @@ def next_target(t: int) -> int:
     return t % 6 + 1
 
 
-def apply_roll(player: dict, target: int) -> dict:
+def apply_roll(player: dict, target: int, *, dice_values: list[int] | None = None) -> dict:
     """Re-randomise unlocked dice, then lock any matching `target`.
 
     Pure: mutates the passed-in player dict only. Returns the per-roll detail
     dict the roll handler consumes — a single source of truth for `matched`,
     `newly_locked`, and full before/after snapshots used for telemetry.
+
+    When *dice_values* is provided (drand-derived), those values are used
+    instead of random.randint(). The caller supplies at least as many values
+    as there are unlocked dice; this function consumes them in order.
     """
     dice = player["dice"]
     locked = player["locked"]
@@ -60,9 +64,14 @@ def apply_roll(player: dict, target: int) -> dict:
     locked_before = list(locked)
 
     rolled_values: list[int] = []
+    val_idx = 0
     for i in range(10):
         if not locked[i]:
-            dice[i] = random.randint(1, 6)
+            if dice_values is not None:
+                dice[i] = dice_values[val_idx]
+                val_idx += 1
+            else:
+                dice[i] = random.randint(1, 6)
             rolled_values.append(dice[i])
 
     newly_locked: list[int] = []
