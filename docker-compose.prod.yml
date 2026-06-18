@@ -73,6 +73,7 @@ services:
       # slash). Defaults to ALLOWED_ORIGINS, which is correct when the app and
       # the passkey domain are the same. e.g. "https://tensies.app"
       WEBAUTHN_ORIGIN: "${WEBAUTHN_ORIGIN:-${ALLOWED_ORIGINS}}"
+      ENABLE_DRAND_ROLLING: "${ENABLE_DRAND_ROLLING:-1}"
       TELEMETRY_ENABLED: "1"
       # Prod static-asset mode: serve the prebuilt, fingerprinted index.html that
       # the build baked into the image (nginx serves everything under /static).
