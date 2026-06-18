@@ -110,7 +110,7 @@ export class GameDetailScreen extends HTMLElement {
               <p class="gd-trust-status" id="gd-trust-status">Initializing verification&hellip;</p>
             </div>
           </div>
-          <a class="gd-trust-learn" href="https://radiantnode.github.io/tensies/docs/ROLL_TRUST.html" target="_blank" rel="noopener">Learn more about Roll Trust</a>
+          <a class="gd-trust-learn" href="https://github.com/radiantnode/tensies/blob/main/docs/ROLL_TRUST.md" target="_blank" rel="noopener">Learn more about Roll Trust</a>
         </div>`;
 
       this.#runVerification(data.game_code, data.players);

@@ -23,6 +23,11 @@
     position: relative;
   }
 
+  #game-detail-content {
+    width: 100%;
+    max-width: 400px;
+  }
+
   .game-detail-screen .btn-back {
     position: absolute;
     inset-block-start: 1rem;
