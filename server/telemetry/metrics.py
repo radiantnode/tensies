@@ -97,3 +97,17 @@ live_push_seconds = Histogram(
 live_push_failures_total = Counter(
     "tensies_live_push_failures_total", "Grafana Live push failures"
 )
+
+# ─── drand beacon ─────────────────────────────────────────────────────
+drand_beacon_fetches_total = Counter(
+    "tensies_drand_beacon_fetches_total", "Successful drand beacon fetches"
+)
+drand_verify_failures_total = Counter(
+    "tensies_drand_verify_failures_total", "BLS verification failures"
+)
+drand_fallback_total = Counter(
+    "tensies_drand_fallback_total", "Rolls that fell back to local RNG"
+)
+drand_fetch_seconds = Histogram(
+    "tensies_drand_fetch_seconds", "Drand HTTP fetch latency", buckets=_S_FAST
+)

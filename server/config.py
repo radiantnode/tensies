@@ -179,6 +179,20 @@ GRAFANA_PASS = os.environ.get("GRAFANA_PASS", "admin")
 PING_INTERVAL = 5.0          # seconds between server→client WS pings
 
 
+# ─── Distributed randomness (drand) ───────────────────────────────────
+# When enabled, dice rolls are derived from the drand beacon instead of
+# random.randint(). The beacon is polled in the background; rolls use the
+# cached value with zero added latency. Silent fallback to local RNG when
+# the beacon is unreachable.
+ENABLE_DRAND_ROLLING = _flag("ENABLE_DRAND_ROLLING", False)
+DRAND_BASE_URL = os.environ.get("DRAND_BASE_URL", "https://api.drand.sh").rstrip("/")
+DRAND_CHAIN_HASH = os.environ.get(
+    "DRAND_CHAIN_HASH",
+    "52db9ba70e0cc0f6eaf7803dd07447a1f5477735fd3f661792ba94600c84e971",
+)
+DRAND_POLL_INTERVAL = _float("DRAND_POLL_INTERVAL", 3.0)
+
+
 # ─── WebAuthn / user accounts ─────────────────────────────────────────
 WEBAUTHN_RP_ID = os.environ.get("WEBAUTHN_RP_ID", "localhost")
 WEBAUTHN_RP_NAME = os.environ.get("WEBAUTHN_RP_NAME", "Tensies")

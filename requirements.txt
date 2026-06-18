@@ -19,3 +19,6 @@ h11==0.16.0
 # WebAuthn passkey auth + JWT session tokens
 webauthn==2.8.0
 PyJWT==2.13.0
+
+# BLS12-381 signature verification for drand beacon
+blspy==2.0.3
