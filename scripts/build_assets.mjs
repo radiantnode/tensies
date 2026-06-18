@@ -67,7 +67,7 @@ function walk(dir) {
 // ── 1. Fingerprint leaf binary assets (images, fonts) ─────────────────────────
 const minifySvg = (text) => text
   .replace(/<!--[\s\S]*?-->/g, '')
-  .replace(/[ \t]*\n[ \t]*/g, '')
+  .replace(/[ \t]*\n[ \t]*/g, ' ')
   .replace(/ {2,}/g, ' ')
   .trim();
 
