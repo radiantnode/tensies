@@ -104,7 +104,7 @@ export class GameDetailScreen extends HTMLElement {
         <div class="gd-section gd-trust" id="gd-trust">
           <p class="gd-section-label">Roll Trust</p>
           <div class="gd-trust-box" id="gd-trust-box">
-            <img class="gd-trust-badge" src="/static/images/roll-trust.svg?v=2" alt="" aria-hidden="true">
+            <img class="gd-trust-badge" src="/static/images/roll-trust.svg" alt="" aria-hidden="true">
             <div class="gd-trust-scanner" id="gd-trust-scanner">
               <div class="gd-trust-scan-line"></div>
               <p class="gd-trust-status" id="gd-trust-status">Initializing verification&hellip;</p>
@@ -164,7 +164,7 @@ export class GameDetailScreen extends HTMLElement {
       const playerMap = v.players || {};
       const checkSvg = `<svg class="gd-trust-check" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#166534" stroke="#4ade80" stroke-width="1.2"/><path d="M7 12.5 L10.5 16 L17 9" fill="none" stroke="#4ade80" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
       const failSvg = `<svg class="gd-trust-check" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#7f1d1d" stroke="#f87171" stroke-width="1.2"/><path d="M8 8 L16 16 M16 8 L8 16" fill="none" stroke="#f87171" stroke-width="2.2" stroke-linecap="round"/></svg>`;
-      let resultsHtml = `<img class="gd-trust-badge" src="/static/images/roll-trust.svg?v=2" alt="" aria-hidden="true">`;
+      let resultsHtml = `<img class="gd-trust-badge" src="/static/images/roll-trust.svg" alt="" aria-hidden="true">`;
 
       if (noData) {
         resultsHtml += `<div class="gd-trust-result"><span class="gd-trust-verdict">No beacon data for this game</span></div>`;
