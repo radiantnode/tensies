@@ -101,7 +101,7 @@ You don't have to trust the verify endpoint either. Here's how to re-derive any 
 ### 1. Get the game data
 
 ```bash
-curl https://your-server/api/game/HTVEC
+curl https://tensies.app/api/game/HTVEC
 ```
 
 Note the `players` array. Each player has a `user_id`.
@@ -109,7 +109,7 @@ Note the `players` array. Each player has a `user_id`.
 ### 2. Get the verification data
 
 ```bash
-curl https://your-server/api/game/HTVEC/verify
+curl https://tensies.app/api/game/HTVEC/verify
 ```
 
 Each player entry includes `total`, `verified`, and `failed` counts.
