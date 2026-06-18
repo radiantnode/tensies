@@ -214,9 +214,37 @@
     margin-block-end: 0.35rem;
   }
 
-  .profile-member-since {
+  .profile-bio {
     font-size: 0.85rem;
     color: var(--color-text-muted);
+    margin-inline: 4rem;
+    margin-block-end: 0.5rem;
+  }
+
+  .profile-pills {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-block-start: 0.25rem;
+  }
+
+  .profile-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.65rem;
+    color: #d4a85c;
+    background: rgba(212 168 92 / 0.1);
+    border: 1px solid rgba(212 168 92 / 0.25);
+    border-radius: 1rem;
+    padding: 0.15rem 0.5rem;
+  }
+
+  .profile-pill-icon {
+    width: 0.65rem;
+    height: 0.65rem;
+    flex-shrink: 0;
   }
 
   .profile-stats {

@@ -19,7 +19,8 @@ export class ProfileScreen extends HTMLElement {
       <div class="profile-card" id="profile-card">
         <div class="profile-avatar-ring"><img class="profile-avatar" src="/static/images/avatar-default.svg" alt="" aria-hidden="true"></div>
         <p class="profile-username" id="profile-username"></p>
-        <p class="profile-member-since" id="profile-member-since"></p>
+        <p class="profile-bio" id="profile-bio"></p>
+        <div class="profile-pills" id="profile-pills" hidden></div>
       </div>
       <div class="screen-body">
         <div class="profile-stats" id="profile-stats"></div>
@@ -59,8 +60,8 @@ export class ProfileScreen extends HTMLElement {
     const emptyEl = document.getElementById('profile-empty');
     const errorEl = document.getElementById('profile-error');
     const nameEl = document.getElementById('profile-username');
-    const sinceEl = document.getElementById('profile-member-since');
-    if (!card || !statsEl || !emptyEl || !errorEl || !nameEl || !sinceEl) return;
+    const bioEl = document.getElementById('profile-bio');
+    if (!card || !statsEl || !emptyEl || !errorEl || !nameEl || !bioEl) return;
 
     // Reset
     errorEl.textContent = '';
@@ -83,12 +84,24 @@ export class ProfileScreen extends HTMLElement {
         const avatar = document.querySelector('.profile-avatar');
         if (avatar) avatar.src = data.profile_photo_url;
       }
-      if (data.member_since) {
-        const d = new Date(data.member_since);
-        sinceEl.textContent = `Member since ${d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
-      } else {
-        sinceEl.textContent = '';
+      bioEl.textContent = data.bio || '';
+      // Pills (location, etc.)
+      const pillsEl = document.getElementById('profile-pills');
+      if (pillsEl) {
+        const pills = [];
+        if (data.admin) pills.push(`<span class="profile-pill profile-pill-admin"><svg class="profile-pill-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12v4.7c0 4.83-3.4 9.36-7 10.5-3.6-1.14-7-5.67-7-10.5V6.3l7-3.12z"/></svg>Barkeep</span>`);
+        if (data.member_since) {
+          const d = new Date(data.member_since);
+          const since = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+          pills.push(`<span class="profile-pill"><svg class="profile-pill-icon" viewBox="0 0 24 24" aria-hidden="true"><g transform="translate(7 8) rotate(-12)"><rect x="-6" y="-6" width="12" height="12" rx="2.5" fill="currentColor"/><circle cx="-2.5" cy="-2.5" r="1" fill="var(--color-bg, #1a1a1a)"/><circle cx="2.5" cy="-2.5" r="1" fill="var(--color-bg, #1a1a1a)"/><circle cx="-2.5" cy="2.5" r="1" fill="var(--color-bg, #1a1a1a)"/><circle cx="2.5" cy="2.5" r="1" fill="var(--color-bg, #1a1a1a)"/></g><g transform="translate(16 15) rotate(10)"><rect x="-6" y="-6" width="12" height="12" rx="2.5" fill="currentColor" opacity="0.6"/><circle cx="-2.5" cy="-2.5" r="1" fill="var(--color-bg, #1a1a1a)"/><circle cx="2.5" cy="2.5" r="1" fill="var(--color-bg, #1a1a1a)"/></g></svg>${since}</span>`);
+        }
+        if (data.location) pills.push(`<span class="profile-pill"><svg class="profile-pill-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>${data.location}</span>`);
+        if (pills.length) {
+          pillsEl.innerHTML = pills.join('');
+          pillsEl.hidden = false;
+        }
       }
+
       card.hidden = false;
 
       if (!data.stats) {
