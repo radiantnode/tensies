@@ -156,7 +156,7 @@ Use as the reference inventory. Approach: **static** = served files only;
 | winner-win | synth | `round_won`, my dice all == target (iWon) |
 | winner-lose | synth | `round_won`, my dice NOT all == target |
 | disconnect-waiting | synth | a peer `disconnected:true` → loading "waiting to reconnect" |
-| game-ended | synth | `game_ended` frame after a started board → overlay with player scores, avatars, "Bummer!" button |
+| game-ended | synth | `game_ended` frame after a started board → redirect to `/games/<code>` game-detail screen with one-shot "Game ended" label |
 | fatal-error | synth | delayed terminal `error` → landing + reason |
 | players-bar-variants | synth | clipped to `#players-bar`; one **paused** board showing leading + hot + disconnected + is-me cards |
 | paused-board | synth | host paused, menu closed → board with the "Paused" roll button |

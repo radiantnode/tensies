@@ -52,7 +52,7 @@ A single real WebSocket connection; `pinWebSocket` rewrites every inbound `state
 | 14 | <img src="harness/baselines/paused-board-mobile.png" width="60"> | Paused game as host, menu closed; board visible, Roll button reads "Paused" | [stateful.spec.js:319](harness/stateful.spec.js#L319) |
 | 15 | <img src="harness/baselines/paused-guest-mobile.png" width="60"> | Paused game as non-host; pause overlay "Waiting for Alpha to resume the game" | [stateful.spec.js:166](harness/stateful.spec.js#L166) |
 | 16 | <img src="harness/baselines/disconnect-waiting-mobile.png" width="60"> | Peer (Bravo) disconnected mid-game; loading screen with reconnect message | [stateful.spec.js:182](harness/stateful.spec.js#L182) |
-| 17 | <img src="harness/baselines/game-ended-mobile.png" width="60"> | Game ended by host mid-round; overlay with player scores, avatars (winner gold ring), and "Bummer!" dismiss button | [stateful.spec.js:200](harness/stateful.spec.js#L200) |
+| 17 | <img src="harness/baselines/game-ended-mobile.png" width="60"> | Game ended by host mid-round; redirects to game-detail screen with one-shot "Game ended" label, player list, stats, and Roll Trust verification | [stateful.spec.js:200](harness/stateful.spec.js#L200) |
 | 18 | <img src="harness/baselines/fatal-error-mobile.png" width="60"> | Terminal error frame received (simulates pause-cap expiry); session cleared, landing returns with error message inline | [stateful.spec.js:249](harness/stateful.spec.js#L249) |
 
 ### Round winner
