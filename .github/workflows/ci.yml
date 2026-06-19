@@ -52,7 +52,10 @@ jobs:
   integration:
     # The multi-instance WS test is the point of the suite: two app processes
     # sharing one Redis, exercising cross-instance fan-out / reconnect / host
-    # transfer. Telemetry is off so Redis is the only service needed.
+    # transfer. The app also needs Postgres at startup now (the auth/passkey
+    # layer's shared pool, db.init() — required even with telemetry off). drand
+    # and the Discord notifier early-return when disabled, so those two services
+    # are all the boot needs.
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -65,8 +68,22 @@ jobs:
           --health-interval 3s
           --health-timeout 3s
           --health-retries 10
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: tensies
+          POSTGRES_PASSWORD: tensies
+          POSTGRES_DB: tensies
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tensies"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 10
     env:
       REDIS_URL: redis://localhost:6379/0
+      POSTGRES_DSN: postgresql://tensies:tensies@localhost:5432/tensies
       TELEMETRY_ENABLED: "0"
       ALLOWED_ORIGINS: "*"
     steps:
@@ -78,6 +95,13 @@ jobs:
       - name: Install dependencies
         # The lock carries websockets (the test's only third-party import).
         run: pip install -r requirements.lock
+      - name: Apply database migrations
+        # Run the schema migrations once, up front. Both instances call db.init()
+        # on startup, and CREATE TABLE IF NOT EXISTS is not concurrency-safe in
+        # Postgres — booting them against a fresh DB makes them race (duplicate
+        # pg_type row). Pre-migrating means each instance just finds the schema
+        # present and skips. Idempotent.
+        run: python -c "import asyncio; from server import db; asyncio.run(db.init())"
       - name: Boot two app instances on a shared Redis
         run: |
           INSTANCE_ID=a uvicorn main:app --host 127.0.0.1 --port 8101 \
