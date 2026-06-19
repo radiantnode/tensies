@@ -24,7 +24,6 @@ import time
 import redis.asyncio as aioredis
 
 from server.config import GAME_TTL, MAX_GAMES, MAX_PLAYERS_PER_GAME, REDIS_URL, log
-from server.game import fresh_dice
 
 INDEX = "games:index"
 

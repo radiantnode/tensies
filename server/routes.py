@@ -165,7 +165,8 @@ async def api_profile(username: str) -> dict:
     from server.telemetry import store
     async with store.pool().acquire() as con:
         user = await con.fetchrow(
-            "SELECT id, username, created_ts, profile_photo_url, location, admin, bio FROM users WHERE username_lower = $1",
+            "SELECT id, username, created_ts, profile_photo_url, location, admin, bio "
+            "FROM users WHERE username_lower = $1",
             username.lower(),
         )
         if user is None:
@@ -235,7 +236,9 @@ async def api_profile(username: str) -> dict:
                 "wins": r["wins"],
                 "won_game": r["won_game"],
                 "fastest_win_ms": int(r["fastest_win_ms"]) if r["fastest_win_ms"] else None,
-                "avg_roll_speed_ms": int(r["avg_roll_speed_ms"]) if r["avg_roll_speed_ms"] else None,
+                "avg_roll_speed_ms": (
+                    int(r["avg_roll_speed_ms"]) if r["avg_roll_speed_ms"] else None
+                ),
                 "duration_ms": int(r["duration_ms"]) if r["duration_ms"] else None,
                 "opponents": opps_raw or [],
                 "player_count": r["player_count"],
