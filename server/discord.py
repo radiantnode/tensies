@@ -35,9 +35,11 @@ import httpx
 from server import gamestore
 from server.config import (
     DISCORD_API_BASE,
+    DISCORD_APPLICATION_ID,
     DISCORD_BOT_TOKEN,
     DISCORD_CHANNEL_ID,
     DISCORD_ENABLED,
+    DISCORD_GUILD_ID,
     GAME_TTL,
 )
 from server.telemetry import metrics
@@ -84,6 +86,7 @@ async def start() -> None:
     q = bus.subscribe(maxsize=10_000)
     _task = asyncio.create_task(_run(q), name="discord.notifier")
     log.info("discord notifier started  channel=%s", DISCORD_CHANNEL_ID)
+    await register_commands()
 
 
 async def stop() -> None:
@@ -211,6 +214,22 @@ def _roster_fields(snap: dict) -> dict:
     return {"host": host_name or "?", "players": json.dumps(roster)}
 
 
+# Durable map message_id -> game_code, used by the /verify slash command. A
+# thread started from the card shares the card's message id, so a /verify in
+# that thread arrives with channel_id == this message id. Kept far longer than
+# the card itself (which is deleted on game end) so verification still resolves.
+MSG_MAP_TTL = 60 * 60 * 24 * 30  # 30 days
+
+
+def _msg_key(message_id: str) -> str:
+    return f"discord:game_by_msg:{message_id}"
+
+
+async def game_for_message(message_id: str) -> str | None:
+    """Resolve a card message / thread id back to its game code (or None)."""
+    return await gamestore.client().get(_msg_key(message_id))
+
+
 # ─── Render (POST / PATCH the card) ─────────────────────────────────────────
 async def _render(code: str, ended: bool) -> None:
     r = gamestore.client()
@@ -223,11 +242,30 @@ async def _render(code: str, ended: bool) -> None:
     if mid:
         await _patch(mid, embed)
     else:
-        new_mid = await _post(embed)
-        if new_mid:
-            await r.hset(key, "mid", new_mid)
+        mid = await _post(embed)
+        if mid:
+            await r.hset(key, "mid", mid)
+            await r.set(_msg_key(mid), code, ex=MSG_MAP_TTL)
     if ended:
+        if mid:
+            # Refresh the map and open a thread so members have a place to
+            # /verify. Best-effort: needs Create Public Threads; degrades to
+            # "create the thread yourself" if the bot lacks the permission.
+            await r.set(_msg_key(mid), code, ex=MSG_MAP_TTL)
+            await _ensure_thread(mid, code)
         await r.delete(key)
+
+
+async def _ensure_thread(message_id: str, code: str) -> None:
+    r = await _request(
+        "POST",
+        f"/channels/{DISCORD_CHANNEL_ID}/messages/{message_id}/threads",
+        {"name": f"Roll Trust — {code}", "auto_archive_duration": 1440},
+    )
+    if r is None or r.status_code >= 300:
+        metrics.discord_failures_total.labels(op="thread").inc()
+        if r is not None and r.status_code not in (403,):  # 403 = missing perm, expected
+            log.warning("discord thread create -> %s", r.status_code)
 
 
 def _standings(card: dict) -> list[tuple[str, int]]:
@@ -342,7 +380,7 @@ async def _patch(message_id: str, embed: dict) -> None:
         metrics.discord_failures_total.labels(op="edit").inc()
 
 
-async def _request(method: str, path: str, body: dict) -> httpx.Response | None:
+async def _request(method: str, path: str, body: dict | list) -> httpx.Response | None:
     """One Discord API call, honouring a 429 retry-after at most twice."""
     if _client is None:
         return None
@@ -372,3 +410,52 @@ def _retry_after(r: httpx.Response) -> float:
             return float(r.headers.get("Retry-After", "1"))
         except (TypeError, ValueError):
             return 1.0
+
+
+# ─── Slash commands ─────────────────────────────────────────────────────────
+_VERIFY_COMMAND = {
+    "name": "verify",
+    "type": 1,  # CHAT_INPUT
+    "description": "Show Roll Trust verification for this game's thread",
+}
+
+
+async def register_commands() -> None:
+    """Register /verify to the configured guild (instant). No-op if unconfigured.
+
+    A guild-scoped bulk PUT registers the command on that one server immediately
+    (global registration takes ~1h). Idempotent — safe to run on every boot.
+    """
+    if not (DISCORD_APPLICATION_ID and DISCORD_GUILD_ID):
+        log.info("discord slash commands not registered (app id / guild id unset)")
+        return
+    r = await _request(
+        "PUT",
+        f"/applications/{DISCORD_APPLICATION_ID}/guilds/{DISCORD_GUILD_ID}/commands",
+        [_VERIFY_COMMAND],
+    )
+    if r is not None and r.status_code < 300:
+        log.info("discord /verify registered to guild %s", DISCORD_GUILD_ID)
+    else:
+        log.warning("discord command registration failed: %s",
+                    r.status_code if r is not None else "no response")
+
+
+async def followup_edit(interaction_token: str, embed: dict) -> None:
+    """Replace a deferred interaction's response with the final embed.
+
+    Targets the interaction webhook's @original message, so it lands in exactly
+    the channel/thread the command was invoked in. The interaction token alone
+    authorises this — no bot auth needed — so it works even when the notifier
+    client isn't running.
+    """
+    url = (f"{DISCORD_API_BASE}/webhooks/{DISCORD_APPLICATION_ID}/"
+           f"{interaction_token}/messages/@original")
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as c:
+            resp = await c.patch(url, json={"embeds": [embed],
+                                            "allowed_mentions": {"parse": []}})
+        if resp.status_code >= 300:
+            log.warning("discord followup -> %s: %s", resp.status_code, resp.text[:200])
+    except Exception as e:
+        log.warning("discord followup failed: %s", e)

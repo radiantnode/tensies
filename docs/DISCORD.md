@@ -87,3 +87,61 @@ single warning and disables the feature without affecting the game.
 | `DISCORD_BOT_TOKEN` | — | Bot token (secret). Required when enabled. |
 | `DISCORD_CHANNEL_ID` | — | Target channel id. Required when enabled. |
 | `DISCORD_API_BASE` | `https://discord.com/api/v10` | API base; override only for testing. |
+| `DISCORD_PUBLIC_KEY` | — | App public key — verifies interaction signatures. Required for slash commands. |
+| `DISCORD_APPLICATION_ID` | — | App id — registers commands + sends interaction follow-ups. Required for slash commands. |
+| `DISCORD_GUILD_ID` | — | Server id — registers `/verify` to that guild instantly. Required for slash commands. |
+
+## Slash commands — `/verify`
+
+`/verify` returns the [Roll Trust](ROLL_TRUST.md) verification for a game: it
+re-derives every drand-backed roll from the public beacon and reports how many
+check out, with a per-player breakdown. You run it **inside a game's thread**,
+and it replies in that thread.
+
+### How it ties to a game
+
+When a game ends, the notifier opens a thread on the game card titled
+`Roll Trust — {code}`. In Discord, a thread started from a message shares that
+message's id, and the bot keeps a durable `message_id → game_code` map in Redis.
+So when you type `/verify` in the thread, the interaction arrives with
+`channel_id` equal to the card's message id, which resolves straight to the
+game — no arguments needed. (You can also start the thread yourself on any game
+card; same result.)
+
+### Transport
+
+Slash commands arrive as **signed HTTP POSTs** to `POST /discord/interactions`
+(not the gateway), so any instance behind the load balancer can serve any
+interaction — same stateless model as the rest of Tensies. The endpoint verifies
+Discord's Ed25519 signature on every request, ACKs Discord's ping, and for
+`/verify` it defers (the beacon fetch can exceed Discord's 3-second budget) then
+edits the response in-thread with the result.
+
+### Setup
+
+1. **Developer Portal → General Information**: copy **Public Key** →
+   `DISCORD_PUBLIC_KEY`, and **Application ID** → `DISCORD_APPLICATION_ID`.
+2. **Server id**: right-click your server → **Copy Server ID** (Developer Mode
+   on) → `DISCORD_GUILD_ID`. Guild registration is instant; the app registers
+   `/verify` on boot (look for `discord /verify registered to guild …`).
+3. **Interactions endpoint URL**: on the Developer Portal **General Information**
+   page, set **Interactions Endpoint URL** to
+   `https://<your-host>/discord/interactions`. Discord probes it with a signed
+   ping (and a deliberately bad signature) and will only save the URL if the app
+   answers correctly — which it does once `DISCORD_PUBLIC_KEY` is set and the app
+   is reachable over public HTTPS.
+4. **Permissions**: the auto-created thread needs **Create Public Threads** (and
+   **Send Messages in Threads**); add them to the bot's invite if missing. If the
+   bot lacks them, `/verify` still works — just start the thread on the card
+   yourself. (Posting the `/verify` reply needs no extra permission; it goes out
+   under the interaction token.)
+
+Slash commands are enabled only when `DISCORD_PUBLIC_KEY`,
+`DISCORD_APPLICATION_ID`, and `DISCORD_GUILD_ID` are all set. Roll Trust data
+comes from the telemetry event log, so `/verify` needs `TELEMETRY_ENABLED=1` and
+`ENABLE_DRAND_ROLLING=1` on the games being verified.
+
+> **Local dev note:** Discord must reach `/discord/interactions` over public
+> HTTPS, so the live round-trip needs a deploy or a tunnel (e.g. cloudflared) —
+> `localhost` won't work. The signature, dispatch, and Roll Trust logic are all
+> unit-testable without Discord.

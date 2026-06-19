@@ -28,6 +28,9 @@ services:
       DISCORD_ENABLED: ${DISCORD_ENABLED:-0}
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
       DISCORD_CHANNEL_ID: ${DISCORD_CHANNEL_ID:-}
+      DISCORD_PUBLIC_KEY: ${DISCORD_PUBLIC_KEY:-}
+      DISCORD_APPLICATION_ID: ${DISCORD_APPLICATION_ID:-}
+      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:-}
     depends_on:
       postgres:
         condition: service_healthy

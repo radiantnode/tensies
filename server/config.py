@@ -190,6 +190,16 @@ DISCORD_CHANNEL_ID = os.environ.get("DISCORD_CHANNEL_ID") or None
 DISCORD_API_BASE = os.environ.get(
     "DISCORD_API_BASE", "https://discord.com/api/v10"
 ).rstrip("/")
+# Slash commands (the /verify Roll Trust command). The interactions endpoint
+# (POST /discord/interactions) verifies Discord's Ed25519 signatures with the
+# app's public key; command registration + follow-ups need the application id.
+# A guild id registers the command instantly to that one server (global
+# registration takes ~1h to propagate). All three are on the Developer Portal:
+# public key + app id on General Information, guild id via right-click → Copy
+# Server ID. Slash commands are enabled only when all three are set.
+DISCORD_PUBLIC_KEY = os.environ.get("DISCORD_PUBLIC_KEY") or None
+DISCORD_APPLICATION_ID = os.environ.get("DISCORD_APPLICATION_ID") or None
+DISCORD_GUILD_ID = os.environ.get("DISCORD_GUILD_ID") or None
 
 
 # ─── Distributed randomness (drand) ───────────────────────────────────

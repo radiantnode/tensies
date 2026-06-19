@@ -105,6 +105,10 @@ discord_messages_total = Counter(
 discord_failures_total = Counter(
     "tensies_discord_failures_total", "Discord API failures", ["op"]
 )
+discord_interactions_total = Counter(
+    "tensies_discord_interactions_total",
+    "Discord slash-command interactions handled", ["command", "outcome"]
+)
 
 # ─── drand beacon ─────────────────────────────────────────────────────
 drand_beacon_fetches_total = Counter(
