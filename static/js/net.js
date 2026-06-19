@@ -1,117 +1,209 @@
-// WebSocket client: connection, the create/join intents, and inbound dispatch.
-// This is the foundation the lobby and game views build on; for now it fully
-// handles the connection handshake and the error paths (join "Game not found",
-// fatal end), and routes successful snapshots to showFor() — which gains its
-// lobby/game rendering as those views are built.
+// @ts-check
+import { myDiceKey } from './dice.js';
+import { byId } from './dom.js';
+import { renderMyArea, renderPlayersBar } from './game-render.js';
+import { showWinner } from './overlays.js';
+import { showFor, showGameDetail } from './router.js';
+import { getAuthToken, isSignedIn, getAuthUser } from './auth.js';
+import {
+  savePlayerId, saveReconnectToken, readSession, hasSession, clearSession,
+} from './session.js';
 import { state, resetRollState } from './state.js';
-import { setError, setJoinError } from './util.js';
+import { showScreen, showLoading, leaveLoading } from './transitions.js';
+
+/** @typedef {import('./types.js').ServerMessage} ServerMessage */
+/** @typedef {import('./types.js').ErrorMessage} ErrorMessage */
+
+
+/**
+ * WebSocket client: connection lifecycle, the create/join/start intents,
+ * the reconnect loop, and inbound message dispatch. Inbound snapshots route
+ * to router.showFor; screen-specific rendering lives with the screens.
+ * (Scaffold scope: the roll choreography branches are added with the game view.)
+ */
 
 const RECONNECT_WINDOW_MS = 60_000;
+/** While paused nobody is dropped, so a much longer window applies (~1 h). */
 const PAUSED_RECONNECT_WINDOW_MS = 61 * 60 * 1000;
 const RETRY_DELAY_MS = 2000;
-import { showScreen, showLoading, leaveLoading } from './transitions.js';
-import { myDiceKey } from './dice.js';
-import { renderPlayersBar, renderMyArea } from './game-render.js';
-import { showPaused, hidePaused, pausedText, hideWinner, showWinner, waitingText, RESUME_CLOSE_DELAY_MS } from './overlays.js';
 
 function wsUrl() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   return `${proto}://${location.host}/ws`;
 }
 
-export function clearSession() {
-  localStorage.removeItem('tensies_pid');
-  localStorage.removeItem('tensies_code');
-  localStorage.removeItem('tensies_token');
+/**
+ * Send an action frame on the open socket.
+ * @param {string} action
+ * @param {Record<string, unknown>} [extra]
+ */
+function send(action, extra = {}) {
+  state.ws?.send(JSON.stringify({ action, ...extra }));
 }
 
+/** The saved session is unusable — forget it and land on landing with the reason. */
 function expireSession() {
   state.reconnecting = false;
   clearSession();
   state.currentState = null;
-  leaveLoading(() => { showScreen('landing'); setError('Connection failed'); });
+  leaveLoading(() => {
+    showScreen('landing');
+    landingScreen().showError('Connection failed');
+  });
 }
 
+/** On unexpected close, try to resume if we still hold a session. */
 function handleWsClose() {
   if (state.reconnecting) return;
-  const pid = localStorage.getItem('tensies_pid');
-  const code = localStorage.getItem('tensies_code');
-  if (pid && code) maybeReconnect();
+  if (hasSession()) maybeReconnect();
 }
 
+/**
+ * Resume a saved session: show the reconnecting screen and retry until the
+ * window (normal or paused-length) elapses.
+ */
 export function maybeReconnect() {
   if (state.reconnecting) return;
-  const pid = localStorage.getItem('tensies_pid');
-  const code = localStorage.getItem('tensies_code');
-  if (!pid || !code) return;
-  state.myId = pid;
+  const { playerId, gameCode } = readSession();
+  if (!playerId || !gameCode) return;
+  state.myId = playerId;
   state.reconnecting = true;
   showLoading('Reconnecting…');
   const windowMs = state.currentState?.paused ? PAUSED_RECONNECT_WINDOW_MS : RECONNECT_WINDOW_MS;
-  attemptReconnect(pid, code, Date.now() + windowMs);
+  attemptReconnect(playerId, gameCode, Date.now() + windowMs);
 }
 
-function attemptReconnect(pid, code, deadline) {
-  if (Date.now() > deadline) { expireSession(); return; }
-  const token = localStorage.getItem('tensies_token') || '';
-  state.ws = new WebSocket(wsUrl());
-  state.ws.onopen = () => state.ws.send(JSON.stringify({ action: 'reconnect', player_id: pid, game_code: code, token }));
-  state.ws.onerror = () => {};
-  state.ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
+/**
+ * One reconnect attempt; reschedules itself until `deadline`.
+ * @param {string} playerId
+ * @param {string} gameCode
+ * @param {number} deadline Epoch ms after which the session expires.
+ */
+function attemptReconnect(playerId, gameCode, deadline) {
+  if (Date.now() > deadline) {
+    expireSession();
+    return;
+  }
+  const { token } = readSession();
+  const ws = new WebSocket(wsUrl());
+  state.ws = ws;
+  ws.onopen = () => ws.send(JSON.stringify({
+    action: 'reconnect', player_id: playerId, game_code: gameCode, token,
+  }));
+  ws.onerror = () => {};
+  ws.onmessage = (event) => {
+    const msg = /** @type {ServerMessage} */ (JSON.parse(event.data));
     if (msg.type === 'welcome') return;
-    if (msg.type === 'error') { state.ws.close(); expireSession(); return; }
+    if (msg.type === 'error') {
+      ws.close();
+      expireSession();
+      return;
+    }
+    // First real frame: the session is live again — hand over to normal dispatch.
     state.reconnecting = false;
     resetRollState();
-    state.ws.onmessage = (e2) => handleMessage(JSON.parse(e2.data));
-    state.ws.onclose = handleWsClose;
+    ws.onmessage = (e) => handleMessage(JSON.parse(e.data));
+    ws.onclose = handleWsClose;
     handleMessage(msg);
   };
-  state.ws.onclose = () => {
-    if (state.reconnecting) setTimeout(() => attemptReconnect(pid, code, deadline), RETRY_DELAY_MS);
+  ws.onclose = () => {
+    if (state.reconnecting) {
+      setTimeout(() => attemptReconnect(playerId, gameCode, deadline), RETRY_DELAY_MS);
+    }
   };
 }
 
-export function connectWS(afterConnect) {
-  state.ws = new WebSocket(wsUrl());
-  state.ws.onopen = () => afterConnect();
-  state.ws.onmessage = (e) => handleMessage(JSON.parse(e.data));
-  state.ws.onclose = handleWsClose;
+/**
+ * Open a fresh socket and run `afterConnect` once it's up.
+ * @param {() => void} afterConnect
+ */
+function connectWs(afterConnect) {
+  const ws = new WebSocket(wsUrl());
+  state.ws = ws;
+  ws.onopen = () => {
+    // Authenticate before the intent so the server knows the account UUID
+    // before create/join writes it into the game state.
+    if (isSignedIn()) send('auth', { token: getAuthToken() });
+    afterConnect();
+  };
+  ws.onmessage = (event) => handleMessage(JSON.parse(event.data));
+  ws.onclose = handleWsClose;
 }
 
-function send(action, extra = {}) {
-  state.ws.send(JSON.stringify({ action, ...extra }));
+/** The landing screen component (typed accessor for its error surface). */
+function landingScreen() {
+  return /** @type {import('./components/landing-screen.js').LandingScreen} */ (byId('landing'));
 }
 
-// Name from the active screen's field, falling back to the seeded placeholder.
+/** The join screen component (typed accessor for its error surface). */
+function joinScreen() {
+  return /** @type {import('./components/join-screen.js').JoinScreen} */ (byId('join'));
+}
+
+/**
+ * Player name for an intent: the active screen's field, falling back to the
+ * seeded placeholder. Captured before showLoading swaps the active screen.
+ */
 function currentName() {
+  // Signed-in users use their account username as the player name.
+  const authUser = getAuthUser();
+  if (authUser) return authUser.username;
   const active = document.querySelector('.screen.active');
-  const val = active && active.id === 'join'
-    ? document.getElementById('join-name-input').value.trim()
-    : document.getElementById('name-input').value.trim();
-  return val || state.randomNamePlaceholder;
+  const input = /** @type {HTMLInputElement} */ (
+    byId(active?.id === 'join' ? 'join-name-input' : 'name-input')
+  );
+  return input.value.trim() || state.randomNamePlaceholder;
 }
 
+/** Create a new game as `currentName()`. */
 export function createGame() {
-  const name = currentName(); // capture before showLoading swaps the active screen
+  const name = currentName();
   state.pendingOrigin = 'landing';
-  showLoading('Loading…');
-  connectWS(() => send('create', { name }));
+  showLoading();
+  connectWs(() => send('create', { name }));
 }
 
+/** Join the game whose code is in the join form. */
 export function joinGame() {
-  const code = document.getElementById('code-input').value.trim();
-  if (!code) { setJoinError('Enter a game code'); return; }
+  const code = /** @type {HTMLInputElement} */ (byId('code-input')).value.trim();
+  if (!code) {
+    joinScreen().showError('Enter a game code');
+    return;
+  }
   const name = currentName();
   state.pendingOrigin = 'join';
-  showLoading('Loading…');
-  connectWS(() => send('join', { name, code }));
+  showLoading();
+  connectWs(() => send('join', { name, code }));
 }
 
+/** Host-only: start the game. */
 export function startGame() {
   send('start');
 }
 
+/**
+ * Whether a `state` frame is a same-round opponent-roll echo arriving while
+ * the win celebration is on screen. Such frames carry nothing the viewer can
+ * see (the board is under the overlay scrim) but would route through
+ * showFor() → hideWinner() and cut the celebration short (observed at 1153ms
+ * and 759ms instead of the full ~3s). Pause and disconnect transitions are
+ * NOT echoes — interrupting the celebration is correct for them — and the
+ * next-round frame (round_num + 1) must keep closing the overlay as before.
+ * @param {import('./types.js').GameSnapshot} snap
+ */
+function isCelebrationEcho(snap) {
+  const overlay = /** @type {HTMLDialogElement | null} */ (document.getElementById('winner-overlay'));
+  return Boolean(overlay?.open)
+    && snap.started
+    && !snap.paused
+    && snap.round_num === state.currentState?.round_num
+    && !Object.values(snap.players).some((p) => p.disconnected);
+}
+
+/**
+ * Inbound dispatch.
+ * @param {ServerMessage} msg
+ */
 function handleMessage(msg) {
   switch (msg.type) {
     case 'ping':
@@ -119,48 +211,80 @@ function handleMessage(msg) {
       return;
     case 'welcome':
       state.myId = msg.player_id;
-      localStorage.setItem('tensies_pid', state.myId);
+      savePlayerId(msg.player_id);
+      return;
+    case 'auth_ok':
+      state.authUsername = msg.username;
+      state.authUserId = msg.user_id;
+      // Server swapped the PID to the account UUID — update the client to match.
+      if (msg.player_id) {
+        state.myId = msg.player_id;
+        savePlayerId(msg.player_id);
+      }
       return;
     case 'reconnect_token':
-      localStorage.setItem('tensies_token', msg.token);
+      saveReconnectToken(msg.token);
       return;
     case 'state':
-      if (msg.code) localStorage.setItem('tensies_code', msg.code);
-      // My own roll response (private, pre-broadcast): hold it for tryReveal so
-      // the shake/reveal animation drives the change instead of a hard re-render.
+      // My own roll response (private, pre-broadcast): hold it for tryReveal
+      // so the shake/reveal animation drives the change instead of a hard
+      // re-render. A newer broadcast landing mid-reveal is stashed separately
+      // and applied after the reveal completes.
       if (state.awaitingAck && msg.started && myDiceKey(msg) !== state.lastMyDiceKey && !state.pendingRollState) {
         state.pendingRollState = msg;
       } else if (state.awaitingAck && state.pendingRollState) {
-        // A newer broadcast landed mid-reveal — hold it, apply after the reveal.
         state.postRevealState = msg;
+      } else if (isCelebrationEcho(msg)) {
+        // Absorb the data (state bag + players bar stay fresh) but skip the
+        // screen routing so the overlay holds its full window. My own dice
+        // can't differ in an opponent echo, so no my-area render is needed.
+        state.currentState = msg;
+        renderPlayersBar(msg);
       } else {
         showFor(msg);
       }
       return;
     case 'round_won': {
-      const me = msg.players[state.myId];
-      const myName = me ? me.name : (msg.winner_name || '?');
-      const iWon = !!me && me.dice.every((d) => d === msg.target);
+      const me = state.myId ? msg.players[state.myId] : undefined;
+      const myName = me ? me.name : (msg.winner_name ?? '?');
+      const iWon = Boolean(me) && Boolean(me?.dice.every((d) => d === msg.target));
       if (state.awaitingAck && myDiceKey(msg) !== state.lastMyDiceKey) {
-        // Mid-roll win: animate my reveal first, then tryReveal shows the overlay.
+        // Mid-roll win: animate my reveal first; tryReveal shows the overlay.
         state.pendingRollState = msg;
         state.pendingWinName = myName;
         state.pendingWinTarget = msg.target;
         state.pendingWinRound = msg.round_num;
         state.pendingWinIsLoser = !iWon;
       } else {
-        state.pendingRollTimeouts.forEach(clearTimeout);
+        for (const timeout of state.pendingRollTimeouts) clearTimeout(timeout);
         state.pendingRollTimeouts = [];
         state.awaitingAck = false;
         state.rolling = false;
         state.pendingRollState = null;
         state.currentState = msg;
         state.lastMyDiceKey = myDiceKey(msg);
-        showScreen('game');
-        renderPlayersBar(msg);
-        renderMyArea(msg);
+        // The renders ride onSwap so the dice scatter sees a displayed,
+        // measurable board (usually the screen is already active and this
+        // runs synchronously).
+        showScreen('game', {
+          onSwap: () => {
+            renderPlayersBar(msg);
+            renderMyArea(msg);
+          },
+        });
         showWinner(myName, msg.target, msg.round_num, !iWon);
       }
+      return;
+    }
+    case 'game_ended': {
+      resetRollState();
+      const code = state.gameCode;
+      clearSession();
+      state.currentState = null;
+      // Brief delay so the telemetry writer can flush to Postgres before
+      // the game-detail screen fetches the API.
+      state.gameJustEnded = true;
+      if (code) setTimeout(() => showGameDetail(code), 1000);
       return;
     }
     case 'error':
@@ -169,82 +293,38 @@ function handleMessage(msg) {
   }
 }
 
+/**
+ * Error frames. Fatal ⇒ the game is gone: clear the session and land on
+ * landing with the reason. Pre-game failures return to the intent's origin
+ * screen instead of stranding on loading.
+ * @param {ErrorMessage} msg
+ */
 function handleError(msg) {
   if (msg.fatal) {
     clearSession();
     state.currentState = null;
     state.reconnecting = false;
-    leaveLoading(() => { showScreen('landing'); setError(msg.msg); });
+    leaveLoading(() => {
+      // Forced: a fatal landing swap must win even against an in-flight view
+      // transition (the showScreen early-return race — see transitions.js).
+      // The only sanctioned behavior change of the rewrite.
+      showScreen('landing', { force: true });
+      landingScreen().showError(msg.msg);
+    });
     return;
   }
-  // Pre-game failure (bad code, game already started) — return to the origin
-  // screen and surface the reason there rather than stranding on loading.
   if (state.pendingOrigin === 'join') {
     state.pendingOrigin = null;
-    leaveLoading(() => { showScreen('join'); setJoinError(msg.msg); });
+    leaveLoading(() => {
+      showScreen('join');
+      joinScreen().showError(msg.msg);
+    });
   } else if (state.pendingOrigin === 'landing') {
     state.pendingOrigin = null;
-    leaveLoading(() => { showScreen('landing'); setError(msg.msg); });
+    leaveLoading(() => {
+      showScreen('landing');
+      landingScreen().showError(msg.msg);
+    });
   }
   // (In-game errors are handled once the game view exists.)
-}
-
-export function showFor(msg) {
-  state.currentState = msg;
-  state.pendingOrigin = null;
-  if (msg.code) {
-    state.gameCode = msg.code;
-    localStorage.setItem('tensies_code', msg.code);
-  }
-  if (!msg.started) {
-    leaveLoading(() => {
-      hidePaused();
-      showScreen('lobby');
-      document.getElementById('lobby').render(msg);
-    });
-    return;
-  }
-
-  // Paused. Non-host: keep the board under a wait dialog so dice stay in place.
-  // Host: stay on the board with the menu open (countdown + resume toggle).
-  if (msg.paused) {
-    const game = document.getElementById('game');
-    if (msg.host !== state.myId) {
-      hideWinner();
-      leaveLoading(() => { showScreen('game'); game.render(msg); showPaused(pausedText(msg)); });
-      return;
-    }
-    // A host returning from reconnect lands on #loading — pop the menu open on
-    // the swap so the resume toggle is right there.
-    const fromLoading = document.getElementById('loading').classList.contains('active');
-    leaveLoading(() => {
-      hideWinner();
-      hidePaused();
-      showScreen('game');
-      game.render(msg);
-      if (fromLoading) game.openMenu();
-    });
-    return;
-  }
-
-  // A peer dropped (and we're not paused): everyone else watches the loading
-  // screen until they reconnect or the grace window elapses.
-  const downNames = Object.values(msg.players).filter((p) => p.disconnected).map((p) => p.name);
-  if (downNames.length > 0) {
-    hideWinner();
-    hidePaused();
-    showLoading(waitingText(downNames));
-    return;
-  }
-
-  leaveLoading(() => {
-    const game = document.getElementById('game');
-    hideWinner();
-    showScreen('game');
-    game.render(msg);
-    // Just resumed: drop the pause overlay after the toggle's slide-off.
-    const overlay = document.getElementById('pause-overlay');
-    if (overlay?.open) setTimeout(hidePaused, RESUME_CLOSE_DELAY_MS);
-    else hidePaused();
-  });
 }

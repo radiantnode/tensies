@@ -1,6 +1,11 @@
-// Active pip indices (0–8, row-major in a 3×3 grid) for each die face value.
-// One source of truth shared by the play dice (<die-3d> faces) and the
-// round-target die, so the face layouts can never drift apart.
+// @ts-check
+
+/**
+ * Active pip indices (0–8, row-major in a 3×3 grid) for each die face value.
+ * One source of truth shared by the play dice (the `.die-3d` faces) and the
+ * round-target die, so the face layouts can never drift apart.
+ * @type {Record<number, number[]>}
+ */
 export const PIP_POSITIONS = {
   0: [],
   1: [4],

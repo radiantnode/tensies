@@ -49,6 +49,26 @@ def build_index_html() -> str:
     return ASSET_REF.sub(lambda m: f'"{m.group(1)}?v={version}"', html)
 
 
+# og:image / twitter:image whose content is a root-relative /static path. iOS
+# LinkPresentation builds the share-sheet preview from these but wants ABSOLUTE
+# URLs, so we prefix them with the public origin when APP_URL is set.
+_SOCIAL_IMAGE = re.compile(
+    r'(<meta\s+(?:property="og:image"|name="twitter:image")\s+content=")(/[^"]*)(">)'
+)
+
+
+def absolutize_social_images(html: str, base_url: str) -> str:
+    """Rewrite root-relative og:image/twitter:image URLs to absolute on `base_url`.
+
+    No-op when base_url is empty so dev/preview keep relative URLs. Asset (css/js)
+    references are left relative — only the social-preview images need to resolve
+    for an off-site fetcher (iOS, social crawlers)."""
+    if not base_url:
+        return html
+    base = base_url.rstrip("/")
+    return _SOCIAL_IMAGE.sub(lambda m: f"{m.group(1)}{base}{m.group(2)}{m.group(3)}", html)
+
+
 def build_js_cache() -> dict[str, str]:
     """Return {relative_path: rewritten_js} for every JS file under static/js/.
 

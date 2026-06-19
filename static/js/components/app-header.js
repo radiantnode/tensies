@@ -1,18 +1,23 @@
-// <app-header> — the branded top bar for landing/join/lobby. Renders into light
-// DOM and emits a bubbling `menu-toggle` when the hamburger is tapped (the nav
-// menu listens). The game has its own header (it adds the players bar and opens
-// the game menu) but shares the title-row markup.
-import { titleRowHTML } from '../title-row.js';
+// @ts-check
+import { TITLE_ROW_HTML } from '../title-row.js';
 
-class AppHeader extends HTMLElement {
+/**
+ * <app-header> — the branded top bar (logo mark + wordmark + hamburger) for
+ * the pre-game screens. Light DOM; emits a bubbling `menu-toggle` when the
+ * hamburger is tapped (the nav menu listens at body level). The game screen
+ * has its own header (it adds the players bar and opens the game menu) but
+ * shares the title-row markup.
+ */
+export class AppHeader extends HTMLElement {
   connectedCallback() {
-    if (this._rendered) return;
-    this._rendered = true;
+    if (this.dataset.rendered) return;
+    this.dataset.rendered = 'true';
     this.className = 'game-topbar app-header';
-    this.innerHTML = titleRowHTML;
-    const btn = this.querySelector('.game-menu-btn');
-    // Per-screen id (landing-menu-btn / join-menu-btn / lobby-menu-btn) — the
-    // host screen sets its own id before rendering this header.
+    this.innerHTML = TITLE_ROW_HTML;
+
+    const btn = /** @type {HTMLButtonElement} */ (this.querySelector('.game-menu-btn'));
+    // Per-screen id (landing-menu-btn / join-menu-btn / lobby-menu-btn): the
+    // host screen sets its own id before this header connects.
     const screenId = this.parentElement?.id;
     if (screenId) {
       btn.id = `${screenId}-menu-btn`;
@@ -23,4 +28,5 @@ class AppHeader extends HTMLElement {
     });
   }
 }
+
 customElements.define('app-header', AppHeader);

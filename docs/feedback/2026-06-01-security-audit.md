@@ -28,7 +28,7 @@ as-is (prior won't-fix). Deferred: L3 (PII retention) and L4 (HTTP headers).
 | **I1/I2** | No lockfile / float h11 | ✅ addressed | `requirements.lock` (full pinned closure); pinned `h11==0.16.0` (CVE-2025-43859). |
 | **I4** | `:latest` image tags | ✅ addressed | Pinned versions in `docker-compose.prod.yml` (digest pinning noted as the final step). |
 | **L3** | Indefinite PII (IP/UA) retention | ⏳ deferred | Out of this change's scope (telemetry retention policy). |
-| **L4** | Missing HTTP security headers (CSP etc.) | ⏳ deferred | Out of this change's scope. |
+| **L4** | Missing HTTP security headers (CSP etc.) | ✅ addressed | Strict CSP + HSTS middleware (`server/security.py`, [2f9c055](https://github.com/radiantnode/tensies/commit/2f9c05521b9e7359772fee8a710932cd3f2f33d5)). Same-origin `default-src`, no `'unsafe-inline'`, `connect-src 'self'` covers WS. HSTS on HTTPS deploys. Per-directive allowlists via env (`CSP_EXTRA_SCRIPT_SRC`, etc.). |
 | **I5** | Things done well | — | Parameterized SQL, hashed reconnect token, `textContent` rendering — unchanged. |
 
 ## Verification

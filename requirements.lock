@@ -22,4 +22,14 @@ starlette==1.2.1
 uvicorn==0.32.0
 uvloop==0.22.1
 watchfiles==1.2.0
+webauthn==2.8.0
 websockets==16.0
+PyJWT==2.13.0
+cbor2==5.9.0
+cffi==2.0.0
+cryptography==49.0.0
+pyasn1==0.6.3
+pyasn1-modules==0.4.2
+pycparser==3.0
+pyOpenSSL==26.3.0
+blspy==2.0.3

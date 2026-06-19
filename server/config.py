@@ -124,6 +124,12 @@ STATS_TOKEN = os.environ.get("STATS_TOKEN") or None
 # edit-and-reload loop needs no build step.
 FRONTEND_DIST = os.environ.get("FRONTEND_DIST", "").strip()
 
+# Public origin the app is served from (e.g. https://tensies.app). When set, the
+# served index.html gets an ABSOLUTE og:image/twitter:image so iOS LinkPresentation
+# (which fetches the join URL without running JS and wants absolute URLs) can show
+# the share-sheet preview. Unset (dev/preview): the image stays relative.
+APP_URL = os.environ.get("APP_URL", "").strip().rstrip("/")
+
 
 # ─── Security response headers: HSTS + CSP (audit L4) ────────────────────
 # Master switch for the Content-Security-Policy header. On by default — the
@@ -143,6 +149,7 @@ CSP_OVERRIDE = os.environ.get("CONTENT_SECURITY_POLICY") or None
 # CONTENT_SECURITY_POLICY override above is set.
 CSP_EXTRA_SCRIPT_SRC = _list("CSP_EXTRA_SCRIPT_SRC")
 CSP_EXTRA_CONNECT_SRC = _list("CSP_EXTRA_CONNECT_SRC")
+CSP_EXTRA_IMG_SRC = _list("CSP_EXTRA_IMG_SRC")
 
 # HSTS is only honoured by browsers over HTTPS, so it's off by default (plain
 # http dev) and turned on in docker-compose.prod.yml. Enabling it also adds
@@ -169,3 +176,52 @@ GRAFANA_USER = os.environ.get("GRAFANA_USER", "admin")
 GRAFANA_PASS = os.environ.get("GRAFANA_PASS", "admin")
 
 PING_INTERVAL = 5.0          # seconds between server→client WS pings
+
+
+# ─── Discord integration (optional) ──────────────────────────────────────
+# Publishes one live-updating game card per game to a Discord channel via the
+# bot REST API (server/discord.py). Off by default; requires a bot token and
+# the target channel id. The bot must be in the server and able to view/send in
+# that channel (Send Messages + Embed Links). See docs/DISCORD.md.
+DISCORD_ENABLED = _flag("DISCORD_ENABLED", False)
+DISCORD_BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN") or None
+DISCORD_CHANNEL_ID = os.environ.get("DISCORD_CHANNEL_ID") or None
+DISCORD_API_BASE = os.environ.get(
+    "DISCORD_API_BASE", "https://discord.com/api/v10"
+).rstrip("/")
+# Slash commands (the /verify Roll Trust command). The interactions endpoint
+# (POST /discord/interactions) verifies Discord's Ed25519 signatures with the
+# app's public key; command registration + follow-ups need the application id.
+# A guild id registers the command instantly to that one server (global
+# registration takes ~1h to propagate). All three are on the Developer Portal:
+# public key + app id on General Information, guild id via right-click → Copy
+# Server ID. Slash commands are enabled only when all three are set.
+DISCORD_PUBLIC_KEY = os.environ.get("DISCORD_PUBLIC_KEY") or None
+DISCORD_APPLICATION_ID = os.environ.get("DISCORD_APPLICATION_ID") or None
+DISCORD_GUILD_ID = os.environ.get("DISCORD_GUILD_ID") or None
+
+
+# ─── Distributed randomness (drand) ───────────────────────────────────
+# When enabled, dice rolls are derived from the drand beacon instead of
+# random.randint(). The beacon is polled in the background; rolls use the
+# cached value with zero added latency. Silent fallback to local RNG when
+# the beacon is unreachable.
+ENABLE_DRAND_ROLLING = _flag("ENABLE_DRAND_ROLLING", False)
+DRAND_BASE_URL = os.environ.get("DRAND_BASE_URL", "https://api.drand.sh").rstrip("/")
+DRAND_CHAIN_HASH = os.environ.get(
+    "DRAND_CHAIN_HASH",
+    "52db9ba70e0cc0f6eaf7803dd07447a1f5477735fd3f661792ba94600c84e971",
+)
+DRAND_POLL_INTERVAL = _float("DRAND_POLL_INTERVAL", 3.0)
+
+
+# ─── WebAuthn / user accounts ─────────────────────────────────────────
+WEBAUTHN_RP_ID = os.environ.get("WEBAUTHN_RP_ID", "localhost")
+WEBAUTHN_RP_NAME = os.environ.get("WEBAUTHN_RP_NAME", "Tensies")
+WEBAUTHN_ORIGIN = [
+    o.strip()
+    for o in os.environ.get("WEBAUTHN_ORIGIN", APP_URL or "http://localhost:8888").split(",")
+    if o.strip()
+]
+JWT_SECRET = os.environ.get("JWT_SECRET", "dev-secret-change-in-prod")
+JWT_EXPIRY_DAYS = _int("JWT_EXPIRY_DAYS", 30)

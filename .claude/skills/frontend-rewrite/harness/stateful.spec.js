@@ -197,6 +197,95 @@ test('disconnect-waiting', async ({ page }) => {
   await expect(page).toHaveScreenshot('disconnect-waiting.png');
 });
 
+test('game-ended', async ({ page }) => {
+  // The host ends the game mid-round: the server sends a `game_ended` frame
+  // with final stats. The client clears the session, sets gameJustEnded, and
+  // redirects to /games/<code> after a 1s delay. The game-detail screen
+  // shows a one-shot "Game ended" label above the game code.
+  await seedPage(page);
+  // Stub the game-detail API so the redirect can render.
+  await page.route('**/api/game/*/verify', (route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        game_code: 'AYBD', total: 12, verified: 12, failed: 0, no_beacon: 0,
+        players: {
+          'pid-alpha': { name: 'Alpha', total: 5, verified: 5, failed: 0 },
+          'pid-bravo': { name: 'Bravo', total: 4, verified: 4, failed: 0 },
+          'pid-cosmo': { name: 'Cosmo', total: 3, verified: 3, failed: 0 },
+        },
+      }),
+    });
+  });
+  await page.route('**/api/game/*', (route) => {
+    if (route.request().url().includes('/verify')) { route.fallback(); return; }
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        game_code: 'AYBD',
+        started_at: '2026-01-15T14:12:00Z',
+        ended_at: '2026-01-15T14:14:20Z',
+        duration_ms: 140000,
+        num_rounds: 4,
+        num_players: 3,
+        players: [
+          { user_id: 'pid-alpha', name: 'Alpha', photo: null, wins: 1 },
+          { user_id: 'pid-bravo', name: 'Bravo', photo: null, wins: 2 },
+          { user_id: 'pid-cosmo', name: 'Cosmo', photo: null, wins: 0 },
+        ],
+        rounds: [],
+      }),
+    });
+  });
+  let myPid = null;
+  await page.routeWebSocket(/\/ws$/, (ws) => {
+    const server = ws.connectToServer();
+    server.onMessage((raw) => {
+      let m; try { m = JSON.parse(raw); } catch { return ws.send(raw); }
+      if (m.type === 'welcome') { myPid = m.player_id; ws.send(raw); return; }
+      if (m.type === 'state') {
+        // Rewrite into a started 3-player game at round 4.
+        ws.send(JSON.stringify({
+          ...m, type: 'state', code: 'AYBD', started: true, paused: false, host: myPid,
+          round_num: 4, target: 4,
+          players: {
+            [myPid]: mk('Alpha', [4, 4, 4, 1, 2, 3, 5, 6, 4, 2], { wins: 1 }),
+            guest_bravo: mk('Bravo', [4, 4, 1, 2, 3, 5, 6, 4, 4, 3], { wins: 2 }),
+            guest_cosmo: mk('Cosmo', [4, 4, 4, 4, 1, 2, 3, 5, 6, 1], { wins: 0 }),
+          },
+        }));
+        // After the game screen settles, inject the game_ended message.
+        setTimeout(() => ws.send(JSON.stringify({
+          type: 'game_ended',
+          ended_by: 'Alpha',
+          round_num: 4,
+          players: {
+            [myPid]: { name: 'Alpha', wins: 1 },
+            guest_bravo: { name: 'Bravo', wins: 2 },
+            guest_cosmo: { name: 'Cosmo', wins: 0 },
+          },
+        })), 600);
+        return;
+      }
+      ws.send(raw);
+    });
+    ws.onMessage((raw) => server.send(raw));
+  });
+  await page.goto('/');
+  await page.waitForSelector('#landing.active');
+  await page.fill('#name-input', 'Alpha');
+  await page.click('#landing-form button[type="submit"]');
+  // The game_ended handler redirects to /games/AYBD after a 1s delay.
+  await page.waitForSelector('#game-detail.active', { timeout: 10000 });
+  await page.waitForSelector('.gd-ended');
+  await page.waitForFunction(() =>
+    document.querySelector('.gd-trust-done') !== null, { timeout: 15000 });
+  await settle(page);
+  await expect(page).toHaveScreenshot('game-ended.png');
+});
+
 test('fatal-error', async ({ page }) => {
   // A terminal `error` frame (the pause cap is the only producer) drops the
   // session and bounces back to landing with the reason shown inline.
@@ -302,5 +391,26 @@ for (const target of [1, 2, 3, 4, 5, 6]) {
     await die.waitFor();
     await settle(page);
     await expect(die).toHaveScreenshot(`target-die-${target}.png`);
+  });
+}
+
+for (const value of [1, 2, 3, 4, 5, 6]) {
+  test(`play-die-${value}`, async ({ page }) => {
+    // The regular ivory play die for each face value, clipped to the first
+    // unmatched die on the board. All ten of my dice carry the value and the
+    // target differs, so the clip is a plain (non-matched) cube — face,
+    // bone material, drilled pips — at its seeded scatter pose.
+    await host(page, (msg, myPid) => ({
+      ...msg, type: 'state', code: 'AYBD', started: true, paused: false, host: myPid,
+      round_num: 1, target: value % 6 + 1,
+      players: roster(myPid, {
+        alpha: Array(10).fill(value),
+        bravo: [1, 2, 3, 4, 5, 6, 1, 2, 3, 4], cosmo: [2, 3, 4, 5, 6, 1, 2, 3, 4, 5],
+      }),
+    }), '#game.active');
+    const die = page.locator('.zone-unmatched .die-wrapper').first().locator('.die-scene');
+    await die.waitFor();
+    await settle(page);
+    await expect(die).toHaveScreenshot(`play-die-${value}.png`);
   });
 }

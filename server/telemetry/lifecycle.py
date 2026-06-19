@@ -24,7 +24,8 @@ async def start() -> None:
         log.info("telemetry disabled (TELEMETRY_ENABLED=0) — /metrics still served")
         return
     _enabled = True
-    await store.init()
+    # Pool + migrations are now handled by server.db (initialized in lifespan
+    # before telemetry.start()), so we skip store.init() here.
     # NOTE: this used to TRUNCATE live_* on boot, assuming game state died with
     # the process. State now lives in Redis and is shared by every instance, so
     # a boot-time truncate would wipe peers' live rows. Stale rows age out via
@@ -45,7 +46,7 @@ async def stop() -> None:
             t.cancel()
     await writer.stop()
     await live.stop()
-    await store.close()
+    # Pool closure is now handled by server.db (in lifespan finally block).
     log.info("telemetry stopped")
 
 

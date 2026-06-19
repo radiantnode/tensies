@@ -15,11 +15,13 @@ npx playwright install chromium
 ```
 
 If the environment cannot download a browser (sandbox / blocked CDN), point at
-an already-installed Chromium of a matching major instead — the wire protocol is
-stable across adjacent builds:
+an already-installed copy of the **exact** pinned build instead — Chromium
+`140.0.7339.16` (Playwright browser build 1187), the version `browser-guard.js`
+enforces. A different build trips the guard (and at `maxDiffPixels:0` would
+produce false diffs):
 
 ```bash
-export PW_EXECUTABLE_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome
+export PW_EXECUTABLE_PATH=/opt/pw-browsers/chromium-1187/chrome-linux/chrome
 ```
 
 ## Running the app to capture against
@@ -86,9 +88,10 @@ devices being targeted — pixel-perfect is meaningless without a fixed viewport
 | `states.json` | catalog of single-page "static" states (copy from `states.example.json`) |
 | `views.spec.js` | data-driven specs for every `type:"static"` state |
 | `stateful.spec.js` | worked reference: synthesized server-driven states (lobby/board/pause/winner/disconnect/fatal) |
+| `auth.spec.js` | auth-dependent states: signin, signed-in landing/nav/game board, onboarding (fake JWT + WS auth intercept) |
 | `extras.spec.js` | real-interaction states (join-error, changelog) |
 | `multiplayer.example.spec.js` | minimal copy-me template (superseded by `stateful.spec.js`) |
-| `baselines/` | committed ground-truth PNGs (17 states × mobile/desktop) |
+| `baselines/` | committed ground-truth PNGs (one per catalogued state, mobile viewport only) |
 | `results/`, `report/` | diff artifacts (gitignored) |
 
 ## Why it constrains the rewrite

@@ -1,0 +1,128 @@
+@layer components {
+
+  /* ── Sign-in screen ──────────────────────────────────────────────── */
+
+  .signin-screen {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    block-size: 100%;
+    overflow: hidden;
+    background: var(--color-panel-screen);
+  }
+
+  .signin-screen .screen-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    padding-inline: 2rem;
+    text-align: center;
+    position: relative;
+  }
+
+  .signin-screen .tagline {
+    margin-block-end: 1.5rem;
+  }
+
+  .signin-screen #username-input {
+    text-transform: lowercase;
+  }
+
+  .signin-unavailable {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    max-width: 280px;
+  }
+
+  .btn-loading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  /* ── Onboarding screen ───────────────────────────────────────────── */
+
+  .onboarding-screen {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    block-size: 100%;
+    overflow: hidden;
+    background: var(--color-panel-screen);
+  }
+
+  .onboarding-screen .screen-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    padding-inline: 2rem;
+    text-align: center;
+  }
+
+  .onboarding-screen .tagline {
+    margin-block-end: 1.5rem;
+  }
+
+  .onboarding-card {
+    background: var(--color-raised);
+    border-radius: var(--radius-md);
+    padding: 1.25rem 1.5rem;
+    margin-block-end: 1.5rem;
+    min-width: 240px;
+  }
+
+  .onboarding-username {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    letter-spacing: 0.02em;
+    margin-block-end: 0.35rem;
+    text-shadow: var(--shadow-text);
+  }
+
+  .onboarding-vanity {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    font-family: monospace;
+    letter-spacing: 0.03em;
+  }
+
+  /* ── Onboarding stats grid ─────────────────────────────────────── */
+
+  .onboarding-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+    width: 100%;
+    max-width: 320px;
+    margin-block-end: 2.5rem;
+  }
+
+  .stat-card {
+    background: var(--color-raised);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+  }
+
+  .stat-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--color-text);
+    line-height: 1.1;
+  }
+
+  .stat-label {
+    font-size: 0.65rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+}

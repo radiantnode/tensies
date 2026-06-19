@@ -1,12 +1,18 @@
-// roll() — declare intent to the server, run the shake, then reveal whatever the
-// server sent back. Server owns the RNG. Ported verbatim from the original.
-import { state } from './state.js';
+// @ts-check
 import { startShake, tryReveal } from './animations.js';
+import { state } from './state.js';
 
+/**
+ * roll() — declare intent to the server, run the shake, then reveal whatever
+ * the server sent back. The server owns the RNG; the guards here (rolling,
+ * paused, open winner overlay) keep a spammed button from sending frames the
+ * server would reject or, worse, trapping the next-round broadcast (the
+ * sticky-overlay regression).
+ */
 export function roll() {
   if (state.rolling || !state.ws || state.ws.readyState !== WebSocket.OPEN) return;
   if (state.currentState?.paused) return;
-  const winner = document.getElementById('winner-overlay');
+  const winner = /** @type {HTMLDialogElement | null} */ (document.getElementById('winner-overlay'));
   if (winner?.open) return;
 
   state.rolling = true;
@@ -15,17 +21,21 @@ export function roll() {
   state.pendingWinName = null;
   state.pendingWinTarget = null;
 
-  const p = state.currentState?.players[state.myId];
-  if (!p) { state.rolling = false; state.awaitingAck = false; return; }
+  const me = state.myId ? state.currentState?.players[state.myId] : undefined;
+  if (!me || !state.currentState) {
+    state.rolling = false;
+    state.awaitingAck = false;
+    return;
+  }
 
-  state.prevMatchedCount = p.has_rolled
-    ? p.dice.filter((d) => d === state.currentState.target).length
+  state.prevMatchedCount = me.has_rolled
+    ? me.dice.filter((d) => d === state.currentState?.target).length
     : 0;
 
-  const btn = document.getElementById('roll-btn');
+  const btn = /** @type {HTMLButtonElement | null} */ (document.getElementById('roll-btn'));
   if (btn) btn.disabled = true;
 
-  state.pendingRollTimeouts.forEach(clearTimeout);
+  for (const timeout of state.pendingRollTimeouts) clearTimeout(timeout);
   state.pendingRollTimeouts = [];
 
   state.ws.send(JSON.stringify({ action: 'roll' }));

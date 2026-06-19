@@ -1,204 +1,225 @@
-/* ── Game board ──
-   (The top bar — .game-topbar/.topbar-title-row/.game-title — lives in
-   shell.css, shared with the pre-game screens.) */
-#game {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
-  max-height: 100vh;
-  max-height: 100dvh;
-  overflow: hidden;
-  position: relative;
-}
+/* Game board. (The top bar — .game-topbar/.topbar-title-row/.game-title —
+   lives in shell.css, shared with the pre-game screens.) */
 
-/* ── Round status card ── */
-.round-status {
-  flex-shrink: 0;
-  width: min(240px, 76%);
-  margin: 1.6rem auto 0.4rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.55rem;
-  text-align: center;
-}
-
-.round-label {
-  position: relative;
-  display: inline-block;
-  font-size: 0.76rem;
-  font-weight: 800;
-  color: var(--text-warm);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  text-shadow: var(--text-shadow);
-  padding: 0.34rem 0.9rem;
-  background: rgba(30, 15, 6, 0.22);
-  border-radius: 999px;
-  box-shadow:
-    inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.42),
-    inset 2px -2px 6px rgba(70, 28, 8, 0.4),
-    2px -2px 9px rgba(255, 186, 102, 0.42),
-    5px -5px 22px rgba(246, 152, 62, 0.3),
-    0 3px 9px rgba(0, 0, 0, 0.45);
-}
-.round-label::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(to bottom left,
-    rgba(252, 200, 126, 0.95) 0%,
-    rgba(216, 148, 80, 0.55) 38%,
-    rgba(150, 96, 46, 0.2) 100%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  pointer-events: none;
-}
-
-.round-status .round-target-die { margin: 0; }
-
-.round-target-die {
-  --sz: 56px;
-  width: var(--sz);
-  height: var(--sz);
-  background: radial-gradient(130% 130% at 30% 26%, #ff7e95 0%, #ff4d6d 55%, #e23457 100%);
-  border-radius: 13px;
-  display: grid;
-  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
-  padding: 8px;
-  gap: 3px;
-  margin: 0 auto;
-  transform: rotate(-8deg);
-  box-shadow:
-    inset 0 1px 2px rgba(255, 255, 255, 0.42),
-    inset 0 -3px 6px rgba(150, 12, 42, 0.42),
-    0 0 24px rgba(255, 77, 109, 0.45);
-  filter: drop-shadow(4px 7px 12px rgba(0,0,0,0.95)) drop-shadow(2px 3px 4px rgba(0,0,0,0.8));
-}
-.round-target-die .dot { border-radius: 50%; }
-.round-target-die .dot.active {
-  background: radial-gradient(circle at 42% 34%, #ffffff 0%, #ffe6ec 80%);
-  box-shadow: inset 0 1px 1.5px rgba(130, 12, 38, 0.5), inset 0 -1px 1px rgba(255, 255, 255, 0.5);
-}
-
-/* ── My area ── */
-.my-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 0 1rem 0.75rem;
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* ── Dice zones ── */
-.dice-zones {
-  flex: 1;
-  display: flex;
-  gap: 0.75rem;
-  align-items: stretch;
-  min-height: 0;
-  user-select: none;
-  -webkit-user-select: none;
-}
-.zone-unmatched {
-  flex: 1;
-  position: relative;
-}
-.die-wrapper {
-  position: absolute;
-  filter: drop-shadow(3px 4px 6px rgba(0,0,0,0.14));
-}
-.zone-matched {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  align-content: flex-start;
-  justify-content: flex-end;
-  padding-top: 1rem;
-  width: calc(2 * 56px + 14px);
-  flex-shrink: 0;
-}
-.zone-matched .die-scene:nth-child(3n)   { transform: rotate(3.5deg); }
-.zone-matched .die-scene:nth-child(3n+1) { transform: rotate(-2.5deg); }
-.zone-matched .die-scene:nth-child(3n+2) { transform: rotate(1.5deg); }
-
-/* ── Roll button ── */
-.roll-area {
-  text-align: center;
-  padding-top: 0.85rem;
-  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
-  flex-shrink: 0;
-}
-.btn-roll {
-  font-size: 1.25rem;
-  padding: 0.85rem 3.5rem;
-  background: linear-gradient(180deg, rgba(44, 24, 10, 0.5) 0%, rgba(22, 11, 3, 0.42) 100%);
-  color: rgba(215, 180, 130, 0.82);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
-  touch-action: manipulation;
-  border-top: 1px solid rgba(170, 115, 45, 0.3);
-  border-left: 1px solid rgba(150, 95, 35, 0.22);
-  border-right: 1px solid rgba(120, 75, 25, 0.28);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.65);
-  border-radius: var(--radius);
-  font-weight: 800;
-  cursor: pointer;
-  letter-spacing: 0.12em;
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-  transition: transform 0.07s ease, box-shadow 0.07s ease, background 0.07s ease;
-  box-shadow:
-    inset 0 1px 0 rgba(230, 180, 80, 0.16),
-    inset 0 5px 9px rgba(220, 170, 70, 0.05),
-    inset 0 -2px 5px rgba(0,0,0,0.45),
-    0 5px 16px rgba(0,0,0,0.75),
-    0 2px 5px rgba(0,0,0,0.55);
-}
-.btn-roll:hover:not(:disabled) {
-  background: linear-gradient(180deg, rgba(54, 30, 12, 0.56) 0%, rgba(30, 15, 5, 0.48) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 210, 90, 0.24),
-    inset 0 5px 9px rgba(230, 180, 80, 0.07),
-    inset 0 -2px 5px rgba(0,0,0,0.45),
-    0 7px 20px rgba(0,0,0,0.8),
-    0 3px 6px rgba(0,0,0,0.6);
-}
-.btn-roll:active:not(:disabled) {
-  transform: translateY(3px);
-  background: rgba(15, 7, 2, 0.55);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 210, 90, 0.1),
-    inset 0 -1px 2px rgba(0,0,0,0.3),
-    0 2px 6px rgba(0,0,0,0.6),
-    0 1px 2px rgba(0,0,0,0.4);
-}
-.btn-roll:disabled {
-  background: rgba(10,5,1,0.25);
-  border-color: rgba(100,70,20,0.2);
-  color: rgba(180,140,80,0.2);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-  cursor: not-allowed;
-  backdrop-filter: none;
-}
-
-@media (max-width: 480px) {
-  .zone-matched { width: calc(2 * 50px + 14px); }
-}
-@media (max-height: 700px) {
-  .round-status { margin: 0.85rem auto 0.7rem; }
-  .roll-area {
-    padding-top: 0.5rem;
-    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+@layer components {
+  .game-screen {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    block-size: 100%;
+    max-block-size: 100%;
+    overflow: hidden;
   }
-}
-@media (max-height: 600px) {
-  .round-status { margin: 0.5rem auto; padding: 0.55rem 0.85rem 0.7rem; }
-  .zone-matched { width: calc(2 * 46px + 14px); }
-  .round-target-die { --sz: 46px; }
+
+  /* Round status card */
+  .round-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.55rem;
+    flex-shrink: 0;
+    inline-size: min(240px, 76%);
+    margin: 1.6rem auto 0.4rem;
+    text-align: center;
+  }
+
+  .round-label {
+    display: inline-block;
+    position: relative;
+    padding: 0.34rem 0.9rem;
+    background: rgba(30, 15, 6, 0.22);
+    border-radius: 999px;
+    box-shadow:
+      inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.42),
+      inset 2px -2px 6px rgba(70, 28, 8, 0.4),
+      2px -2px 9px rgba(255, 186, 102, 0.42),
+      5px -5px 22px rgba(246, 152, 62, 0.3),
+      0 3px 9px rgba(0, 0, 0, 0.45);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-text-warm);
+    text-shadow: var(--shadow-text);
+  }
+
+  .round-label::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(to bottom left,
+      rgba(252, 200, 126, 0.95) 0%,
+      rgba(216, 148, 80, 0.55) 38%,
+      rgba(150, 96, 46, 0.2) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .round-status .round-target-die { margin: 0; }
+
+  .round-target-die {
+    --sz: 56px;
+    display: grid;
+    grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+    gap: 3px;
+    inline-size: var(--sz);
+    block-size: var(--sz);
+    margin: 0 auto;
+    padding: 8px;
+    background: radial-gradient(130% 130% at 30% 26%, #ff7e95 0%, #ff4d6d 55%, #e23457 100%);
+    border-radius: 13px;
+    box-shadow:
+      inset 0 1px 2px rgba(255, 255, 255, 0.42),
+      inset 0 -3px 6px rgba(150, 12, 42, 0.42),
+      0 0 24px rgba(255, 77, 109, 0.45);
+    filter: drop-shadow(4px 7px 12px rgba(0, 0, 0, 0.95)) drop-shadow(2px 3px 4px rgba(0, 0, 0, 0.8));
+    transform: rotate(-8deg);
+  }
+
+  .round-target-die .dot { border-radius: 50%; }
+
+  .round-target-die .dot.active {
+    background: radial-gradient(circle at 42% 34%, #ffffff 0%, #ffe6ec 80%);
+    box-shadow: inset 0 1px 1.5px rgba(130, 12, 38, 0.5), inset 0 -1px 1px rgba(255, 255, 255, 0.5);
+  }
+
+  /* My area */
+  .my-area {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-block-size: 0;
+    padding: 0 1rem 0.75rem;
+    overflow: hidden;
+  }
+
+  /* Dice zones */
+  .dice-zones {
+    display: flex;
+    align-items: stretch;
+    gap: 0.75rem;
+    flex: 1;
+    min-block-size: 0;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .zone-unmatched {
+    position: relative;
+    flex: 1;
+  }
+
+  .die-wrapper {
+    position: absolute;
+    filter: drop-shadow(3px 4px 6px rgba(0, 0, 0, 0.14));
+  }
+
+  /* While a view transition into the board is animating, the 3-D dice are
+     held invisible so the transition never rasterizes them (WebKit flattens
+     preserve-3d in the capture — dice mis-render as 6s or vanish edge-on).
+     transitions.js adds/removes the class around the swap; the flat 2-D
+     round-target die is unaffected and stays visible. */
+  .game-screen.vt-settling .die-scene { visibility: hidden; }
+
+  .zone-matched {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    justify-content: flex-end;
+    gap: 14px;
+    flex-shrink: 0;
+    inline-size: calc(2 * 56px + 14px);
+    padding-block-start: 1rem;
+  }
+
+  .zone-matched .die-scene:nth-child(3n) { transform: rotate(3.5deg); }
+  .zone-matched .die-scene:nth-child(3n+1) { transform: rotate(-2.5deg); }
+  .zone-matched .die-scene:nth-child(3n+2) { transform: rotate(1.5deg); }
+
+  /* Roll button */
+  .roll-area {
+    flex-shrink: 0;
+    padding-block-start: 0.85rem;
+    padding-block-end: calc(1.5rem + env(safe-area-inset-bottom));
+    text-align: center;
+  }
+
+  .btn-roll {
+    padding: 0.85rem 3.5rem;
+    background: linear-gradient(180deg, rgba(44, 24, 10, 0.5) 0%, rgba(22, 11, 3, 0.42) 100%);
+    border-block-start: 1px solid rgba(170, 115, 45, 0.3);
+    border-inline-start: 1px solid rgba(150, 95, 35, 0.22);
+    border-inline-end: 1px solid rgba(120, 75, 25, 0.28);
+    border-block-end: 1px solid rgba(0, 0, 0, 0.65);
+    border-radius: var(--radius-md);
+    box-shadow:
+      inset 0 1px 0 rgba(230, 180, 80, 0.16),
+      inset 0 5px 9px rgba(220, 170, 70, 0.05),
+      inset 0 -2px 5px rgba(0, 0, 0, 0.45),
+      0 5px 16px rgba(0, 0, 0, 0.75),
+      0 2px 5px rgba(0, 0, 0, 0.55);
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: rgba(215, 180, 130, 0.82);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+    cursor: pointer;
+    touch-action: manipulation;
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    transition: transform 0.07s ease, box-shadow 0.07s ease, background 0.07s ease;
+  }
+
+  .btn-roll:hover:not(:disabled) {
+    background: linear-gradient(180deg, rgba(54, 30, 12, 0.56) 0%, rgba(30, 15, 5, 0.48) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 210, 90, 0.24),
+      inset 0 5px 9px rgba(230, 180, 80, 0.07),
+      inset 0 -2px 5px rgba(0, 0, 0, 0.45),
+      0 7px 20px rgba(0, 0, 0, 0.8),
+      0 3px 6px rgba(0, 0, 0, 0.6);
+  }
+
+  .btn-roll:active:not(:disabled) {
+    background: rgba(15, 7, 2, 0.55);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 210, 90, 0.1),
+      inset 0 -1px 2px rgba(0, 0, 0, 0.3),
+      0 2px 6px rgba(0, 0, 0, 0.6),
+      0 1px 2px rgba(0, 0, 0, 0.4);
+    transform: translateY(3px);
+  }
+
+  .btn-roll:disabled {
+    background: rgba(10, 5, 1, 0.25);
+    border-color: rgba(100, 70, 20, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    color: rgba(180, 140, 80, 0.2);
+    cursor: not-allowed;
+    backdrop-filter: none;
+  }
+
+  @media (max-width: 480px) {
+    .zone-matched { inline-size: calc(2 * 50px + 14px); }
+  }
+
+  @media (max-height: 700px) {
+    .round-status { margin: 0.85rem auto 0.7rem; }
+
+    .roll-area {
+      padding-block-start: 0.5rem;
+      padding-block-end: calc(0.75rem + env(safe-area-inset-bottom));
+    }
+  }
+
+  @media (max-height: 600px) {
+    .round-status { margin: 0.5rem auto; padding: 0.55rem 0.85rem 0.7rem; }
+    .zone-matched { inline-size: calc(2 * 46px + 14px); }
+    .round-target-die { --sz: 46px; }
+  }
 }

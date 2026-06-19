@@ -5,9 +5,12 @@ import uuid
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+import jwt as pyjwt
+
 from . import gamestore, state
 from .broadcast import advance_round, broadcast, delayed_broadcast, drop_player, pause_timeout, send
 from .config import (
+    JWT_SECRET,
     ALLOWED_ORIGINS,
     CREATE_RATE_MAX,
     CREATE_RATE_WINDOW,
@@ -33,6 +36,8 @@ class Session:
     """Mutable per-connection state shared between the receive loop and action handlers."""
     __slots__ = (
         "ws", "pid", "code", "name", "ip",
+        # Authenticated account (set by handle_auth if the client sends a JWT).
+        "user_id", "username",
         # Telemetry meta — populated on connect, used by send() and the
         # disconnect finally block to attribute counters and emit lifecycle
         # events. Cheap (one allocation per WS), no global maps required.
@@ -60,6 +65,8 @@ class Session:
         self.bytes_out = 0
         self.rolls = 0
         self.games_joined = 0
+        self.user_id: str | None = None
+        self.username: str | None = None
         self.session_started_emitted = False
         self.send_lock = asyncio.Lock()
         self.pinger: Pinger | None = None
@@ -80,8 +87,31 @@ def _ensure_session_started(session: Session) -> None:
          peer=session.peer, user_agent=session.user_agent)
 
 
+async def handle_auth(session: Session, msg: dict) -> None:
+    """Authenticate the WS session with a JWT from the passkey auth flow."""
+    token = msg.get("token", "")
+    try:
+        payload = pyjwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        session.user_id = payload.get("sub")
+        session.username = payload.get("username")
+        # Use the account UUID as the player ID so telemetry and game state
+        # are keyed by the durable account, not the ephemeral session PID.
+        session.pid = session.user_id
+        await send(session.ws, {
+            "type": "auth_ok",
+            "username": session.username,
+            "user_id": session.user_id,
+            "player_id": session.pid,
+        })
+        log.info("auth     pid=%s  user=%s", session.pid[:8], session.username)
+    except pyjwt.InvalidTokenError:
+        await _error(session.ws, "Invalid auth token")
+
+
 async def handle_create(session: Session, msg: dict) -> None:
-    name = sanitize_name(msg.get("name") or "Player") or "Player"
+    # Signed-in users use their account username as the player name.
+    raw_name = session.username or msg.get("name") or "Player"
+    name = sanitize_name(raw_name) or "Player"
     session.name = name
     if not await gamestore.rate_allow("create", session.ip, CREATE_RATE_MAX, CREATE_RATE_WINDOW):
         log.warning("create   ip=%s  RATE LIMIT", session.ip)
@@ -110,7 +140,8 @@ async def handle_create(session: Session, msg: dict) -> None:
 
 async def handle_join(session: Session, msg: dict) -> None:
     join_code = (msg.get("code") or "").upper().strip()
-    name = sanitize_name(msg.get("name") or "Player") or "Player"
+    raw_name = session.username or msg.get("name") or "Player"
+    name = sanitize_name(raw_name) or "Player"
     session.name = name
     if not await gamestore.rate_allow("join", session.ip, JOIN_RATE_MAX, JOIN_RATE_WINDOW):
         log.warning("join     ip=%s  RATE LIMIT", session.ip)
@@ -233,11 +264,20 @@ async def handle_roll(session: Session, msg: dict) -> None:
         "has_rolled": player["has_rolled"],
         "roll_count": player["roll_count"],
     }
-    result = apply_roll(p, target)
+
+    # Generate dice values (drand-derived when enabled, else random).
+    # Always derive 10 so the verify endpoint can re-derive without knowing
+    # the locked state; apply_roll consumes the first N (unlocked count).
+    from server.drand import generate_dice
+    dice_values, drand_round = generate_dice(
+        session.pid, p["roll_count"] + 1, code, num_dice=10,
+    )
+    result = apply_roll(p, target, dice_values=dice_values)
     matched = result["matched"]
     await gamestore.set_player_after_roll(
         code, session.pid, dice=p["dice"], locked=p["locked"],
         roll_count=p["roll_count"], last_roll_ms=now_ms,
+        drand_round=drand_round,
     )
     total_rolls, round_seq = await gamestore.incr_counters(code)
     session.rolls += 1
@@ -262,7 +302,8 @@ async def handle_roll(session: Session, msg: dict) -> None:
          dice_before=result["dice_before"],
          dice_after=result["dice_after"],
          locked_before=result["locked_before"],
-         locked_after=result["locked_after"])
+         locked_after=result["locked_after"],
+         drand_round=drand_round)
 
     if matched == 10:
         # Atomic CAS: only the first finisher across all instances wins.
@@ -347,6 +388,42 @@ async def handle_pause(session: Session, msg: dict) -> None:
             await broadcast(code, state_msg(snap, code))
 
 
+async def handle_end_game(session: Session, msg: dict) -> None:
+    """Host-only: end the game immediately, broadcasting final stats to all."""
+    code = session.code
+    if not code:
+        return
+    meta = await gamestore.get_meta(code)
+    if meta is None or meta["host"] != session.pid or not meta["started"]:
+        return
+    snap = await gamestore.snapshot(code)
+    if snap is None:
+        return
+    log.info("end_game game=%s  by=%s", code, session.name)
+    duration_ms = gamestore.now_ms() - snap["created_ms"]
+    emit("game_ended", game_code=code, reason="host_ended",
+         duration_ms=duration_ms, round_count=snap["round_count"],
+         total_rolls=snap["total_rolls"])
+    metrics.games_ended_total.labels(reason="host_ended").inc()
+    metrics.game_duration_seconds.observe(duration_ms / 1000.0)
+    # Build the game_ended frame with final player stats.
+    ended_msg = {
+        "type": "game_ended",
+        "ended_by": session.name,
+        "round_num": snap["round_num"],
+        "players": {
+            pid: {"name": p["name"], "wins": p["wins"]}
+            for pid, p in snap["players"].items()
+        },
+    }
+    await broadcast(code, ended_msg)
+    await gamestore.delete_game(code)
+    state.connections.pop(code, None)
+    t = state.pause_tasks.pop(code, None)
+    if t:
+        t.cancel()
+
+
 async def handle_roll_done(session: Session, msg: dict) -> None:
     ev = state.ack_events.get(session.pid)
     if ev is not None:
@@ -359,12 +436,14 @@ async def handle_pong(session: Session, msg: dict) -> None:
 
 
 ACTIONS = {
+    "auth": handle_auth,
     "create": handle_create,
     "join": handle_join,
     "start": handle_start,
     "reconnect": handle_reconnect,
     "roll": handle_roll,
     "pause": handle_pause,
+    "end_game": handle_end_game,
     "roll_done": handle_roll_done,
     "pong": handle_pong,
 }

@@ -1,0 +1,3717 @@
+{
+  "exported": "2026-06-14T21:33:45.788Z",
+  "fieldNotes": "In home office playing music at moderate volume. Phone volume is at half way.",
+  "device": {
+    "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
+    "platform": "iPhone",
+    "screen": {
+      "width": 430,
+      "height": 932,
+      "dpr": 3
+    },
+    "viewport": {
+      "width": 365,
+      "height": 608
+    },
+    "audioInputs": [
+      {
+        "label": "iPhone Microphone",
+        "deviceId": "87E0682D..."
+      }
+    ],
+    "audioOutputs": [
+      {
+        "label": "Default - Speaker",
+        "deviceId": "default..."
+      },
+      {
+        "label": "Speaker",
+        "deviceId": "2FA8D53B..."
+      },
+      {
+        "label": "Receiver",
+        "deviceId": "5E2383A2..."
+      }
+    ],
+    "sampleRate": 48000,
+    "baseLatency": 0.0026666666666666666,
+    "outputLatency": 0,
+    "maxChannelCount": 2,
+    "micSettings": {
+      "sampleRate": 48000,
+      "echoCancellation": false,
+      "deviceId": "87E0682D...",
+      "label": "iPhone Microphone"
+    },
+    "ambientNoise": {
+      "peakDb": -66.4,
+      "avgDb": null,
+      "samples": 33,
+      "durationMs": 500
+    },
+    "location": {
+      "lat": 33.141,
+      "lng": -96.704,
+      "accuracy": 11
+    }
+  },
+  "sessions": [
+    {
+      "voiceId": "current",
+      "voiceName": "Current (Pure Sine)",
+      "timestamp": "2026-06-14T21:19:47.306Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "sine",
+        "envelope": "linear",
+        "toneMs": 150,
+        "toneGain": 1
+      },
+      "summary": {
+        "passed": 6,
+        "failed": 0,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": "HELLO",
+          "pass": true,
+          "ms": 1700,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -61,
+          "floorDb": -95,
+          "log": [
+            "[0.30s] START tone (frame #1)",
+            "[1.70s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+            "[1.70s] decoded: HELLO (direct match, frame #1)",
+            "  signal: peak -61 dB, floor -95 dB, margin 35 dB"
+          ]
+        },
+        {
+          "code": "AABCD",
+          "decoded": "AABCD",
+          "pass": true,
+          "ms": 1660,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -61,
+          "floorDb": -91,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.66s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+            "[1.66s] decoded: AABCD (direct match, frame #1)",
+            "  signal: peak -61 dB, floor -91 dB, margin 31 dB"
+          ]
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": "ZZZZY",
+          "pass": true,
+          "ms": 1657,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -62,
+          "floorDb": -93,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.66s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+            "[1.66s] decoded: ZZZZY (direct match, frame #1)",
+            "  signal: peak -62 dB, floor -93 dB, margin 31 dB"
+          ]
+        },
+        {
+          "code": "ABCDE",
+          "decoded": "ABCDE",
+          "pass": true,
+          "ms": 1659,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -60,
+          "floorDb": -96,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.66s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+            "[1.66s] decoded: ABCDE (direct match, frame #1)",
+            "  signal: peak -60 dB, floor -96 dB, margin 36 dB"
+          ]
+        },
+        {
+          "code": "KZOSH",
+          "decoded": "KZOSH",
+          "pass": true,
+          "ms": 1658,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -60,
+          "floorDb": -93,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.66s] END — heard \"KZOSHW\" (chk: expected W, got W) VALID",
+            "[1.66s] decoded: KZOSH (direct match, frame #1)",
+            "  signal: peak -60 dB, floor -93 dB, margin 33 dB"
+          ]
+        },
+        {
+          "code": "WTVGR",
+          "decoded": "WTVGR",
+          "pass": true,
+          "ms": 1658,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -60,
+          "floorDb": -96,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.66s] END — heard \"WTVGRH\" (chk: expected H, got H) VALID",
+            "[1.66s] decoded: WTVGR (direct match, frame #1)",
+            "  signal: peak -60 dB, floor -96 dB, margin 35 dB"
+          ]
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[0.30s] START tone (frame #1)",
+        "[1.70s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+        "[1.70s] decoded: HELLO (direct match, frame #1)",
+        "  signal: peak -61 dB, floor -95 dB, margin 35 dB",
+        "--- testing AABCD ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.66s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+        "[1.66s] decoded: AABCD (direct match, frame #1)",
+        "  signal: peak -61 dB, floor -91 dB, margin 31 dB",
+        "--- testing ZZZZY ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.66s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+        "[1.66s] decoded: ZZZZY (direct match, frame #1)",
+        "  signal: peak -62 dB, floor -93 dB, margin 31 dB",
+        "--- testing ABCDE ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.66s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+        "[1.66s] decoded: ABCDE (direct match, frame #1)",
+        "  signal: peak -60 dB, floor -96 dB, margin 36 dB",
+        "--- testing KZOSH ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.66s] END — heard \"KZOSHW\" (chk: expected W, got W) VALID",
+        "[1.66s] decoded: KZOSH (direct match, frame #1)",
+        "  signal: peak -60 dB, floor -93 dB, margin 33 dB",
+        "--- testing WTVGR ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.66s] END — heard \"WTVGRH\" (chk: expected H, got H) VALID",
+        "[1.66s] decoded: WTVGR (direct match, frame #1)",
+        "  signal: peak -60 dB, floor -96 dB, margin 35 dB"
+      ]
+    },
+    {
+      "voiceId": "soft-sine",
+      "voiceName": "Soft Sine",
+      "timestamp": "2026-06-14T21:19:58.630Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "sine",
+        "envelope": "exponential",
+        "toneMs": 160,
+        "toneGain": 0.85
+      },
+      "summary": {
+        "passed": 6,
+        "failed": 0,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": "HELLO",
+          "pass": true,
+          "ms": 1779,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -62,
+          "floorDb": -94,
+          "log": [
+            "[0.32s] START tone (frame #1)",
+            "[1.78s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+            "[1.78s] decoded: HELLO (direct match, frame #1)",
+            "  signal: peak -62 dB, floor -94 dB, margin 31 dB"
+          ]
+        },
+        {
+          "code": "AABCD",
+          "decoded": "AABCD",
+          "pass": true,
+          "ms": 1738,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -61,
+          "floorDb": -96,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.74s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+            "[1.74s] decoded: AABCD (direct match, frame #1)",
+            "  signal: peak -61 dB, floor -96 dB, margin 35 dB"
+          ]
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": "ZZZZY",
+          "pass": true,
+          "ms": 1739,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -62,
+          "floorDb": -92,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.74s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+            "[1.74s] decoded: ZZZZY (direct match, frame #1)",
+            "  signal: peak -62 dB, floor -92 dB, margin 30 dB"
+          ]
+        },
+        {
+          "code": "ABCDE",
+          "decoded": "ABCDE",
+          "pass": true,
+          "ms": 1741,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -93,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.74s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+            "[1.74s] decoded: ABCDE (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -93 dB, margin 30 dB"
+          ]
+        },
+        {
+          "code": "TIQES",
+          "decoded": "TIQES",
+          "pass": true,
+          "ms": 1740,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -62,
+          "floorDb": -94,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.74s] END — heard \"TIQESN\" (chk: expected N, got N) VALID",
+            "[1.74s] decoded: TIQES (direct match, frame #1)",
+            "  signal: peak -62 dB, floor -94 dB, margin 31 dB"
+          ]
+        },
+        {
+          "code": "ABPZA",
+          "decoded": "ABPZA",
+          "pass": true,
+          "ms": 1739,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -92,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.74s] END — heard \"ABPZAP\" (chk: expected P, got P) VALID",
+            "[1.74s] decoded: ABPZA (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -92 dB, margin 29 dB"
+          ]
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[0.32s] START tone (frame #1)",
+        "[1.78s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+        "[1.78s] decoded: HELLO (direct match, frame #1)",
+        "  signal: peak -62 dB, floor -94 dB, margin 31 dB",
+        "--- testing AABCD ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.74s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+        "[1.74s] decoded: AABCD (direct match, frame #1)",
+        "  signal: peak -61 dB, floor -96 dB, margin 35 dB",
+        "--- testing ZZZZY ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.74s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+        "[1.74s] decoded: ZZZZY (direct match, frame #1)",
+        "  signal: peak -62 dB, floor -92 dB, margin 30 dB",
+        "--- testing ABCDE ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.74s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+        "[1.74s] decoded: ABCDE (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -93 dB, margin 30 dB",
+        "--- testing TIQES ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.74s] END — heard \"TIQESN\" (chk: expected N, got N) VALID",
+        "[1.74s] decoded: TIQES (direct match, frame #1)",
+        "  signal: peak -62 dB, floor -94 dB, margin 31 dB",
+        "--- testing ABPZA ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.74s] END — heard \"ABPZAP\" (chk: expected P, got P) VALID",
+        "[1.74s] decoded: ABPZA (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -92 dB, margin 29 dB"
+      ]
+    },
+    {
+      "voiceId": "triangle",
+      "voiceName": "Triangle Wave",
+      "timestamp": "2026-06-14T21:20:09.237Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "triangle",
+        "envelope": "linear",
+        "toneMs": 150,
+        "toneGain": 1
+      },
+      "summary": {
+        "passed": 6,
+        "failed": 0,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": "HELLO",
+          "pass": true,
+          "ms": 1720,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -88,
+          "log": [
+            "[0.32s] START tone (frame #1)",
+            "[1.72s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+            "[1.72s] decoded: HELLO (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -88 dB, margin 25 dB"
+          ]
+        },
+        {
+          "code": "AABCD",
+          "decoded": "AABCD",
+          "pass": true,
+          "ms": 1659,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -93,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.66s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+            "[1.66s] decoded: AABCD (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -93 dB, margin 29 dB"
+          ]
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": "ZZZZY",
+          "pass": true,
+          "ms": 1660,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -62,
+          "floorDb": -91,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.66s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+            "[1.66s] decoded: ZZZZY (direct match, frame #1)",
+            "  signal: peak -62 dB, floor -91 dB, margin 29 dB"
+          ]
+        },
+        {
+          "code": "ABCDE",
+          "decoded": "ABCDE",
+          "pass": true,
+          "ms": 1658,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -91,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.66s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+            "[1.66s] decoded: ABCDE (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -91 dB, margin 28 dB"
+          ]
+        },
+        {
+          "code": "MLLKZ",
+          "decoded": "MLLKZ",
+          "pass": true,
+          "ms": 1658,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -93,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.66s] END — heard \"MLLKZR\" (chk: expected R, got R) VALID",
+            "[1.66s] decoded: MLLKZ (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -93 dB, margin 30 dB"
+          ]
+        },
+        {
+          "code": "FISMP",
+          "decoded": "FISMP",
+          "pass": true,
+          "ms": 1655,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -94,
+          "log": [
+            "[0.27s] START tone (frame #1)",
+            "[1.65s] END — heard \"FISMPG\" (chk: expected G, got G) VALID",
+            "[1.65s] decoded: FISMP (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -94 dB, margin 32 dB"
+          ]
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[0.32s] START tone (frame #1)",
+        "[1.72s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+        "[1.72s] decoded: HELLO (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -88 dB, margin 25 dB",
+        "--- testing AABCD ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.66s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+        "[1.66s] decoded: AABCD (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -93 dB, margin 29 dB",
+        "--- testing ZZZZY ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.66s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+        "[1.66s] decoded: ZZZZY (direct match, frame #1)",
+        "  signal: peak -62 dB, floor -91 dB, margin 29 dB",
+        "--- testing ABCDE ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.66s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+        "[1.66s] decoded: ABCDE (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -91 dB, margin 28 dB",
+        "--- testing MLLKZ ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.66s] END — heard \"MLLKZR\" (chk: expected R, got R) VALID",
+        "[1.66s] decoded: MLLKZ (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -93 dB, margin 30 dB",
+        "--- testing FISMP ---",
+        "[0.27s] START tone (frame #1)",
+        "[1.65s] END — heard \"FISMPG\" (chk: expected G, got G) VALID",
+        "[1.65s] decoded: FISMP (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -94 dB, margin 32 dB"
+      ]
+    },
+    {
+      "voiceId": "bell",
+      "voiceName": "Bell / Celesta",
+      "timestamp": "2026-06-14T21:20:19.437Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "sine",
+        "envelope": "bell",
+        "toneMs": 170,
+        "toneGain": 0.9,
+        "overtones": [
+          {
+            "ratio": 2,
+            "gain": 0.15
+          },
+          {
+            "ratio": 3,
+            "gain": 0.05
+          }
+        ]
+      },
+      "summary": {
+        "passed": 6,
+        "failed": 0,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": "HELLO",
+          "pass": true,
+          "ms": 1818,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -92,
+          "log": [
+            "[0.30s] START tone (frame #1)",
+            "[1.82s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+            "[1.82s] decoded: HELLO (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -92 dB, margin 29 dB"
+          ]
+        },
+        {
+          "code": "AABCD",
+          "decoded": "AABCD",
+          "pass": true,
+          "ms": 1780,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -64,
+          "floorDb": -92,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.78s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+            "[1.78s] decoded: AABCD (direct match, frame #1)",
+            "  signal: peak -64 dB, floor -92 dB, margin 27 dB"
+          ]
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": "ZZZZY",
+          "pass": true,
+          "ms": 1777,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -64,
+          "floorDb": -94,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.78s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+            "[1.78s] decoded: ZZZZY (direct match, frame #1)",
+            "  signal: peak -64 dB, floor -94 dB, margin 30 dB"
+          ]
+        },
+        {
+          "code": "ABCDE",
+          "decoded": "ABCDE",
+          "pass": true,
+          "ms": 1780,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -64,
+          "floorDb": -91,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.78s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+            "[1.78s] decoded: ABCDE (direct match, frame #1)",
+            "  signal: peak -64 dB, floor -91 dB, margin 27 dB"
+          ]
+        },
+        {
+          "code": "SIWIN",
+          "decoded": "SIWIN",
+          "pass": true,
+          "ms": 1779,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -91,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.78s] END — heard \"SIWINR\" (chk: expected R, got R) VALID",
+            "[1.78s] decoded: SIWIN (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -91 dB, margin 27 dB"
+          ]
+        },
+        {
+          "code": "IGVMI",
+          "decoded": "IGVMI",
+          "pass": true,
+          "ms": 1776,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -92,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.77s] END — heard \"IGVMID\" (chk: expected D, got D) VALID",
+            "[1.77s] decoded: IGVMI (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -92 dB, margin 29 dB"
+          ]
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[0.30s] START tone (frame #1)",
+        "[1.82s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+        "[1.82s] decoded: HELLO (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -92 dB, margin 29 dB",
+        "--- testing AABCD ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.78s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+        "[1.78s] decoded: AABCD (direct match, frame #1)",
+        "  signal: peak -64 dB, floor -92 dB, margin 27 dB",
+        "--- testing ZZZZY ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.78s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+        "[1.78s] decoded: ZZZZY (direct match, frame #1)",
+        "  signal: peak -64 dB, floor -94 dB, margin 30 dB",
+        "--- testing ABCDE ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.78s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+        "[1.78s] decoded: ABCDE (direct match, frame #1)",
+        "  signal: peak -64 dB, floor -91 dB, margin 27 dB",
+        "--- testing SIWIN ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.78s] END — heard \"SIWINR\" (chk: expected R, got R) VALID",
+        "[1.78s] decoded: SIWIN (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -91 dB, margin 27 dB",
+        "--- testing IGVMI ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.77s] END — heard \"IGVMID\" (chk: expected D, got D) VALID",
+        "[1.77s] decoded: IGVMI (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -92 dB, margin 29 dB"
+      ]
+    },
+    {
+      "voiceId": "marimba",
+      "voiceName": "Marimba",
+      "timestamp": "2026-06-14T21:20:30.253Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "triangle",
+        "envelope": "percussive",
+        "toneMs": 160,
+        "toneGain": 1
+      },
+      "summary": {
+        "passed": 4,
+        "failed": 2,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": "HELLO",
+          "pass": true,
+          "ms": 1760,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -64,
+          "floorDb": -94,
+          "log": [
+            "[0.32s] START tone (frame #1)",
+            "[1.76s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+            "[1.76s] decoded: HELLO (direct match, frame #1)",
+            "  signal: peak -64 dB, floor -94 dB, margin 30 dB"
+          ]
+        },
+        {
+          "code": "AABCD",
+          "decoded": null,
+          "pass": false,
+          "ms": 8582,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -66,
+          "floorDb": -92,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[2.12s] START tone (frame #2)",
+            "[3.58s] END — heard \"ABCDG\" (chk: expected M, got ?) INVALID",
+            "  dropped (wrong length: 5)",
+            "[4.01s] START tone (frame #3)",
+            "[5.44s] END — heard \"ABCDG\" (chk: expected M, got ?) INVALID",
+            "  dropped (wrong length: 5)",
+            "[8.58s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": null,
+          "pass": false,
+          "ms": 8580,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -67,
+          "floorDb": -92,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.72s] END — heard \"ZZZYU\" (chk: expected P, got ?) INVALID",
+            "  dropped (wrong length: 5)",
+            "[2.14s] START tone (frame #2)",
+            "[3.58s] END — heard \"ZZYU\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 4)",
+            "[3.98s] START tone (frame #3)",
+            "[5.44s] END — heard \"ZZZYU\" (chk: expected P, got ?) INVALID",
+            "  dropped (wrong length: 5)",
+            "[8.58s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ABCDE",
+          "decoded": "ABCDE",
+          "pass": true,
+          "ms": 3579,
+          "method": "direct",
+          "frame": 2,
+          "peakDb": -65,
+          "floorDb": -94,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[2.14s] START tone (frame #2)",
+            "[3.58s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+            "[3.58s] decoded: ABCDE (direct match, frame #2)",
+            "  signal: peak -65 dB, floor -94 dB, margin 28 dB"
+          ]
+        },
+        {
+          "code": "WNSAZ",
+          "decoded": "WNSAZ",
+          "pass": true,
+          "ms": 1717,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -67,
+          "floorDb": -91,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.72s] END — heard \"WNSAZA\" (chk: expected A, got A) VALID",
+            "[1.72s] decoded: WNSAZ (direct match, frame #1)",
+            "  signal: peak -67 dB, floor -91 dB, margin 24 dB"
+          ]
+        },
+        {
+          "code": "YYVUK",
+          "decoded": "YYVUK",
+          "pass": true,
+          "ms": 3578,
+          "method": "direct",
+          "frame": 2,
+          "peakDb": -66,
+          "floorDb": -91,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.72s] END — heard \"YVUKV\" (chk: expected S, got ?) INVALID",
+            "  dropped (wrong length: 5)",
+            "[2.14s] START tone (frame #2)",
+            "[3.58s] END — heard \"YYVUKV\" (chk: expected V, got V) VALID",
+            "[3.58s] decoded: YYVUK (direct match, frame #2)",
+            "  signal: peak -66 dB, floor -91 dB, margin 26 dB"
+          ]
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[0.32s] START tone (frame #1)",
+        "[1.76s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+        "[1.76s] decoded: HELLO (direct match, frame #1)",
+        "  signal: peak -64 dB, floor -94 dB, margin 30 dB",
+        "--- testing AABCD ---",
+        "[0.26s] START tone (frame #1)",
+        "[2.12s] START tone (frame #2)",
+        "[3.58s] END — heard \"ABCDG\" (chk: expected M, got ?) INVALID",
+        "  dropped (wrong length: 5)",
+        "[4.01s] START tone (frame #3)",
+        "[5.44s] END — heard \"ABCDG\" (chk: expected M, got ?) INVALID",
+        "  dropped (wrong length: 5)",
+        "[8.58s] TIMEOUT — no valid decode",
+        "--- testing ZZZZY ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.72s] END — heard \"ZZZYU\" (chk: expected P, got ?) INVALID",
+        "  dropped (wrong length: 5)",
+        "[2.14s] START tone (frame #2)",
+        "[3.58s] END — heard \"ZZYU\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 4)",
+        "[3.98s] START tone (frame #3)",
+        "[5.44s] END — heard \"ZZZYU\" (chk: expected P, got ?) INVALID",
+        "  dropped (wrong length: 5)",
+        "[8.58s] TIMEOUT — no valid decode",
+        "--- testing ABCDE ---",
+        "[0.28s] START tone (frame #1)",
+        "[2.14s] START tone (frame #2)",
+        "[3.58s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+        "[3.58s] decoded: ABCDE (direct match, frame #2)",
+        "  signal: peak -65 dB, floor -94 dB, margin 28 dB",
+        "--- testing WNSAZ ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.72s] END — heard \"WNSAZA\" (chk: expected A, got A) VALID",
+        "[1.72s] decoded: WNSAZ (direct match, frame #1)",
+        "  signal: peak -67 dB, floor -91 dB, margin 24 dB",
+        "--- testing YYVUK ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.72s] END — heard \"YVUKV\" (chk: expected S, got ?) INVALID",
+        "  dropped (wrong length: 5)",
+        "[2.14s] START tone (frame #2)",
+        "[3.58s] END — heard \"YYVUKV\" (chk: expected V, got V) VALID",
+        "[3.58s] decoded: YYVUK (direct match, frame #2)",
+        "  signal: peak -66 dB, floor -91 dB, margin 26 dB"
+      ]
+    },
+    {
+      "voiceId": "flute",
+      "voiceName": "Flute / Breath",
+      "timestamp": "2026-06-14T21:20:58.230Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "sine",
+        "envelope": "exponential",
+        "toneMs": 170,
+        "toneGain": 0.8
+      },
+      "summary": {
+        "passed": 6,
+        "failed": 0,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": "HELLO",
+          "pass": true,
+          "ms": 1877,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -94,
+          "log": [
+            "[0.34s] START tone (frame #1)",
+            "[1.88s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+            "[1.88s] decoded: HELLO (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -94 dB, margin 31 dB"
+          ]
+        },
+        {
+          "code": "AABCD",
+          "decoded": "AABCD",
+          "pass": true,
+          "ms": 3818,
+          "method": "direct",
+          "frame": 2,
+          "peakDb": -63,
+          "floorDb": -93,
+          "log": [
+            "[0.30s] START tone (frame #1)",
+            "[1.82s] END — heard \"ABCDG\" (chk: expected M, got ?) INVALID",
+            "  dropped (wrong length: 5)",
+            "[2.28s] START tone (frame #2)",
+            "[3.82s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+            "[3.82s] decoded: AABCD (direct match, frame #2)",
+            "  signal: peak -63 dB, floor -93 dB, margin 30 dB"
+          ]
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": "ZZZZY",
+          "pass": true,
+          "ms": 1839,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -93,
+          "log": [
+            "[0.30s] START tone (frame #1)",
+            "[1.84s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+            "[1.84s] decoded: ZZZZY (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -93 dB, margin 30 dB"
+          ]
+        },
+        {
+          "code": "ABCDE",
+          "decoded": "ABCDE",
+          "pass": true,
+          "ms": 3799,
+          "method": "direct",
+          "frame": 2,
+          "peakDb": -63,
+          "floorDb": -94,
+          "log": [
+            "[0.30s] START tone (frame #1)",
+            "[1.82s] END — heard \"CABCDEK\" (chk: expected I, got ?) INVALID",
+            "  dropped (wrong length: 7)",
+            "[2.28s] START tone (frame #2)",
+            "[3.80s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+            "[3.80s] decoded: ABCDE (direct match, frame #2)",
+            "  signal: peak -63 dB, floor -94 dB, margin 31 dB"
+          ]
+        },
+        {
+          "code": "TPHQR",
+          "decoded": "TPHQR",
+          "pass": true,
+          "ms": 1817,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -95,
+          "log": [
+            "[0.30s] START tone (frame #1)",
+            "[1.82s] END — heard \"TPHQRW\" (chk: expected W, got W) VALID",
+            "[1.82s] decoded: TPHQR (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -95 dB, margin 32 dB"
+          ]
+        },
+        {
+          "code": "TKJZM",
+          "decoded": "TKJZM",
+          "pass": true,
+          "ms": 1839,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -95,
+          "log": [
+            "[0.30s] START tone (frame #1)",
+            "[1.84s] END — heard \"TKJZMX\" (chk: expected X, got X) VALID",
+            "[1.84s] decoded: TKJZM (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -95 dB, margin 32 dB"
+          ]
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[0.34s] START tone (frame #1)",
+        "[1.88s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+        "[1.88s] decoded: HELLO (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -94 dB, margin 31 dB",
+        "--- testing AABCD ---",
+        "[0.30s] START tone (frame #1)",
+        "[1.82s] END — heard \"ABCDG\" (chk: expected M, got ?) INVALID",
+        "  dropped (wrong length: 5)",
+        "[2.28s] START tone (frame #2)",
+        "[3.82s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+        "[3.82s] decoded: AABCD (direct match, frame #2)",
+        "  signal: peak -63 dB, floor -93 dB, margin 30 dB",
+        "--- testing ZZZZY ---",
+        "[0.30s] START tone (frame #1)",
+        "[1.84s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+        "[1.84s] decoded: ZZZZY (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -93 dB, margin 30 dB",
+        "--- testing ABCDE ---",
+        "[0.30s] START tone (frame #1)",
+        "[1.82s] END — heard \"CABCDEK\" (chk: expected I, got ?) INVALID",
+        "  dropped (wrong length: 7)",
+        "[2.28s] START tone (frame #2)",
+        "[3.80s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+        "[3.80s] decoded: ABCDE (direct match, frame #2)",
+        "  signal: peak -63 dB, floor -94 dB, margin 31 dB",
+        "--- testing TPHQR ---",
+        "[0.30s] START tone (frame #1)",
+        "[1.82s] END — heard \"TPHQRW\" (chk: expected W, got W) VALID",
+        "[1.82s] decoded: TPHQR (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -95 dB, margin 32 dB",
+        "--- testing TKJZM ---",
+        "[0.30s] START tone (frame #1)",
+        "[1.84s] END — heard \"TKJZMX\" (chk: expected X, got X) VALID",
+        "[1.84s] decoded: TKJZM (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -95 dB, margin 32 dB"
+      ]
+    },
+    {
+      "voiceId": "chime",
+      "voiceName": "Wind Chime",
+      "timestamp": "2026-06-14T21:21:13.326Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "custom-chime",
+        "envelope": "bell",
+        "toneMs": 180,
+        "toneGain": 0.75
+      },
+      "summary": {
+        "passed": 6,
+        "failed": 0,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": "HELLO",
+          "pass": true,
+          "ms": 3919,
+          "method": "direct",
+          "frame": 2,
+          "peakDb": -66,
+          "floorDb": -90,
+          "log": [
+            "[0.30s] START tone (frame #1)",
+            "[1.88s] END — heard \"HELOV\" (chk: expected F, got ?) INVALID",
+            "  dropped (wrong length: 5)",
+            "[2.34s] START tone (frame #2)",
+            "[3.92s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+            "[3.92s] decoded: HELLO (direct match, frame #2)",
+            "  signal: peak -66 dB, floor -90 dB, margin 24 dB"
+          ]
+        },
+        {
+          "code": "AABCD",
+          "decoded": "AABCD",
+          "pass": true,
+          "ms": 1839,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -67,
+          "floorDb": -96,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.84s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+            "[1.84s] decoded: AABCD (direct match, frame #1)",
+            "  signal: peak -67 dB, floor -96 dB, margin 29 dB"
+          ]
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": "ZZZZY",
+          "pass": true,
+          "ms": 3879,
+          "method": "direct",
+          "frame": 2,
+          "peakDb": -67,
+          "floorDb": -94,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.84s] END — heard \"ZZZYU\" (chk: expected P, got ?) INVALID",
+            "  dropped (wrong length: 5)",
+            "[2.30s] START tone (frame #2)",
+            "[3.88s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+            "[3.88s] decoded: ZZZZY (direct match, frame #2)",
+            "  signal: peak -67 dB, floor -94 dB, margin 28 dB"
+          ]
+        },
+        {
+          "code": "ABCDE",
+          "decoded": "ABCDE",
+          "pass": true,
+          "ms": 1837,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -67,
+          "floorDb": -95,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.84s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+            "[1.84s] decoded: ABCDE (direct match, frame #1)",
+            "  signal: peak -67 dB, floor -95 dB, margin 28 dB"
+          ]
+        },
+        {
+          "code": "ERIPK",
+          "decoded": "ERIPK",
+          "pass": true,
+          "ms": 3880,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -65,
+          "floorDb": -91,
+          "log": [
+            "[2.28s] START tone (frame #1)",
+            "[3.88s] END — heard \"ERIPKC\" (chk: expected C, got C) VALID",
+            "[3.88s] decoded: ERIPK (direct match, frame #1)",
+            "  signal: peak -65 dB, floor -91 dB, margin 26 dB"
+          ]
+        },
+        {
+          "code": "MSTLQ",
+          "decoded": "MSTLQ",
+          "pass": true,
+          "ms": 1838,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -65,
+          "floorDb": -95,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.84s] END — heard \"MSTLQY\" (chk: expected Y, got Y) VALID",
+            "[1.84s] decoded: MSTLQ (direct match, frame #1)",
+            "  signal: peak -65 dB, floor -95 dB, margin 30 dB"
+          ]
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[0.30s] START tone (frame #1)",
+        "[1.88s] END — heard \"HELOV\" (chk: expected F, got ?) INVALID",
+        "  dropped (wrong length: 5)",
+        "[2.34s] START tone (frame #2)",
+        "[3.92s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+        "[3.92s] decoded: HELLO (direct match, frame #2)",
+        "  signal: peak -66 dB, floor -90 dB, margin 24 dB",
+        "--- testing AABCD ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.84s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+        "[1.84s] decoded: AABCD (direct match, frame #1)",
+        "  signal: peak -67 dB, floor -96 dB, margin 29 dB",
+        "--- testing ZZZZY ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.84s] END — heard \"ZZZYU\" (chk: expected P, got ?) INVALID",
+        "  dropped (wrong length: 5)",
+        "[2.30s] START tone (frame #2)",
+        "[3.88s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+        "[3.88s] decoded: ZZZZY (direct match, frame #2)",
+        "  signal: peak -67 dB, floor -94 dB, margin 28 dB",
+        "--- testing ABCDE ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.84s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+        "[1.84s] decoded: ABCDE (direct match, frame #1)",
+        "  signal: peak -67 dB, floor -95 dB, margin 28 dB",
+        "--- testing ERIPK ---",
+        "[2.28s] START tone (frame #1)",
+        "[3.88s] END — heard \"ERIPKC\" (chk: expected C, got C) VALID",
+        "[3.88s] decoded: ERIPK (direct match, frame #1)",
+        "  signal: peak -65 dB, floor -91 dB, margin 26 dB",
+        "--- testing MSTLQ ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.84s] END — heard \"MSTLQY\" (chk: expected Y, got Y) VALID",
+        "[1.84s] decoded: MSTLQ (direct match, frame #1)",
+        "  signal: peak -65 dB, floor -95 dB, margin 30 dB"
+      ]
+    },
+    {
+      "voiceId": "kalimba",
+      "voiceName": "Kalimba",
+      "timestamp": "2026-06-14T21:21:30.665Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "sine",
+        "envelope": "percussive",
+        "toneMs": 155,
+        "toneGain": 0.95,
+        "overtones": [
+          {
+            "ratio": 3,
+            "gain": 0.08
+          }
+        ]
+      },
+      "summary": {
+        "passed": 6,
+        "failed": 0,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": "HELLO",
+          "pass": true,
+          "ms": 1740,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -64,
+          "floorDb": -94,
+          "log": [
+            "[0.32s] START tone (frame #1)",
+            "[1.74s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+            "[1.74s] decoded: HELLO (direct match, frame #1)",
+            "  signal: peak -64 dB, floor -94 dB, margin 30 dB"
+          ]
+        },
+        {
+          "code": "AABCD",
+          "decoded": "AABCD",
+          "pass": true,
+          "ms": 1699,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -65,
+          "floorDb": -94,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.70s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+            "[1.70s] decoded: AABCD (direct match, frame #1)",
+            "  signal: peak -65 dB, floor -94 dB, margin 29 dB"
+          ]
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": "ZZZZY",
+          "pass": true,
+          "ms": 1697,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -65,
+          "floorDb": -94,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.70s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+            "[1.70s] decoded: ZZZZY (direct match, frame #1)",
+            "  signal: peak -65 dB, floor -94 dB, margin 30 dB"
+          ]
+        },
+        {
+          "code": "ABCDE",
+          "decoded": "ABCDE",
+          "pass": true,
+          "ms": 1679,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -65,
+          "floorDb": -94,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.68s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+            "[1.68s] decoded: ABCDE (direct match, frame #1)",
+            "  signal: peak -65 dB, floor -94 dB, margin 30 dB"
+          ]
+        },
+        {
+          "code": "DVGZX",
+          "decoded": "DVGZX",
+          "pass": true,
+          "ms": 1678,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -65,
+          "floorDb": -91,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.68s] END — heard \"DVGZXA\" (chk: expected A, got A) VALID",
+            "[1.68s] decoded: DVGZX (direct match, frame #1)",
+            "  signal: peak -65 dB, floor -91 dB, margin 26 dB"
+          ]
+        },
+        {
+          "code": "LOOXB",
+          "decoded": "LOOXB",
+          "pass": true,
+          "ms": 1697,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -65,
+          "floorDb": -94,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.70s] END — heard \"LOOXBL\" (chk: expected L, got L) VALID",
+            "[1.70s] decoded: LOOXB (direct match, frame #1)",
+            "  signal: peak -65 dB, floor -94 dB, margin 30 dB"
+          ]
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[0.32s] START tone (frame #1)",
+        "[1.74s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+        "[1.74s] decoded: HELLO (direct match, frame #1)",
+        "  signal: peak -64 dB, floor -94 dB, margin 30 dB",
+        "--- testing AABCD ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.70s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+        "[1.70s] decoded: AABCD (direct match, frame #1)",
+        "  signal: peak -65 dB, floor -94 dB, margin 29 dB",
+        "--- testing ZZZZY ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.70s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+        "[1.70s] decoded: ZZZZY (direct match, frame #1)",
+        "  signal: peak -65 dB, floor -94 dB, margin 30 dB",
+        "--- testing ABCDE ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.68s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+        "[1.68s] decoded: ABCDE (direct match, frame #1)",
+        "  signal: peak -65 dB, floor -94 dB, margin 30 dB",
+        "--- testing DVGZX ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.68s] END — heard \"DVGZXA\" (chk: expected A, got A) VALID",
+        "[1.68s] decoded: DVGZX (direct match, frame #1)",
+        "  signal: peak -65 dB, floor -91 dB, margin 26 dB",
+        "--- testing LOOXB ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.70s] END — heard \"LOOXBL\" (chk: expected L, got L) VALID",
+        "[1.70s] decoded: LOOXB (direct match, frame #1)",
+        "  signal: peak -65 dB, floor -94 dB, margin 30 dB"
+      ]
+    },
+    {
+      "voiceId": "organ",
+      "voiceName": "Warm Organ",
+      "timestamp": "2026-06-14T21:21:41.070Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "custom-organ",
+        "envelope": "exponential",
+        "toneMs": 155,
+        "toneGain": 0.85
+      },
+      "summary": {
+        "passed": 6,
+        "failed": 0,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": "HELLO",
+          "pass": true,
+          "ms": 1738,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -92,
+          "log": [
+            "[0.32s] START tone (frame #1)",
+            "[1.74s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+            "[1.74s] decoded: HELLO (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -92 dB, margin 29 dB"
+          ]
+        },
+        {
+          "code": "AABCD",
+          "decoded": "AABCD",
+          "pass": true,
+          "ms": 1698,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -64,
+          "floorDb": -93,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.70s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+            "[1.70s] decoded: AABCD (direct match, frame #1)",
+            "  signal: peak -64 dB, floor -93 dB, margin 28 dB"
+          ]
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": "ZZZZY",
+          "pass": true,
+          "ms": 1697,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -65,
+          "floorDb": -93,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.70s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+            "[1.70s] decoded: ZZZZY (direct match, frame #1)",
+            "  signal: peak -65 dB, floor -93 dB, margin 28 dB"
+          ]
+        },
+        {
+          "code": "ABCDE",
+          "decoded": "ABCDE",
+          "pass": true,
+          "ms": 1698,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -93,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.70s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+            "[1.70s] decoded: ABCDE (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -93 dB, margin 29 dB"
+          ]
+        },
+        {
+          "code": "PABTE",
+          "decoded": "PABTE",
+          "pass": true,
+          "ms": 1697,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -64,
+          "floorDb": -91,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.70s] END — heard \"PABTEN\" (chk: expected N, got N) VALID",
+            "[1.70s] decoded: PABTE (direct match, frame #1)",
+            "  signal: peak -64 dB, floor -91 dB, margin 28 dB"
+          ]
+        },
+        {
+          "code": "WJKFQ",
+          "decoded": "WJKFQ",
+          "pass": true,
+          "ms": 1700,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -64,
+          "floorDb": -93,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.70s] END — heard \"WJKFQK\" (chk: expected K, got K) VALID",
+            "[1.70s] decoded: WJKFQ (direct match, frame #1)",
+            "  signal: peak -64 dB, floor -93 dB, margin 29 dB"
+          ]
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[0.32s] START tone (frame #1)",
+        "[1.74s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+        "[1.74s] decoded: HELLO (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -92 dB, margin 29 dB",
+        "--- testing AABCD ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.70s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+        "[1.70s] decoded: AABCD (direct match, frame #1)",
+        "  signal: peak -64 dB, floor -93 dB, margin 28 dB",
+        "--- testing ZZZZY ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.70s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+        "[1.70s] decoded: ZZZZY (direct match, frame #1)",
+        "  signal: peak -65 dB, floor -93 dB, margin 28 dB",
+        "--- testing ABCDE ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.70s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+        "[1.70s] decoded: ABCDE (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -93 dB, margin 29 dB",
+        "--- testing PABTE ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.70s] END — heard \"PABTEN\" (chk: expected N, got N) VALID",
+        "[1.70s] decoded: PABTE (direct match, frame #1)",
+        "  signal: peak -64 dB, floor -91 dB, margin 28 dB",
+        "--- testing WJKFQ ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.70s] END — heard \"WJKFQK\" (chk: expected K, got K) VALID",
+        "[1.70s] decoded: WJKFQ (direct match, frame #1)",
+        "  signal: peak -64 dB, floor -93 dB, margin 29 dB"
+      ]
+    },
+    {
+      "voiceId": "vibes",
+      "voiceName": "Vibraphone",
+      "timestamp": "2026-06-14T21:21:51.473Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "sine",
+        "envelope": "bell",
+        "toneMs": 170,
+        "toneGain": 0.9,
+        "tremolo": {
+          "rate": 5,
+          "depth": 0.15
+        }
+      },
+      "summary": {
+        "passed": 6,
+        "failed": 0,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": "HELLO",
+          "pass": true,
+          "ms": 1816,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -62,
+          "floorDb": -90,
+          "log": [
+            "[0.30s] START tone (frame #1)",
+            "[1.82s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+            "[1.82s] decoded: HELLO (direct match, frame #1)",
+            "  signal: peak -62 dB, floor -90 dB, margin 27 dB"
+          ]
+        },
+        {
+          "code": "AABCD",
+          "decoded": "AABCD",
+          "pass": true,
+          "ms": 1781,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -90,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.78s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+            "[1.78s] decoded: AABCD (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -90 dB, margin 27 dB"
+          ]
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": "ZZZZY",
+          "pass": true,
+          "ms": 1778,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -64,
+          "floorDb": -93,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.78s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+            "[1.78s] decoded: ZZZZY (direct match, frame #1)",
+            "  signal: peak -64 dB, floor -93 dB, margin 29 dB"
+          ]
+        },
+        {
+          "code": "ABCDE",
+          "decoded": "ABCDE",
+          "pass": true,
+          "ms": 1779,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -62,
+          "floorDb": -92,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.78s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+            "[1.78s] decoded: ABCDE (direct match, frame #1)",
+            "  signal: peak -62 dB, floor -92 dB, margin 29 dB"
+          ]
+        },
+        {
+          "code": "FASIP",
+          "decoded": "FASIP",
+          "pass": true,
+          "ms": 1780,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -94,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.78s] END — heard \"FASIPU\" (chk: expected U, got U) VALID",
+            "[1.78s] decoded: FASIP (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -94 dB, margin 31 dB"
+          ]
+        },
+        {
+          "code": "JZROO",
+          "decoded": "JZROO",
+          "pass": true,
+          "ms": 1780,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -62,
+          "floorDb": -93,
+          "log": [
+            "[0.26s] START tone (frame #1)",
+            "[1.78s] END — heard \"JZROOB\" (chk: expected B, got B) VALID",
+            "[1.78s] decoded: JZROO (direct match, frame #1)",
+            "  signal: peak -62 dB, floor -93 dB, margin 30 dB"
+          ]
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[0.30s] START tone (frame #1)",
+        "[1.82s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+        "[1.82s] decoded: HELLO (direct match, frame #1)",
+        "  signal: peak -62 dB, floor -90 dB, margin 27 dB",
+        "--- testing AABCD ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.78s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+        "[1.78s] decoded: AABCD (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -90 dB, margin 27 dB",
+        "--- testing ZZZZY ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.78s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+        "[1.78s] decoded: ZZZZY (direct match, frame #1)",
+        "  signal: peak -64 dB, floor -93 dB, margin 29 dB",
+        "--- testing ABCDE ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.78s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+        "[1.78s] decoded: ABCDE (direct match, frame #1)",
+        "  signal: peak -62 dB, floor -92 dB, margin 29 dB",
+        "--- testing FASIP ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.78s] END — heard \"FASIPU\" (chk: expected U, got U) VALID",
+        "[1.78s] decoded: FASIP (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -94 dB, margin 31 dB",
+        "--- testing JZROO ---",
+        "[0.26s] START tone (frame #1)",
+        "[1.78s] END — heard \"JZROOB\" (chk: expected B, got B) VALID",
+        "[1.78s] decoded: JZROO (direct match, frame #1)",
+        "  signal: peak -62 dB, floor -93 dB, margin 30 dB"
+      ]
+    },
+    {
+      "voiceId": "music-box",
+      "voiceName": "Music Box (Low)",
+      "timestamp": "2026-06-14T21:22:02.285Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "sine",
+        "envelope": "bell",
+        "toneMs": 190,
+        "toneGain": 0.9,
+        "startFreq": 800,
+        "letterBase": 860,
+        "freqStep": 60,
+        "sepFreq": 2420,
+        "endFreq": 2480,
+        "overtones": [
+          {
+            "ratio": 2,
+            "gain": 0.12
+          }
+        ]
+      },
+      "summary": {
+        "passed": 1,
+        "failed": 5,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": null,
+          "pass": false,
+          "ms": 9364,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -71,
+          "floorDb": -90,
+          "log": [
+            "[9.36s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "AABCD",
+          "decoded": null,
+          "pass": false,
+          "ms": 9360,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -64,
+          "floorDb": -72,
+          "log": [
+            "[9.36s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": "ZZZZY",
+          "pass": true,
+          "ms": 1919,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -64,
+          "floorDb": -89,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.92s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+            "[1.92s] decoded: ZZZZY (direct match, frame #1)",
+            "  signal: peak -64 dB, floor -89 dB, margin 24 dB"
+          ]
+        },
+        {
+          "code": "ABCDE",
+          "decoded": null,
+          "pass": false,
+          "ms": 9361,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -63,
+          "floorDb": -89,
+          "log": [
+            "[9.36s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "HQIQW",
+          "decoded": null,
+          "pass": false,
+          "ms": 9361,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -63,
+          "floorDb": -91,
+          "log": [
+            "[9.36s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "OCQLJ",
+          "decoded": null,
+          "pass": false,
+          "ms": 9360,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -64,
+          "floorDb": -88,
+          "log": [
+            "[0.74s] START tone (frame #1)",
+            "[1.92s] END — heard \"QLJ\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 3)",
+            "[9.36s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[9.36s] TIMEOUT — no valid decode",
+        "--- testing AABCD ---",
+        "[9.36s] TIMEOUT — no valid decode",
+        "--- testing ZZZZY ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.92s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+        "[1.92s] decoded: ZZZZY (direct match, frame #1)",
+        "  signal: peak -64 dB, floor -89 dB, margin 24 dB",
+        "--- testing ABCDE ---",
+        "[9.36s] TIMEOUT — no valid decode",
+        "--- testing HQIQW ---",
+        "[9.36s] TIMEOUT — no valid decode",
+        "--- testing OCQLJ ---",
+        "[0.74s] START tone (frame #1)",
+        "[1.92s] END — heard \"QLJ\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 3)",
+        "[9.36s] TIMEOUT — no valid decode"
+      ]
+    },
+    {
+      "voiceId": "xylophone-low",
+      "voiceName": "Toy Xylophone",
+      "timestamp": "2026-06-14T21:22:51.107Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "triangle",
+        "envelope": "percussive",
+        "toneMs": 160,
+        "toneGain": 1,
+        "startFreq": 700,
+        "letterBase": 760,
+        "freqStep": 60,
+        "sepFreq": 2320,
+        "endFreq": 2380
+      },
+      "summary": {
+        "passed": 0,
+        "failed": 6,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": null,
+          "pass": false,
+          "ms": 8580,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -63,
+          "floorDb": -87,
+          "log": [
+            "[5.94s] START tone (frame #1)",
+            "[6.76s] START tone (frame #2)",
+            "[8.06s] START tone (frame #3)",
+            "[8.58s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "AABCD",
+          "decoded": null,
+          "pass": false,
+          "ms": 8582,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -67,
+          "floorDb": -87,
+          "log": [
+            "[3.28s] START tone (frame #1)",
+            "[3.58s] END — heard \"\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 0)",
+            "[3.88s] START tone (frame #2)",
+            "[5.44s] END — heard \"\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 0)",
+            "[8.58s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": null,
+          "pass": false,
+          "ms": 8582,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -65,
+          "floorDb": -87,
+          "log": [
+            "[2.04s] START tone (frame #1)",
+            "[5.45s] END — heard \"ZZZYUYZZZYU\" (chk: expected P, got ?) INVALID",
+            "  dropped (wrong length: 11)",
+            "[8.58s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ABCDE",
+          "decoded": null,
+          "pass": false,
+          "ms": 8581,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -65,
+          "floorDb": -87,
+          "log": [
+            "[8.58s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "EDVZG",
+          "decoded": null,
+          "pass": false,
+          "ms": 8580,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -59,
+          "floorDb": -91,
+          "log": [
+            "[8.58s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "MEKIM",
+          "decoded": null,
+          "pass": false,
+          "ms": 8581,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -61,
+          "floorDb": -90,
+          "log": [
+            "[0.44s] START tone (frame #1)",
+            "[1.72s] END — heard \"BABU\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 4)",
+            "[8.58s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[5.94s] START tone (frame #1)",
+        "[6.76s] START tone (frame #2)",
+        "[8.06s] START tone (frame #3)",
+        "[8.58s] TIMEOUT — no valid decode",
+        "--- testing AABCD ---",
+        "[3.28s] START tone (frame #1)",
+        "[3.58s] END — heard \"\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 0)",
+        "[3.88s] START tone (frame #2)",
+        "[5.44s] END — heard \"\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 0)",
+        "[8.58s] TIMEOUT — no valid decode",
+        "--- testing ZZZZY ---",
+        "[2.04s] START tone (frame #1)",
+        "[5.45s] END — heard \"ZZZYUYZZZYU\" (chk: expected P, got ?) INVALID",
+        "  dropped (wrong length: 11)",
+        "[8.58s] TIMEOUT — no valid decode",
+        "--- testing ABCDE ---",
+        "[8.58s] TIMEOUT — no valid decode",
+        "--- testing EDVZG ---",
+        "[8.58s] TIMEOUT — no valid decode",
+        "--- testing MEKIM ---",
+        "[0.44s] START tone (frame #1)",
+        "[1.72s] END — heard \"BABU\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 4)",
+        "[8.58s] TIMEOUT — no valid decode"
+      ]
+    },
+    {
+      "voiceId": "doorbell",
+      "voiceName": "Doorbell Chime",
+      "timestamp": "2026-06-14T21:23:42.925Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "sine",
+        "envelope": "bell",
+        "toneMs": 200,
+        "toneGain": 0.85,
+        "startFreq": 900,
+        "letterBase": 960,
+        "freqStep": 60,
+        "sepFreq": 2520,
+        "endFreq": 2580
+      },
+      "summary": {
+        "passed": 1,
+        "failed": 5,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": null,
+          "pass": false,
+          "ms": 9780,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -63,
+          "floorDb": -89,
+          "log": [
+            "[9.78s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "AABCD",
+          "decoded": null,
+          "pass": false,
+          "ms": 9781,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -64,
+          "floorDb": -89,
+          "log": [
+            "[9.78s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": "ZZZZY",
+          "pass": true,
+          "ms": 6543,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -61,
+          "floorDb": -89,
+          "log": [
+            "[4.80s] START tone (frame #1)",
+            "[6.54s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+            "[6.54s] decoded: ZZZZY (direct match, frame #1)",
+            "  signal: peak -61 dB, floor -89 dB, margin 29 dB"
+          ]
+        },
+        {
+          "code": "ABCDE",
+          "decoded": null,
+          "pass": false,
+          "ms": 9781,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -64,
+          "floorDb": -88,
+          "log": [
+            "[9.78s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "DMMBJ",
+          "decoded": null,
+          "pass": false,
+          "ms": 9781,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -65,
+          "floorDb": -91,
+          "log": [
+            "[9.74s] START tone (frame #1)",
+            "[9.78s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "YFMXB",
+          "decoded": null,
+          "pass": false,
+          "ms": 9781,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -62,
+          "floorDb": -87,
+          "log": [
+            "[3.37s] START tone (frame #1)",
+            "[3.81s] START tone (frame #2)",
+            "[4.27s] END — heard \"N\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 1)",
+            "[4.72s] START tone (frame #3)",
+            "[6.54s] END — heard \"YJMXBN\" (chk: expected R, got N) INVALID",
+            "  candidate #1: YJMXBN",
+            "[9.78s] TIMEOUT — no valid decode",
+            "  failed frames: YJMXBN"
+          ],
+          "candidates": [
+            "YJMXBN"
+          ]
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[9.78s] TIMEOUT — no valid decode",
+        "--- testing AABCD ---",
+        "[9.78s] TIMEOUT — no valid decode",
+        "--- testing ZZZZY ---",
+        "[4.80s] START tone (frame #1)",
+        "[6.54s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+        "[6.54s] decoded: ZZZZY (direct match, frame #1)",
+        "  signal: peak -61 dB, floor -89 dB, margin 29 dB",
+        "--- testing ABCDE ---",
+        "[9.78s] TIMEOUT — no valid decode",
+        "--- testing DMMBJ ---",
+        "[9.74s] START tone (frame #1)",
+        "[9.78s] TIMEOUT — no valid decode",
+        "--- testing YFMXB ---",
+        "[3.37s] START tone (frame #1)",
+        "[3.81s] START tone (frame #2)",
+        "[4.27s] END — heard \"N\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 1)",
+        "[4.72s] START tone (frame #3)",
+        "[6.54s] END — heard \"YJMXBN\" (chk: expected R, got N) INVALID",
+        "  candidate #1: YJMXBN",
+        "[9.78s] TIMEOUT — no valid decode",
+        "  failed frames: YJMXBN"
+      ]
+    },
+    {
+      "voiceId": "kalimba-low",
+      "voiceName": "Deep Kalimba",
+      "timestamp": "2026-06-14T21:24:38.621Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "sine",
+        "envelope": "percussive",
+        "toneMs": 175,
+        "toneGain": 0.95,
+        "startFreq": 600,
+        "letterBase": 660,
+        "freqStep": 60,
+        "sepFreq": 2220,
+        "endFreq": 2280,
+        "overtones": [
+          {
+            "ratio": 3,
+            "gain": 0.06
+          }
+        ]
+      },
+      "summary": {
+        "passed": 0,
+        "failed": 6,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": null,
+          "pass": false,
+          "ms": 8941,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -64,
+          "floorDb": -86,
+          "log": [
+            "[7.36s] START tone (frame #1)",
+            "[8.94s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "AABCD",
+          "decoded": null,
+          "pass": false,
+          "ms": 8942,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -65,
+          "floorDb": -84,
+          "log": [
+            "[8.94s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": null,
+          "pass": false,
+          "ms": 8941,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -61,
+          "floorDb": -89,
+          "log": [
+            "[3.94s] START tone (frame #1)",
+            "[8.94s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ABCDE",
+          "decoded": null,
+          "pass": false,
+          "ms": 8940,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -63,
+          "floorDb": -86,
+          "log": [
+            "[8.94s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "TJNOL",
+          "decoded": null,
+          "pass": false,
+          "ms": 8940,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -60,
+          "floorDb": -89,
+          "log": [
+            "[8.94s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "VSRTQ",
+          "decoded": null,
+          "pass": false,
+          "ms": 8941,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -61,
+          "floorDb": -89,
+          "log": [
+            "[3.92s] START tone (frame #1)",
+            "[5.78s] END — heard \"BVBSRATQN\" (chk: expected G, got ?) INVALID",
+            "  dropped (wrong length: 9)",
+            "[6.62s] START tone (frame #2)",
+            "[8.94s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[7.36s] START tone (frame #1)",
+        "[8.94s] TIMEOUT — no valid decode",
+        "--- testing AABCD ---",
+        "[8.94s] TIMEOUT — no valid decode",
+        "--- testing ZZZZY ---",
+        "[3.94s] START tone (frame #1)",
+        "[8.94s] TIMEOUT — no valid decode",
+        "--- testing ABCDE ---",
+        "[8.94s] TIMEOUT — no valid decode",
+        "--- testing TJNOL ---",
+        "[8.94s] TIMEOUT — no valid decode",
+        "--- testing VSRTQ ---",
+        "[3.92s] START tone (frame #1)",
+        "[5.78s] END — heard \"BVBSRATQN\" (chk: expected G, got ?) INVALID",
+        "  dropped (wrong length: 9)",
+        "[6.62s] START tone (frame #2)",
+        "[8.94s] TIMEOUT — no valid decode"
+      ]
+    },
+    {
+      "voiceId": "marimba-low",
+      "voiceName": "Warm Marimba",
+      "timestamp": "2026-06-14T21:25:32.483Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "triangle",
+        "envelope": "percussive",
+        "toneMs": 185,
+        "toneGain": 1,
+        "startFreq": 650,
+        "letterBase": 710,
+        "freqStep": 60,
+        "sepFreq": 2270,
+        "endFreq": 2330,
+        "overtones": [
+          {
+            "ratio": 2,
+            "gain": 0.08
+          }
+        ]
+      },
+      "summary": {
+        "passed": 0,
+        "failed": 6,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": null,
+          "pass": false,
+          "ms": 9211,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -61,
+          "floorDb": -90,
+          "log": [
+            "[4.70s] START tone (frame #1)",
+            "[4.94s] START tone (frame #2)",
+            "[5.66s] START tone (frame #3)",
+            "[6.08s] END — heard \"V\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 1)",
+            "[9.21s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "AABCD",
+          "decoded": null,
+          "pass": false,
+          "ms": 9210,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -61,
+          "floorDb": -89,
+          "log": [
+            "[3.02s] START tone (frame #1)",
+            "[3.88s] START tone (frame #2)",
+            "[3.96s] END — heard \"\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 0)",
+            "[7.00s] START tone (frame #3)",
+            "[9.21s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": null,
+          "pass": false,
+          "ms": 9211,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -63,
+          "floorDb": -86,
+          "log": [
+            "[9.21s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ABCDE",
+          "decoded": null,
+          "pass": false,
+          "ms": 9211,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -66,
+          "floorDb": -90,
+          "log": [
+            "[9.21s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "HWLJP",
+          "decoded": null,
+          "pass": false,
+          "ms": 9211,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -63,
+          "floorDb": -90,
+          "log": [
+            "[2.18s] START tone (frame #1)",
+            "[9.21s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ROIGH",
+          "decoded": null,
+          "pass": false,
+          "ms": 9210,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -65,
+          "floorDb": -88,
+          "log": [
+            "[8.18s] START tone (frame #1)",
+            "[9.12s] START tone (frame #2)",
+            "[9.21s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[4.70s] START tone (frame #1)",
+        "[4.94s] START tone (frame #2)",
+        "[5.66s] START tone (frame #3)",
+        "[6.08s] END — heard \"V\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 1)",
+        "[9.21s] TIMEOUT — no valid decode",
+        "--- testing AABCD ---",
+        "[3.02s] START tone (frame #1)",
+        "[3.88s] START tone (frame #2)",
+        "[3.96s] END — heard \"\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 0)",
+        "[7.00s] START tone (frame #3)",
+        "[9.21s] TIMEOUT — no valid decode",
+        "--- testing ZZZZY ---",
+        "[9.21s] TIMEOUT — no valid decode",
+        "--- testing ABCDE ---",
+        "[9.21s] TIMEOUT — no valid decode",
+        "--- testing HWLJP ---",
+        "[2.18s] START tone (frame #1)",
+        "[9.21s] TIMEOUT — no valid decode",
+        "--- testing ROIGH ---",
+        "[8.18s] START tone (frame #1)",
+        "[9.12s] START tone (frame #2)",
+        "[9.21s] TIMEOUT — no valid decode"
+      ]
+    },
+    {
+      "voiceId": "steel-drum",
+      "voiceName": "Steel Drum",
+      "timestamp": "2026-06-14T21:26:27.971Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "custom-steel",
+        "envelope": "bell",
+        "toneMs": 180,
+        "toneGain": 0.85,
+        "startFreq": 750,
+        "letterBase": 810,
+        "freqStep": 60,
+        "sepFreq": 2370,
+        "endFreq": 2430,
+        "tremolo": {
+          "rate": 6,
+          "depth": 0.1
+        }
+      },
+      "summary": {
+        "passed": 0,
+        "failed": 6,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": null,
+          "pass": false,
+          "ms": 9090,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -65,
+          "floorDb": -88,
+          "log": [
+            "[0.32s] START tone (frame #1)",
+            "[1.88s] END — heard \"AMLLONV\" (chk: expected W, got ?) INVALID",
+            "  dropped (wrong length: 7)",
+            "[4.78s] START tone (frame #2)",
+            "[5.93s] END — heard \"LOV\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 3)",
+            "[9.09s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "AABCD",
+          "decoded": null,
+          "pass": false,
+          "ms": 9091,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -65,
+          "floorDb": -90,
+          "log": [
+            "[9.09s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": null,
+          "pass": false,
+          "ms": 9091,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -65,
+          "floorDb": -95,
+          "log": [
+            "[7.32s] START tone (frame #1)",
+            "[9.09s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ABCDE",
+          "decoded": null,
+          "pass": false,
+          "ms": 9091,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -63,
+          "floorDb": -95,
+          "log": [
+            "[9.09s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ZNOBH",
+          "decoded": null,
+          "pass": false,
+          "ms": 9092,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -66,
+          "floorDb": -92,
+          "log": [
+            "[9.09s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "AEIHB",
+          "decoded": null,
+          "pass": false,
+          "ms": 9090,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -63,
+          "floorDb": -91,
+          "log": [
+            "[9.09s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[0.32s] START tone (frame #1)",
+        "[1.88s] END — heard \"AMLLONV\" (chk: expected W, got ?) INVALID",
+        "  dropped (wrong length: 7)",
+        "[4.78s] START tone (frame #2)",
+        "[5.93s] END — heard \"LOV\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 3)",
+        "[9.09s] TIMEOUT — no valid decode",
+        "--- testing AABCD ---",
+        "[9.09s] TIMEOUT — no valid decode",
+        "--- testing ZZZZY ---",
+        "[7.32s] START tone (frame #1)",
+        "[9.09s] TIMEOUT — no valid decode",
+        "--- testing ABCDE ---",
+        "[9.09s] TIMEOUT — no valid decode",
+        "--- testing ZNOBH ---",
+        "[9.09s] TIMEOUT — no valid decode",
+        "--- testing AEIHB ---",
+        "[9.09s] TIMEOUT — no valid decode"
+      ]
+    },
+    {
+      "voiceId": "power-chime",
+      "voiceName": "Power Chime",
+      "timestamp": "2026-06-14T21:27:22.659Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "sine",
+        "envelope": "bell",
+        "toneMs": 180,
+        "toneGain": 0.85,
+        "startFreq": 700,
+        "letterBase": 760,
+        "freqStep": 60,
+        "sepFreq": 2320,
+        "endFreq": 2380
+      },
+      "summary": {
+        "passed": 0,
+        "failed": 6,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": null,
+          "pass": false,
+          "ms": 9150,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -65,
+          "floorDb": -91,
+          "log": [
+            "[9.15s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "AABCD",
+          "decoded": null,
+          "pass": false,
+          "ms": 9150,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -65,
+          "floorDb": -89,
+          "log": [
+            "[9.15s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": null,
+          "pass": false,
+          "ms": 9149,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -64,
+          "floorDb": -92,
+          "log": [
+            "[9.15s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ABCDE",
+          "decoded": null,
+          "pass": false,
+          "ms": 9149,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -66,
+          "floorDb": -92,
+          "log": [
+            "[9.15s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "DWKUD",
+          "decoded": null,
+          "pass": false,
+          "ms": 9149,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -64,
+          "floorDb": -93,
+          "log": [
+            "[9.15s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "CQMAF",
+          "decoded": null,
+          "pass": false,
+          "ms": 9149,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -65,
+          "floorDb": -95,
+          "log": [
+            "[9.15s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[9.15s] TIMEOUT — no valid decode",
+        "--- testing AABCD ---",
+        "[9.15s] TIMEOUT — no valid decode",
+        "--- testing ZZZZY ---",
+        "[9.15s] TIMEOUT — no valid decode",
+        "--- testing ABCDE ---",
+        "[9.15s] TIMEOUT — no valid decode",
+        "--- testing DWKUD ---",
+        "[9.15s] TIMEOUT — no valid decode",
+        "--- testing CQMAF ---",
+        "[9.15s] TIMEOUT — no valid decode"
+      ]
+    },
+    {
+      "voiceId": "major-bells",
+      "voiceName": "Major Chord Bells",
+      "timestamp": "2026-06-14T21:28:17.744Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "sine",
+        "envelope": "bell",
+        "toneMs": 190,
+        "toneGain": 0.8,
+        "startFreq": 700,
+        "letterBase": 760,
+        "freqStep": 60,
+        "sepFreq": 2320,
+        "endFreq": 2380,
+        "overtones": [
+          {
+            "ratio": 2,
+            "gain": 0.08
+          }
+        ]
+      },
+      "summary": {
+        "passed": 0,
+        "failed": 6,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": null,
+          "pass": false,
+          "ms": 9390,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -66,
+          "floorDb": -91,
+          "log": [
+            "[9.39s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "AABCD",
+          "decoded": null,
+          "pass": false,
+          "ms": 9391,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -65,
+          "floorDb": -92,
+          "log": [
+            "[9.39s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": null,
+          "pass": false,
+          "ms": 9390,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -65,
+          "floorDb": -91,
+          "log": [
+            "[9.39s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ABCDE",
+          "decoded": null,
+          "pass": false,
+          "ms": 9390,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -65,
+          "floorDb": -92,
+          "log": [
+            "[9.39s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "RMLKX",
+          "decoded": null,
+          "pass": false,
+          "ms": 9391,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -64,
+          "floorDb": -91,
+          "log": [
+            "[9.39s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "WETXT",
+          "decoded": null,
+          "pass": false,
+          "ms": 9391,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -65,
+          "floorDb": -91,
+          "log": [
+            "[9.39s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[9.39s] TIMEOUT — no valid decode",
+        "--- testing AABCD ---",
+        "[9.39s] TIMEOUT — no valid decode",
+        "--- testing ZZZZY ---",
+        "[9.39s] TIMEOUT — no valid decode",
+        "--- testing ABCDE ---",
+        "[9.39s] TIMEOUT — no valid decode",
+        "--- testing RMLKX ---",
+        "[9.39s] TIMEOUT — no valid decode",
+        "--- testing WETXT ---",
+        "[9.39s] TIMEOUT — no valid decode"
+      ]
+    },
+    {
+      "voiceId": "portamento-dream",
+      "voiceName": "Dreamy Slide",
+      "timestamp": "2026-06-14T21:29:14.257Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "sine",
+        "envelope": "exponential",
+        "toneMs": 185,
+        "toneGain": 0.85,
+        "startFreq": 750,
+        "letterBase": 810,
+        "freqStep": 60,
+        "sepFreq": 2370,
+        "endFreq": 2430
+      },
+      "summary": {
+        "passed": 6,
+        "failed": 0,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": "HELLO",
+          "pass": true,
+          "ms": 1999,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -86,
+          "log": [
+            "[0.34s] START tone (frame #1)",
+            "[2.00s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+            "[2.00s] decoded: HELLO (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -86 dB, margin 24 dB"
+          ]
+        },
+        {
+          "code": "AABCD",
+          "decoded": "AABCD",
+          "pass": true,
+          "ms": 1961,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -86,
+          "log": [
+            "[0.30s] START tone (frame #1)",
+            "[1.96s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+            "[1.96s] decoded: AABCD (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -86 dB, margin 23 dB"
+          ]
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": "ZZZZY",
+          "pass": true,
+          "ms": 1978,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -62,
+          "floorDb": -83,
+          "log": [
+            "[0.30s] START tone (frame #1)",
+            "[1.98s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+            "[1.98s] decoded: ZZZZY (direct match, frame #1)",
+            "  signal: peak -62 dB, floor -83 dB, margin 21 dB"
+          ]
+        },
+        {
+          "code": "ABCDE",
+          "decoded": "ABCDE",
+          "pass": true,
+          "ms": 1975,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -82,
+          "log": [
+            "[0.29s] START tone (frame #1)",
+            "[1.98s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+            "[1.98s] decoded: ABCDE (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -82 dB, margin 18 dB"
+          ]
+        },
+        {
+          "code": "YTWQC",
+          "decoded": "YTWQC",
+          "pass": true,
+          "ms": 1978,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -62,
+          "floorDb": -85,
+          "log": [
+            "[0.30s] START tone (frame #1)",
+            "[1.98s] END — heard \"YTWQCF\" (chk: expected F, got F) VALID",
+            "[1.98s] decoded: YTWQC (direct match, frame #1)",
+            "  signal: peak -62 dB, floor -85 dB, margin 23 dB"
+          ]
+        },
+        {
+          "code": "BQGHV",
+          "decoded": "BQGHV",
+          "pass": true,
+          "ms": 1962,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -63,
+          "floorDb": -86,
+          "log": [
+            "[0.30s] START tone (frame #1)",
+            "[1.96s] END — heard \"BQGHVZ\" (chk: expected Z, got Z) VALID",
+            "[1.96s] decoded: BQGHV (direct match, frame #1)",
+            "  signal: peak -63 dB, floor -86 dB, margin 23 dB"
+          ]
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[0.34s] START tone (frame #1)",
+        "[2.00s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+        "[2.00s] decoded: HELLO (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -86 dB, margin 24 dB",
+        "--- testing AABCD ---",
+        "[0.30s] START tone (frame #1)",
+        "[1.96s] END — heard \"AABCDG\" (chk: expected G, got G) VALID",
+        "[1.96s] decoded: AABCD (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -86 dB, margin 23 dB",
+        "--- testing ZZZZY ---",
+        "[0.30s] START tone (frame #1)",
+        "[1.98s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+        "[1.98s] decoded: ZZZZY (direct match, frame #1)",
+        "  signal: peak -62 dB, floor -83 dB, margin 21 dB",
+        "--- testing ABCDE ---",
+        "[0.29s] START tone (frame #1)",
+        "[1.98s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+        "[1.98s] decoded: ABCDE (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -82 dB, margin 18 dB",
+        "--- testing YTWQC ---",
+        "[0.30s] START tone (frame #1)",
+        "[1.98s] END — heard \"YTWQCF\" (chk: expected F, got F) VALID",
+        "[1.98s] decoded: YTWQC (direct match, frame #1)",
+        "  signal: peak -62 dB, floor -85 dB, margin 23 dB",
+        "--- testing BQGHV ---",
+        "[0.30s] START tone (frame #1)",
+        "[1.96s] END — heard \"BQGHVZ\" (chk: expected Z, got Z) VALID",
+        "[1.96s] decoded: BQGHV (direct match, frame #1)",
+        "  signal: peak -63 dB, floor -86 dB, margin 23 dB"
+      ]
+    },
+    {
+      "voiceId": "harp",
+      "voiceName": "Ethereal Harp",
+      "timestamp": "2026-06-14T21:29:26.293Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "sine",
+        "envelope": "bell",
+        "toneMs": 195,
+        "toneGain": 0.75,
+        "startFreq": 750,
+        "letterBase": 810,
+        "freqStep": 60,
+        "sepFreq": 2370,
+        "endFreq": 2430,
+        "overtones": [
+          {
+            "ratio": 2,
+            "gain": 0.1
+          }
+        ],
+        "reverb": {
+          "delay": 0.08,
+          "feedback": 0.25,
+          "wet": 0.2
+        }
+      },
+      "summary": {
+        "passed": 2,
+        "failed": 4,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": "HELLO",
+          "pass": true,
+          "ms": 4277,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -66,
+          "floorDb": -84,
+          "log": [
+            "[2.56s] START tone (frame #1)",
+            "[4.28s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+            "[4.28s] decoded: HELLO (direct match, frame #1)",
+            "  signal: peak -66 dB, floor -84 dB, margin 18 dB"
+          ]
+        },
+        {
+          "code": "AABCD",
+          "decoded": null,
+          "pass": false,
+          "ms": 9675,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -67,
+          "floorDb": -83,
+          "log": [
+            "[0.29s] START tone (frame #1)",
+            "[2.01s] END — heard \"G\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 1)",
+            "[4.73s] START tone (frame #2)",
+            "[6.45s] END — heard \"DG\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 2)",
+            "[9.68s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": "ZZZZY",
+          "pass": true,
+          "ms": 2015,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -65,
+          "floorDb": -83,
+          "log": [
+            "[0.29s] START tone (frame #1)",
+            "[2.02s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+            "[2.02s] decoded: ZZZZY (direct match, frame #1)",
+            "  signal: peak -65 dB, floor -83 dB, margin 18 dB"
+          ]
+        },
+        {
+          "code": "ABCDE",
+          "decoded": null,
+          "pass": false,
+          "ms": 9675,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -67,
+          "floorDb": -83,
+          "log": [
+            "[9.68s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "VNYGN",
+          "decoded": null,
+          "pass": false,
+          "ms": 9675,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -66,
+          "floorDb": -83,
+          "log": [
+            "[9.68s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "JMICP",
+          "decoded": null,
+          "pass": false,
+          "ms": 9676,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -65,
+          "floorDb": -87,
+          "log": [
+            "[2.52s] START tone (frame #1)",
+            "[3.26s] START tone (frame #2)",
+            "[4.24s] END — heard \"PU\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 2)",
+            "[9.68s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[2.56s] START tone (frame #1)",
+        "[4.28s] END — heard \"HELLOV\" (chk: expected V, got V) VALID",
+        "[4.28s] decoded: HELLO (direct match, frame #1)",
+        "  signal: peak -66 dB, floor -84 dB, margin 18 dB",
+        "--- testing AABCD ---",
+        "[0.29s] START tone (frame #1)",
+        "[2.01s] END — heard \"G\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 1)",
+        "[4.73s] START tone (frame #2)",
+        "[6.45s] END — heard \"DG\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 2)",
+        "[9.68s] TIMEOUT — no valid decode",
+        "--- testing ZZZZY ---",
+        "[0.29s] START tone (frame #1)",
+        "[2.02s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+        "[2.02s] decoded: ZZZZY (direct match, frame #1)",
+        "  signal: peak -65 dB, floor -83 dB, margin 18 dB",
+        "--- testing ABCDE ---",
+        "[9.68s] TIMEOUT — no valid decode",
+        "--- testing VNYGN ---",
+        "[9.68s] TIMEOUT — no valid decode",
+        "--- testing JMICP ---",
+        "[2.52s] START tone (frame #1)",
+        "[3.26s] START tone (frame #2)",
+        "[4.24s] END — heard \"PU\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 2)",
+        "[9.68s] TIMEOUT — no valid decode"
+      ]
+    },
+    {
+      "voiceId": "gameboy",
+      "voiceName": "Retro Gameboy",
+      "timestamp": "2026-06-14T21:30:11.581Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "square",
+        "envelope": "percussive",
+        "toneMs": 130,
+        "toneGain": 0.45,
+        "startFreq": 800,
+        "letterBase": 860,
+        "freqStep": 60,
+        "sepFreq": 2420,
+        "endFreq": 2480
+      },
+      "summary": {
+        "passed": 0,
+        "failed": 6,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": null,
+          "pass": false,
+          "ms": 7710,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -71,
+          "floorDb": -95,
+          "log": [
+            "[6.21s] START tone (frame #1)",
+            "[7.71s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "AABCD",
+          "decoded": null,
+          "pass": false,
+          "ms": 7709,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -71,
+          "floorDb": -96,
+          "log": [
+            "[7.71s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": null,
+          "pass": false,
+          "ms": 7710,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -70,
+          "floorDb": -94,
+          "log": [
+            "[7.71s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ABCDE",
+          "decoded": null,
+          "pass": false,
+          "ms": 7710,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -70,
+          "floorDb": -93,
+          "log": [
+            "[7.71s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "VFZCB",
+          "decoded": null,
+          "pass": false,
+          "ms": 7710,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -68,
+          "floorDb": -92,
+          "log": [
+            "[7.71s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "HPRLY",
+          "decoded": null,
+          "pass": false,
+          "ms": 7710,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -68,
+          "floorDb": -94,
+          "log": [
+            "[7.71s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[6.21s] START tone (frame #1)",
+        "[7.71s] TIMEOUT — no valid decode",
+        "--- testing AABCD ---",
+        "[7.71s] TIMEOUT — no valid decode",
+        "--- testing ZZZZY ---",
+        "[7.71s] TIMEOUT — no valid decode",
+        "--- testing ABCDE ---",
+        "[7.71s] TIMEOUT — no valid decode",
+        "--- testing VFZCB ---",
+        "[7.71s] TIMEOUT — no valid decode",
+        "--- testing HPRLY ---",
+        "[7.71s] TIMEOUT — no valid decode"
+      ]
+    },
+    {
+      "voiceId": "wide-marimba",
+      "voiceName": "Wide Marimba",
+      "timestamp": "2026-06-14T21:30:58.093Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "triangle",
+        "envelope": "percussive",
+        "toneMs": 175,
+        "toneGain": 1,
+        "startFreq": 700,
+        "letterBase": 760,
+        "freqStep": 80,
+        "sepFreq": 2820,
+        "endFreq": 2880,
+        "overtones": [
+          {
+            "ratio": 2,
+            "gain": 0.08
+          }
+        ]
+      },
+      "summary": {
+        "passed": 2,
+        "failed": 4,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": null,
+          "pass": false,
+          "ms": 8971,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -66,
+          "floorDb": -95,
+          "log": [
+            "[6.90s] START tone (frame #1)",
+            "[8.00s] START tone (frame #2)",
+            "[8.78s] START tone (frame #3)",
+            "[8.97s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "AABCD",
+          "decoded": null,
+          "pass": false,
+          "ms": 8970,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -66,
+          "floorDb": -95,
+          "log": [
+            "[2.08s] START tone (frame #1)",
+            "[3.82s] END — heard \"AG\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 2)",
+            "[4.00s] START tone (frame #2)",
+            "[5.60s] START tone (frame #3)",
+            "[5.80s] END — heard \"\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 0)",
+            "[6.14s] START tone (frame #4)",
+            "[8.97s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": "ZZZZY",
+          "pass": true,
+          "ms": 3801,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -66,
+          "floorDb": -96,
+          "log": [
+            "[2.24s] START tone (frame #1)",
+            "[3.80s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+            "[3.80s] decoded: ZZZZY (direct match, frame #1)",
+            "  signal: peak -66 dB, floor -96 dB, margin 31 dB"
+          ]
+        },
+        {
+          "code": "ABCDE",
+          "decoded": null,
+          "pass": false,
+          "ms": 8970,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -66,
+          "floorDb": -95,
+          "log": [
+            "[3.18s] START tone (frame #1)",
+            "[3.86s] END — heard \"K\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 1)",
+            "[7.78s] START tone (frame #2)",
+            "[8.97s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "LIICM",
+          "decoded": null,
+          "pass": false,
+          "ms": 8970,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -66,
+          "floorDb": -94,
+          "log": [
+            "[6.80s] START tone (frame #1)",
+            "[7.42s] START tone (frame #2)",
+            "[7.80s] START tone (frame #3)",
+            "[8.97s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "LPRDN",
+          "decoded": "LPRDN",
+          "pass": true,
+          "ms": 1820,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -67,
+          "floorDb": -95,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.82s] END — heard \"LPRDNH\" (chk: expected H, got H) VALID",
+            "[1.82s] decoded: LPRDN (direct match, frame #1)",
+            "  signal: peak -67 dB, floor -95 dB, margin 27 dB"
+          ]
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[6.90s] START tone (frame #1)",
+        "[8.00s] START tone (frame #2)",
+        "[8.78s] START tone (frame #3)",
+        "[8.97s] TIMEOUT — no valid decode",
+        "--- testing AABCD ---",
+        "[2.08s] START tone (frame #1)",
+        "[3.82s] END — heard \"AG\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 2)",
+        "[4.00s] START tone (frame #2)",
+        "[5.60s] START tone (frame #3)",
+        "[5.80s] END — heard \"\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 0)",
+        "[6.14s] START tone (frame #4)",
+        "[8.97s] TIMEOUT — no valid decode",
+        "--- testing ZZZZY ---",
+        "[2.24s] START tone (frame #1)",
+        "[3.80s] END — heard \"ZZZZYU\" (chk: expected U, got U) VALID",
+        "[3.80s] decoded: ZZZZY (direct match, frame #1)",
+        "  signal: peak -66 dB, floor -96 dB, margin 31 dB",
+        "--- testing ABCDE ---",
+        "[3.18s] START tone (frame #1)",
+        "[3.86s] END — heard \"K\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 1)",
+        "[7.78s] START tone (frame #2)",
+        "[8.97s] TIMEOUT — no valid decode",
+        "--- testing LIICM ---",
+        "[6.80s] START tone (frame #1)",
+        "[7.42s] START tone (frame #2)",
+        "[7.80s] START tone (frame #3)",
+        "[8.97s] TIMEOUT — no valid decode",
+        "--- testing LPRDN ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.82s] END — heard \"LPRDNH\" (chk: expected H, got H) VALID",
+        "[1.82s] decoded: LPRDN (direct match, frame #1)",
+        "  signal: peak -67 dB, floor -95 dB, margin 27 dB"
+      ]
+    },
+    {
+      "voiceId": "echo-kalimba",
+      "voiceName": "Echo Kalimba",
+      "timestamp": "2026-06-14T21:31:39.735Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "sine",
+        "envelope": "percussive",
+        "toneMs": 175,
+        "toneGain": 0.9,
+        "startFreq": 650,
+        "letterBase": 710,
+        "freqStep": 60,
+        "sepFreq": 2270,
+        "endFreq": 2330,
+        "overtones": [
+          {
+            "ratio": 3,
+            "gain": 0.06
+          }
+        ],
+        "reverb": {
+          "delay": 0.1,
+          "feedback": 0.2,
+          "wet": 0.18
+        }
+      },
+      "summary": {
+        "passed": 0,
+        "failed": 6,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": null,
+          "pass": false,
+          "ms": 8971,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -66,
+          "floorDb": -91,
+          "log": [
+            "[2.56s] START tone (frame #1)",
+            "[3.84s] END — heard \"ALLOV\" (chk: expected F, got ?) INVALID",
+            "  dropped (wrong length: 5)",
+            "[8.97s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "AABCD",
+          "decoded": null,
+          "pass": false,
+          "ms": 8970,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -66,
+          "floorDb": -93,
+          "log": [
+            "[8.97s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": null,
+          "pass": false,
+          "ms": 8970,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -63,
+          "floorDb": -92,
+          "log": [
+            "[6.34s] START tone (frame #1)",
+            "[8.97s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ABCDE",
+          "decoded": null,
+          "pass": false,
+          "ms": 8969,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -63,
+          "floorDb": -92,
+          "log": [
+            "[7.64s] START tone (frame #1)",
+            "[8.50s] START tone (frame #2)",
+            "[8.97s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "WCJMZ",
+          "decoded": null,
+          "pass": false,
+          "ms": 8970,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -64,
+          "floorDb": -90,
+          "log": [
+            "[1.30s] START tone (frame #1)",
+            "[1.80s] END — heard \"ZS\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 2)",
+            "[2.98s] START tone (frame #2)",
+            "[3.80s] END — heard \"MAZS\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 4)",
+            "[6.36s] START tone (frame #3)",
+            "[7.84s] START tone (frame #4)",
+            "[8.97s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ZVJAT",
+          "decoded": null,
+          "pass": false,
+          "ms": 8970,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -64,
+          "floorDb": -91,
+          "log": [
+            "[3.30s] START tone (frame #1)",
+            "[5.86s] END — heard \"AZVJTWA\" (chk: expected W, got ?) INVALID",
+            "  dropped (wrong length: 7)",
+            "[7.88s] START tone (frame #2)",
+            "[8.97s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[2.56s] START tone (frame #1)",
+        "[3.84s] END — heard \"ALLOV\" (chk: expected F, got ?) INVALID",
+        "  dropped (wrong length: 5)",
+        "[8.97s] TIMEOUT — no valid decode",
+        "--- testing AABCD ---",
+        "[8.97s] TIMEOUT — no valid decode",
+        "--- testing ZZZZY ---",
+        "[6.34s] START tone (frame #1)",
+        "[8.97s] TIMEOUT — no valid decode",
+        "--- testing ABCDE ---",
+        "[7.64s] START tone (frame #1)",
+        "[8.50s] START tone (frame #2)",
+        "[8.97s] TIMEOUT — no valid decode",
+        "--- testing WCJMZ ---",
+        "[1.30s] START tone (frame #1)",
+        "[1.80s] END — heard \"ZS\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 2)",
+        "[2.98s] START tone (frame #2)",
+        "[3.80s] END — heard \"MAZS\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 4)",
+        "[6.36s] START tone (frame #3)",
+        "[7.84s] START tone (frame #4)",
+        "[8.97s] TIMEOUT — no valid decode",
+        "--- testing ZVJAT ---",
+        "[3.30s] START tone (frame #1)",
+        "[5.86s] END — heard \"AZVJTWA\" (chk: expected W, got ?) INVALID",
+        "  dropped (wrong length: 7)",
+        "[7.88s] START tone (frame #2)",
+        "[8.97s] TIMEOUT — no valid decode"
+      ]
+    },
+    {
+      "voiceId": "fm-bell",
+      "voiceName": "FM Bell",
+      "timestamp": "2026-06-14T21:32:33.792Z",
+      "code": "HELLO",
+      "voice": {
+        "wave": "sine",
+        "envelope": "bell",
+        "toneMs": 185,
+        "toneGain": 0.85,
+        "startFreq": 700,
+        "letterBase": 760,
+        "freqStep": 60,
+        "sepFreq": 2320,
+        "endFreq": 2380,
+        "overtones": [
+          {
+            "ratio": 2.76,
+            "gain": 0.12
+          },
+          {
+            "ratio": 4.15,
+            "gain": 0.06
+          }
+        ]
+      },
+      "summary": {
+        "passed": 3,
+        "failed": 3,
+        "total": 6
+      },
+      "results": [
+        {
+          "code": "HELLO",
+          "decoded": null,
+          "pass": false,
+          "ms": 9272,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -64,
+          "floorDb": -92,
+          "log": [
+            "[2.68s] START tone (frame #1)",
+            "[4.02s] END — heard \"LLOV\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 4)",
+            "[4.38s] START tone (frame #2)",
+            "[6.10s] END — heard \"BHLLOAV\" (chk: expected S, got ?) INVALID",
+            "  dropped (wrong length: 7)",
+            "[6.44s] START tone (frame #3)",
+            "[7.12s] START tone (frame #4)",
+            "[7.38s] START tone (frame #5)",
+            "[9.27s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "AABCD",
+          "decoded": null,
+          "pass": false,
+          "ms": 9271,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -64,
+          "floorDb": -89,
+          "log": [
+            "[3.38s] START tone (frame #1)",
+            "[3.98s] END — heard \"\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 0)",
+            "[4.12s] START tone (frame #2)",
+            "[4.64s] START tone (frame #3)",
+            "[5.52s] START tone (frame #4)",
+            "[5.96s] START tone (frame #5)",
+            "[6.08s] END — heard \"\" (chk: expected ?, got ?) INVALID",
+            "  dropped (wrong length: 0)",
+            "[6.24s] START tone (frame #6)",
+            "[9.27s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ZZZZY",
+          "decoded": null,
+          "pass": false,
+          "ms": 9272,
+          "method": "failed",
+          "frame": 0,
+          "peakDb": -57,
+          "floorDb": -64,
+          "log": [
+            "[9.27s] TIMEOUT — no valid decode"
+          ],
+          "candidates": []
+        },
+        {
+          "code": "ABCDE",
+          "decoded": "ABCDE",
+          "pass": true,
+          "ms": 1898,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -57,
+          "floorDb": -101,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.90s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+            "[1.90s] decoded: ABCDE (direct match, frame #1)",
+            "  signal: peak -57 dB, floor -101 dB, margin 44 dB"
+          ]
+        },
+        {
+          "code": "OYDMU",
+          "decoded": "OYDMU",
+          "pass": true,
+          "ms": 1880,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -52,
+          "floorDb": -90,
+          "log": [
+            "[0.28s] START tone (frame #1)",
+            "[1.88s] END — heard \"OYDMUV\" (chk: expected V, got V) VALID",
+            "[1.88s] decoded: OYDMU (direct match, frame #1)",
+            "  signal: peak -52 dB, floor -90 dB, margin 38 dB"
+          ]
+        },
+        {
+          "code": "LZOIJ",
+          "decoded": "LZOIJ",
+          "pass": true,
+          "ms": 3972,
+          "method": "direct",
+          "frame": 1,
+          "peakDb": -62,
+          "floorDb": -95,
+          "log": [
+            "[2.36s] START tone (frame #1)",
+            "[3.97s] END — heard \"LZOIJP\" (chk: expected P, got P) VALID",
+            "[3.97s] decoded: LZOIJ (direct match, frame #1)",
+            "  signal: peak -62 dB, floor -95 dB, margin 34 dB"
+          ]
+        }
+      ],
+      "log": [
+        "mic: ready (iPhone Microphone)",
+        "--- testing HELLO ---",
+        "[2.68s] START tone (frame #1)",
+        "[4.02s] END — heard \"LLOV\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 4)",
+        "[4.38s] START tone (frame #2)",
+        "[6.10s] END — heard \"BHLLOAV\" (chk: expected S, got ?) INVALID",
+        "  dropped (wrong length: 7)",
+        "[6.44s] START tone (frame #3)",
+        "[7.12s] START tone (frame #4)",
+        "[7.38s] START tone (frame #5)",
+        "[9.27s] TIMEOUT — no valid decode",
+        "--- testing AABCD ---",
+        "[3.38s] START tone (frame #1)",
+        "[3.98s] END — heard \"\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 0)",
+        "[4.12s] START tone (frame #2)",
+        "[4.64s] START tone (frame #3)",
+        "[5.52s] START tone (frame #4)",
+        "[5.96s] START tone (frame #5)",
+        "[6.08s] END — heard \"\" (chk: expected ?, got ?) INVALID",
+        "  dropped (wrong length: 0)",
+        "[6.24s] START tone (frame #6)",
+        "[9.27s] TIMEOUT — no valid decode",
+        "--- testing ZZZZY ---",
+        "[9.27s] TIMEOUT — no valid decode",
+        "--- testing ABCDE ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.90s] END — heard \"ABCDEK\" (chk: expected K, got K) VALID",
+        "[1.90s] decoded: ABCDE (direct match, frame #1)",
+        "  signal: peak -57 dB, floor -101 dB, margin 44 dB",
+        "--- testing OYDMU ---",
+        "[0.28s] START tone (frame #1)",
+        "[1.88s] END — heard \"OYDMUV\" (chk: expected V, got V) VALID",
+        "[1.88s] decoded: OYDMU (direct match, frame #1)",
+        "  signal: peak -52 dB, floor -90 dB, margin 38 dB",
+        "--- testing LZOIJ ---",
+        "[2.36s] START tone (frame #1)",
+        "[3.97s] END — heard \"LZOIJP\" (chk: expected P, got P) VALID",
+        "[3.97s] decoded: LZOIJ (direct match, frame #1)",
+        "  signal: peak -62 dB, floor -95 dB, margin 34 dB"
+      ]
+    }
+  ]
+}

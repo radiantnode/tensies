@@ -3,24 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a0e08">
   <title>Tensies 🎲</title>
   <meta property="og:title" content="Come play Tensies!">
   <meta property="og:description" content="Roll all ten to win the round — real-time multiplayer dice game.">
-  <meta property="og:image" content="/static/images/come-play-teaser.png">
+  <meta property="og:image" content="/static/images/icon-512.png">
   <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Come play Tensies!">
   <meta name="twitter:description" content="Roll all ten to win the round — real-time multiplayer dice game.">
-  <meta name="twitter:image" content="/static/images/come-play-teaser.png">
+  <meta name="twitter:image" content="/static/images/icon-512.png">
   <link rel="icon" href="/static/images/logo.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/static/images/logo.svg">
+  <link rel="apple-touch-icon" href="/static/images/apple-touch-icon-180.png">
+
+  <!-- Installable PWA: a home-screen launch runs standalone (own task, no
+       browser tab) so Firefox/Android can't drop a new tab in front of it on
+       relaunch, and iOS gets a real home-screen icon + standalone window. -->
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Tensies">
 
   <!-- First-paint assets, warmed before anything blocks. -->
   <link rel="preload" href="/static/images/logo.svg" as="image">
   <link rel="preload" href="/static/images/bar-top.webp" as="image" type="image/webp">
   <link rel="preload" href="/static/fonts/inter-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 
-  <!-- Critical CSS: tokens, reset, loading screen, view-transition setup. -->
+  <!-- Critical CSS: layer order, tokens, reset, loading screen, view-transition setup. -->
   <link rel="stylesheet" href="/static/css/critical.css">
 
   <!-- Non-critical CSS — all downloaded in parallel by the browser. -->
@@ -33,17 +43,24 @@
   <link rel="stylesheet" href="/static/css/dice.css">
   <link rel="stylesheet" href="/static/css/menu.css">
   <link rel="stylesheet" href="/static/css/overlays.css">
+  <link rel="stylesheet" href="/static/css/auth.css">
+  <link rel="stylesheet" href="/static/css/profile.css">
+  <link rel="stylesheet" href="/static/css/game-detail.css">
 
   <!-- Preload the whole module graph so it fetches in parallel instead of
        waterfalling app -> router/net -> components. -->
   <link rel="modulepreload" href="/static/js/app.js">
+  <link rel="modulepreload" href="/static/js/dom.js">
   <link rel="modulepreload" href="/static/js/state.js">
-  <link rel="modulepreload" href="/static/js/util.js">
+  <link rel="modulepreload" href="/static/js/session.js">
   <link rel="modulepreload" href="/static/js/names.js">
   <link rel="modulepreload" href="/static/js/transitions.js">
   <link rel="modulepreload" href="/static/js/router.js">
   <link rel="modulepreload" href="/static/js/net.js">
-  <link rel="modulepreload" href="/static/js/components/app-header.js">
+  <link rel="modulepreload" href="/static/js/touch.js">
+  <link rel="modulepreload" href="/static/js/back-button.js">
+  <link rel="modulepreload" href="/static/js/scroll-fades.js">
+  <link rel="modulepreload" href="/static/js/title-row.js">
   <link rel="modulepreload" href="/static/js/pips.js">
   <link rel="modulepreload" href="/static/js/dice.js">
   <link rel="modulepreload" href="/static/js/dice-positions.js">
@@ -51,14 +68,20 @@
   <link rel="modulepreload" href="/static/js/animations.js">
   <link rel="modulepreload" href="/static/js/roll.js">
   <link rel="modulepreload" href="/static/js/overlays.js">
-  <link rel="modulepreload" href="/static/js/title-row.js">
-  <link rel="modulepreload" href="/static/js/touch.js">
+  <link rel="modulepreload" href="/static/js/audio-share.js">
+  <link rel="modulepreload" href="/static/js/eq-icon.js">
+  <link rel="modulepreload" href="/static/js/components/app-header.js">
+  <link rel="modulepreload" href="/static/js/components/player-card.js">
+  <link rel="modulepreload" href="/static/js/components/round-target.js">
+  <link rel="modulepreload" href="/static/js/auth.js">
+  <link rel="modulepreload" href="/static/js/components/signin-screen.js">
+  <link rel="modulepreload" href="/static/js/components/onboarding-screen.js">
+  <link rel="modulepreload" href="/static/js/components/profile-screen.js">
+  <link rel="modulepreload" href="/static/js/components/game-detail-screen.js">
   <link rel="modulepreload" href="/static/js/components/landing-screen.js">
   <link rel="modulepreload" href="/static/js/components/join-screen.js">
   <link rel="modulepreload" href="/static/js/components/lobby-screen.js">
   <link rel="modulepreload" href="/static/js/components/game-screen.js">
-  <link rel="modulepreload" href="/static/js/components/player-card.js">
-  <link rel="modulepreload" href="/static/js/components/round-target.js">
   <link rel="modulepreload" href="/static/js/components/nav-menu.js">
   <script type="module" src="/static/js/app.js"></script>
 </head>
@@ -68,33 +91,37 @@
 
   <!-- Inline loading screen: paints from the critical CSS above with no JS.
        The router swaps it for landing/join/lobby/game once the app boots. -->
-  <section id="loading" class="screen active" aria-labelledby="loading-msg">
+  <section id="loading" class="screen loading-screen active" aria-labelledby="loading-msg">
     <img src="/static/images/logo.svg" class="logo-mark" alt="">
     <h1 class="logo">TENSIES</h1>
     <div class="loading-bar" aria-hidden="true"><div class="loading-bar-fill"></div></div>
-    <p id="loading-msg">Loading…</p>
+    <p id="loading-msg" class="loading-msg">Loading…</p>
   </section>
 
   <landing-screen></landing-screen>
   <join-screen></join-screen>
   <lobby-screen></lobby-screen>
   <game-screen></game-screen>
+  <signin-screen></signin-screen>
+  <onboarding-screen></onboarding-screen>
+  <profile-screen></profile-screen>
+  <game-detail-screen></game-detail-screen>
 
 </main>
 
 <nav-menu></nav-menu>
 
 <!-- Non-host wait screen while the game is paused. Body-level <dialog> so the
-     board stays live underneath; visually mirrors #loading. -->
-<dialog id="pause-overlay" class="overlay-dialog" aria-labelledby="pause-overlay-msg">
+     board stays live underneath; visually mirrors the loading screen. -->
+<dialog id="pause-overlay" class="overlay-dialog pause-overlay" aria-labelledby="pause-overlay-msg">
   <img src="/static/images/logo.svg" class="logo-mark" alt="">
   <h1 class="logo">TENSIES</h1>
   <div class="loading-bar" aria-hidden="true"><div class="loading-bar-fill"></div></div>
-  <p id="pause-overlay-msg"></p>
+  <p id="pause-overlay-msg" class="pause-overlay-msg"></p>
 </dialog>
 
 <!-- Round winner/loser celebration. Body-level <dialog> over the live board. -->
-<dialog id="winner-overlay" class="overlay-dialog" aria-label="Round winner">
+<dialog id="winner-overlay" class="overlay-dialog winner-overlay" aria-label="Round winner">
   <div class="winner-box">
     <div class="winner-banner"><span class="winner-banner-label">Round <span class="winner-round-pill" id="winner-round"></span> <span id="winner-banner-suffix">Winner</span></span></div>
     <img src="/static/images/logo-winner.svg" class="winner-logo" alt="" aria-hidden="true">
@@ -105,6 +132,17 @@
     <p class="winner-timer-secs" id="winner-timer-secs"></p>
   </div>
 </dialog>
+
+
+<!-- Orientation guard: Tensies is portrait-only. The web has no true orientation
+     lock (the manifest only locks an installed PWA), so on a phone held landscape
+     this covers the sideways layout with a rotate prompt. Pure CSS via a
+     landscape media query — paints with no JS, like the loading screen. -->
+<div id="rotate-overlay" class="rotate-overlay" role="alertdialog" aria-label="Rotate your device to portrait">
+  <img src="/static/images/logo.svg" class="logo-mark rotate-mark" alt="">
+  <h2 class="logo rotate-logo">TENSIES</h2>
+  <p class="rotate-msg">Best played upright —<br>rotate your device to portrait.</p>
+</div>
 
 </body>
 </html>

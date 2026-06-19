@@ -1,124 +1,154 @@
-/* ── Landing + Join ──
-   Two full-screen scrims over the bar photo. They share the logo/heading/form
-   vocabulary; the header chrome is hidden on landing until the nav menu opens. */
-#landing, #join {
-  height: 100vh;
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  background: var(--panel-screen);
-  overflow: hidden;
-  position: relative;
-}
+/* Landing + Join: two full-screen scrims over the bar photo. They share the
+   logo/heading/form vocabulary; the landing header chrome is hidden until the
+   nav menu opens (the hamburger itself stays clickable). */
 
-/* Landing header floats out of flow; only its chrome hides until the menu opens
-   (the hamburger itself stays clickable). */
-#landing .app-header {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-}
-#landing .game-topbar { border-bottom-color: transparent; }
-#landing .topbar-title-row {
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border-bottom-color: transparent;
-}
-#landing .game-title { visibility: hidden; }
-#landing .game-menu-btn span {
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
-}
-body:has(#nav-menu.open) #landing .game-topbar { border-bottom-color: rgba(180, 100, 20, 0.25); }
-body:has(#nav-menu.open) #landing .topbar-title-row {
-  background: rgba(8, 4, 1, 0.58);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-bottom-color: rgba(180, 100, 20, 0.2);
-}
-body:has(#nav-menu.open) #landing .game-title { visibility: visible; }
+@layer components {
+  .landing-screen,
+  .join-screen {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    block-size: 100%;
+    overflow: hidden;
+    background: var(--color-panel-screen);
+    background: var(--color-panel-screen);
+  }
 
-/* .logo-mark and .logo are in the inline critical CSS (shared with loading). */
+  /* Landing header floats out of flow; only its chrome hides until the menu
+     opens. `nav-menu-open` is toggled on <body> by the nav menu. */
+  .landing-screen .app-header {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 100;
+  }
 
-/* Per-screen heading (e.g. "Join a Game") — warm white, NOT the brand wordmark. */
-.screen-title {
-  font-size: clamp(1.75rem, 8vw, 2.4rem);
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  color: var(--text);
-  text-shadow: var(--text-shadow-lg);
-  margin-bottom: 0.5rem;
-}
-.tagline {
-  color: var(--label);
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-shadow: var(--text-shadow);
-  margin-bottom: 3rem;
-}
+  .landing-screen .game-topbar { border-block-end-color: transparent; }
 
-.form-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  width: 100%;
-  max-width: 320px;
-}
+  .landing-screen .topbar-title-row {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-block-end-color: transparent;
+  }
 
-.or-divider {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  color: var(--muted);
-  font-size: 0.82rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-shadow: var(--text-shadow);
-  margin: 0.15rem 0;
-}
-.or-divider::before,
-.or-divider::after { content: ''; flex: 1; height: 1px; background: var(--border-strong); }
-.or-divider::before { background: linear-gradient(90deg, transparent, var(--border-strong)); }
-.or-divider::after  { background: linear-gradient(90deg, var(--border-strong), transparent); }
+  .landing-screen .game-title { visibility: hidden; }
 
-.field-hint {
-  color: var(--muted);
-  font-size: 0.8rem;
-  letter-spacing: 0.02em;
-  text-shadow: var(--text-shadow);
-  margin-bottom: 0.4rem;
-}
+  .landing-screen .game-menu-btn span {
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  }
 
-/* Back chip (join screen + changelog panel) */
-#join .screen-body { position: relative; }
-.btn-back {
-  position: absolute;
-  top: 1.25rem;
-  left: 2rem;
-  color: var(--text-warm);
-  font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-shadow: var(--text-shadow);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.45rem 0.9rem 0.45rem 0.7rem;
-  background: var(--raised);
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  box-shadow: inset 0 1px 0 rgba(220, 170, 70, 0.12), 0 2px 8px rgba(0, 0, 0, 0.45);
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-.btn-back:hover { color: #fff; background: var(--raised-hover); border-color: rgba(190, 130, 55, 0.45); }
-.back-chevron { width: 17px; height: 17px; flex-shrink: 0; margin-left: -0.15rem; }
+  body.nav-menu-open .landing-screen .game-topbar {
+    border-block-end-color: rgba(180, 100, 20, 0.25);
+  }
 
-@media (max-height: 700px) {
-  .tagline { margin-bottom: 1.5rem; }
+  body.nav-menu-open .landing-screen .topbar-title-row {
+    background: rgba(8, 4, 1, 0.58);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-block-end-color: rgba(180, 100, 20, 0.2);
+  }
+
+  body.nav-menu-open .landing-screen .game-title { visibility: visible; }
+
+  /* Per-screen heading (e.g. "Join a Game") — warm white, NOT the brand wordmark. */
+  .screen-title {
+    margin-block-end: 0.5rem;
+    font-size: clamp(1.75rem, 8vw, 2.4rem);
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    color: var(--color-text);
+    text-shadow: var(--shadow-text-lg);
+  }
+
+  .tagline {
+    margin-block-end: 3rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-label);
+    text-shadow: var(--shadow-text);
+  }
+
+  .form-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    inline-size: 100%;
+    max-inline-size: 320px;
+  }
+
+  .or-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-block: 0.15rem;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+  }
+
+  .or-divider::before,
+  .or-divider::after {
+    content: '';
+    flex: 1;
+    block-size: 1px;
+    background: var(--color-border-strong);
+  }
+
+  .or-divider::before { background: linear-gradient(90deg, transparent, var(--color-border-strong)); }
+  .or-divider::after { background: linear-gradient(90deg, var(--color-border-strong), transparent); }
+
+  .field-hint {
+    margin-block-end: 0.4rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+    color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+  }
+
+  /* Back chip (join screen + changelog panel) */
+  .join-screen .screen-body { position: relative; }
+
+  .btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    position: absolute;
+    inset-block-start: 1.25rem;
+    inset-inline-start: 2rem;
+    padding: 0.45rem 0.9rem 0.45rem 0.7rem;
+    background: var(--color-raised);
+    border: 1px solid var(--color-border-strong);
+    border-radius: 999px;
+    box-shadow: inset 0 1px 0 rgba(220, 170, 70, 0.12), 0 2px 8px rgba(0, 0, 0, 0.45);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--color-text-warm);
+    text-shadow: var(--shadow-text);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+
+  .btn-back:hover {
+    background: var(--color-raised-hover);
+    border-color: rgba(190, 130, 55, 0.45);
+    color: #fff;
+  }
+
+  .back-chevron {
+    flex-shrink: 0;
+    inline-size: 17px;
+    block-size: 17px;
+    margin-inline-start: -0.15rem;
+  }
+
+  @media (max-height: 700px) {
+    .tagline { margin-block-end: 1.5rem; }
+  }
 }

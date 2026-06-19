@@ -466,3 +466,11 @@ WebSocket protocol table in `CLAUDE.md`.
 - **Stats semantics** (`total_rounds` / `total_games`) — ⏳ still open. `total_rounds` still equals `total_wins` in all rows; `total_games` is still declared in the schema but written by no handler.
 - **Single-worker documentation** — ⏳ still open. No commit has added an explicit warning against `--workers >1` to `CLAUDE.md`, `docker-compose.yml`, or a README.
 - **Production config / CI / resource caps** — ⏳ still open. No `docker-compose.prod.yml`, non-root Dockerfile, auth on `/metrics`/`/stats/*`, CI pipeline, or create/join rate limits.
+
+### 2026-06-16
+
+- **Stats semantics (`total_rounds`)** — ✅ addressed in [08dc872](https://github.com/radiantnode/tensies/commit/08dc872587e2acb13dec017b2f2d6226b6f45919) *(2026-06-15)*. Moved the `total_rounds` increment from `_h_round_won` (which only fired for the winner) to `_h_round_ended`, which fires for every round and updates all participants via the `round_player` table.
+- **Stats semantics (`total_games`)** — ✅ addressed in [232f4c8](https://github.com/radiantnode/tensies/commit/232f4c8af5e52fbbd0ea0625b4ce8be502ad7328) *(2026-06-15)*. Added a `total_games` increment in `_h_game_ended` for every player who participated (looked up via `round_player`). Was previously declared in the schema but never written.
+- **Single-worker documentation** — ✅ resolved by the multi-instance Redis rewrite. The single-worker ceiling no longer exists; `CLAUDE.md` documents the multi-instance architecture.
+- **Production config / CI / resource caps** — 🟡 partial. `docker-compose.prod.yml`, non-root Dockerfile, bearer-gated endpoints, rate limits, resource caps all shipped in the multi-instance change. **CI still open.**
+- **Writer transaction split** — ⏳ still open. `server/telemetry/writer.py:80` still wraps the event insert and all rollup handlers in a single `con.transaction()` with no savepoints.

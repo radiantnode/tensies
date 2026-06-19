@@ -1,91 +1,177 @@
-// <nav-menu> — the slide-down menu (about + "What's New" changelog) reachable
-// from the hamburger on landing/join/lobby. Light DOM; the host IS #nav-menu so
-// menu.css and the body:has(#nav-menu.open) selectors apply. Toggled by the
-// bubbling `menu-toggle` event from <app-header>. The changelog body is baked
-// HTML (the changelog skill regenerates it).
-import { updateScrollFades } from '../util.js';
-import { backButtonHTML } from '../title-row.js';
+// @ts-check
+import { isSignedIn, getAuthUser, signOut } from '../auth.js';
+import { BACK_BUTTON_HTML } from '../back-button.js';
+import { showSignin } from '../router.js';
+import { updateScrollFades } from '../scroll-fades.js';
+
+// Baked changelog HTML — content, not code; the changelog skill regenerates it.
 const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
-<h2>1.9.0 ("Speed Round")</h2>
-<p>Sunday, June 8, 2026</p>
+<h2>1.15.0 ("Last Call")</h2>
+<p>Wednesday, June 17, 2026</p>
 <ul>
-<li>The game loads faster now. Everything gets bundled down and compressed before it hits your phone, so the wait before the first round is shorter. 🚀</li>
-<li>The bar background photo got slimmed down too, converted to a format that cuts the file size without changing how it looks.</li>
-<li>Your winner overlay pops up the moment your last die settles now, not a beat after.</li>
-<li><em>Behind the scenes: every file gets fingerprinted and cached forever, so once you've loaded the game once, coming back is near-instant.</em></li>
+<li>The host can end the game from the menu. First tap says "Tap to confirm," second tap sends everyone home.</li>
+<li>When a game ends, everyone lands on the game's detail page — player stats, round wins, and roll verification all in one place.</li>
+<li>Profile recent games got some polish. Better spacing, cleaner score glow.</li>
 </ul>
-<h2>1.8.0 ("Savor the Win")</h2>
-<p>Saturday, June 7, 2026</p>
+<h2>1.14.1 ("Coaster Notes")</h2>
+<p>Tuesday, June 16, 2026</p>
 <ul>
-<li>Fixed a maddening one. Every so often your win screen would blink and vanish while everyone else's stuck around just fine. Now your victory lap holds the full three seconds, like it should. 🎲</li>
-<li>You can now join a game by going straight to the code link. Clean URL, no extra text at the end.</li>
-<li>Locked the doors a little tighter, so the game behaves on real networks and only the right people can wander into the back room.</li>
-<li><em>Behind the scenes: the frontend got rebuilt from the ground up using proper components. Same game, cleaner bones.</em></li>
+<li><em>Behind the scenes: collected outside feedback and updated the status tracker. Nothing player-facing, just listening.</em></li>
+</ul>
+<h2>1.14.0 ("The Regulars")</h2>
+<p>Monday, June 15, 2026</p>
+<ul>
+<li>Your profile page is live at /@username. Lifetime stats, recent games, win rate, best time.</li>
+<li>Recent games show who you played, who won, and how fast. Stacked avatars, gold glow on the winner. Solo games don't show up.</li>
+<li>A gradient shimmer runs across the stat cards when the profile first loads. Once, then it's done. ✨</li>
+<li>The username pill in the header links straight to your profile from the landing and lobby.</li>
+<li>Fixed a bug where total_games was stuck at zero. Backfilled from actual game history.</li>
+<li><em>Behind the scenes: data-repair scripts and prod config fixes keep the numbers honest.</em></li>
+</ul>
+<h2>1.13.0 ("Wristband Night")</h2>
+<p>Sunday, June 14, 2026</p>
+<ul>
+<li>Signed-in players see their username pill next to the hamburger on every screen, in-game included.</li>
+<li>The changelog scrolls as one page now, same as the menu panel.</li>
+<li>iOS standalone screens fill edge-to-edge at the bottom, and nothing bleeds through behind the status bar. 📱</li>
+<li><em>Behind the scenes: the README got some hero screenshots for GitHub.</em></li>
+</ul>
+<h2>1.12.0 ("Backstage Pass")</h2>
+<p>Saturday, June 13, 2026</p>
+<ul>
+<li>Passkey sign-up is here. Tap, scan your face or fingerprint, done. Anonymous stats carry over and you get a vanity URL. 🔑</li>
+<li>The onboarding screen shows your profile card, vanity link, and stat history. Survives a refresh.</li>
+<li>Signed-in players skip the name field on landing. You're already you.</li>
+<li>The soundboard shipped as a standalone tool for field-testing audio share. It went out for 6 sessions and 744 tests across beaches, bars, and a pool.</li>
+<li>Lobby Share and Play buttons sit side-by-side with more room around Start.</li>
+<li>The landing dice logo wiggles when you arrive. Primary buttons picked up a shimmer sweep.</li>
+<li>Player list shows both YOU and HOST badges, and you're always sorted to the top.</li>
+<li><em>Behind the scenes: pixel baselines updated for the new auth and lobby states, and all the soundboard data is in the repo.</em></li>
+</ul>
+<h2>1.11.0 ("Jukebox")</h2>
+<p>Friday, June 12, 2026</p>
+<ul>
+<li>Tensies installs to your home screen. Launches standalone, no browser chrome.</li>
+<li>The lobby Share button opens AirDrop, Messages, WhatsApp, whatever your phone offers. SMS fallback still works.</li>
+<li>Experimental: the lobby "Play" button chirps your game code through the speaker. A friend taps "Listen" on the join screen and their mic picks it up. Works best when it's not too loud. 🔊</li>
+<li>Turn your phone sideways and you'll get a nudge to rotate back. Portrait game.</li>
+<li><em>Behind the scenes: the audio share got another round of tuning for louder transmission and better error correction.</em></li>
+</ul>
+<h2>1.10.0 ("Fresh Coat")</h2>
+<p>Thursday, June 11, 2026</p>
+<ul>
+<li>The whole frontend got rebuilt from scratch. Layered CSS, typed JS modules, one concern per file. Every screen was pixel-verified against the original at zero diff. If you spot anything different, that's a bug.</li>
+<li>Fixed the winner overlay closing early when an opponent's roll echo snuck in during the celebration.</li>
+<li>Dice scatter into place before the board paints, so there's no blank flash.</li>
+<li>The loading overlay holds until dice are rendered, then dissolves.</li>
+<li>Safari stopped flattening the 3D dice during screen transitions. 🎲</li>
+<li><em>Behind the scenes: the rewrite means changes land without quietly breaking something three files away.</em></li>
+</ul>
+<h2>1.9.2 ("Bar Back")</h2>
+<p>Wednesday, June 10, 2026</p>
+<ul>
+<li><em>Behind the scenes: documentation cleanup, test tooling sharpened, and the groundwork laid for the frontend rebuild that shipped the next day.</em></li>
+</ul>
+<h2>1.9.1 ("Garnish")</h2>
+<p>Monday, June 8, 2026</p>
+<ul>
+<li>The winner overlay pops right after the scatter reveal. You don't sit there staring at the board anymore.</li>
+<li>Prod gets a real asset pipeline. One bundled, minified JS file instead of a dozen loose modules. Faster cold load. ⚡</li>
+<li><em>Behind the scenes: nginx handles static files so the app server just runs the game.</em></li>
+</ul>
+<h2>1.9.0 ("Open Mic")</h2>
+<p>Sunday, June 7, 2026</p>
+<ul>
+<li>Join URLs are shorter: tensies.app/ABCD instead of tensies.app/?join=ABCD. Old links still work.</li>
+<li>Fixed the winner overlay flashing away when a broadcast landed mid-reveal. It stays put until the countdown finishes now.</li>
+<li>Strict CSP and HSTS on every response. Your browser won't load anything we didn't serve. 🔒</li>
+<li>The nav menu stopped flashing on the loading screen.</li>
+<li><em>Behind the scenes: abuse limits read the real client IP behind a proxy, and metrics require auth in dev too.</em></li>
+</ul>
+<h2>1.8.0 ("Vacation Pour")</h2>
+<p>Monday, June 1, 2026</p>
+<ul>
+<li>Game state lives in Redis now. The server can run as multiple instances behind a load balancer, no sticky sessions needed. Your game keeps going if one instance restarts.</li>
+<li>A reaper cleans up abandoned games and publishes the active count across instances.</li>
+<li>Security pass: Starlette and h11 bumped for CVEs, lockfile pinned, Docker image runs non-root.</li>
+<li>The frontend was rebuilt as web components. Each screen is its own element. The loading screen paints before JS even runs. Same design, better wiring. 🔧</li>
+<li><em>Behind the scenes: a pixel-regression harness verified every view at zero diff. 25 views, all green.</em></li>
 </ul>
 <h2>1.7.0 ("Open Bar")</h2>
-<p>Sunday, June 1, 2026</p>
-<ul>
-<li>The game can spread across a whole row of servers now. A big crowd can pile in and nobody gets bumped at the door. Bring the whole bar. 🍻</li>
-<li>Any server can pick up any game, so if one hiccups, your round just keeps rolling.</li>
-<li>Built this whole "bring the whole bar" upgrade from a beach chair in Cap Cana, Dominican Republic, ducking back to the pool between edits.</li>
-<li><em>Behind the scenes: moved every game onto a shared brain so matches stay fast and fair no matter how many people show up.</em></li>
-</ul>
-<h2>1.6.0 ("High Roller")</h2>
 <p>Sunday, May 31, 2026</p>
 <ul>
-<li>Gave the whole place a warm new look. The landing, the lobby, the board, all redone to feel like your favorite dim-lit watering hole.</li>
-<li>The winner screen got redone properly. A 3D die flies in at you, your name comes up in gold, and a countdown ticks to the next round.</li>
-<li>Lose the round? You get your own screen now too, complete with dramatically shattered dice. 💔</li>
-<li>The target counts up now: 1, 2, 3, 4, 5, 6, then back around.</li>
-<li>Added a menu with a "See What's New" panel, so you can read these very notes without leaving the game.</li>
+<li>Everything got warmer. Landing, lobby, join, board, winner, loser. It all feels like the same bar now.</li>
+<li>Dice look real. Soft edges, lit from the same direction as the wood underneath.</li>
+<li>The winner overlay is something to see. A 3D die flies at you, your name glows in gold, and a countdown bar ticks to the next round.</li>
+<li>Losers get a cracked die. Black and broken. 💔</li>
+<li>The roll button looks like a leather coaster sitting on the bartop.</li>
+<li>Nav menu slides in from the hamburger with an About section and a "What's New" changelog (hi).</li>
+<li>Round target goes 1, 2, 3, 4, 5, 6. Ascending, the way you'd count.</li>
+<li><em>Behind the scenes: Inter is self-hosted for consistent type across phones, and the scroll fades on the player list took some real CSS.</em></li>
 </ul>
-<h2>1.5.0 ("Last Call")</h2>
-<p>Friday, May 30, 2026</p>
+<h2>1.6.0 ("Saturday Sipper")</h2>
+<p>Saturday, May 30, 2026</p>
 <ul>
-<li>Whoever's hosting can pause the game. Perfect for a bar run, a bathroom break, or sorting out who's buying the next round. ⏸️</li>
-<li>Paused games hang on for up to an hour, so a phone going dark mid-round won't end the night.</li>
-<li>If the host wanders off, someone still in their seat quietly takes over instead of the game freezing up.</li>
-<li>Reconnecting now uses a secure token so the server knows it's actually you coming back.</li>
-<li><em>Behind the scenes: built a backstage view of every game so we can keep matches fair and catch trouble early.</em></li>
+<li>The host can pause the game. Good for a bar run, a bathroom break, or settling who's buying the next round. ⏸️</li>
+<li>Non-host players see a "waiting for host" overlay while paused. The board stays live underneath.</li>
+<li>If the host disappears, another connected player gets promoted.</li>
+<li>Paused games survive up to an hour. If nobody returns, the game ends on its own.</li>
+<li>Reconnect tokens work now. Drop and come back, the server knows it's you.</li>
+<li>The pause menu has a countdown, connected-player count, and the resume toggle.</li>
+<li><em>Behind the scenes: telemetry dashboards picked up a luck balance chart, per-game event logs, and a luckiest-players leaderboard.</em></li>
 </ul>
-<h2>1.4.0 ("Happy Hour")</h2>
-<p>Thursday, May 29, 2026</p>
+<h2>1.5.0 ("Back Booth")</h2>
+<p>Friday, May 29, 2026</p>
 <ul>
-<li>Added the start of an in-game menu, the little hamburger button that opens up your options.</li>
-<li>Reconnect window doubled: you now have a full minute to get back before the game drops you. 🔌</li>
-<li><em>Behind the scenes: built a stress-test rig that crams in hundreds of pretend players, so the real ones never end up waiting.</em></li>
+<li>Multiplayer got a stress test. A headless driver spins up hundreds of games looking for leaks and race conditions. It found one. Fixed. 🧪</li>
+<li>The test harness runs two isolated browser profiles so each player keeps their own identity.</li>
+<li><em>Behind the scenes: two SQL bugs in the telemetry pipeline were caught and fixed during the first automated run.</em></li>
 </ul>
-<h2>1.3.0 ("On the Rocks")</h2>
-<p>Wednesday, May 28, 2026</p>
+<h2>1.4.0 ("Double Shot")</h2>
+<p>Thursday, May 28, 2026</p>
 <ul>
-<li>Your dice stay put exactly where they landed, even if you refresh or your phone dozes off. 🎲</li>
-<li>Connecting feels smoother. One clean loading screen instead of jarring pop-ups when you join or come back.</li>
-<li>Random names get dreamed up right on your phone now, with a lot more goofy combos to go around.</li>
-<li>Squashed a winner screen that sometimes overstayed its welcome.</li>
-<li><em>Behind the scenes: reorganized the guts of the game so new stuff lands faster and breaks less.</em></li>
+<li>Dice stay put when you refresh or your phone naps. Scatter positions are saved. 🎲</li>
+<li>A unified loading screen replaces the old disconnect and reconnect dialogs. 600ms minimum so it doesn't blink in and out.</li>
+<li>The winner overlay stopped sticking around when a stray roll queued during the celebration.</li>
+<li>Telemetry is running. Rolls, wins, games, all flowing into Postgres and Grafana.</li>
+<li>The server, CSS, and JS each got split into proper packages. Same game, cleaner foundation.</li>
+<li><em>Behind the scenes: cache-busting covers the full ES module import graph, not just the entry scripts.</em></li>
 </ul>
-<h2>1.2.0 ("Hold My Drink")</h2>
-<p>Tuesday, May 27, 2026</p>
+<h2>1.3.0 ("Whiskey Neat")</h2>
+<p>Wednesday, May 27, 2026</p>
 <ul>
-<li>Drop off and come right back. Lose your signal and you get a grace period to slide back into your seat.</li>
-<li>Fixed a sneaky freeze when your re-roll landed on the exact same numbers. Spooky, but no longer sticky. 👻</li>
-<li>Nobody sees your dice change until your roll animation finishes, so there's no peeking early.</li>
-<li>Cleaned up dice that could tear or smear in the middle of a roll.</li>
+<li>Fixed a freeze when your re-roll landed on the exact same numbers. Rare, but it locked the whole game up.</li>
+<li>Other players' dice update in sync with the roller's reveal animation now. You won't see the result before the shake finishes.</li>
+<li>If your phone drops the connection, you get 30 seconds to come back. A reconnecting overlay holds your spot. 🔌</li>
+<li>The dice logo landed in the game header, overlapping the wordmark.</li>
+<li>Warmer in-game text, animated progress bars, bar background shifted to a better focal point.</li>
+<li><em>Behind the scenes: join errors route to the right screen now, and a dice-tearing fix freezes the transform before clearing the animation.</em></li>
 </ul>
-<h2>1.1.0 ("House Rules")</h2>
-<p>Monday, May 26, 2026</p>
+<h2>1.2.0 ("Pint Glass")</h2>
+<p>Tuesday, May 26, 2026</p>
 <ul>
-<li>Tensies got its own dice logo and favicon, so the browser tab finally looks the part. 🎲</li>
-<li>Moved the dice rolls over to the server, so everyone's looking at the same honest roll.</li>
+<li>Dice rolls are server-authoritative. Everyone sees the same result.</li>
+<li>The dice logo and favicon give Tensies its own face in the browser tab. 🎲</li>
+<li><em>Behind the scenes: the fairness engine is quiet but real.</em></li>
+</ul>
+<h2>1.1.0 ("First Round")</h2>
+<p>Monday, May 25, 2026</p>
+<ul>
+<li>Invite friends with a tap. Share a link or fire off a text. 📲</li>
+<li>Dice physics: gather, shake, scatter, and they never pile on top of each other. Matched dice lock in.</li>
+<li>The board looks like a bartop. Warm wood photo, soft shadows, lit from the top left.</li>
+<li>Players bar fits five, the join screen is its own page, and random names fill in so nobody has to think.</li>
+<li>iOS plays nice. No scroll, no zoom, fast taps still register.</li>
+<li><em>Behind the scenes: animations run on the GPU, placement uses a jittered grid, and static assets get cache-busted on deploy.</em></li>
 </ul>
 <h2>1.0.0 ("Opening Tab")</h2>
-<p>Sunday, May 25, 2026</p>
+<p>Monday, May 25, 2026</p>
 <ul>
-<li>A bar regular and his friends love playing Tensies, the dice game. One night, a few heated rounds in and drinks down, he figured it'd be great to play anywhere, even on the nights you forget to bring the dice. So he started building it with Claude, sketched the very first board himself, and kept tinkering from his barstool between rounds. 🍺</li>
-<li>Share a link or fire off a quick text to get your friends in the game.</li>
-<li>The dice have real rolling physics. They gather, shake, scatter across the wood, and settle.</li>
-<li>Matched dice stay locked. Only the leftovers re-roll, just like the real thing.</li>
-<li><em>Behind the scenes: the only reason this whole version is one giant first commit is that he forgot to start tracking the code until the game already worked.</em></li>
+<li>A bar regular and his friends love playing Tensies, the dice game. One night, a few rounds deep and drinks in, he thought it'd be great to play anywhere, even when you forget the dice. So he started having Claude build the game, sketched the first board himself, and kept tinkering from his barstool between rounds.</li>
+<li>Ten dice, one target number, fastest to lock all ten wins. Simple rules, good trash talk.</li>
+<li>Multiplayer over WebSockets. Create a game, share the code, roll against your friends live.</li>
+<li>Your opponent sits up top, your dice down below, right where your thumbs are. 🍺</li>
+<li><em>Behind the scenes: the git history starts here because he forgot to git init until the game already worked.</em></li>
 </ul>
 <div class="menu-changelog-footer">
   <p class="menu-changelog-footer-lead">Still scrolling? Either you're into the nerdy bits or just doomscrolling between rounds.</p>
@@ -96,12 +182,29 @@ const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
   </a>
 </div>`;
 
-class NavMenu extends HTMLElement {
+/**
+ * <nav-menu> — the slide-down menu (about + "What's New" changelog) reached
+ * from the hamburger on landing/join/lobby. Light DOM; the host *is*
+ * `#nav-menu.game-menu.nav-menu`. Toggled by the bubbling `menu-toggle`
+ * event from <app-header>. While open it sets `nav-menu-open` on <body>,
+ * which drives the landing-header chrome rules in landing.css.
+ */
+export class NavMenu extends HTMLElement {
+  /** @type {HTMLElement | null} */
+  #body = null;
+
+  #onMenuToggle = () => this.toggle();
+
+  /** @param {KeyboardEvent} event */
+  #onKeydown = (event) => {
+    if (event.key === 'Escape' && this.isOpen()) this.close();
+  };
+
   connectedCallback() {
-    if (this._rendered) return;
-    this._rendered = true;
+    if (this.dataset.rendered) return;
+    this.dataset.rendered = 'true';
     this.id = 'nav-menu';
-    this.className = 'game-menu';
+    this.className = 'game-menu nav-menu';
     this.setAttribute('aria-hidden', 'true');
     this.innerHTML = `
       <nav class="menu-panel" aria-label="Menu">
@@ -120,64 +223,109 @@ class NavMenu extends HTMLElement {
             </svg>
             Buy me a beer
           </a>
+          <div class="menu-divider"></div>
+          <button type="button" class="btn btn-secondary menu-auth-btn"></button>
         </div>
       </nav>
       <div class="menu-changelog-panel">
         <div class="menu-changelog-header">
           <h2 class="menu-changelog-heading">See What's New</h2>
-          <button type="button" class="menu-changelog-back-btn btn-back">${backButtonHTML}</button>
+          <button type="button" class="menu-changelog-back-btn btn-back">${BACK_BUTTON_HTML}</button>
         </div>
         <div class="menu-changelog-body">${CHANGELOG}</div>
       </div>`;
 
-    this._body = this.querySelector('.menu-changelog-body');
-    this._body.addEventListener('scroll', () => this.updateFades(), { passive: true });
+    this.#body = /** @type {HTMLElement} */ (this.querySelector('.menu-changelog-body'));
+    this.#body.addEventListener('scroll', () => this.#updateFades(), { passive: true });
 
-    this._onMenuToggle = () => this.toggle();
-    this._onKeydown = (e) => { if (e.key === 'Escape' && this.menuOpen()) this.close(); };
-    document.addEventListener('menu-toggle', this._onMenuToggle);
-    document.addEventListener('keydown', this._onKeydown);
+    document.addEventListener('menu-toggle', this.#onMenuToggle);
+    document.addEventListener('keydown', this.#onKeydown);
 
-    this.querySelector('.menu-whats-new-btn').addEventListener('click', () => {
-      this.classList.add('show-changelog');
-      this._body.scrollTop = 0;
-      requestAnimationFrame(() => this.updateFades());
-    });
-    this.querySelector('.menu-changelog-back-btn').addEventListener('click', () => {
-      this.classList.remove('show-changelog');
-    });
+    this._updateAuthButton();
+    /** @type {HTMLElement} */ (this.querySelector('.menu-auth-btn'))
+      .addEventListener('click', () => {
+        if (isSignedIn()) {
+          signOut();
+          this._updateAuthButton();
+          // Remove header username badges from all app-headers
+          document.querySelectorAll('.header-username').forEach((el) => el.remove());
+          // Refresh landing screen auth state if it exists
+          const landing = /** @type {any} */ (document.getElementById('landing'));
+          if (landing?.refreshAuth) landing.refreshAuth();
+          this.close();
+        } else {
+          this.close();
+          showSignin();
+        }
+      });
+    /** @type {HTMLElement} */ (this.querySelector('.menu-whats-new-btn'))
+      .addEventListener('click', () => {
+        this.classList.add('show-changelog');
+        if (this.#body) this.#body.scrollTop = 0;
+        requestAnimationFrame(() => this.#updateFades());
+      });
+    /** @type {HTMLElement} */ (this.querySelector('.menu-changelog-back-btn'))
+      .addEventListener('click', () => {
+        this.classList.remove('show-changelog');
+      });
   }
 
   disconnectedCallback() {
-    document.removeEventListener('menu-toggle', this._onMenuToggle);
-    document.removeEventListener('keydown', this._onKeydown);
+    document.removeEventListener('menu-toggle', this.#onMenuToggle);
+    document.removeEventListener('keydown', this.#onKeydown);
   }
 
-  menuOpen() { return this.classList.contains('open'); }
+  /** Whether the menu is currently open. */
+  isOpen() {
+    return this.classList.contains('open');
+  }
 
-  toggle() { this.menuOpen() ? this.close() : this.open(); }
+  /** Open if closed, close if open. */
+  toggle() {
+    if (this.isOpen()) this.close();
+    else this.open();
+  }
 
+  /** Slide the menu in and reflect the open state on body + hamburgers. */
   open() {
     this.classList.add('open');
     this.setAttribute('aria-hidden', 'false');
-    this.syncButtons(true);
+    document.body.classList.add('nav-menu-open');
+    this._updateAuthButton();
+    this.#syncButtons(true);
   }
 
+  /** Slide the menu out (and leave the changelog panel). */
   close() {
     this.classList.remove('open', 'show-changelog');
     this.setAttribute('aria-hidden', 'true');
-    this.syncButtons(false);
+    document.body.classList.remove('nav-menu-open');
+    this.#syncButtons(false);
   }
 
-  // Reflect open state on whichever pre-game hamburger triggered it.
-  syncButtons(open) {
-    document.querySelectorAll('.app-header .game-menu-btn').forEach((b) => {
-      b.classList.toggle('open', open);
-      b.setAttribute('aria-expanded', String(open));
-      b.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  /**
+   * Reflect open state on whichever pre-game hamburger triggered it.
+   * @param {boolean} open
+   */
+  #syncButtons(open) {
+    document.querySelectorAll('.app-header .game-menu-btn').forEach((btn) => {
+      btn.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', String(open));
+      btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
     });
   }
 
-  updateFades() { updateScrollFades(this._body); }
+  /** Update the auth button label based on sign-in state. */
+  _updateAuthButton() {
+    const btn = /** @type {HTMLElement | null} */ (this.querySelector('.menu-auth-btn'));
+    if (!btn) return;
+    const user = getAuthUser();
+    btn.textContent = user ? 'Sign out' : 'Sign in or Sign up';
+  }
+
+  #updateFades() {
+    if (this.#body) updateScrollFades(this.#body);
+  }
 }
+
 customElements.define('nav-menu', NavMenu);

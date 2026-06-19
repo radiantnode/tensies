@@ -1,15 +1,21 @@
-// <landing-screen> — create-or-join entry. Light DOM; the host element *is*
-// #landing.screen so the existing #landing CSS applies unchanged.
+// @ts-check
 import './app-header.js';
-import { showJoin } from '../router.js';
+import { byId } from '../dom.js';
+import { getAuthUser } from '../auth.js';
 import { createGame } from '../net.js';
+import { showJoin } from '../router.js';
+import { state } from '../state.js';
 
-class LandingScreen extends HTMLElement {
+/**
+ * <landing-screen> — create-or-join entry. Light DOM: the host element *is*
+ * `#landing.screen`, so the global stylesheet applies directly.
+ */
+export class LandingScreen extends HTMLElement {
   connectedCallback() {
-    if (this._rendered) return;
-    this._rendered = true;
+    if (this.dataset.rendered) return;
+    this.dataset.rendered = 'true';
     this.id = 'landing';
-    this.className = 'screen';
+    this.className = 'screen landing-screen';
     this.setAttribute('aria-labelledby', 'landing-title');
     this.innerHTML = `
       <app-header></app-header>
@@ -26,11 +32,52 @@ class LandingScreen extends HTMLElement {
           <p class="error-msg" id="landing-error" role="alert" aria-live="polite"></p>
         </form>
       </div>`;
-    this.querySelector('#show-join-btn').addEventListener('click', () => showJoin());
-    this.querySelector('#landing-form').addEventListener('submit', (e) => {
-      e.preventDefault();
+
+    const nameInput = /** @type {HTMLInputElement} */ (byId('name-input'));
+    nameInput.placeholder = state.randomNamePlaceholder;
+
+    this.refreshAuth();
+
+    byId('show-join-btn').addEventListener('click', () => showJoin());
+    byId('landing-form').addEventListener('submit', (event) => {
+      event.preventDefault();
       createGame();
     });
+
+  }
+
+  /**
+   * Refresh the auth state (called after sign-in/sign-out from other screens).
+   */
+  refreshAuth() {
+    const user = getAuthUser();
+    const nameInput = /** @type {HTMLInputElement | null} */ (document.getElementById('name-input'));
+    const nameLabel = /** @type {HTMLElement | null} */ (this.querySelector('.field-hint[for="name-input"]'));
+    if (nameInput) nameInput.hidden = !!user;
+    if (nameLabel) nameLabel.hidden = !!user;
+
+    const header = this.querySelector('app-header');
+    if (!header) return;
+    const existing = header.querySelector('.header-username');
+    if (user && !existing) {
+      const tag = document.createElement('a');
+      tag.className = 'header-username';
+      tag.textContent = `@${user.username}`;
+      tag.href = `/@${user.username}`;
+      const btn = header.querySelector('.game-menu-btn');
+      btn?.parentElement?.insertBefore(tag, btn);
+    } else if (!user && existing) {
+      existing.remove();
+    }
+  }
+
+  /**
+   * Surface an error message on this screen.
+   * @param {string} message
+   */
+  showError(message) {
+    byId('landing-error').textContent = message;
   }
 }
+
 customElements.define('landing-screen', LandingScreen);

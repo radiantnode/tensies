@@ -12,3 +12,11 @@ graphify-out
 # Frontend asset pipeline (Phase 1): build tooling + generated output
 node_modules/
 dist/
+
+# Local-only compose override written by .claude/hooks/session-start.sh
+# (feeds the sandbox egress-proxy CA into the build as a BuildKit secret).
+docker-compose.override.yml
+
+# Redis persistence dump, written to the repo root when a local redis-server
+# (the no-Docker dev fallback) saves to disk. A transient local artifact.
+*.rdb

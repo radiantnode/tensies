@@ -214,18 +214,24 @@ async def advance_round(code: str, new_target: int) -> None:
 
 async def deal(code: str) -> None:
     """Reset every player's dice for a new round and stamp the round start."""
+    from .drand import generate_dice
+
     g = _gkey(code)
     order = await _order(code)
     pipe = _r.pipeline()
     for pid in order:
+        dice, drand_round = generate_dice(pid, 0, code, num_dice=10)
         p = f"p:{pid}:"
-        pipe.hset(g, mapping={
-            p + "dice": json.dumps(fresh_dice()),
+        mapping = {
+            p + "dice": json.dumps(dice),
             p + "locked": _LOCKED10,
             p + "has_rolled": 0,
             p + "last_roll_ms": 0,
             p + "roll_count": 0,
-        })
+        }
+        if drand_round is not None:
+            mapping[f"drand:{pid}:0"] = drand_round
+        pipe.hset(g, mapping=mapping)
     pipe.hset(g, mapping={"round_start_ms": now_ms(), "round_seq": 0})
     pipe.expire(g, GAME_TTL)
     await pipe.execute()
@@ -320,15 +326,25 @@ async def get_player(code: str, pid: str) -> dict | None:
 # ─── Mutations ──────────────────────────────────────────────────────────────
 
 async def set_player_after_roll(code: str, pid: str, *, dice, locked,
-                                 roll_count: int, last_roll_ms: int) -> None:
+                                 roll_count: int, last_roll_ms: int,
+                                 drand_round: int | None = None) -> None:
     p = f"p:{pid}:"
-    await _r.hset(_gkey(code), mapping={
+    mapping = {
         p + "dice": json.dumps(dice),
         p + "locked": json.dumps(locked),
         p + "has_rolled": 1,
         p + "roll_count": roll_count,
         p + "last_roll_ms": last_roll_ms,
-    })
+    }
+    if drand_round is not None:
+        mapping[f"drand:{pid}:{roll_count}"] = drand_round
+    await _r.hset(_gkey(code), mapping=mapping)
+
+
+async def get_drand_round(code: str, pid: str, roll_count: int) -> int | None:
+    """Look up the drand beacon round used for a specific roll (audit trail)."""
+    val = await _r.hget(_gkey(code), f"drand:{pid}:{roll_count}")
+    return int(val) if val else None
 
 
 async def incr_counters(code: str) -> tuple[int, int]:

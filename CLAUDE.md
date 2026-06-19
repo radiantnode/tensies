@@ -2,6 +2,37 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Working agreement
+
+How to work on this repo so changes land right the first time:
+
+- **Plan before non-trivial edits.** For anything beyond a localized one-file
+  change, lay out the approach and the files you'll touch *before* writing code,
+  and get a nod. Catching a wrong turn at the plan stage costs seconds; catching
+  it after 200 lines costs the session.
+- **Re-read the relevant invariant before touching it.** The pause state
+  machine, `delayed_broadcast` ack timing, and the Redis-vs-process-local split
+  (see Architecture overview) are load-bearing and easy to half-remember. Read
+  the actual code/section before changing these paths rather than working from
+  memory.
+- **Verify the way this app demands.** Tensies is **mobile-only** and
+  **multiplayer over Redis**. Validate frontend changes at a **mobile viewport
+  (390×844 @2×, matching the pixel harness)**, never desktop width, and exercise
+  multiplayer changes with **at
+  least two clients** (the Playwright host/guest MCP servers are set up for
+  this). State *how* you verified — including when you couldn't.
+- **Prefer the docker-compose stack for running the app.** Always try
+  `docker compose up -d` first (start the daemon with
+  `setsid dockerd >/tmp/dockerd.log 2>&1 &` if it isn't running). Only fall back
+  to the local `redis-server` + no-DB uvicorn wrapper when the stack genuinely
+  can't run in the sandbox (e.g. image pulls are blocked) — and say so when you
+  do. See the remote-container caveat under "Running the server."
+- **Respect stated scope.** When the user says "frontend only" or "don't touch
+  the WS protocol," stay inside that fence even if an adjacent file looks
+  relevant.
+- **When scope is genuinely ambiguous, ask one sharp question** instead of
+  guessing and building the wrong thing.
+
 ## Running the server
 
 ```bash
@@ -17,6 +48,23 @@ The volume mount in `docker-compose.yml` means edits to any file are live immedi
 ```bash
 # scale to N instances (they share Redis; any instance serves any game)
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --scale web=3
+```
+
+**Remote/sandbox caveat.** Always prefer this compose stack. In the cloud
+container two things can get in the way, neither of which means Docker is broken:
+(1) the daemon may not be started — bring it up with
+`setsid dockerd >/tmp/dockerd.log 2>&1 &`; (2) Docker Hub may refuse image pulls
+with an *unauthenticated pull rate-limit* error (the daemon and registry are
+fine; Hub is throttling). Durable fixes are `docker login` credentials or a
+registry mirror configured via the environment's setup — see
+https://code.claude.com/docs/en/claude-code-on-the-web. Only when pulls can't
+succeed, fall back to a local Redis + the no-DB app wrapper for work that doesn't
+need the telemetry stack:
+
+```bash
+redis-server --daemonize yes --port 6379
+PYTHONPATH=.claude/skills/frontend-rewrite/harness:. \
+  uvicorn run_without_db:app --host 127.0.0.1 --port 8888
 ```
 
 ## Git submodules
@@ -46,90 +94,141 @@ sessions, ack_events, drop_tasks, pause_tasks # live asyncio objects, owned by t
 
 Games are destroyed when the last player disconnects. Distinct players write distinct hash fields (atomic `HSET`/`HINCRBY`, no contention), so simultaneous rolling stays parallel; the one contended write — crowning the round winner — is an atomic Lua compare-and-set (`try_finish_round`). A periodic **reaper** (`server/reaper.py`) is the cross-instance backstop for grace-drops / pause-caps whose owning instance died, and publishes the global active-games gauge (aggregate it with `max()` across instances, not `sum()`).
 
-Key env vars (`server/config.py`): `REDIS_URL`, `TELEMETRY_ENABLED`, `ALLOWED_ORIGINS` (WS origin allowlist), `METRICS_TOKEN`/`STATS_TOKEN` (bearer-gate `/metrics`+`/stats`), `MAX_GAMES`, `MAX_PLAYERS_PER_GAME`, `MAX_CONNECTIONS_PER_IP`, `CREATE_RATE_*`/`JOIN_RATE_*`, `MAX_WS_MESSAGE_BYTES`.
+Key env vars (`server/config.py`): `REDIS_URL`, `TELEMETRY_ENABLED`, `ALLOWED_ORIGINS` (WS origin allowlist), `METRICS_TOKEN`/`STATS_TOKEN` (bearer-gate `/metrics`+`/stats`), `MAX_GAMES`, `MAX_PLAYERS_PER_GAME`, `MAX_CONNECTIONS_PER_IP`, `CREATE_RATE_*`/`JOIN_RATE_*`, `MAX_WS_MESSAGE_BYTES`. Behind a trusted proxy, set `TRUST_PROXY_HEADERS`/`TRUSTED_PROXY_HOPS` so the per-IP caps read the real client from `X-Forwarded-For`. Security response headers are governed by `SECURITY_HEADERS` (CSP, on by default), `CSP_OVERRIDE`/`CSP_EXTRA_SCRIPT_SRC`/`CSP_EXTRA_CONNECT_SRC`, and the `HSTS_*` group (off in dev, on for HTTPS deploys) — see `server/security.py`. Asset serving is split on `FRONTEND_DIST` (see Cache-busting).
 
 ### Code layout
 
 ```
 main.py                  FastAPI entry — lifespan boots gamestore + fanout +
-                         telemetry + reaper, then wires the routers together
+                         telemetry + reaper; adds SecurityHeadersMiddleware;
+                         splits asset serving on FRONTEND_DIST (dev: serve raw
+                         modules via assets.build_js_cache; prod: nginx serves a
+                         prebuilt dist/); then wires the routers together
 server/
   config.py              constants (gameplay, Redis, abuse caps, origin
-                         allowlist, endpoint tokens, telemetry flag) + logging
+                         allowlist, proxy/XFF trust, endpoint tokens, CSP/HSTS
+                         security headers, asset-serving mode, telemetry) + logging
+  security.py            SecurityHeadersMiddleware — stamps a strict CSP (+ HSTS
+                         on HTTPS) onto every HTTP response (pure-ASGI, no buffering)
   state.py               process-local connections + sessions + ack/timer registries
   gamestore.py           Redis-backed game state: pool, Lua (create/join/finish/
                          drop), snapshot rebuild, abuse limiters, make_code
   fanout.py              cross-instance broadcast over Redis pub/sub (bcast:*)
   reaper.py              periodic backstop for grace-drops/pause-caps + active gauge
-  assets.py              cache-busting: globs static/css and static/js, appends
-                         ?v=<sha1[:8]> to every /static/*.css|js href in index.html
+  assets.py              dev cache-busting: build_index_html() appends
+                         ?v=<sha1[:8]> to every /static/*.css|js href; build_js_cache()
+                         rewrites transitive ES-module import URLs the same way
   game.py                pure game logic — apply_roll, next_target, state_msg,
                          sanitize_name, reconnect-token mint/verify
   broadcast.py           send, broadcast (→ fanout), delayed_broadcast,
                          advance_round, drop_player/do_drop, pause_timeout
-  routes.py              GET / + bearer-gated /metrics and /stats/*
+  routes.py              GET / + /{code} join-deeplink (SPA shell) +
+                         bearer-gated /metrics and /stats/*
   ws.py                  @app.websocket("/ws") — Session, security guards
                          (origin/size/caps/rate-limit), handle_<action>() dispatch
 
 The frontend is vanilla **web components + a native History-API router**, no
 build step. Each screen is a light-DOM custom element whose host element *is*
 the `#id.screen` (so global CSS applies); `index.html` is a thin shell. First
-paint is the inline `#loading` section, which renders from inline critical CSS
-with no JS in the path.
+paint is the inline `#loading` *markup*, styled by `css/critical.css` (tokens +
+reset + logo + the `#loading` screen), which `index.html` loads as the first,
+render-blocking stylesheet — so the loading screen paints with no JS in the path.
 
-**Tensies is mobile-only — always test the frontend at a mobile resolution**
-(the pixel harness baselines are **390×844** @2× dpr). When driving the app in a
-browser (Playwright/manual), set a mobile viewport first; never validate a
-frontend change at desktop width.
+**Tensies is mobile-only — always test the frontend at a mobile resolution.**
+When driving the app in a browser (Playwright/manual), set the viewport to
+**390×844 CSS px @2× dpr** *first* — the same resolution the pixel-regression
+harness baselines were captured at (`frontend-rewrite/harness/playwright.config.js`),
+so manual checks and the byte-perfect suite agree. Never validate a frontend
+change at desktop width.
 
 ```
 static/
-  index.html             thin shell: inline critical CSS (tokens + reset + logo +
-                         the #loading screen), async-loaded CSS, the <*-screen>
-                         component tags, and the pause/winner <dialog> overlays.
-  css/                   (tokens, document reset, and #loading are inline-critical
-                         in index.html; the rest load async, non-render-blocking)
+  index.html             thin shell: the inline #loading markup, the stylesheet
+                         <link>s (critical.css first), the modulepreload graph,
+                         the <*-screen> component tags, and the pause/winner
+                         <dialog> overlays.
+  css/                   ALL rules live in explicit cascade layers
+                         (@layer reset, tokens, elements, components, utilities
+                         — declared once at the top of critical.css, the first
+                         <link>). Selectors are class-based and low-specificity;
+                         element IDs exist only as JS/test hooks, never for
+                         styling. The rest download in parallel as separate
+                         <link>s.
+    critical.css         @font-face, the @layer order, semantic tokens
+                         (--color-*/--shadow-*/--radius-*), reset, shared logo,
+                         the loading screen, view-transition setup, and the
+                         .staging/.dissolving screen states (staged reveals)
     controls.css         inputs, .btn variants, .error-msg
     shell.css            shared .game-topbar / app-header / .screen-body
     landing.css          landing + join screens, logo, tagline, form-stack
-    lobby.css            #lobby, code display, SMS button, player list, badges
-    game.css             #game layout, round header, my-area, dice zones, roll button
+    lobby.css            lobby screen, code display, SMS button, player list,
+                         badges; @property registrations for the scroll fades
+    game.css             board layout, round header, my-area, dice zones, roll
+                         button, the vt-settling dice guard
     players-bar.css      top-bar mini cards (.player-mini-*)
     dice.css             .die-scene / .die-3d / .face / tumble + pop animations
     menu.css             game menu + nav menu (about / changelog) + pause status
     overlays.css         winner + pause <dialog> styling
-  js/
-    app.js               entry: register components, seed name, bootstrap router
-    router.js            History-API router (permalinks), bootstrap, showJoin
-    transitions.js       showScreen (View Transitions), showLoading, leaveLoading
-    state.js             single mutable bag shared across modules
-    util.js              esc, nextTarget, setError, setJoinError
-    net.js               WebSocket: connect, dispatch, create/join/start intents,
-                         showFor (lobby / game / pause / disconnect routing)
+  js/                    every module is strict-checked JS (// @ts-check +
+                         jsconfig.json at the repo root); named exports, JSDoc
+                         on the public API
+    app.js               entry: register components, install touch guard,
+                         bootstrap router
+    types.js             JSDoc @typedefs for the WS protocol (GameSnapshot,
+                         PlayerSnapshot, ServerMessage) — editor-only, no runtime
+    router.js            ALL screen routing: History-API URL routes (permalinks,
+                         bootstrap, showJoin) + showFor (snapshot → screen,
+                         incl. the paused-before-disconnected branch order)
+    transitions.js       showScreen — View Transitions for pre-game swaps,
+                         staged reveals ({staged: true}: build the screen
+                         invisibly, dissolve the old one over it — REQUIRED for
+                         swaps into #game; a VT raster flattens the 3-D dice on
+                         Safari) — plus showLoading, leaveLoading
+    state.js             single mutable bag shared across modules + the
+                         localhost-only window._state test seam; seeds the
+                         shared random name (must stay the first Math.random
+                         consumer — the pixel harness pins the RNG)
+    session.js           tensies_pid / tensies_code / tensies_token
+                         localStorage accessors
+    dom.js               byId() — throwing getElementById for shell-guaranteed
+                         elements
+    net.js               WebSocket: connect, reconnect loop, dispatch (incl.
+                         the celebration-echo guard), create/join/start intents
     names.js             ADJECTIVES (50) × NOUNS (50) → makeName()
     pips.js              PIP_POSITIONS — die-face pip layout (shared by the dice)
     dice.js              FACE_ROTATIONS, makeDie, placeGrid, myDiceKey
     dice-positions.js    localStorage persistence for the unmatched-zone layout
-    game-render.js       renderGame / renderPlayersBar / renderMyArea / renderMenu
-    animations.js        startShake, updateDiceInPlace, tryReveal, resetRollState
+    game-render.js       renderGame / renderPlayersBar / renderMyArea /
+                         renderMenu; owns the keyed <player-card> registry
+    animations.js        startShake, updateDiceInPlace, tryReveal
     roll.js              roll() — send intent, shake, schedule reveal
     overlays.js          winner + pause dialogs (showWinner / showPaused / …)
     title-row.js         shared top-bar title row markup (app-header + game header)
+    back-button.js       shared back-chip markup (join screen + changelog)
+    scroll-fades.js      can-scroll-up/down edge-fade toggler (lobby list +
+                         changelog body)
+    touch.js             installTouchGuard() — capture-phase touchstart guard:
+                         blocks iOS double-tap zoom; rapid taps on a ready roll
+                         button still register
     components/          light-DOM custom elements; the host IS the #id.screen
       app-header.js      <app-header> shared top bar (hamburger → nav menu)
-      landing-screen.js  <landing-screen>  (#landing)
-      join-screen.js     <join-screen>     (#join)
-      lobby-screen.js    <lobby-screen>    (#lobby) — render(snap)
+      landing-screen.js  <landing-screen>  (#landing) — owns showError
+      join-screen.js     <join-screen>     (#join) — owns showError
+      lobby-screen.js    <lobby-screen>    (#lobby) — render(snap), keyed rows
       game-screen.js     <game-screen>     (#game) + in-game pause menu
-      nav-menu.js        <nav-menu> about blurb + "What's New" changelog
+      nav-menu.js        <nav-menu> about blurb + "What's New" changelog;
+                         toggles body.nav-menu-open (landing header chrome)
       player-card.js     <player-card> players-bar mini card
       round-target.js    <round-target> round-header die
 ```
 
 (The loading screen is inline HTML in `index.html`, not a component, so it
-paints before JS. The old single-file modules — `main.js`, `ws.js`, `screens.js`,
-`menu.js`, `landing.js`, `loading.css`, `base.css` — were replaced in the
-component rewrite; behaviour is unchanged.)
+paints before JS — styled by `critical.css`, the first stylesheet loaded.
+History: the original single-file modules were replaced in the component
+rewrite, and the whole tree was then rebuilt blank-canvas in **rewrite-v2**
+(branch `frontend-rewrite-v2`, 2026-06-10) — @layer CSS, strict checkJs,
+concern-per-module — pixel-verified against the harness baselines at
+maxDiffPixels:0; behaviour is unchanged except documented fixes.)
 
 ### WebSocket message protocol
 
@@ -138,15 +237,18 @@ component rewrite; behaviour is unchanged.)
 |--------|-------------|
 | `create` | create new game; payload: `name` |
 | `join` | join existing game; payload: `name`, `code` |
+| `reconnect` | rejoin a held slot after a drop; payload: `code`, `token` (the private reconnect token) |
 | `start` | host starts the game (host only) |
 | `pause` | host-only toggle that freezes/unfreezes rolling for everyone |
 | `roll` | roll unlocked dice |
 | `roll_done` | client signals its reveal animation has completed |
+| `pong` | reply to the server's keepalive ping |
 
 **Server → client** (`type` field):
 | type | description |
 |------|-------------|
 | `welcome` | connection established; contains `player_id` |
+| `reconnect_token` | private token (sent after create/join) the client stores to rejoin a held slot |
 | `state` | full game state snapshot |
 | `round_won` | state snapshot with `winner_name`; triggers overlay |
 | `error` | `msg` field with human-readable reason |
@@ -160,11 +262,11 @@ A terminal `error` frame carries `fatal: true` (the only producer today is the p
 The host toggles `pause` (first feature in the in-game menu, `static/js/components/game-screen.js`). `handle_pause` flips `game["paused"]` and broadcasts. While paused:
 
 - **Rolls are rejected** (`handle_roll` guards on `paused`; the client also disables the roll button and guards `roll()`).
-- **Non-host players see the `#loading` screen** ("Waiting for &lt;Host&gt; to resume the game") via `showFor()`; the host keeps the board — even with players offline — so the menu stays reachable. The paused branch in `showFor` precedes the disconnect-loading branch precisely so a paused host isn't bounced to a "waiting to reconnect" screen.
-- **The host's menu shows live status while paused.** `state_msg` adds `pause_remaining_ms` (from `pause_deadline_mono`); `renderMenu()` runs a local 1 Hz countdown plus an "X of Y connected" count so the host can wait for stragglers. A host returning from reconnect lands on `#loading`, so `showFor` calls `openMenu()` on the swap to surface the resume toggle. Resuming closes the menu; pausing leaves it open.
+- **Non-host players see the pause dialog over the live board** (`#pause-overlay`, "Waiting for &lt;Host&gt; to resume the game") via `showFor()` — the board stays live underneath so the dice keep their places; the host keeps the board too, so the menu stays reachable even with players offline. The paused branch in `showFor` (`static/js/router.js`) precedes the disconnect-loading branch precisely so a paused host isn't bounced to a "waiting to reconnect" screen.
+- **The host's menu shows live status while paused.** `state_msg` adds `pause_remaining_ms` (from `pause_deadline_mono`); `renderMenu()` (`static/js/game-render.js`) runs a local 1 Hz countdown plus an "X of Y connected" count so the host can wait for stragglers. A host returning from reconnect lands on `#loading`, so `showFor` calls `openMenu()` on the swap to surface the resume toggle. Resuming closes the menu; pausing leaves it open.
 - **Players are never dropped — but the host isn't a single point of failure.** `drop_player` returns early when paused, so a disconnect (host backgrounding their phone) doesn't end the game. The client extends its reconnect window to ~1 h (`PAUSED_RECONNECT_WINDOW_MS`) when its last-known state was paused. The one exception: if the *host* is the one who's been gone past `DISCONNECT_GRACE`, `drop_player` hands the host role (and the resume control) to a still-connected player instead of dropping anyone — so an absent host can't freeze the table until the cap.
 - **A round won during the pause window doesn't slip past it.** `delayed_broadcast` advances the round after `ROUND_WIN_DELAY`; if a pause landed in that window it sets `round_advance_pending` and freezes instead, and `handle_pause` calls `advance_round()` on resume.
-- **A pause that lands mid-reveal on a roller isn't lost.** A non-host who is mid-roll when the host pauses holds the pause snapshot in `state.postRevealState`; `tryReveal` re-routes through `showFor()` once the reveal finishes, so the roller lands on the wait screen instead of being stranded on the board.
+- **A pause that lands mid-reveal on a roller isn't lost.** A non-host who is mid-roll when the host pauses holds the pause snapshot in `state.postRevealState`; `tryReveal` re-routes through `showFor()` once the reveal finishes, so the roller lands under the pause dialog instead of being stranded on an unguarded board.
 - **A cap backstops abandonment.** `handle_pause` schedules `pause_timeout()` for `PAUSE_MAX` (1 h); if still paused then, the game is ended (fatal `error` broadcast + cleanup). Resume cancels the watchdog and reschedules a normal `DISCONNECT_GRACE` drop for anyone still offline. Re-pausing starts a fresh `PAUSE_MAX` — intentional, since an actively-toggling host isn't an abandoned game.
 
 ### Delayed broadcast (key design detail)
@@ -178,11 +280,16 @@ This is implemented in `delayed_broadcast()` (`server/broadcast.py`) via an `asy
 1. Host clicks Start → `handle_start` calls `deal_round()` (10 fresh dice each), sets `started=True`
 2. Players roll; `apply_roll()` re-randomises unlocked dice and auto-locks any that match `target`
 3. First player to lock all 10 wins the round → `handle_roll` sets `round_over=True`, sends `round_won` privately and schedules a `delayed_broadcast`
-4. After `ROUND_WIN_DELAY` seconds, `delayed_broadcast` advances `target` (cycles 6→5→4→3→2→1→6), increments `round_num`, calls `deal_round()` again to clear per-round state
+4. After `ROUND_WIN_DELAY` seconds, `delayed_broadcast` advances `target` (cycles 1→2→3→4→5→6→1), increments `round_num`, calls `deal_round()` again to clear per-round state
 
-### Cache-busting
+### Asset serving & cache-busting
 
-At import time, `server/assets.py` hashes every CSS/JS file under `static/css/` and `static/js/`, then rewrites every `/static/*.css|.js` URL in `index.html` to append `?v=<sha1[:8]>`. No build step needed — changing any static file changes the hash on the next server restart.
+Asset serving is split by deployment mode on the `FRONTEND_DIST` env var (wired in `main.py`):
+
+- **Dev (`FRONTEND_DIST` unset) — no build step.** The app serves the raw, unbundled ES modules itself. At import, `server/assets.py` hashes every CSS/JS file under `static/css/` and `static/js/`; `build_index_html()` rewrites every `/static/*.css|.js` URL in the served `index.html` to append `?v=<sha1[:8]>`, and `build_js_cache()` rewrites every transitive `import './foo.js'` URL the same way (the `?v=` on the script tag alone wouldn't bust the modules it imports). Changing any static file changes the hash on the next server restart. `StaticFiles` serves css/images/fonts.
+- **Prod (`FRONTEND_DIST` set) — there IS a build step.** The frontend is bundled + fingerprinted into a static `dist/` at image-build time (`scripts/build_assets.mjs`) and served straight from disk by **nginx**. The app does ZERO asset work: it skips the in-process JS cache and the `StaticFiles` mount and only serves the prebuilt `dist/index.html`.
+
+Either way the document still flows through `SecurityHeadersMiddleware`, so the CSP stays single-sourced in `server/security.py`.
 
 ### Client-side animation state
 

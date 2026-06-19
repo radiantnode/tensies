@@ -1,297 +1,400 @@
-/* ── Menu overlay ──
-   (The hamburger button itself — .game-menu-btn — lives in shell.css.) */
+/* Menu overlay: the slide-down panel shared by the nav menu (about +
+   changelog, this file's current scope) and the in-game menu (its
+   .menu-item/.menu-switch/.menu-status vocabulary arrives with the game
+   menu). The hamburger button itself — .game-menu-btn — lives in shell.css. */
 
-/* Pre-initialize the custom element so when connectedCallback adds .game-menu
-   the computed transform/visibility don't change — no transition fires. */
-nav-menu {
-  transform: translateY(-100%);
-  visibility: hidden;
-}
+@layer components {
+  /* Pre-initialize the custom element so when connectedCallback adds
+     .game-menu the computed transform/visibility don't change — no
+     transition fires on upgrade. */
+  nav-menu {
+    transform: translateY(-100%);
+    visibility: hidden;
+  }
 
-.game-menu {
-  position: absolute;
-  inset: 0;
-  z-index: 50;
-  background: rgba(8, 4, 1, 0.88);
-  transform: translateY(-100%);
-  /* visibility delays to hidden after slide-out so backdrop-filter
-     never runs while the menu is off-screen (layout bounds = full #game) */
-  visibility: hidden;
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-              visibility 0s linear 0.28s;
-  pointer-events: none;
-}
-.game-menu.open {
-  transform: translateY(0);
-  visibility: visible;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  pointer-events: all;
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-              visibility 0s linear 0s;
-}
+  .game-menu {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    background: rgba(8, 4, 1, 0.88);
+    transform: translateY(-100%);
+    /* visibility delays to hidden after slide-out so backdrop-filter never
+       runs while the menu is off-screen (layout bounds = the full screen) */
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0s linear 0.28s;
+  }
 
-/* ── Nav menu about section ── */
-.menu-about { padding-bottom: 0.75rem; }
-.menu-about-heading,
-.menu-changelog-heading {
-  font-size: clamp(1.4rem, 5.5vw, 1.75rem);
-  font-weight: 900;
-  letter-spacing: 0.005em;
-  line-height: 1.5;
-  -webkit-text-stroke: 1px #f1cf98;
-  paint-order: stroke fill;
-  background: linear-gradient(180deg, #fff6e9 0%, #f6dcb0 52%, #e7ba7f 100%);
-  -webkit-background-clip: text;
-          background-clip: text;
-  color: transparent;
-}
-.menu-about-heading { margin-bottom: 0.75rem; }
-.menu-about-body {
-  font-size: 1rem;
-  font-weight: 500;
-  line-height: 1.9;
-  color: rgba(235, 215, 195, 0.72);
-}
-.menu-about-body strong { color: rgba(255, 240, 220, 0.95); font-weight: 700; }
-.menu-beer-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.65rem;
-  width: 100%;
-  padding: 0.9rem 1.25rem;
-  margin-top: 1.5rem;
-  border-radius: var(--radius);
-  border: 1px solid rgba(210, 150, 40, 0.5);
-  background: linear-gradient(160deg, rgba(160, 90, 10, 0.4) 0%, rgba(100, 55, 5, 0.4) 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 200, 50, 0.1), 0 2px 8px rgba(0, 0, 0, 0.3);
-  color: rgba(255, 210, 100, 0.95);
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-decoration: none;
-  transition: background 0.15s, border-color 0.15s;
-}
-.menu-beer-btn:hover {
-  background: linear-gradient(160deg, rgba(180, 110, 20, 0.5) 0%, rgba(120, 70, 10, 0.5) 100%);
-  border-color: rgba(230, 170, 55, 0.7);
-}
+  .game-menu.open {
+    transform: translateY(0);
+    visibility: visible;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    pointer-events: all;
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0s linear 0s;
+  }
 
-/* ── Menu contents ── */
-.menu-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: calc(env(safe-area-inset-top) + 4.25rem) 1.25rem 2rem;
-}
+  /* The shared nav menu (landing/join/lobby) is fixed so it covers the
+     viewport regardless of which screen is active. The safe-area padding
+     lives here (the non-scrolling container) so scrolled content can't
+     slide behind the iOS status bar. */
+  .nav-menu {
+    position: fixed;
+    padding-block-start: env(safe-area-inset-top);
+  }
 
-/* Shared nav menu (landing/join/lobby) — fixed so it covers the viewport
-   regardless of which screen is active. */
-#nav-menu { position: fixed; }
-#nav-menu .menu-panel {
-  padding-top: calc(env(safe-area-inset-top) + 5rem);
-  padding-left: 2rem;
-  padding-right: 2rem;
-  padding-bottom: 2.5rem;
-}
+  /* Opaque shield behind the iOS status bar so scrolled menu content
+     doesn't show through the clock/signal area. */
+  .nav-menu::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    block-size: env(safe-area-inset-top);
+    background: rgba(8, 4, 1, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1;
+  }
 
-.menu-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  text-align: left;
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: rgba(235, 215, 195, 0.92);
-  background: rgba(30, 15, 5, 0.5);
-  border: 1px solid rgba(170, 115, 45, 0.3);
-  border-radius: var(--radius);
-  padding: 0.9rem 1.1rem;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-.menu-item:hover { background: rgba(40, 20, 6, 0.6); }
-.menu-item[hidden] { display: none; }
+  .nav-menu .menu-panel {
+    padding-block: 5rem 2.5rem;
+    padding-inline: 2rem;
+    overflow-y: auto;
+    max-block-size: 100%;
+  }
 
-/* ── Toggle switch ── */
-.menu-switch {
-  position: relative;
-  width: 44px;
-  height: 24px;
-  flex-shrink: 0;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
-  transition: background 0.2s ease;
-}
-.menu-switch::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-  transition: transform 0.2s ease;
-}
-.menu-toggle.active .menu-switch { background: var(--accent); }
-.menu-toggle.active .menu-switch::after { transform: translateX(20px); }
+  .menu-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: calc(env(safe-area-inset-top) + 4.25rem) 1.25rem 2rem;
+    min-block-size: 100%;
+    box-sizing: border-box;
+  }
 
-/* ── Pause status (host, while paused) ── */
-.menu-status { padding: 0.25rem 1.1rem 0; }
-.menu-status[hidden] { display: none; }
-.menu-status-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.15rem 0;
-}
-.menu-status-label {
-  font-size: 0.8rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: rgba(220, 200, 180, 0.7);
-}
-.menu-status-value {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: rgba(235, 215, 195, 0.95);
-  font-variant-numeric: tabular-nums;
-}
-.menu-status-players {
-  margin-top: 0.3rem;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: rgba(235, 215, 195, 0.82);
-  line-height: 1.4;
-}
+  /* About section */
+  .menu-about { padding-block-end: 0.75rem; }
 
-/* ── See What's New button ── */
-.menu-whats-new-btn {
-  width: 100%;
-  padding: 0.9rem 1.25rem;
-  margin-top: 1.5rem;
-  border-radius: var(--radius);
-  border: 1px solid rgba(180, 180, 220, 0.3);
-  background: rgba(30, 25, 50, 0.45);
-  color: rgba(210, 210, 255, 0.9);
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-.menu-whats-new-btn:hover {
-  background: rgba(45, 38, 70, 0.55);
-  border-color: rgba(200, 200, 255, 0.45);
-}
+  .menu-about-heading,
+  .menu-changelog-heading {
+    font-size: clamp(1.4rem, 5.5vw, 1.75rem);
+    font-weight: 900;
+    letter-spacing: 0.005em;
+    line-height: 1.5;
+    -webkit-text-stroke: 1px #f1cf98;
+    paint-order: stroke fill;
+    background: linear-gradient(180deg, #fff6e9 0%, #f6dcb0 52%, #e7ba7f 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+  }
 
-/* ── Changelog sub-panel ── */
-.menu-changelog-panel {
-  display: none;
-  flex-direction: column;
-  position: absolute;
-  inset: 0;
-  padding: calc(env(safe-area-inset-top) + 5rem) 2rem 2.5rem;
-  overflow-y: auto;
-}
-.game-menu.show-changelog .menu-panel { display: none; }
-.game-menu.show-changelog .menu-changelog-panel { display: flex; }
-.menu-changelog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-}
-.menu-changelog-panel .btn-back { position: static; flex-shrink: 0; align-self: flex-start; }
-.menu-changelog-heading { margin-bottom: 1rem; }
-.menu-changelog-body {
-  flex: 1;
-  overflow-y: auto;
-  color: rgba(235, 215, 195, 0.8);
-  font-size: 1rem;
-  line-height: 1.7;
-  --fade-top: 0px;
-  --fade-bottom: 0px;
-  -webkit-mask-image: linear-gradient(to bottom,
-    transparent 0, #000 var(--fade-top),
-    #000 calc(100% - var(--fade-bottom)), transparent 100%);
-          mask-image: linear-gradient(to bottom,
-    transparent 0, #000 var(--fade-top),
-    #000 calc(100% - var(--fade-bottom)), transparent 100%);
-  transition: --fade-top 0.15s linear, --fade-bottom 0.15s linear;
-}
-.menu-changelog-body.can-scroll-up   { --fade-top: 24px; }
-.menu-changelog-body.can-scroll-down { --fade-bottom: 24px; }
-.menu-changelog-body h2 {
-  font-size: 1.1rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  color: rgba(255, 220, 130, 0.95);
-  margin: 1.5rem 0 0.1rem;
-}
-.menu-changelog-body h2:first-child { margin-top: 0; }
-.menu-changelog-body p { color: rgba(210, 195, 175, 0.65); margin-bottom: 0.4rem; }
-.menu-changelog-body ul {
-  list-style: none;
-  padding: 0;
-  margin: 0.4rem 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-.menu-changelog-body li { padding-left: 0.9rem; position: relative; }
-.menu-changelog-body li::before {
-  content: "–";
-  position: absolute;
-  left: 0;
-  color: rgba(200, 170, 100, 0.5);
-}
-.menu-changelog-body li em { color: rgba(210, 195, 175, 0.65); font-style: italic; }
+  .menu-about-heading { margin-block-end: 0.75rem; }
 
-.menu-changelog-footer {
-  margin-top: 1.8rem;
-  padding: 1.05rem 1.15rem 1.2rem;
-  border: 1px solid rgba(200, 170, 100, 0.16);
-  border-radius: var(--radius);
-  background: rgba(120, 90, 45, 0.08);
-  text-align: center;
+  .menu-about-body {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.9;
+    color: rgba(235, 215, 195, 0.72);
+  }
+
+  .menu-about-body strong {
+    font-weight: 700;
+    color: rgba(255, 240, 220, 0.95);
+  }
+
+  .menu-beer-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    inline-size: 100%;
+    margin-block-start: 1.5rem;
+    padding: 0.9rem 1.25rem;
+    background: linear-gradient(160deg, rgba(160, 90, 10, 0.4) 0%, rgba(100, 55, 5, 0.4) 100%);
+    border: 1px solid rgba(210, 150, 40, 0.5);
+    border-radius: var(--radius-md);
+    box-shadow: inset 0 1px 0 rgba(255, 200, 50, 0.1), 0 2px 8px rgba(0, 0, 0, 0.3);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    color: rgba(255, 210, 100, 0.95);
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .menu-beer-btn:hover {
+    background: linear-gradient(160deg, rgba(180, 110, 20, 0.5) 0%, rgba(120, 70, 10, 0.5) 100%);
+    border-color: rgba(230, 170, 55, 0.7);
+  }
+
+  .menu-auth-btn { inline-size: 100%; }
+
+  .menu-divider {
+    margin-block: 1.5rem;
+    block-size: 1px;
+    background: rgba(180, 180, 220, 0.15);
+  }
+
+  /* "See What's New" button */
+  .menu-whats-new-btn {
+    inline-size: 100%;
+    margin-block-start: 1.5rem;
+    padding: 0.9rem 1.25rem;
+    background: rgba(30, 25, 50, 0.45);
+    border: 1px solid rgba(180, 180, 220, 0.3);
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: rgba(210, 210, 255, 0.9);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .menu-whats-new-btn:hover {
+    background: rgba(45, 38, 70, 0.55);
+    border-color: rgba(200, 200, 255, 0.45);
+  }
+
+  /* Changelog sub-panel */
+  .menu-changelog-panel {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    inset: 0;
+    padding: calc(env(safe-area-inset-top) + 5rem) 2rem 2.5rem;
+    overflow-y: auto;
+    max-block-size: 100%;
+  }
+
+  .game-menu.show-changelog .menu-panel { display: none; }
+  .game-menu.show-changelog .menu-changelog-panel { display: flex; }
+
+  .menu-changelog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-block-end: 1.25rem;
+  }
+
+  .menu-changelog-panel .btn-back {
+    position: static;
+    flex-shrink: 0;
+    align-self: flex-start;
+  }
+
+  .menu-changelog-heading { margin-block-end: 1rem; }
+
+  .menu-changelog-body {
+    flex: 1;
+    font-size: 1rem;
+    line-height: 1.7;
+    color: rgba(235, 215, 195, 0.8);
+    --fade-top: 0px;
+    --fade-bottom: 0px;
+    -webkit-mask-image: linear-gradient(to bottom,
+      transparent 0, #000 var(--fade-top),
+      #000 calc(100% - var(--fade-bottom)), transparent 100%);
+            mask-image: linear-gradient(to bottom,
+      transparent 0, #000 var(--fade-top),
+      #000 calc(100% - var(--fade-bottom)), transparent 100%);
+    transition: --fade-top 0.15s linear, --fade-bottom 0.15s linear;
+  }
+
+  .menu-changelog-body.can-scroll-up { --fade-top: 24px; }
+  .menu-changelog-body.can-scroll-down { --fade-bottom: 24px; }
+
+  .menu-changelog-body h2 {
+    margin: 1.5rem 0 0.1rem;
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    color: rgba(255, 220, 130, 0.95);
+  }
+
+  .menu-changelog-body h2:first-child { margin-block-start: 0; }
+
+  .menu-changelog-body p {
+    margin-block-end: 0.4rem;
+    color: rgba(210, 195, 175, 0.65);
+  }
+
+  .menu-changelog-body ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin: 0.4rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .menu-changelog-body li {
+    position: relative;
+    padding-inline-start: 0.9rem;
+  }
+
+  .menu-changelog-body li::before {
+    content: "–";
+    position: absolute;
+    inset-inline-start: 0;
+    color: rgba(200, 170, 100, 0.5);
+  }
+
+  .menu-changelog-body li em {
+    font-style: italic;
+    color: rgba(210, 195, 175, 0.65);
+  }
+
+  .menu-changelog-footer {
+    margin-block-start: 1.8rem;
+    padding: 1.05rem 1.15rem 1.2rem;
+    background: rgba(120, 90, 45, 0.08);
+    border: 1px solid rgba(200, 170, 100, 0.16);
+    border-radius: var(--radius-md);
+    text-align: center;
+  }
+
+  .menu-changelog-footer p {
+    margin: 0 0 0.85rem;
+    font-size: 1rem;
+    line-height: 1.7;
+    color: rgba(210, 195, 170, 0.6);
+  }
+
+  .menu-changelog-footer-lead {
+    font-weight: 700;
+    color: rgba(225, 210, 185, 0.78);
+  }
+
+  .menu-changelog-ghlink {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.95rem;
+    background: rgba(255, 220, 130, 0.08);
+    border: 1px solid rgba(255, 220, 130, 0.35);
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-decoration: none;
+    color: rgba(255, 226, 150, 0.95);
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  }
+
+  .menu-changelog-ghlink:hover {
+    background: rgba(255, 220, 130, 0.14);
+    border-color: rgba(255, 232, 165, 0.55);
+    transform: translateY(-1px);
+  }
+
+  .menu-changelog-ghlink svg {
+    flex-shrink: 0;
+    inline-size: 1rem;
+    block-size: 1rem;
+  }
+
+  /* Pushes the pause toggle to the bottom of the menu panel. */
+  .menu-spacer { flex: 1; }
+
+  /* ── In-game menu items (pause toggle + status) ── */
+  .menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    inline-size: 100%;
+    padding: 0.9rem 1.1rem;
+    background: rgba(30, 15, 5, 0.5);
+    border: 1px solid rgba(170, 115, 45, 0.3);
+    border-radius: var(--radius-md);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-align: start;
+    color: rgba(235, 215, 195, 0.92);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .menu-item:hover { background: rgba(40, 20, 6, 0.6); }
+  .menu-item[hidden] { display: none; }
+
+  /* Danger variant (End Game). */
+  .menu-item--danger {
+    border-color: rgba(180, 70, 50, 0.35);
+    color: rgba(240, 160, 140, 0.92);
+  }
+  .menu-item--danger:hover { background: rgba(80, 20, 10, 0.45); }
+  .menu-item--danger.confirming {
+    background: rgba(140, 35, 20, 0.5);
+    border-color: rgba(220, 80, 50, 0.55);
+    color: rgba(255, 200, 180, 0.95);
+  }
+
+  /* Toggle switch */
+  .menu-switch {
+    position: relative;
+    flex-shrink: 0;
+    inline-size: 44px;
+    block-size: 24px;
+    background: rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    transition: background 0.2s ease;
+  }
+
+  .menu-switch::after {
+    content: '';
+    position: absolute;
+    inset-block-start: 2px;
+    inset-inline-start: 2px;
+    inline-size: 20px;
+    block-size: 20px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    transition: transform 0.2s ease;
+  }
+
+  .menu-toggle.active .menu-switch { background: var(--color-accent); }
+  .menu-toggle.active .menu-switch::after { transform: translateX(20px); }
+
+  /* Pause status (host, while paused) */
+  .menu-status { padding: 0.25rem 1.1rem 0.75rem; }
+  .menu-status[hidden] { display: none; }
+
+  .menu-status-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.15rem 0;
+  }
+
+  .menu-status-label {
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(220, 200, 180, 0.7);
+  }
+
+  .menu-status-value {
+    font-size: 1.05rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: rgba(235, 215, 195, 0.95);
+  }
+
+  .menu-status-players {
+    margin-block-start: 0.3rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: rgba(235, 215, 195, 0.82);
+  }
 }
-.menu-changelog-footer p {
-  margin: 0 0 0.85rem;
-  font-size: 1rem;
-  line-height: 1.7;
-  color: rgba(210, 195, 170, 0.6);
-}
-.menu-changelog-footer-lead {
-  font-weight: 700;
-  color: rgba(225, 210, 185, 0.78);
-}
-.menu-changelog-ghlink {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.95rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 220, 130, 0.35);
-  background: rgba(255, 220, 130, 0.08);
-  color: rgba(255, 226, 150, 0.95);
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-decoration: none;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
-}
-.menu-changelog-ghlink:hover {
-  background: rgba(255, 220, 130, 0.14);
-  border-color: rgba(255, 232, 165, 0.55);
-  transform: translateY(-1px);
-}
-.menu-changelog-ghlink svg { width: 1rem; height: 1rem; flex-shrink: 0; }
