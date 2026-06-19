@@ -35,6 +35,15 @@
     z-index: 1;
   }
 
+  .gd-ended {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+    margin-block-end: 0.35rem;
+  }
+
   .gd-code {
     font-size: clamp(1.4rem, 5.5vw, 1.75rem);
     font-weight: 700;

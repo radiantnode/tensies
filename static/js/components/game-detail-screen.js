@@ -3,6 +3,7 @@ import './app-header.js';
 import { getAuthUser } from '../auth.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
 import { showLanding } from '../router.js';
+import { state } from '../state.js';
 
 /**
  * <game-detail-screen> — post-game detail view at /games/<code>.
@@ -89,7 +90,11 @@ export class GameDetailScreen extends HTMLElement {
           </div>`;
       }).join('');
 
+      const justEnded = state.gameJustEnded;
+      state.gameJustEnded = false;
+
       contentEl.innerHTML = `
+        ${justEnded ? '<p class="gd-ended">Game ended</p>' : ''}
         <p class="gd-code">${data.game_code}</p>
         <p class="gd-time">${playedAt}</p>
         <div class="gd-stats">
