@@ -283,6 +283,7 @@ function handleMessage(msg) {
       state.currentState = null;
       // Brief delay so the telemetry writer can flush to Postgres before
       // the game-detail screen fetches the API.
+      state.gameJustEnded = true;
       if (code) setTimeout(() => showGameDetail(code), 1000);
       return;
     }
