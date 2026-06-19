@@ -100,13 +100,11 @@ and it replies in that thread.
 
 ### How it ties to a game
 
-When a game ends, the notifier opens a thread on the game card titled
-`Roll Trust — {code}`. In Discord, a thread started from a message shares that
-message's id, and the bot keeps a durable `message_id → game_code` map in Redis.
-So when you type `/verify` in the thread, the interaction arrives with
+Open a thread on any game card and run `/verify` there. In Discord, a thread
+started from a message shares that message's id, and the bot keeps a durable
+`message_id → game_code` map in Redis. So the interaction arrives with
 `channel_id` equal to the card's message id, which resolves straight to the
-game — no arguments needed. (You can also start the thread yourself on any game
-card; same result.)
+game — no arguments needed.
 
 ### Transport
 
@@ -130,11 +128,9 @@ edits the response in-thread with the result.
    ping (and a deliberately bad signature) and will only save the URL if the app
    answers correctly — which it does once `DISCORD_PUBLIC_KEY` is set and the app
    is reachable over public HTTPS.
-4. **Permissions**: the auto-created thread needs **Create Public Threads** (and
-   **Send Messages in Threads**); add them to the bot's invite if missing. If the
-   bot lacks them, `/verify` still works — just start the thread on the card
-   yourself. (Posting the `/verify` reply needs no extra permission; it goes out
-   under the interaction token.)
+4. **Permissions**: no extra permissions beyond the bot invite. The `/verify`
+   reply goes out under the interaction token, so the bot doesn't need thread
+   permissions — users open the thread themselves.
 
 Slash commands are enabled only when `DISCORD_PUBLIC_KEY`,
 `DISCORD_APPLICATION_ID`, and `DISCORD_GUILD_ID` are all set. Roll Trust data

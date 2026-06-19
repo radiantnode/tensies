@@ -248,24 +248,9 @@ async def _render(code: str, ended: bool) -> None:
             await r.set(_msg_key(mid), code, ex=MSG_MAP_TTL)
     if ended:
         if mid:
-            # Refresh the map and open a thread so members have a place to
-            # /verify. Best-effort: needs Create Public Threads; degrades to
-            # "create the thread yourself" if the bot lacks the permission.
             await r.set(_msg_key(mid), code, ex=MSG_MAP_TTL)
-            await _ensure_thread(mid, code)
         await r.delete(key)
 
-
-async def _ensure_thread(message_id: str, code: str) -> None:
-    r = await _request(
-        "POST",
-        f"/channels/{DISCORD_CHANNEL_ID}/messages/{message_id}/threads",
-        {"name": f"Roll Trust — {code}", "auto_archive_duration": 1440},
-    )
-    if r is None or r.status_code >= 300:
-        metrics.discord_failures_total.labels(op="thread").inc()
-        if r is not None and r.status_code not in (403,):  # 403 = missing perm, expected
-            log.warning("discord thread create -> %s", r.status_code)
 
 
 def _standings(card: dict) -> list[tuple[str, int]]:

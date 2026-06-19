@@ -87,7 +87,7 @@ async def _handle_command(data: dict) -> Response:
         metrics.discord_interactions_total.labels(command="verify", outcome="no_game").inc()
         return _ephemeral(
             "Run `/verify` inside a game's thread — open a thread on a Tensies "
-            "game card (or use the one created when the game ends) and try there."
+            "game card and try there."
         )
     if not TELEMETRY_ENABLED:
         metrics.discord_interactions_total.labels(command="verify", outcome="no_telemetry").inc()
@@ -101,6 +101,9 @@ async def _handle_command(data: dict) -> Response:
 
 async def _run_verify(code: str, token: str) -> None:
     try:
+        # Small delay so Discord finishes processing the deferred ACK before we
+        # PATCH the follow-up — without this the edit can race and get 404.
+        await asyncio.sleep(1)
         embed = _verify_embed(code, await verify_game(code))
     except Exception:
         log.exception("verify failed for %s", code)
