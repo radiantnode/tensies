@@ -2,8 +2,8 @@
 import { myDiceKey } from './dice.js';
 import { byId } from './dom.js';
 import { renderMyArea, renderPlayersBar } from './game-render.js';
-import { showWinner, showGameEnded, hideGameEnded } from './overlays.js';
-import { showFor } from './router.js';
+import { showWinner } from './overlays.js';
+import { showFor, showGameDetail } from './router.js';
 import { getAuthToken, isSignedIn, getAuthUser } from './auth.js';
 import {
   savePlayerId, saveReconnectToken, readSession, hasSession, clearSession,
@@ -14,14 +14,6 @@ import { showScreen, showLoading, leaveLoading } from './transitions.js';
 /** @typedef {import('./types.js').ServerMessage} ServerMessage */
 /** @typedef {import('./types.js').ErrorMessage} ErrorMessage */
 
-// Game-ended close button: clear session and return to landing.
-document.getElementById('game-ended-close')?.addEventListener('click', () => {
-  hideGameEnded();
-  sessionStorage.removeItem('tensies_game_ended');
-  clearSession();
-  state.currentState = null;
-  showScreen('landing', { force: true });
-});
 
 /**
  * WebSocket client: connection lifecycle, the create/join/start intents,
@@ -286,10 +278,12 @@ function handleMessage(msg) {
     }
     case 'game_ended': {
       resetRollState();
-      sessionStorage.setItem('tensies_game_ended', JSON.stringify(msg));
-      showGameEnded(msg);
+      const code = state.gameCode;
       clearSession();
       state.currentState = null;
+      // Brief delay so the telemetry writer can flush to Postgres before
+      // the game-detail screen fetches the API.
+      if (code) setTimeout(() => showGameDetail(code), 1000);
       return;
     }
     case 'error':

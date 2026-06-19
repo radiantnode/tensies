@@ -280,18 +280,34 @@ async def api_game(code: str) -> dict:
         )
         players = await con.fetch(
             """
-            SELECT rp.user_id,
-                   COALESCE(u.username, ps.name_last, rp.user_id) AS name,
+            WITH joined AS (
+                SELECT DISTINCT ON (user_id)
+                       user_id,
+                       payload->>'name' AS join_name
+                  FROM events
+                 WHERE game_code = $1 AND type = 'player_joined'
+                 ORDER BY user_id, ts DESC
+            ),
+            roll_stats AS (
+                SELECT rp.user_id,
+                       sum(rp.rolls)::int AS total_rolls,
+                       count(*) FILTER (WHERE r.winner_user_id = rp.user_id)::int AS wins,
+                       count(*)::int AS rounds_played
+                  FROM round_player rp
+                  JOIN rounds r USING (game_code, round_num)
+                 WHERE rp.game_code = $1
+                 GROUP BY rp.user_id
+            )
+            SELECT j.user_id,
+                   COALESCE(u.username, ps.name_last, j.join_name, j.user_id) AS name,
                    u.profile_photo_url AS photo,
-                   sum(rp.rolls)::int AS total_rolls,
-                   count(*) FILTER (WHERE r.winner_user_id = rp.user_id)::int AS wins,
-                   count(*)::int AS rounds_played
-              FROM round_player rp
-              JOIN rounds r USING (game_code, round_num)
-              LEFT JOIN users u ON u.id::text = rp.user_id
-              LEFT JOIN player_stats ps ON ps.user_id = rp.user_id
-             WHERE rp.game_code = $1
-             GROUP BY rp.user_id, u.username, ps.name_last, u.profile_photo_url
+                   COALESCE(rs.total_rolls, 0) AS total_rolls,
+                   COALESCE(rs.wins, 0) AS wins,
+                   COALESCE(rs.rounds_played, 0) AS rounds_played
+              FROM joined j
+              LEFT JOIN roll_stats rs USING (user_id)
+              LEFT JOIN users u ON u.id::text = j.user_id
+              LEFT JOIN player_stats ps ON ps.user_id = j.user_id
              ORDER BY wins DESC, total_rolls ASC
             """,
             code,
