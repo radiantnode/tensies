@@ -7,9 +7,8 @@ Pull up a stool. Newest stuff up top.
 Wednesday, June 17, 2026
 
 - The host can end the game from the menu. First tap says "Tap to confirm," second tap sends everyone home.
-- When a game ends, both players see a scoreboard overlay with avatars, round wins, and a gold ring on whoever's ahead. Hit "Bummer!" to get back to the landing. 🎲
+- When a game ends, everyone lands on the game's detail page — player stats, round wins, and roll verification all in one place.
 - Profile recent games got some polish. Better spacing, cleaner score glow.
-- _Behind the scenes: the game-ended state persists through refresh so you don't lose the scoreboard if your phone hiccups._
 
 ## 1.14.1 ("Coaster Notes")
 

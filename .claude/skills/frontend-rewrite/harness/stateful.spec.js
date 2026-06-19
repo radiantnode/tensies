@@ -199,10 +199,46 @@ test('disconnect-waiting', async ({ page }) => {
 
 test('game-ended', async ({ page }) => {
   // The host ends the game mid-round: the server sends a `game_ended` frame
-  // with final stats. The overlay shows player scores, avatars, and a
-  // "Bummer!" dismiss button. Like fatal-error, the game_ended frame is a
-  // separate message type — inject it after the started state settles.
+  // with final stats. The client clears the session, sets gameJustEnded, and
+  // redirects to /games/<code> after a 1s delay. The game-detail screen
+  // shows a one-shot "Game ended" label above the game code.
   await seedPage(page);
+  // Stub the game-detail API so the redirect can render.
+  await page.route('**/api/game/*/verify', (route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        game_code: 'AYBD', total: 12, verified: 12, failed: 0, no_beacon: 0,
+        players: {
+          'pid-alpha': { name: 'Alpha', total: 5, verified: 5, failed: 0 },
+          'pid-bravo': { name: 'Bravo', total: 4, verified: 4, failed: 0 },
+          'pid-cosmo': { name: 'Cosmo', total: 3, verified: 3, failed: 0 },
+        },
+      }),
+    });
+  });
+  await page.route('**/api/game/*', (route) => {
+    if (route.request().url().includes('/verify')) { route.fallback(); return; }
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        game_code: 'AYBD',
+        started_at: '2026-01-15T14:12:00Z',
+        ended_at: '2026-01-15T14:14:20Z',
+        duration_ms: 140000,
+        num_rounds: 4,
+        num_players: 3,
+        players: [
+          { user_id: 'pid-alpha', name: 'Alpha', photo: null, wins: 1 },
+          { user_id: 'pid-bravo', name: 'Bravo', photo: null, wins: 2 },
+          { user_id: 'pid-cosmo', name: 'Cosmo', photo: null, wins: 0 },
+        ],
+        rounds: [],
+      }),
+    });
+  });
   let myPid = null;
   await page.routeWebSocket(/\/ws$/, (ws) => {
     const server = ws.connectToServer();
@@ -241,7 +277,11 @@ test('game-ended', async ({ page }) => {
   await page.waitForSelector('#landing.active');
   await page.fill('#name-input', 'Alpha');
   await page.click('#landing-form button[type="submit"]');
-  await page.waitForSelector('#game-ended-overlay[open]');
+  // The game_ended handler redirects to /games/AYBD after a 1s delay.
+  await page.waitForSelector('#game-detail.active', { timeout: 10000 });
+  await page.waitForSelector('.gd-ended');
+  await page.waitForFunction(() =>
+    document.querySelector('.gd-trust-done') !== null, { timeout: 15000 });
   await settle(page);
   await expect(page).toHaveScreenshot('game-ended.png');
 });
