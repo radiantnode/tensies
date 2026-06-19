@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
-from server import db, drand, fanout, gamestore, reaper, telemetry
+from server import db, discord, drand, fanout, gamestore, reaper, telemetry
 from server.auth import router as auth_router
 from server.config import FRONTEND_DIST
 from server.routes import router as http_router
@@ -16,18 +16,21 @@ from server.ws import router as ws_router
 async def lifespan(app: FastAPI):
     # Postgres (shared pool + migrations) comes up first — auth needs it even
     # with telemetry disabled. Then Redis-backed shared state + cross-instance
-    # fan-out (both required); telemetry (Grafana writer/live) is optional; the
-    # reaper backstops per-game timers across instances.
+    # fan-out (both required); telemetry (Grafana writer/live) and the Discord
+    # notifier are optional (each a no-op unless enabled); the reaper backstops
+    # per-game timers across instances.
     await db.init()
     await gamestore.init()
     await fanout.start()
     await drand.start()
     await telemetry.start()
+    await discord.start()
     await reaper.start()
     try:
         yield
     finally:
         await reaper.stop()
+        await discord.stop()
         await telemetry.stop()
         await drand.stop()
         await fanout.stop()

@@ -75,6 +75,11 @@ services:
       WEBAUTHN_ORIGIN: "${WEBAUTHN_ORIGIN:-${ALLOWED_ORIGINS}}"
       ENABLE_DRAND_ROLLING: "${ENABLE_DRAND_ROLLING:-1}"
       TELEMETRY_ENABLED: "1"
+      # Discord game-status notifier (optional). Off unless DISCORD_ENABLED is
+      # set; the bot token is a secret — pass it via .env.prod, never inline.
+      DISCORD_ENABLED: "${DISCORD_ENABLED:-0}"
+      DISCORD_BOT_TOKEN: "${DISCORD_BOT_TOKEN:-}"
+      DISCORD_CHANNEL_ID: "${DISCORD_CHANNEL_ID:-}"
       # Prod static-asset mode: serve the prebuilt, fingerprinted index.html that
       # the build baked into the image (nginx serves everything under /static).
       # The app does zero asset work — no in-process JS cache, no StaticFiles.

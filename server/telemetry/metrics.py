@@ -98,6 +98,14 @@ live_push_failures_total = Counter(
     "tensies_live_push_failures_total", "Grafana Live push failures"
 )
 
+# ─── Discord notifier ───────────────────────────────────────────────────
+discord_messages_total = Counter(
+    "tensies_discord_messages_total", "Discord card posts/edits", ["op"]
+)
+discord_failures_total = Counter(
+    "tensies_discord_failures_total", "Discord API failures", ["op"]
+)
+
 # ─── drand beacon ─────────────────────────────────────────────────────
 drand_beacon_fetches_total = Counter(
     "tensies_drand_beacon_fetches_total", "Successful drand beacon fetches"
