@@ -160,26 +160,28 @@ export class ProfileScreen extends HTMLElement {
                 const totalSecs = Math.round(r.duration_ms / 1000);
                 duration = totalSecs < 60 ? `${totalSecs}s` : `${Math.round(totalSecs / 60)}m`;
               }
-              const opps = r.opponents || [];
+              const opps = (r.opponents || []).slice().sort(
+                (/** @type {any} */ a, /** @type {any} */ b) => (b.wins || 0) - (a.wins || 0)
+              );
               const unknownCount = Math.max(0, (r.player_count || 1) - 1 - opps.length);
               const userPhoto = data.profile_photo_url || '/static/images/avatar-default.svg';
               const mkAvatar = (/** @type {string} */ src, /** @type {string} */ name, /** @type {boolean} */ winner) =>
                 `<span class="recent-avatar-ring${winner ? ' recent-avatar-winner' : ''}"><img class="recent-avatar" src="${src}" alt="${name}"></span>`;
-              const userAv = mkAvatar(userPhoto, data.username, !!r.won_game);
-              const oppAvs = opps.map((/** @type {any} */ o) =>
-                mkAvatar(o.photo || '/static/images/avatar-default.svg', o.name, false)
+              // Top opponent is the one with the most wins
+              const topOppWins = opps.length > 0 ? (opps[0].wins || 0) : 0;
+              const userWins = r.wins || 0;
+              const userAv = mkAvatar(userPhoto, data.username, userWins >= topOppWins);
+              const oppAvs = opps.map((/** @type {any} */ o, /** @type {number} */ i) =>
+                mkAvatar(o.photo || '/static/images/avatar-default.svg', o.name, i === 0 && (o.wins || 0) >= userWins)
               );
               // Add placeholder avatars for opponents who never rolled
               for (let i = 0; i < unknownCount; i++) {
                 oppAvs.push(mkAvatar('/static/images/avatar-default.svg', 'opponent', false));
               }
-              // Winner first; give glow only to the first avatar
-              const allAvatars = r.won_game
+              // Most wins first
+              const allAvatars = userWins >= topOppWins
                 ? [userAv, ...oppAvs]
                 : [...oppAvs, userAv];
-              if (!r.won_game && allAvatars.length > 0) {
-                allAvatars[0] = allAvatars[0].replace('recent-avatar-ring', 'recent-avatar-ring recent-avatar-winner');
-              }
               let vs;
               if (opps.length) {
                 vs = 'vs ' + opps.map((/** @type {any} */ o) => o.name).join(', ');

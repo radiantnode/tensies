@@ -202,15 +202,21 @@ async def api_profile(username: str) -> dict:
                        AND rp4.user_id = $1
                        AND rp4.avg_dt_between_rolls_ms IS NOT NULL) AS avg_roll_speed_ms,
                    (SELECT json_agg(json_build_object(
-                             'name', sub.name, 'photo', sub.photo))
+                             'name', sub.name, 'photo', sub.photo,
+                             'wins', sub.wins)
+                           ORDER BY sub.wins DESC)
                       FROM (SELECT DISTINCT ON (rp2.user_id)
                                    COALESCE(u2.username, ps2.name_last, rp2.user_id) AS name,
-                                   u2.profile_photo_url AS photo
+                                   u2.profile_photo_url AS photo,
+                                   (SELECT count(*) FROM rounds rw
+                                     WHERE rw.game_code = g.game_code
+                                       AND rw.winner_user_id = rp2.user_id) AS wins
                               FROM round_player rp2
                               LEFT JOIN users u2 ON u2.id::text = rp2.user_id
                               LEFT JOIN player_stats ps2 ON ps2.user_id = rp2.user_id
                              WHERE rp2.game_code = g.game_code
-                               AND rp2.user_id <> $1) sub
+                               AND rp2.user_id <> $1
+                             ORDER BY rp2.user_id) sub
                    ) AS opponents
               FROM games g
              WHERE g.game_code IN (
