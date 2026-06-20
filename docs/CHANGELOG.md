@@ -2,12 +2,36 @@
 
 Pull up a stool. Newest stuff up top.
 
+## 1.17.1 ("Fresh Kegs")
+
+Saturday, June 20, 2026
+
+- Fixed the recent-games avatars on your profile so the faces line up with who actually finished where. 🏆
+- _Behind the scenes: swapped in fresh versions of the under-the-hood libraries, closed a couple of gaps the security scanner flagged, and wrote up how to report a bug. Restocking so the place stays clean and safe._
+
+## 1.17.0 ("Closing Time")
+
+Friday, June 19, 2026
+
+- When a game ends now you slide straight to its recap page instead of a popup. Same scoreboard and roll history, just a smoother way out the door.
+- New for crews who hang out on Discord: Tensies can post game updates to your channel, and a `/verify` command checks any game's rolls right there in chat. 💬
+- _Behind the scenes: smoothed out a timing hiccup in the Discord reply and stopped auto-spawning threads every time a game wrapped._
+
+## 1.16.0 ("Fair Shake")
+
+Thursday, June 18, 2026
+
+- Rolling out: dice that anyone can audit. Numbers are drawn from a public randomness beacon, so nobody can cook the dice, not even us. 🎲
+- The post-game page now has a Roll Trust section. A shield badge, every player's rolls, and a way to check the math yourself if you're the suspicious type.
+- Profiles got fuller. Add a bio, say where you're from, and admins wear a little pill.
+- _Behind the scenes: gave the profile its own stylesheet and refreshed the verification screenshots._
+
 ## 1.15.0 ("Last Call")
 
 Wednesday, June 17, 2026
 
 - The host can end the game from the menu. First tap says "Tap to confirm," second tap sends everyone home.
-- When a game ends, everyone lands on the game's detail page — player stats, round wins, and roll verification all in one place.
+- When a game ends, everyone lands on the game's detail page, with player stats, round wins, and roll verification all in one place.
 - Profile recent games got some polish. Better spacing, cleaner score glow.
 
 ## 1.14.1 ("Coaster Notes")
