@@ -96,11 +96,7 @@
     cursor: pointer;
   }
 
-  .a2hs-banner-close svg {
-    inline-size: 15px;
-    block-size: 15px;
-  }
-
+  .a2hs-banner-close svg { inline-size: 15px; block-size: 15px; }
   .a2hs-banner-close:hover { color: var(--color-text-warm); }
 
   /* Nav-menu "Add to Home Screen" entry (reuses .menu-whats-new-btn styling). */
@@ -111,10 +107,7 @@
     gap: 0.55rem;
   }
 
-  .menu-a2hs-btn svg {
-    inline-size: 19px;
-    block-size: 19px;
-  }
+  .menu-a2hs-btn svg { inline-size: 19px; block-size: 19px; }
 
   /* ── Walkthrough overlay (extends .overlay-dialog from overlays.css) ── */
   .a2hs-overlay { background: rgba(6, 3, 1, 0.94); }
@@ -189,8 +182,8 @@
   /* ── Phone mockup ── */
   .a2hs-phone {
     position: relative;
-    inline-size: 168px;
-    block-size: 320px;
+    inline-size: 172px;
+    block-size: 332px;
     margin-block-end: 1.25rem;
     padding: 8px;
     background: linear-gradient(160deg, #2a2018 0%, #120c07 100%);
@@ -233,35 +226,9 @@
   .a2hs-phone[data-step="2"] [data-scene="2"],
   .a2hs-phone[data-step="3"] [data-scene="3"] { opacity: 1; }
 
-  /* Browser chrome (scenes 1) */
-  .a2hs-browser {
-    display: flex;
-    flex-direction: column;
-    block-size: 100%;
-    background: #0d0805;
-  }
-
-  .a2hs-url-bar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 7px 6px;
-    background: rgba(255, 255, 255, 0.06);
-    font-size: 9px;
-    color: rgba(235, 215, 195, 0.85);
-  }
-
-  .a2hs-url-bar-top { justify-content: space-between; padding-inline: 9px; }
-
-  .a2hs-url {
-    padding: 3px 10px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    letter-spacing: 0.02em;
-  }
-
-  .a2hs-app-canvas {
+  /* App page behind the browser chrome (shared warm radial). */
+  .a2hs-app-canvas,
+  .a2hs-ios-page {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -281,52 +248,79 @@
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
   }
 
-  /* iOS bottom toolbar */
-  .a2hs-toolbar {
+  /* ── iOS scene 1: floating Safari bar ── */
+  .a2hs-ios-page { padding-block-end: 4px; }
+
+  .a2hs-ios-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0 6px 8px;
+    padding: 8px 9px 9px;
+    background: rgba(38, 38, 41, 0.94);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 17px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .a2hs-ios-url {
     display: flex;
     align-items: center;
-    justify-content: space-around;
-    padding: 9px 6px;
-    background: rgba(20, 14, 9, 0.96);
-    border-block-start: 1px solid rgba(255, 255, 255, 0.07);
+    gap: 6px;
+    padding: 5px 9px;
+    background: rgba(74, 74, 79, 0.55);
+    border-radius: 11px;
   }
 
-  .a2hs-tool {
+  .a2hs-ios-url-text {
+    flex: 1;
+    font-size: 10px;
+    font-weight: 500;
+    text-align: center;
+    color: #fff;
+  }
+
+  .a2hs-ios-url-ext,
+  .a2hs-ios-url-reload { display: inline-flex; color: rgba(235, 235, 240, 0.85); }
+  .a2hs-ios-url-ext .a2hs-glyph { inline-size: 14px; block-size: 14px; }
+  .a2hs-ios-url-reload .a2hs-glyph { inline-size: 13px; block-size: 13px; }
+
+  .a2hs-ios-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-inline: 2px;
+  }
+
+  .a2hs-ios-tool {
     position: relative;
     display: inline-flex;
-    color: rgba(210, 190, 170, 0.7);
+    color: rgba(245, 245, 250, 0.95);
   }
 
-  .a2hs-tool .a2hs-glyph { inline-size: 18px; block-size: 18px; }
-  .a2hs-tool-more { color: rgba(210, 190, 170, 0.85); }
-  .a2hs-tool-active { color: var(--color-accent); }
+  .a2hs-ios-tool .a2hs-glyph { inline-size: 18px; block-size: 18px; }
+  .a2hs-ios-tool-dim { color: rgba(130, 130, 138, 0.7); }
 
-  .a2hs-phone[data-step="1"] .a2hs-tool-active {
-    animation: a2hs-pulse 1.9s ease-in-out infinite;
-  }
+  /* Tap-target wrappers position a centered ripple over their control. */
+  .a2hs-ios-target { position: relative; }
 
-  @keyframes a2hs-pulse {
-    0%, 100% { filter: none; }
-    50% { filter: drop-shadow(0 0 6px var(--color-accent)); }
-  }
-
-  /* Share sheet (iOS scene 2) */
+  /* ── iOS scene 2: share sheet ── */
   .a2hs-sheet-dim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); }
 
-  .a2hs-sheet {
+  .a2hs-ios-sheet {
     position: absolute;
     inset-inline: 6px;
     inset-block-end: 6px;
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    padding: 8px;
-    background: rgba(40, 32, 25, 0.98);
+    gap: 7px;
+    padding: 9px 10px 10px;
+    background: rgba(44, 44, 46, 0.98);
     border-radius: 16px;
     box-shadow: 0 -8px 22px rgba(0, 0, 0, 0.5);
   }
 
-  .a2hs-phone[data-step="2"] [data-scene="2"] .a2hs-sheet {
+  .a2hs-phone[data-step="2"] [data-scene="2"] .a2hs-ios-sheet {
     animation: a2hs-sheet-up 0.45s cubic-bezier(0.2, 0.85, 0.25, 1);
   }
 
@@ -343,50 +337,251 @@
     border-radius: 2px;
   }
 
-  .a2hs-sheet-app {
+  .a2hs-ios-sheet-head {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 4px 4px 7px;
-    border-block-end: 1px solid rgba(255, 255, 255, 0.08);
+    padding-block-end: 6px;
+    border-block-end: 0.5px solid rgba(255, 255, 255, 0.1);
   }
 
-  .a2hs-sheet-app img { border-radius: 8px; }
+  .a2hs-ios-sheet-head img { border-radius: 7px; }
 
-  .a2hs-sheet-app-name {
+  .a2hs-ios-sheet-name {
     display: flex;
     flex-direction: column;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--color-text);
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
   }
 
-  .a2hs-sheet-app-name small { font-size: 8px; font-weight: 500; color: var(--color-text-muted); }
+  .a2hs-ios-sheet-name small { font-size: 8px; font-weight: 400; color: rgba(235, 235, 240, 0.5); }
 
-  .a2hs-sheet-row,
-  .a2hs-menu-row {
+  .a2hs-ios-circles {
+    display: flex;
+    justify-content: space-between;
+    padding-block: 2px;
+  }
+
+  .a2hs-ios-circle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    inline-size: 24%;
+  }
+
+  .a2hs-ios-circle .a2hs-glyph {
+    inline-size: 30px;
+    block-size: 30px;
+    padding: 7px;
+    background: rgba(118, 118, 128, 0.32);
+    border-radius: 50%;
+    color: #fff;
+  }
+
+  .a2hs-ios-circle i {
+    overflow: hidden;
+    max-inline-size: 100%;
+    font-size: 6px;
+    font-style: normal;
+    line-height: 1.1;
+    text-align: center;
+    color: rgba(235, 235, 240, 0.65);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .a2hs-ios-list { display: flex; flex-direction: column; }
+
+  .a2hs-ios-row {
     position: relative;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 8px 6px;
-    font-size: 10px;
-    color: var(--color-text-warm);
+    gap: 9px;
+    padding: 7px 5px;
+    font-size: 9.5px;
+    color: #fff;
+    border-block-start: 0.5px solid rgba(255, 255, 255, 0.1);
   }
 
-  .a2hs-sheet-row { border-block-end: 1px solid rgba(255, 255, 255, 0.05); }
-  .a2hs-sheet-row:last-child { border-block-end: 0; }
+  .a2hs-ios-row:first-child { border-block-start: 0; }
+  .a2hs-ios-row-ic { display: inline-flex; }
+  .a2hs-ios-row-ic .a2hs-glyph { inline-size: 16px; block-size: 16px; color: #fff; }
 
-  .a2hs-sheet-row .a2hs-glyph,
-  .a2hs-menu-row .a2hs-glyph { inline-size: 16px; block-size: 16px; }
+  /* The touched row gets iOS's selection highlight while its step is active. */
+  .a2hs-phone[data-step="2"] .a2hs-ios-row.a2hs-ios-target {
+    background: rgba(255, 255, 255, 0.13);
+    border-radius: 7px;
+  }
 
-  .a2hs-sheet-row-active,
-  .a2hs-menu-row-active {
-    color: var(--color-accent);
+  /* ── iOS scene 3: "Add to Home Screen" confirmation ── */
+  .a2hs-ios-confirm {
+    position: absolute;
+    inset-block-start: 6px;
+    inset-inline: 6px;
+    overflow: hidden;
+    background: rgba(28, 28, 30, 0.99);
+    border-radius: 14px;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
+  }
+
+  .a2hs-phone[data-step="3"] [data-scene="3"] .a2hs-ios-confirm {
+    animation: a2hs-confirm-down 0.4s cubic-bezier(0.2, 0.85, 0.25, 1);
+  }
+
+  @keyframes a2hs-confirm-down {
+    from { transform: translateY(-28%); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+
+  .a2hs-confirm-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 9px 8px;
+  }
+
+  .a2hs-confirm-x {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 18px;
+    block-size: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+    color: rgba(235, 235, 240, 0.8);
+  }
+
+  .a2hs-confirm-x svg { inline-size: 9px; block-size: 9px; }
+
+  .a2hs-confirm-title {
+    flex: 1;
+    font-size: 10.5px;
     font-weight: 700;
+    text-align: center;
+    color: #fff;
   }
 
-  /* Android overflow menu (scene 2) */
+  .a2hs-confirm-add {
+    padding: 3px 11px;
+    background: #0a84ff;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .a2hs-confirm-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 9px;
+    border-block-start: 0.5px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .a2hs-confirm-icon { inline-size: 34px; block-size: 34px; border-radius: 8px; }
+
+  .a2hs-confirm-fields { display: flex; flex-direction: column; gap: 4px; text-align: start; }
+
+  .a2hs-confirm-name {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10.5px;
+    color: #fff;
+  }
+
+  .a2hs-confirm-caret {
+    inline-size: 1.5px;
+    block-size: 12px;
+    margin-inline-start: 1px;
+    background: #0a84ff;
+  }
+
+  .a2hs-confirm-url { font-size: 8.5px; color: rgba(235, 235, 240, 0.45); }
+
+  .a2hs-confirm-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 9px;
+    border-block-start: 0.5px solid rgba(255, 255, 255, 0.12);
+    font-size: 9.5px;
+    color: #fff;
+  }
+
+  .a2hs-ios-switch {
+    position: relative;
+    inline-size: 26px;
+    block-size: 15px;
+    background: #34c759;
+    border-radius: 999px;
+  }
+
+  .a2hs-ios-switch::after {
+    content: '';
+    position: absolute;
+    inset-block-start: 1.5px;
+    inset-inline-start: 12.5px;
+    inline-size: 12px;
+    block-size: 12px;
+    background: #fff;
+    border-radius: 50%;
+  }
+
+  .a2hs-confirm-note {
+    padding: 7px 9px 9px;
+    font-size: 7.5px;
+    line-height: 1.45;
+    text-align: start;
+    color: rgba(235, 235, 240, 0.45);
+  }
+
+  /* ── Android scene 1: Chrome top bar ── */
+  .a2hs-browser {
+    display: flex;
+    flex-direction: column;
+    block-size: 100%;
+    background: #0d0805;
+  }
+
+  .a2hs-url-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 7px 9px;
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 9px;
+    color: rgba(235, 215, 195, 0.85);
+  }
+
+  .a2hs-url {
+    padding: 3px 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    letter-spacing: 0.02em;
+  }
+
+  .a2hs-tool {
+    position: relative;
+    display: inline-flex;
+    color: rgba(210, 190, 170, 0.85);
+  }
+
+  .a2hs-tool .a2hs-glyph { inline-size: 18px; block-size: 18px; }
+  .a2hs-tool-active { color: var(--color-accent); }
+
+  .a2hs-phone[data-step="1"] .a2hs-tool-active {
+    animation: a2hs-pulse 1.9s ease-in-out infinite;
+  }
+
+  @keyframes a2hs-pulse {
+    0%, 100% { filter: none; }
+    50% { filter: drop-shadow(0 0 6px var(--color-accent)); }
+  }
+
+  /* ── Android scene 2: overflow menu ── */
   .a2hs-menu {
     position: absolute;
     inset-block-start: 8px;
@@ -408,7 +603,20 @@
     to   { transform: scale(1); opacity: 1; }
   }
 
-  /* Tap ripple */
+  .a2hs-menu-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 6px;
+    font-size: 10px;
+    color: var(--color-text-warm);
+  }
+
+  .a2hs-menu-row .a2hs-glyph { inline-size: 16px; block-size: 16px; }
+  .a2hs-menu-row-active { color: var(--color-accent); font-weight: 700; }
+
+  /* ── Tap ripple (centered in its target wrapper) ── */
   .a2hs-tap {
     position: absolute;
     inset-block-start: 50%;
@@ -422,18 +630,10 @@
     pointer-events: none;
   }
 
-  .a2hs-sheet-row-active .a2hs-tap,
-  .a2hs-menu-row-active .a2hs-tap {
-    inset-inline-start: auto;
-    inset-inline-end: 12px;
-  }
-
-  .a2hs-phone[data-step="1"] [data-scene="1"] .a2hs-tap {
+  .a2hs-phone[data-step="1"] [data-scene="1"] .a2hs-tap,
+  .a2hs-phone[data-step="2"] [data-scene="2"] .a2hs-tap,
+  .a2hs-phone[data-step="3"] [data-scene="3"] .a2hs-tap {
     animation: a2hs-tap-c 1.9s ease-out infinite;
-  }
-
-  .a2hs-phone[data-step="2"] [data-scene="2"] .a2hs-tap {
-    animation: a2hs-tap-r 1.9s ease-out infinite;
   }
 
   @keyframes a2hs-tap-c {
@@ -443,14 +643,7 @@
     100% { opacity: 0; }
   }
 
-  @keyframes a2hs-tap-r {
-    0% { transform: translate(50%, -50%) scale(0); opacity: 0; }
-    12% { opacity: 0.9; }
-    40% { transform: translate(50%, -50%) scale(1.05); opacity: 0; }
-    100% { opacity: 0; }
-  }
-
-  /* Home screen (shared scene 3) */
+  /* ── Android scene 3: home screen pop ── */
   .a2hs-home {
     display: flex;
     flex-direction: column;
@@ -613,7 +806,8 @@
   @media (prefers-reduced-motion: reduce) {
     .a2hs-banner,
     .a2hs-tap,
-    .a2hs-sheet,
+    .a2hs-ios-sheet,
+    .a2hs-ios-confirm,
     .a2hs-menu,
     .a2hs-home-app,
     .a2hs-tool-active { animation: none; }
