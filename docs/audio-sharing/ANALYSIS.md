@@ -9,7 +9,7 @@
 > venue as S5/S6 — with the speaker at a **known 60% of the iPhone volume bar**
 > (reported by the tester; the first session with a hard volume number rather
 > than a qualitative label). It anchors the volume curve with a real percentage,
-> confirms the 1000 Hz "safe" tier (60/60 again), and walks back the strongest
+> confirms the 1800 Hz "safe" tier (60/60 again), and walks back the strongest
 > claim from the S5 writeup — that high volume *redeems* the low-frequency
 > voices. See "[The 60% anchor and what it does to the S5 story](#the-60-anchor-and-what-it-does-to-the-s5-story)".
 
@@ -128,7 +128,7 @@ steel-drum             ██░░░░░░░░  8/36     0/6  2/6  0/6  0
 ⚠ = passes but with thin signal margins
 
 S7 (60% volume, loud bar) reshuffled the bottom half but left the top
-untouched. The eleven 1000 Hz voices all went 6/6 again — including `flute`,
+untouched. The eleven 1800 Hz voices all went 6/6 again — including `flute`,
 which recovered the 6/6 it dropped in S5, restoring its "perfect outside of
 S1" record. Below the safe tier, S7 scattered: `xylophone-low` and
 `marimba-low` posted their best non-S5 scores (6/6 each), while `music-box`,
@@ -206,12 +206,12 @@ objectively, and re-examine the boldest claim from the S5 writeup.
 ### Calibrating with received level
 
 Speaker volume shows up at the mic as **received peak dB** (handset-to-mic
-distance is roughly fixed). Restricting to the ten constant-design 1000 Hz
+distance is roughly fixed). Restricting to the ten constant-design 1800 Hz
 voices — same tone design every session, so only the volume knob moves the
 received level — gives a clean ladder:
 
 ```
-Session         Volume        Median received peak (1000 Hz voices)
+Session         Volume        Median received peak (1800 Hz voices)
 ─────────────────────────────────────────────────────────────────
 S1              low                 -77 dB
 S4              half (~50%)         -63 dB
@@ -230,11 +230,11 @@ received peak conflates volume with handset distance/orientation, but across
 
 ### The pass-rate curve, by frequency band
 
-Splitting each session into the 1000 Hz "safe" voices vs the sub-1000 Hz
+Splitting each session into the 1800 Hz "safe" voices vs the sub-1800 Hz
 voices, against volume:
 
 ```
-Volume          1000 Hz safe voices      sub-1000 Hz voices
+Volume          1800 Hz safe voices      sub-1800 Hz voices
 ──────────────────────────────────────────────────────────
 50%  (S4)              97%                      18%
 60%  (S7)             100%                      70%
@@ -245,10 +245,10 @@ Two clean reads:
 
 1. **The safe voices plateau at or below 60%.** 97% at half, 100% at 60%,
    98% at high — they gain nothing from extra volume because they're already
-   flat. If the shippable menu is just the 1000 Hz voices, 60% is past the
+   flat. If the shippable menu is just the 1800 Hz voices, 60% is past the
    point of diminishing returns; even 50% covers them.
 
-2. **The sub-1000 Hz voices ride the steep part of the curve through 60% and
+2. **The sub-1800 Hz voices ride the steep part of the curve through 60% and
    never reach the top.** They leap 18% → 70% from half to 60%, then only
    crawl to 81% at full-bar-high. The last ~20% doesn't close at any realistic
    volume.
@@ -298,7 +298,7 @@ margin alone doesn't separate pass from fail. Volume helps the safe voices by
 handing the decoder clean tone onsets to segment on; for the ringing /
 harmonic-rich voices the failure is lost letter boundaries (reverb tails, long
 bell decays, square-wave harmonics smearing across FFT bins), which more
-volume doesn't fully cure. "Volume is everything" holds for *why the 1000 Hz
+volume doesn't fully cure. "Volume is everything" holds for *why the 1800 Hz
 band is robust*; for the bad voices the binding constraint is decode
 segmentation, not SNR.
 
@@ -311,7 +311,7 @@ segmentation, not SNR.
 ```
 Start freq (Hz)   Voices              Pass rate (all sessions)
 ──────────────────────────────────────────────────────────────
-1000 (default)    current, soft-sine,  77% median (range 4-100%)
+1800 (default)    current, soft-sine,  77% median (range 4-100%)
                   triangle, bell,
                   marimba, flute,
                   kalimba, organ,
@@ -330,8 +330,8 @@ Start freq (Hz)   Voices              Pass rate (all sessions)
 600               kalimba-low          27%
 ```
 
-The 1000 Hz default band has the highest ceiling but also wide variance because
-envelope and gain matter too (`marimba` at 1000 Hz only hits 70%). Below 800 Hz
+The 1800 Hz default band has the highest ceiling but also wide variance because
+envelope and gain matter too (`marimba` at 1800 Hz only hits 70%). Below 800 Hz
 the ceiling drops fast -- only `portamento-dream` (750 Hz, 80%) bucks the trend,
 and it does so with paper-thin margins.
 
@@ -343,14 +343,14 @@ voices become viable:
 ```
                               S1 (low)  S4 (half)  S2+S3 (normal)   S5 (high)
                               ────────  ─────────  ──────────────   ─────────
-1000 Hz default voices        27%       97%        99%              98%
+1800 Hz default voices        27%       97%        99%              98%
 800-900 Hz voices             0%        11%        69%              67%
 <=750 Hz voices               0%        20%        57%              85% ← jump
 ```
 
 At normal volume, the sub-750 Hz voices sit around 57%. Crank it to high and
 they jump to 85% -- higher than normal volume achieves for the 800-900 Hz band.
-The 1000 Hz voices plateau at normal (97-99%) and gain nothing from more volume.
+The 1800 Hz voices plateau at normal (97-99%) and gain nothing from more volume.
 
 This means the volume boost disproportionately helps the voices that need it
 most. The frequency gap that looked fatal at normal volume is survivable at high.
@@ -364,7 +364,7 @@ most. The frequency gap that looked fatal at normal volume is survivable at high
 | tremolo | absent or mild (vibes: depth 0.15) | strong (steel-drum: depth 0.1 + low freq) |
 
 `vibes` has a mild tremolo (rate 5, depth 0.15) and still hits 24/30. But `vibes`
-runs at 1000 Hz with 0.9 gain -- the tremolo is survivable because everything
+runs at 1800 Hz with 0.9 gain -- the tremolo is survivable because everything
 else is in its favor. `steel-drum` has a similar tremolo (rate 6, depth 0.1) but
 at 750 Hz with 0.85 gain, and it's broken (4/30). Tremolo is only fatal when
 combined with other disadvantages.
@@ -492,7 +492,7 @@ overpowers it.
 ```
                         S4 (half + music)    S5 (high + loud bar)
                         ─────────────────    ────────────────────
-1000 Hz voices (10)     avg 5.8/6            avg 5.9/6
+1800 Hz voices (10)     avg 5.8/6            avg 5.9/6
 music-box (800 Hz)      1/6                  6/6
 doorbell (900 Hz)       1/6                  6/6
 ```
@@ -588,7 +588,7 @@ others have now failed at good volume too.
 
 3. **Drop these voices.** Steel-drum (8/36), gameboy (15/60, including a
    dedicated max-volume deep-dive that still only hit 54%), and the rest of the
-   sub-1000 Hz set are not viable. S7 confirmed it: at the same loud bar as S5
+   sub-1800 Hz set are not viable. S7 confirmed it: at the same loud bar as S5
    but ~10 dB quieter, marimba-low/xylophone-low rose while power-chime/major-
    bells/wide-marimba/echo-kalimba fell — threshold voices whose outcome is
    luck, not a property you can ship around. (marimba-low's lone 6/6 in S7 and
@@ -597,25 +597,26 @@ others have now failed at good volume too.
 4. **Reconsider the volume-caveat voices in light of S7.** `doorbell` held 6/6
    in S7 (60%) and stays a reasonable "caveat" candidate. But `music-box`
    (3/6) and `fm-bell` (5/6) slipped at 60% despite the loud bar, and the
-   broader sub-1000 Hz group only reached 70% at 60% and 81% even at full-bar-
+   broader sub-1800 Hz group only reached 70% at 60% and 81% even at full-bar-
    high. The S5 "6/6 at high volume" numbers for these voices were a lucky
    session, not a reliable property (see "The 60% anchor"). Treat the whole
-   sub-1000 Hz set as not-dependable rather than volume-gated.
+   sub-1800 Hz set as not-dependable rather than volume-gated.
 
 5. **Set a minimum volume floor — now in real percentages.** S7 anchors the
    curve: low ≈ 11%, half/50% = 51%, 60% = 83%, high ≈ 88%. For the shippable
-   1000 Hz voices specifically, the band-split shows 97% at 50% and 100% at
+   1800 Hz voices specifically, the band-split shows 97% at 50% and 100% at
    60% — they plateau by 60%, so a **50% floor covers the safe menu and 60% is
-   bulletproof**. There's no benefit to demanding more. The sub-1000 Hz voices
+   bulletproof**. There's no benefit to demanding more. The sub-1800 Hz voices
    never clear ~80% at any floor, so a volume prompt can't rescue them.
 
-6. **Raise `startFreq` floor to 900 Hz for default voices.** The 1000 Hz band
-   is plateau-reliable from half volume up (97%+). 800-900 Hz voices are fine
-   at normal+ but fragile below. Sub-750 Hz voices need high volume to work.
-   For a voice menu that works without volume warnings, 1000 Hz is the safe
-   default; 900 Hz is acceptable with a caveat.
+6. **Keep default voices on the 1800 Hz production band; don't lower `startFreq`.**
+   The shipped encoder uses START 1800 Hz / letters 1860-3360 Hz, and that band
+   is plateau-reliable from half volume up (97%+). The field-test failures were
+   all *lowered-band* experiments: 800-900 Hz voices are fine at normal+ but
+   fragile below, and ≤750 Hz voices need high volume to work at all. A custom
+   voice can restyle timbre freely but should not drop the band below ~900 Hz.
 
-7. **Don't combine low gain + percussive envelope + sub-1000 Hz.** Gameboy
+7. **Don't combine low gain + percussive envelope + a lowered band.** Gameboy
    (0.45 gain, percussive, 800 Hz) is the poster child: even max volume only
    gets it to 54%. Any one of those traits is survivable; all three together put
    the signal below the decoder's consistency threshold.
