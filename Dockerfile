@@ -25,7 +25,7 @@ RUN node scripts/build_assets.mjs
 # ── Stage 2: nginx serving the prebuilt dist straight from disk ───────────────
 # Serves everything under /static (sendfile + gzip_static + immutable) and
 # proxies the rest to the app. Config + dist are baked in (no runtime volumes).
-FROM nginx:1.27-alpine AS nginx
+FROM nginx:1.31.2-alpine AS nginx
 COPY ops/nginx.conf /etc/nginx/nginx.conf
 COPY --from=assets /build/dist/static /srv/dist/static
 
