@@ -1,77 +1,63 @@
 # Security Policy
 
+Tensies is a hobby project, maintained in spare time. There's no security team
+and no support contract — but I do care about it, and I'll look into anything you
+report. The notes below set realistic expectations rather than promises.
+
 ## Supported Versions
 
-Tensies is a continuously deployed, real-time multiplayer web app rather than a
-versioned download. There is no release train to pin to: the running service is
-always built from the latest `main`, and security fixes land there and roll out
-with the next deploy. We don't backport fixes to old commits.
+Tensies is continuously deployed from `main`. There's no release train to pin
+to: the running service is always built from the latest commit, and any fix
+lands there and ships with the next deploy. Older commits and forks don't get
+backported fixes.
 
-If you self-host, only the current `main` is supported. Older checkouts may be
-missing the abuse caps, origin allowlist, and security headers described below,
-so treat anything behind `main` as unsupported.
+| Version              | Supported          |
+| -------------------- | ------------------ |
+| `main` (latest)      | :white_check_mark: |
+| Anything older       | :x:                |
+| Forks / self-hosted  | :x:                |
 
-| Version            | Supported          |
-| ------------------ | ------------------ |
-| `main` (latest)    | :white_check_mark: |
-| Tagged releases    | :white_check_mark: (latest only) |
-| Older `main` / forks | :x:              |
+If you self-host, run the latest `main` — older checkouts may be missing the
+abuse caps, origin allowlist, and security headers, and I can't support those.
 
 ## Reporting a Vulnerability
 
-**Please do not open a public GitHub issue for security problems.** A public
-report tips off attackers before a fix is out.
+**Please don't open a public GitHub issue for security problems** — a public
+report tips off attackers before there's a fix. Instead, report it privately:
 
-Instead, report privately through one of:
-
-- **GitHub Security Advisories** — the preferred channel. Go to the
+- **GitHub Security Advisories** (preferred) — the
   [Security tab](https://github.com/radiantnode/tensies/security/advisories)
-  of the repository and choose **Report a vulnerability**. This opens a private
-  thread with the maintainers.
-- **Email** — michael@simmonstx.com. Use a subject line starting with
-  `[Tensies Security]`.
+  → **Report a vulnerability**.
+- **Email** — michael@simmonstx.com, subject starting with `[Tensies Security]`.
 
-### What to include
-
-A good report lets us reproduce the issue quickly. Where you can, please share:
-
-- The component or endpoint affected (e.g. the `/ws` WebSocket handler, an HTTP
-  route, the Redis-backed game store).
-- Steps to reproduce, a proof-of-concept, or the exact request/message that
-  triggers it.
-- The impact you think it has (data exposure, game-state tampering, denial of
-  service, etc.) and any deployment assumptions you made.
+It helps a lot if you can include what's affected (e.g. the `/ws` handler, an
+HTTP route, the Redis game store), how to reproduce it, and what the impact is.
 
 ### What to expect
 
-- **Acknowledgement within 3 business days** that we've received your report.
-- **A triage assessment within 7 business days** — whether we can reproduce it,
-  how severe we rate it, and whether we're accepting it.
-- **Regular updates** (at least weekly) while we work on a fix.
-- **If accepted:** we'll develop and ship a fix on `main`, deploy it, and credit
-  you in the advisory unless you'd rather stay anonymous. For higher-severity
-  issues we may publish a GitHub Security Advisory once the fix is live.
-- **If declined:** we'll explain why we don't consider it a vulnerability (for
-  example, behaviour that's already governed by a documented config knob) so you
-  have the reasoning, not just a "no."
+This is a side project, so please be patient — I read reports when I can, not on
+a clock:
 
-### Scope notes
+- I'll try to acknowledge your report within a week or so.
+- If I can reproduce it and agree it's a real issue, I'll fix it on `main` and
+  deploy. Timeline depends on severity and on how much free time I have.
+- If I don't think it's a vulnerability, I'll tell you why (often it's behaviour
+  controlled by a documented config knob — see below).
+- I'm happy to credit you in the fix or advisory unless you'd rather stay
+  anonymous.
 
-Some hardening in Tensies is intentionally **configuration-driven**, so behaviour
-you observe on a given deployment may be the operator's choice rather than a bug:
+Please give me a reasonable chance to ship a fix before disclosing publicly.
 
-- WebSocket origin enforcement (`ALLOWED_ORIGINS`), message-size and connection
-  caps (`MAX_WS_MESSAGE_BYTES`, `MAX_CONNECTIONS_PER_IP`), and create/join rate
-  limits.
+### Good to know
+
+Some of the hardening in Tensies is **configuration-driven**, so what you see on
+a given deployment may be the operator's choice rather than a bug:
+
+- WS origin enforcement (`ALLOWED_ORIGINS`), message-size and connection caps
+  (`MAX_WS_MESSAGE_BYTES`, `MAX_CONNECTIONS_PER_IP`), create/join rate limits.
 - Bearer-gating on `/metrics` and `/stats` (`METRICS_TOKEN` / `STATS_TOKEN`).
-- Security response headers — CSP and the HSTS group — in `server/security.py`.
-- Proxy / `X-Forwarded-For` trust (`TRUST_PROXY_HEADERS`, `TRUSTED_PROXY_HOPS`),
-  which the per-IP caps depend on behind a load balancer.
+- Security headers — CSP and HSTS — in `server/security.py`.
+- Proxy / `X-Forwarded-For` trust (`TRUST_PROXY_HEADERS`, `TRUSTED_PROXY_HOPS`).
 
-If you've found a way to bypass one of these when it's correctly configured —
-or a default that's unsafe out of the box — that's in scope and we'd like to
-hear about it.
-
-Please give us a reasonable window to ship a fix before disclosing publicly. We
-aim to resolve and deploy fixes well within 90 days and will keep you posted on
-progress.
+A way to bypass one of those when it's correctly configured, or an unsafe
+default out of the box, is exactly the kind of thing worth reporting.
