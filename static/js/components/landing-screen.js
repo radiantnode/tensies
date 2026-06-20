@@ -80,7 +80,7 @@ export class LandingScreen extends HTMLElement {
         <img class="a2hs-banner-icon" src="/static/images/apple-touch-icon-180.png" alt="">
         <span class="a2hs-banner-text">
           <span class="a2hs-banner-title">Add to Home Screen</span>
-          <span class="a2hs-banner-sub">Better experience, push notifications &amp; more</span>
+          <span class="a2hs-banner-sub">Faster launch, full screen &amp; more</span>
         </span>
         <span class="a2hs-banner-cta">Add</span>
       </button>
