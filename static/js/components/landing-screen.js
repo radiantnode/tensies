@@ -55,12 +55,19 @@ export class LandingScreen extends HTMLElement {
     document.removeEventListener('a2hs-installed', this.#onInstalled);
   }
 
-  #onInstalled = () => this.querySelector('.a2hs-banner')?.remove();
+  #onInstalled = () => this.#removeBanner();
+
+  #removeBanner() {
+    this.querySelector('.a2hs-banner')?.remove();
+    this.classList.remove('a2hs-has-banner');
+    this.style.removeProperty('--a2hs-banner-h');
+  }
 
   /**
-   * Offer the dismissible "Add to Home Screen" banner. Gated on
-   * shouldOfferInstall() (mobile, not installed, not previously dismissed), so
-   * it never renders on the desktop pixel harness.
+   * Offer the dismissible "Add to Home Screen" banner across the top of the
+   * landing page. Gated on shouldOfferInstall() (mobile, not already installed,
+   * not previously dismissed), so it never renders on the desktop pixel harness.
+   * Tapping it opens the walkthrough — the modal never opens on its own.
    */
   #mountInstallBanner() {
     if (!shouldOfferInstall() || this.querySelector('.a2hs-banner')) return;
@@ -73,7 +80,7 @@ export class LandingScreen extends HTMLElement {
         <img class="a2hs-banner-icon" src="/static/images/apple-touch-icon-180.png" alt="">
         <span class="a2hs-banner-text">
           <span class="a2hs-banner-title">Add to Home Screen</span>
-          <span class="a2hs-banner-sub">Play in one tap — here's how</span>
+          <span class="a2hs-banner-sub">Better experience, push notifications &amp; more</span>
         </span>
         <span class="a2hs-banner-cta">Add</span>
       </button>
@@ -81,9 +88,14 @@ export class LandingScreen extends HTMLElement {
     banner.querySelector('.a2hs-banner-main')?.addEventListener('click', () => openGuide());
     banner.querySelector('.a2hs-banner-close')?.addEventListener('click', () => {
       dismissBanner();
-      banner.remove();
+      this.#removeBanner();
     });
     this.append(banner);
+    this.classList.add('a2hs-has-banner');
+    // Measure the banner so the header can sit just below it.
+    requestAnimationFrame(() => {
+      this.style.setProperty('--a2hs-banner-h', `${banner.offsetHeight}px`);
+    });
   }
 
   /**
