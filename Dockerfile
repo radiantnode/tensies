@@ -43,6 +43,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Install build dependencies for packages with C/C++ extensions (asyncpg, blspy).
+# The slim base image lacks gcc and cmake, which are required to compile these
+# packages from source. We use --no-install-recommends and clean the apt cache
+# to keep the final image size minimal.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install deps first for layer caching. Prefer the fully-pinned lock for
 # reproducible/prod builds; fall back to requirements.txt if the lock is absent.
 COPY requirements.txt requirements.lock* ./
