@@ -129,3 +129,20 @@ export function openGuide() {
   if (!platform) return;
   document.dispatchEvent(new CustomEvent('a2hs-open', { detail: { platform } }));
 }
+
+/**
+ * The primary install action (banner CTA). On Android with a captured native
+ * prompt there's nothing to teach — fire Chrome's one-tap install dialog
+ * directly. Everywhere else (Android without a prompt — Firefox, in-app
+ * browsers, criteria-not-met — or iOS, which has no install API at all) fall
+ * back to the step-by-step walkthrough.
+ */
+export async function requestInstall() {
+  const platform = getPlatform();
+  if (!platform) return;
+  if (platform === 'android' && hasNativePrompt()) {
+    await triggerNativeInstall();
+    return;
+  }
+  openGuide();
+}

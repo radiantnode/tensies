@@ -2,7 +2,7 @@
 import './app-header.js';
 import { byId } from '../dom.js';
 import { getAuthUser } from '../auth.js';
-import { shouldOfferInstall, dismissBanner, openGuide } from '../a2hs.js';
+import { shouldOfferInstall, dismissBanner, requestInstall } from '../a2hs.js';
 import { createGame } from '../net.js';
 import { showJoin } from '../router.js';
 import { state } from '../state.js';
@@ -67,7 +67,8 @@ export class LandingScreen extends HTMLElement {
    * Offer the dismissible "Add to Home Screen" banner across the top of the
    * landing page. Gated on shouldOfferInstall() (mobile, not already installed,
    * not previously dismissed), so it never renders on the desktop pixel harness.
-   * Tapping it opens the walkthrough — the modal never opens on its own.
+   * Tapping it runs requestInstall() — Android's native prompt when available,
+   * otherwise the walkthrough. Nothing opens on its own.
    */
   #mountInstallBanner() {
     if (!shouldOfferInstall() || this.querySelector('.a2hs-banner')) return;
@@ -85,7 +86,7 @@ export class LandingScreen extends HTMLElement {
         <span class="a2hs-banner-cta">Add</span>
       </button>
       <button type="button" class="a2hs-banner-close" aria-label="Dismiss">${CLOSE_SVG}</button>`;
-    banner.querySelector('.a2hs-banner-main')?.addEventListener('click', () => openGuide());
+    banner.querySelector('.a2hs-banner-main')?.addEventListener('click', () => requestInstall());
     banner.querySelector('.a2hs-banner-close')?.addEventListener('click', () => {
       dismissBanner();
       this.#removeBanner();
