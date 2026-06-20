@@ -28,7 +28,7 @@ report tips off attackers before there's a fix. Report it privately instead:
 - **GitHub Security Advisories** (preferred): the
   [Security tab](https://github.com/radiantnode/tensies/security/advisories)
   → **Report a vulnerability**.
-- **Email**: michael@simmonstx.com, with a subject starting with
+- **Email**: barkeep@tensies.app, with a subject starting with
   `[Tensies Security]`.
 
 It helps a lot if you can include what's affected (say, the `/ws` handler, an
