@@ -61,14 +61,17 @@ const IOS_CHROME = `
  * @param {boolean} [tap] add a tap ripple over the icon (launch cue)
  */
 function homeScene(scene, tap = false) {
+  const generic = '<div class="a2hs-home-cell"><span class="a2hs-home-ph"></span><span class="a2hs-home-phlabel"></span></div>'.repeat(7);
   return `
   <div class="a2hs-scene" data-scene="${scene}">
     <div class="a2hs-home">
-      <div class="a2hs-home-grid">${'<i></i>'.repeat(8)}</div>
-      <div class="a2hs-home-app${tap ? ' a2hs-ios-target' : ''}">
-        <img class="a2hs-home-icon" src="${APP_ICON}" alt="" width="48" height="48">
-        <span class="a2hs-home-label">Tensies</span>
-        ${tap ? '<span class="a2hs-tap"></span>' : ''}
+      <div class="a2hs-home-grid">
+        ${generic}
+        <div class="a2hs-home-cell a2hs-home-tensies${tap ? ' a2hs-ios-target' : ''}">
+          <img class="a2hs-home-icon" src="${APP_ICON}" alt="" width="48" height="48">
+          <span class="a2hs-home-label">Tensies</span>
+          ${tap ? '<span class="a2hs-tap"></span>' : ''}
+        </div>
       </div>
       <div class="a2hs-home-dots"><i></i><i></i></div>
     </div>
