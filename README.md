@@ -4,12 +4,12 @@
   <img src="static/images/logo.svg" alt="Tensies" width="220" />
 </p>
 
-A real-time multiplayer dice game for the bar, the beach, or anywhere you forgot to bring actual dice.
-
 <p align="center">
   <a href="https://github.com/radiantnode/tensies/actions/workflows/ci.yml"><img src="https://github.com/radiantnode/tensies/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/radiantnode/tensies/actions/workflows/codeql.yml"><img src="https://github.com/radiantnode/tensies/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
 </p>
+
+A real-time multiplayer dice game for the bar, the beach, or anywhere you forgot to bring actual dice.
 
 ---
 
