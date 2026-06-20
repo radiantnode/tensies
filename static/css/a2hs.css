@@ -229,20 +229,20 @@
   .a2hs-sb-icons {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.6));
   }
 
-  .a2hs-sb-ic { block-size: 9px; inline-size: auto; }
-  .a2hs-sb-bat { block-size: 11px; inline-size: auto; }
+  .a2hs-sb-ic { block-size: 7.5px; inline-size: auto; }
+  .a2hs-sb-bat { block-size: 9px; inline-size: auto; }
 
   .a2hs-island {
     position: absolute;
     inset-block-start: 6px;
     inset-inline-start: 50%;
     z-index: 6;
-    inline-size: 46px;
-    block-size: 14px;
+    inline-size: 40px;
+    block-size: 13px;
     transform: translateX(-50%);
     background: #000;
     border-radius: 999px;
