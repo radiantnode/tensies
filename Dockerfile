@@ -7,7 +7,7 @@
 # ── Stage 1: build the static frontend bundle (dist/) ─────────────────────────
 # Tag-pinned (not a digest), matching the python base policy below, so local
 # builds still pick up base-image security patches.
-FROM node:22-bookworm-slim AS assets
+FROM node:26-bookworm-slim AS assets
 WORKDIR /build
 # Install the exact, locked build toolchain (esbuild) first for layer caching.
 COPY package.json package-lock.json ./
@@ -25,7 +25,7 @@ RUN node scripts/build_assets.mjs
 # ── Stage 2: nginx serving the prebuilt dist straight from disk ───────────────
 # Serves everything under /static (sendfile + gzip_static + immutable) and
 # proxies the rest to the app. Config + dist are baked in (no runtime volumes).
-FROM nginx:1.27-alpine AS nginx
+FROM nginx:1.31.2-alpine AS nginx
 COPY ops/nginx.conf /etc/nginx/nginx.conf
 COPY --from=assets /build/dist/static /srv/dist/static
 
@@ -42,6 +42,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /app
+
+# Install build dependencies for packages with C/C++ extensions (asyncpg, blspy).
+# The slim base image lacks gcc and cmake, which are required to compile these
+# packages from source. We use --no-install-recommends and clean the apt cache
+# to keep the final image size minimal.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install deps first for layer caching. Prefer the fully-pinned lock for
 # reproducible/prod builds; fall back to requirements.txt if the lock is absent.

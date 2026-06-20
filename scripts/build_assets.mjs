@@ -65,11 +65,13 @@ function walk(dir) {
 }
 
 // ── 1. Fingerprint leaf binary assets (images, fonts) ─────────────────────────
-const minifySvg = (text) => text
-  .replace(/<!--[\s\S]*?-->/g, '')
-  .replace(/[ \t]*\n[ \t]*/g, ' ')
-  .replace(/ {2,}/g, ' ')
-  .trim();
+const minifySvg = (text) => {
+  let s = text;
+  while (/<!--[\s\S]*?-->/.test(s)) s = s.replace(/<!--[\s\S]*?-->/g, '');
+  s = s.replace(/[ \t]*\n[ \t]*/g, ' ');
+  while (/ {2}/.test(s)) s = s.replace(/ {2,}/g, ' ');
+  return s.trim();
+};
 
 for (const sub of ['images', 'fonts']) {
   const dir = join(SRC, sub);
@@ -138,7 +140,8 @@ html = html.replace(/  <!-- Preload the whole module graph[^]*\.js">\n/, '');
 // point the entry script at the hashed bundle
 html = html.replace('/static/js/app.js', manifest.get('/static/js/app.js'));
 
-html = html.replace(/<!--[\s\S]*?-->/g, '').split('\n').map((l) => l.trim()).filter(Boolean).join('');
+while (/<!--[\s\S]*?-->/.test(html)) html = html.replace(/<!--[\s\S]*?-->/g, '');
+html = html.split('\n').map((l) => l.trim()).filter(Boolean).join('');
 writeFileSync(join(DIST, 'index.html'), html);
 
 // ── 6. Pre-compress text assets for nginx gzip_static ─────────────────────────
