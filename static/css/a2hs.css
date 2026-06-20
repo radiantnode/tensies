@@ -249,6 +249,15 @@
   /* ── iOS scene 1: floating Safari bar ── */
   .a2hs-ios-page { padding-block-end: 4px; }
 
+  /* Show the same bar-top page behind the share sheet / confirmation, so the
+     dimmed page reads through like real iOS (the sheet-dim darkens it more). */
+  .a2hs-phone[data-platform="ios"] [data-scene="2"],
+  .a2hs-phone[data-platform="ios"] [data-scene="3"] {
+    background:
+      linear-gradient(rgba(6, 3, 1, 0.5), rgba(6, 3, 1, 0.68)),
+      var(--color-bg) url('/static/images/bar-top.webp') center 10% / cover no-repeat;
+  }
+
   .a2hs-ios-bar {
     display: flex;
     flex-direction: column;
