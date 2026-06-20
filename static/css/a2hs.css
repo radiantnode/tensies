@@ -181,7 +181,7 @@
     background:
       radial-gradient(125% 95% at 0% 0%, rgba(255, 212, 152, 0.5) 0%, rgba(120, 70, 36, 0) 40%),
       linear-gradient(150deg, #2a2018 0%, #120c07 72%);
-    border: 1.5px solid rgba(255, 224, 178, 0.6);
+    border: 0.75px solid rgba(255, 224, 178, 0.6);
     border-radius: 30px;
     box-shadow:
       0 18px 40px rgba(0, 0, 0, 0.6),             /* drop shadow */
