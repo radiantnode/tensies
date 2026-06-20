@@ -254,6 +254,7 @@
     block-size: 100%;
     overflow: hidden;
     background: #0d0805;
+    border: 2px solid #000;
     border-radius: 22px;
   }
 
