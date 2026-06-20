@@ -727,7 +727,7 @@
   .a2hs-home-grid i {
     aspect-ratio: 1;
     background: rgba(255, 255, 255, 0.13);
-    border-radius: 9px;
+    border-radius: 22.4%; /* iOS app-icon squircle ratio */
   }
 
   .a2hs-home-app {
@@ -765,7 +765,7 @@
   .a2hs-home-icon {
     inline-size: 48px;
     block-size: 48px;
-    border-radius: 12px;
+    border-radius: 22.4%; /* iOS app-icon squircle ratio */
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
   }
 
