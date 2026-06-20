@@ -182,9 +182,10 @@
     border: 1.5px solid rgba(255, 224, 178, 0.6);
     border-radius: 30px;
     box-shadow:
-      0 18px 40px rgba(0, 0, 0, 0.6),
-      0 0 14px rgba(255, 210, 150, 0.25),
-      inset 0 1px 0 rgba(255, 232, 200, 0.3);
+      0 18px 40px rgba(0, 0, 0, 0.6),            /* drop shadow */
+      3px -3px 14px rgba(255, 186, 102, 0.3),    /* warm glow, top-right (avatar-like) */
+      0 0 22px rgba(255, 186, 102, 0.18),        /* ambient amber halo */
+      inset 0 1px 0 rgba(255, 232, 200, 0.3);    /* lit top edge */
   }
 
   /* Android: simple top notch pill. */
