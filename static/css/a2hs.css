@@ -177,7 +177,7 @@
     inline-size: 172px;
     block-size: 332px;
     margin-block-end: 1.25rem;
-    padding: 4px;
+    padding: 2.5px;
     background:
       radial-gradient(125% 95% at 0% 0%, rgba(255, 212, 152, 0.5) 0%, rgba(120, 70, 36, 0) 40%),
       linear-gradient(150deg, #2a2018 0%, #120c07 72%);
@@ -254,8 +254,8 @@
     block-size: 100%;
     overflow: hidden;
     background: #0d0805;
-    border: 2px solid #000;
-    border-radius: 26px;
+    border: 1.5px solid #000;
+    border-radius: 27.5px;
   }
 
   .a2hs-scene {
