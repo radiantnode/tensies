@@ -179,9 +179,12 @@
     margin-block-end: 1.25rem;
     padding: 8px;
     background: linear-gradient(160deg, #2a2018 0%, #120c07 100%);
-    border: 1px solid rgba(255, 200, 140, 0.18);
+    border: 1.5px solid rgba(255, 224, 178, 0.6);
     border-radius: 30px;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 220, 180, 0.12);
+    box-shadow:
+      0 18px 40px rgba(0, 0, 0, 0.6),
+      0 0 14px rgba(255, 210, 150, 0.25),
+      inset 0 1px 0 rgba(255, 232, 200, 0.3);
   }
 
   .a2hs-phone-notch {
