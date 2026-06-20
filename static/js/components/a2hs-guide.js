@@ -55,6 +55,22 @@ const IOS_CHROME = `
   <span class="a2hs-island"></span>`;
 
 /**
+ * The user's current time as "H:MM" in their locale's hour convention
+ * (12- or 24-hour, no AM/PM) — to match what their real status bar shows.
+ */
+function currentStatusTime() {
+  try {
+    const parts = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit' }).formatToParts(new Date());
+    return parts
+      .filter((p) => p.type === 'hour' || p.type === 'minute' || (p.type === 'literal' && p.value.trim() === ':'))
+      .map((p) => (p.type === 'literal' ? ':' : p.value))
+      .join('');
+  } catch {
+    return '9:41';
+  }
+}
+
+/**
  * A generic home screen with the Tensies app icon. Used as Android's closing
  * "installed" scene and iOS's "launch it" scene (with a tap-to-open cue).
  * @param {number} scene  which data-scene slot
@@ -269,6 +285,10 @@ export class A2hsGuide extends HTMLElement {
     this.#phone = dialog.querySelector('.a2hs-phone');
     this.#steps = stepTexts(platform);
     this.#stepCount = this.#steps.length;
+
+    // Show the user's real time in the mocked status bar (a nice touch).
+    const timeEl = dialog.querySelector('.a2hs-sb-time');
+    if (timeEl) timeEl.textContent = currentStatusTime();
 
     // Tappable dots: jump to a step and hand control to the user (stop auto-play).
     dialog.querySelectorAll('.a2hs-dot').forEach((dot) => {
