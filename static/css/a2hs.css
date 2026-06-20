@@ -226,7 +226,8 @@
   .a2hs-phone[data-step="2"] [data-scene="2"],
   .a2hs-phone[data-step="3"] [data-scene="3"] { opacity: 1; }
 
-  /* App page behind the browser chrome (shared warm radial). */
+  /* App page behind the browser chrome — the real bar-top photo under a
+     scrim (mirrors the landing screen: panel-screen over the bar image). */
   .a2hs-app-canvas,
   .a2hs-ios-page {
     flex: 1;
@@ -235,7 +236,9 @@
     align-items: center;
     justify-content: center;
     gap: 5px;
-    background: radial-gradient(circle at 50% 35%, rgba(70, 36, 14, 0.95), rgba(13, 8, 5, 1) 80%);
+    background:
+      linear-gradient(rgba(6, 3, 1, 0.5), rgba(6, 3, 1, 0.68)),
+      var(--color-bg) url('/static/images/bar-top.webp') center 10% / cover no-repeat;
   }
 
   .a2hs-canvas-logo { filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6)); }
