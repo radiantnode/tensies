@@ -67,9 +67,11 @@ Each test runs six codes: whatever you typed in, plus AABCD (repeated letter), Z
 
 ### Field testing
 
-Lab conditions don't tell you much about a bar. The `fieldtests/` directory has raw JSON exports from six real-world sessions: a quiet room, a dog park near a fountain, a home office with music playing, and a loud bar with sports on TV and people talking over each other. 744 tests total, all from one iPhone. The full breakdown is in [ANALYSIS.md](ANALYSIS.md).
+Lab conditions don't tell you much about a bar. The `fieldtests/` directory has raw JSON exports from seven real-world sessions: a quiet room, a dog park near a fountain, a home office with music playing, and a loud bar (three visits) with sports on TV and people talking over each other. 888 tests total, all from one iPhone. The full breakdown is in [ANALYSIS.md](ANALYSIS.md).
 
 The short version: volume is everything. Pass rate scales from 11% at low volume to 88% at high. Ambient noise barely registers. The loudest environment scored the highest because the speaker was cranked.
+
+The seventh session (S7) is the first with a *measured* volume — 60% on the iPhone volume bar — which anchors the curve in real percentages: the 1000 Hz voices hit 100% by 60% and plateau there, so a 50% floor covers the shippable menu. It also walks back an earlier claim that high volume *redeems* the low-frequency voices; at the same bar, quieter, most of them regressed. They sit at the decoder's threshold and aren't dependable at any realistic volume.
 
 Voices at the default 1000 Hz frequency band decode at 97%+ from half volume up. Drop to 800 Hz and you need full volume. Drop to 600 Hz and it's a coin flip.
 
