@@ -823,14 +823,17 @@
     box-shadow: 0 0 9px var(--color-accent-soft);
   }
 
-  /* ── Step caption (swaps with the active dot) ── */
+  /* ── Step caption (swaps with the active dot) ──
+     Top-aligned so the number + first line sit at the same spot on every
+     step; the reserved height absorbs a 2nd line (step 2's hint) without
+     nudging the controls below. */
   .a2hs-caption {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    gap: 0.55rem;
-    min-block-size: 2.6rem;
-    max-inline-size: 290px;
+    gap: 0.5rem;
+    min-block-size: 3.1rem;
+    max-inline-size: 330px;
     margin-block-end: 1.1rem;
     font-size: 1rem;
     color: var(--color-text-warm);
@@ -864,6 +867,7 @@
     justify-content: center;
     gap: 0.3rem;
     flex-wrap: wrap;
+    line-height: 24px; /* first-line band matches the 24px number badge */
   }
 
   .a2hs-caption-text .a2hs-glyph {
