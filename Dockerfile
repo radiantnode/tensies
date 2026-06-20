@@ -7,7 +7,7 @@
 # ── Stage 1: build the static frontend bundle (dist/) ─────────────────────────
 # Tag-pinned (not a digest), matching the python base policy below, so local
 # builds still pick up base-image security patches.
-FROM node:22-bookworm-slim AS assets
+FROM node:26-bookworm-slim AS assets
 WORKDIR /build
 # Install the exact, locked build toolchain (esbuild) first for layer caching.
 COPY package.json package-lock.json ./
