@@ -2,9 +2,12 @@
 import './app-header.js';
 import { byId } from '../dom.js';
 import { getAuthUser } from '../auth.js';
+import { shouldOfferInstall, dismissBanner, openGuide } from '../a2hs.js';
 import { createGame } from '../net.js';
 import { showJoin } from '../router.js';
 import { state } from '../state.js';
+
+const CLOSE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>`;
 
 /**
  * <landing-screen> — create-or-join entry. Light DOM: the host element *is*
@@ -44,6 +47,43 @@ export class LandingScreen extends HTMLElement {
       createGame();
     });
 
+    this.#mountInstallBanner();
+    document.addEventListener('a2hs-installed', this.#onInstalled);
+  }
+
+  disconnectedCallback() {
+    document.removeEventListener('a2hs-installed', this.#onInstalled);
+  }
+
+  #onInstalled = () => this.querySelector('.a2hs-banner')?.remove();
+
+  /**
+   * Offer the dismissible "Add to Home Screen" banner. Gated on
+   * shouldOfferInstall() (mobile, not installed, not previously dismissed), so
+   * it never renders on the desktop pixel harness.
+   */
+  #mountInstallBanner() {
+    if (!shouldOfferInstall() || this.querySelector('.a2hs-banner')) return;
+    const banner = document.createElement('div');
+    banner.className = 'a2hs-banner';
+    banner.setAttribute('role', 'region');
+    banner.setAttribute('aria-label', 'Add Tensies to your Home Screen');
+    banner.innerHTML = `
+      <button type="button" class="a2hs-banner-main">
+        <img class="a2hs-banner-icon" src="/static/images/apple-touch-icon-180.png" alt="">
+        <span class="a2hs-banner-text">
+          <span class="a2hs-banner-title">Add to Home Screen</span>
+          <span class="a2hs-banner-sub">Play in one tap — here's how</span>
+        </span>
+        <span class="a2hs-banner-cta">Add</span>
+      </button>
+      <button type="button" class="a2hs-banner-close" aria-label="Dismiss">${CLOSE_SVG}</button>`;
+    banner.querySelector('.a2hs-banner-main')?.addEventListener('click', () => openGuide());
+    banner.querySelector('.a2hs-banner-close')?.addEventListener('click', () => {
+      dismissBanner();
+      banner.remove();
+    });
+    this.append(banner);
   }
 
   /**

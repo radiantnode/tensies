@@ -1,8 +1,12 @@
 // @ts-check
 import { isSignedIn, getAuthUser, signOut } from '../auth.js';
+import { getPlatform, openGuide } from '../a2hs.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
 import { showSignin } from '../router.js';
 import { updateScrollFades } from '../scroll-fades.js';
+
+// Phone-with-plus glyph for the "Add to Home Screen" entry.
+const A2HS_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 7.5v5M9.5 10h5"/></svg>`;
 
 // Baked changelog HTML — content, not code; the changelog skill regenerates it.
 const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
@@ -268,6 +272,27 @@ export class NavMenu extends HTMLElement {
       .addEventListener('click', () => {
         this.classList.remove('show-changelog');
       });
+
+    this.#mountInstallEntry();
+  }
+
+  /**
+   * Add the "Add to Home Screen" entry — only when an install flow applies
+   * (mobile, not already installed). Stays out of the DOM otherwise, so the
+   * desktop pixel baseline of the menu is untouched.
+   */
+  #mountInstallEntry() {
+    if (!getPlatform()) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'menu-whats-new-btn menu-a2hs-btn';
+    btn.innerHTML = `${A2HS_ICON}Add to Home Screen`;
+    btn.addEventListener('click', () => {
+      this.close();
+      openGuide();
+    });
+    const divider = this.querySelector('.menu-about .menu-divider');
+    divider?.parentElement?.insertBefore(btn, divider);
   }
 
   disconnectedCallback() {
