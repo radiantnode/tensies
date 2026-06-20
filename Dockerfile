@@ -25,32 +25,35 @@ RUN node scripts/build_assets.mjs
 # ── Stage 2: nginx serving the prebuilt dist straight from disk ───────────────
 # Serves everything under /static (sendfile + gzip_static + immutable) and
 # proxies the rest to the app. Config + dist are baked in (no runtime volumes).
-FROM nginx:1.31.2-alpine AS nginx
+# The *unprivileged* image runs the master process as a non-root user (uid 101)
+# and keeps its pid/temp paths under /tmp, so the container can run with a
+# read-only root filesystem and no capabilities (it binds 8080, not 80, so it
+# needs no NET_BIND_SERVICE). The companion config (ops/nginx.conf) listens on
+# 8080 and routes nginx's pid/temp/log writes to /tmp + stdout/stderr.
+FROM nginxinc/nginx-unprivileged:1.31.2-alpine AS nginx
 COPY ops/nginx.conf /etc/nginx/nginx.conf
 COPY --from=assets /build/dist/static /srv/dist/static
 
-# ── Stage 3: the Python app (default build target) ────────────────────────────
-# Pinned to a specific patch tag (intentionally NOT a digest) so local dev
-# builds still pick up base-image patch updates. The prod *service* images are
-# digest-pinned in docker-compose.prod.yml instead.
-FROM python:3.12.8-slim-bookworm AS web
+# ── Stage 3a: builder — has the C/C++ toolchain, produces a populated venv ─────
+# asyncpg and blspy ship C/C++ extensions that the slim base can't compile
+# without gcc + cmake. We build them HERE, into a self-contained virtualenv, and
+# copy only that venv into the runtime stage below — so the compiler, headers,
+# and apt metadata never reach the shipped image (the largest piece of runtime
+# attack surface). Pinned to a patch tag (not a digest) so local builds pick up
+# base-image patches; prod *service* images are digest-pinned in compose.
+FROM python:3.12.8-slim-bookworm AS pybuild
 
-# Don't write .pyc, unbuffered logs, no pip version chatter.
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
+ENV PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-WORKDIR /app
-
-# Install build dependencies for packages with C/C++ extensions (asyncpg, blspy).
-# The slim base image lacks gcc and cmake, which are required to compile these
-# packages from source. We use --no-install-recommends and clean the apt cache
-# to keep the final image size minimal.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
     && rm -rf /var/lib/apt/lists/*
+
+# Self-contained venv we can lift wholesale into the runtime image.
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Install deps first for layer caching. Prefer the fully-pinned lock for
 # reproducible/prod builds; fall back to requirements.txt if the lock is absent.
@@ -63,7 +66,35 @@ RUN --mount=type=secret,id=proxy_ca \
       $(test -s /run/secrets/proxy_ca && echo --cert=/run/secrets/proxy_ca) \
       -r $( [ -f requirements.lock ] && echo requirements.lock || echo requirements.txt )
 
-COPY . .
+# ── Stage 3b: the Python app (default build target) ───────────────────────────
+# Clean slim base with NO build toolchain — only the prebuilt venv and the app
+# source. Runs as an unprivileged user with a read-only-friendly layout (writes
+# nothing at runtime; PYTHONDONTWRITEBYTECODE keeps it from emitting .pyc).
+FROM python:3.12.8-slim-bookworm AS web
+
+# Don't write .pyc, unbuffered logs, no pip version chatter. PATH points at the
+# copied venv so `uvicorn`/`python` resolve to the installed dependency set.
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+WORKDIR /app
+
+# Lift the compiled dependency set from the builder. No gcc/cmake/apt-lists ship.
+COPY --from=pybuild /opt/venv /opt/venv
+
+# Copy ONLY what the server needs at runtime: the entrypoint, the app package,
+# the DB migrations applied on startup (server/db.py), and the frontend source
+# (served directly only in dev; in prod nginx serves /static and the app serves
+# the single baked dist/index.html below). Everything else in the repo —
+# scripts/, ops/, tools/, tests/, loadtest.py, build/compose files — stays out
+# of the image to shrink the surface and avoid shipping non-runtime files.
+COPY main.py ./
+COPY server/ ./server/
+COPY migrations/ ./migrations/
+COPY static/ ./static/
 
 # Bake ONLY the prebuilt index.html. In prod (FRONTEND_DIST=/app/dist, set in
 # docker-compose.prod.yml) the app serves this single document — so the CSP
@@ -71,9 +102,12 @@ COPY . .
 # /static asset. The app builds no in-process JS cache and mounts no StaticFiles.
 COPY --from=assets /build/dist/index.html /app/dist/index.html
 
-# Run as an unprivileged user, not root.
+# Create an unprivileged user, hand it the app tree, and strip every setuid/
+# setgid bit in the image so a compromised process can't use a leftover
+# privileged helper (su, mount, etc.) to escalate. Done as the last root step.
 RUN useradd --create-home --uid 10001 appuser \
-    && chown -R appuser:appuser /app
+    && chown -R appuser:appuser /app \
+    && find / -xdev -perm /6000 -type f -exec chmod a-s {} + 2>/dev/null || true
 USER appuser
 
 EXPOSE 8000

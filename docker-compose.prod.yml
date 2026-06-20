@@ -94,6 +94,25 @@ services:
         condition: service_healthy
     networks: [internal]
     restart: unless-stopped
+    # ── Hardening ──────────────────────────────────────────────────────────
+    # The app writes nothing to disk at runtime and PYTHONDONTWRITEBYTECODE is
+    # set, so the root FS is read-only; only /tmp is a (small) tmpfs. No Linux
+    # capabilities are needed (uvicorn binds 8000, a high port, as a non-root
+    # user) and no-new-privileges blocks any setuid escalation. init: true gives
+    # uvicorn a real PID 1 for signal handling + zombie reaping.
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    init: true
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/',timeout=4).status==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   # Single published port + load balancer across the web replicas, and the
   # static file server for /static. Host cloudflared keeps pointing at
@@ -108,16 +127,34 @@ services:
       context: .
       target: nginx
     image: tensies-nginx:latest
+    # Container listens on 8080 (unprivileged nginx, non-root master). Host
+    # cloudflared keeps pointing at ${WEB_PUBLISH}, unchanged.
     ports:
-      - "${WEB_PUBLISH:-127.0.0.1:8000}:80"
+      - "${WEB_PUBLISH:-127.0.0.1:8000}:8080"
     depends_on: [web]
     networks: [internal]
     restart: unless-stopped
+    # Read-only root FS: nginx's pid, temp dirs, and logs are routed to /tmp +
+    # stdout/stderr in ops/nginx.conf, so /tmp (tmpfs) is the only writable path.
+    # Non-root master on a high port means no caps and no privilege escalation.
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
 
   redis:
     image: redis:7.4.1-alpine@sha256:c1e88455c85225310bbea54816e9c3f4b5295815e6dbf80c34d40afc6df28275
+    # Run directly as the redis user so the entrypoint never needs to drop privs
+    # (su-exec would require CAP_SETUID/SETGID, which we drop below).
+    user: redis
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD}",
               "--save", "", "--appendonly", "no"]
+    # Persistence is off (no RDB/AOF), so the root FS can be read-only with no
+    # writable volume; no caps or privilege escalation are needed.
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 5s
@@ -134,6 +171,12 @@ services:
       POSTGRES_DB: tensies
     volumes:
       - pg_data:/var/lib/postgresql/data
+    # no-new-privileges is always safe. We stop short of read_only/cap_drop here:
+    # the postgres entrypoint runs as root and uses gosu to drop to the postgres
+    # user (needs CHOWN/SET[UG]ID/DAC_OVERRIDE/FOWNER) and writes to its data dir
+    # plus /var/run/postgresql + /tmp — a read-only root FS needs those tmpfs'd
+    # and the matching cap_add set, which is a separate, test-heavy change.
+    security_opt: ["no-new-privileges:true"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U tensies"]
       interval: 5s
@@ -152,6 +195,11 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=365d'
+    # Reads config read-only, writes only the prom_data volume — so the root FS
+    # can be read-only. Runs as nobody already; drop all caps + escalation.
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
     networks: [internal]
     restart: unless-stopped
 
@@ -159,6 +207,10 @@ services:
     image: prometheuscommunity/postgres-exporter:v0.15.0@sha256:386b12d19eab2a37d7cd8ca8b4c7491cc7a830d9581f49af6c98a393da9605e6
     environment:
       DATA_SOURCE_NAME: "postgresql://tensies:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/tensies?sslmode=disable"
+    # Stateless Go binary that writes nothing — fully locked down.
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -186,6 +238,11 @@ services:
       - ./ops/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./ops/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
+    # no-new-privileges is safe; grafana writes its sqlite + plugins under
+    # /var/lib/grafana (the volume) and reads provisioning read-only, so a full
+    # read_only root FS would need /tmp + a few dirs tmpfs'd — left as a
+    # follow-up to avoid breaking plugin/datasource provisioning.
+    security_opt: ["no-new-privileges:true"]
     # Direct Grafana access on the host. Defaults to loopback (reach it via an
     # SSH tunnel: `ssh -L 8889:127.0.0.1:8889 user@host`). To expose it on the
     # box's network set GRAFANA_PUBLISH to e.g. 0.0.0.0:8889 — but Grafana's
