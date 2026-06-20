@@ -21,8 +21,8 @@ Friday, June 19, 2026
 
 Thursday, June 18, 2026
 
-- Rolling out: dice that anyone can audit. Numbers are drawn from a public randomness beacon, so nobody can cook the dice, not even us. 🎲
-- The post-game page now has a Roll Trust section. A shield badge, every player's rolls, and a way to check the math yourself if you're the suspicious type.
+- Meet Roll Trust: every roll is now fair and square, and we can prove it. Your dice come from a public random beacon that a global lineup of independent groups (the League of Entropy: Cloudflare, a few universities, and others) refreshes every three seconds. No single one of them can bend it, and neither can the host or us. 🎲
+- When a game wraps, the [Roll Trust](ROLL_TRUST.md) page re-runs every roll against that public beacon and shows the numbers landed exactly where the math said. Don't take our word for it. Check it yourself.
 - Profiles got fuller. Add a bio, say where you're from, and admins wear a little pill.
 - _Behind the scenes: gave the profile its own stylesheet and refreshed the verification screenshots._
 
