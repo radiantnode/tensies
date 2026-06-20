@@ -7,7 +7,7 @@
 # ── Stage 1: build the static frontend bundle (dist/) ─────────────────────────
 # Tag-pinned (not a digest), matching the python base policy below, so local
 # builds still pick up base-image security patches.
-FROM node:22-bookworm-slim AS assets
+FROM node:26-bookworm-slim AS assets
 WORKDIR /build
 # Install the exact, locked build toolchain (esbuild) first for layer caching.
 COPY package.json package-lock.json ./
@@ -25,7 +25,7 @@ RUN node scripts/build_assets.mjs
 # ── Stage 2: nginx serving the prebuilt dist straight from disk ───────────────
 # Serves everything under /static (sendfile + gzip_static + immutable) and
 # proxies the rest to the app. Config + dist are baked in (no runtime volumes).
-FROM nginx:1.27-alpine AS nginx
+FROM nginx:1.31.2-alpine AS nginx
 COPY ops/nginx.conf /etc/nginx/nginx.conf
 COPY --from=assets /build/dist/static /srv/dist/static
 
