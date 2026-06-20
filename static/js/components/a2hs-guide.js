@@ -72,10 +72,7 @@ const HOME_SCENE = `
 
 const IOS_SCENE_1 = `
   <div class="a2hs-scene" data-scene="1">
-    <div class="a2hs-ios-page">
-      <img class="a2hs-canvas-logo" src="/static/images/logo.svg" alt="" width="38" height="38">
-      <span class="a2hs-canvas-word">TENSIES</span>
-    </div>
+    <div class="a2hs-ios-page"></div>
     <div class="a2hs-ios-bar">
       <div class="a2hs-ios-url">
         <span class="a2hs-ios-url-ext">${EXT_SVG}</span>

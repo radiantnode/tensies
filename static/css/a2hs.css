@@ -271,10 +271,8 @@
   .a2hs-phone[data-step="2"] [data-scene="2"],
   .a2hs-phone[data-step="3"] [data-scene="3"] { opacity: 1; }
 
-  /* App page behind the browser chrome — the real bar-top photo under a
-     scrim (mirrors the landing screen: panel-screen over the bar image). */
-  .a2hs-app-canvas,
-  .a2hs-ios-page {
+  /* Android app page behind the Chrome bar — bar-top photo under a scrim. */
+  .a2hs-app-canvas {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -296,8 +294,13 @@
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
   }
 
-  /* ── iOS scene 1: floating Safari bar ── */
-  .a2hs-ios-page { padding-block-end: 4px; }
+  /* ── iOS scene 1: a real (signed-in) landing screenshot, scaled to fill,
+     with the Safari bar floating over the bottom like Safari itself. ── */
+  .a2hs-ios-page {
+    position: absolute;
+    inset: 0;
+    background: #0d0805 url('/static/images/landing-mich.webp') center top / cover no-repeat;
+  }
 
   /* Show the same bar-top page behind the share sheet / confirmation, so the
      dimmed page reads through like real iOS (the sheet-dim darkens it more). */
@@ -309,10 +312,12 @@
   }
 
   .a2hs-ios-bar {
+    position: absolute;
+    inset-inline: 6px;
+    inset-block-end: 8px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin: 0 6px 8px;
     padding: 8px 9px 9px;
     background: rgba(38, 38, 41, 0.94);
     border: 0.5px solid rgba(255, 255, 255, 0.08);
