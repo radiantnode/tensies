@@ -149,14 +149,6 @@
     text-align: center;
   }
 
-  .a2hs-app-icon {
-    inline-size: 60px;
-    block-size: 60px;
-    margin-block-end: 0.9rem;
-    border-radius: 14px;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55), 0 0 22px rgba(255, 77, 109, 0.25);
-  }
-
   /* Warm gold heading (same treatment as the menu headings; kept local so the
      protected nav-menu baseline isn't disturbed by a shared-selector refactor). */
   .a2hs-title {
