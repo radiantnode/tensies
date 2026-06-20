@@ -159,24 +159,10 @@ function guideBody(platform) {
        </div>
        ${HOME_SCENE}`;
 
-  const steps = ios
-    ? [
-        `Tap ${SHARE_SVG}<strong>Share</strong>`,
-        `Choose <strong>Add to Home&nbsp;Screen</strong> ${ADD_SVG}`,
-        `Tap <strong>Add</strong> — you're set`,
-      ]
-    : [
-        `Tap the ${MORE_SVG}<strong>menu</strong>`,
-        `Choose <strong>Install app</strong> ${INSTALL_SVG}`,
-        `Tap <strong>Install</strong> — you're set`,
-      ];
-
-  const stepList = steps
-    .map(
-      (html, i) =>
-        `<li class="a2hs-step" data-step="${i + 1}"><span class="a2hs-step-num">${i + 1}</span><span class="a2hs-step-text">${html}</span></li>`,
-    )
-    .join('');
+  const dots = Array.from(
+    { length: STEP_COUNT },
+    (_, i) => `<button type="button" class="a2hs-dot" data-step="${i + 1}" aria-label="Step ${i + 1}"></button>`,
+  ).join('');
 
   const cta = !ios
     ? `<button type="button" class="btn btn-primary a2hs-install">${INSTALL_SVG}Install Tensies</button>`
@@ -187,9 +173,29 @@ function guideBody(platform) {
       <span class="a2hs-phone-notch"></span>
       <div class="a2hs-phone-screen">${scenes}</div>
     </div>
-    <ol class="a2hs-steps">${stepList}</ol>
+    <div class="a2hs-dots">${dots}</div>
+    <p class="a2hs-caption" aria-live="polite"></p>
     ${cta}
     <button type="button" class="a2hs-later">Maybe later</button>`;
+}
+
+/**
+ * Per-step instruction HTML (shown one at a time in the caption under the dots).
+ * @param {'ios'|'android'} platform
+ * @returns {string[]}
+ */
+function stepTexts(platform) {
+  return platform === 'ios'
+    ? [
+        `Tap ${SHARE_SVG}<strong>Share</strong>`,
+        `Choose <strong>Add to Home&nbsp;Screen</strong> ${ADD_SVG}`,
+        `Tap <strong>Add</strong> — you're set`,
+      ]
+    : [
+        `Tap the ${MORE_SVG}<strong>menu</strong>`,
+        `Choose <strong>Install app</strong> ${INSTALL_SVG}`,
+        `Tap <strong>Install</strong> — you're set`,
+      ];
 }
 
 export class A2hsGuide extends HTMLElement {
@@ -200,6 +206,8 @@ export class A2hsGuide extends HTMLElement {
   /** @type {ReturnType<typeof setInterval> | undefined} */
   #timer;
   #step = 1;
+  /** @type {string[]} */
+  #steps = [];
 
   /** @param {CustomEvent} e */
   #onOpen = (e) => this.open(e.detail?.platform);
@@ -237,6 +245,16 @@ export class A2hsGuide extends HTMLElement {
     this.replaceChildren(dialog);
     this.#dialog = dialog;
     this.#phone = dialog.querySelector('.a2hs-phone');
+    this.#steps = stepTexts(platform);
+
+    // Tappable dots: jump to a step and hand control to the user (stop auto-play).
+    dialog.querySelectorAll('.a2hs-dot').forEach((dot) => {
+      dot.addEventListener('click', () => {
+        this.#stop();
+        this.#step = Number(dot.getAttribute('data-step'));
+        this.#applyStep();
+      });
+    });
 
     dialog.querySelector('.a2hs-close')?.addEventListener('click', () => this.close());
     dialog.querySelector('.a2hs-later')?.addEventListener('click', () => {
@@ -262,23 +280,37 @@ export class A2hsGuide extends HTMLElement {
     this.#startCycle();
   }
 
-  /** Advance the step every STEP_MS, syncing the phone + step list. */
+  /** Advance the step every STEP_MS, syncing the phone, dots, and caption. */
   #startCycle() {
     this.#step = 1;
     this.#applyStep();
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) return; // static: the numbered list already conveys every step
+    if (reduce) return; // no auto-play: the user steps through via the dots
     this.#timer = setInterval(() => {
       this.#step = (this.#step % STEP_COUNT) + 1;
       this.#applyStep();
     }, STEP_MS);
   }
 
+  /** Reflect the current step on the phone scene, the dots, and the caption. */
   #applyStep() {
     if (this.#phone) this.#phone.dataset.step = String(this.#step);
-    this.querySelectorAll('.a2hs-step').forEach((li) => {
-      li.classList.toggle('active', li.getAttribute('data-step') === String(this.#step));
+
+    this.querySelectorAll('.a2hs-dot').forEach((dot, i) => {
+      const on = i === this.#step - 1;
+      dot.classList.toggle('active', on);
+      if (on) dot.setAttribute('aria-current', 'step');
+      else dot.removeAttribute('aria-current');
     });
+
+    const caption = /** @type {HTMLElement | null} */ (this.querySelector('.a2hs-caption'));
+    if (caption) {
+      caption.innerHTML = `<span class="a2hs-caption-num">${this.#step}</span><span class="a2hs-caption-text">${this.#steps[this.#step - 1] ?? ''}</span>`;
+      // Restart the swap animation so the new instruction fades in.
+      caption.classList.remove('swap');
+      void caption.offsetWidth;
+      caption.classList.add('swap');
+    }
   }
 
   #stop() {
