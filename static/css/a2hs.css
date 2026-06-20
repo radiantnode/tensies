@@ -187,6 +187,7 @@
       inset 0 1px 0 rgba(255, 232, 200, 0.3);
   }
 
+  /* Android: simple top notch pill. */
   .a2hs-phone-notch {
     position: absolute;
     inset-block-start: 9px;
@@ -197,6 +198,50 @@
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.6);
     border-radius: 3px;
+  }
+
+  /* iOS: status bar + Dynamic Island, clipped inside the screen. */
+  .a2hs-statusbar {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    block-size: 24px;
+    padding: 0 11px;
+    color: #fff;
+    pointer-events: none;
+  }
+
+  .a2hs-sb-time {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  }
+
+  .a2hs-sb-icons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.6));
+  }
+
+  .a2hs-sb-ic { block-size: 9px; inline-size: auto; }
+  .a2hs-sb-bat { block-size: 11px; inline-size: auto; }
+
+  .a2hs-island {
+    position: absolute;
+    inset-block-start: 6px;
+    inset-inline-start: 50%;
+    z-index: 6;
+    inline-size: 46px;
+    block-size: 14px;
+    transform: translateX(-50%);
+    background: #000;
+    border-radius: 999px;
   }
 
   .a2hs-phone-screen {
@@ -425,7 +470,7 @@
   /* ── iOS scene 3: "Add to Home Screen" confirmation ── */
   .a2hs-ios-confirm {
     position: absolute;
-    inset-block-start: 6px;
+    inset-block-start: 28px;
     inset-inline: 6px;
     overflow: hidden;
     background: rgba(28, 28, 30, 0.99);

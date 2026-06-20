@@ -44,6 +44,17 @@ const STAR_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="
 const STEP_COUNT = 3;
 const STEP_MS = 1900;
 
+// ── iOS status bar (time + signal/wifi/battery) and Dynamic Island ──
+const SB_SIGNAL = `<svg class="a2hs-sb-ic" viewBox="0 0 18 12" fill="currentColor" aria-hidden="true"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="6" width="3" height="6" rx="1"/><rect x="10" y="3.5" width="3" height="8.5" rx="1"/><rect x="15" y="1" width="3" height="11" rx="1"/></svg>`;
+const SB_WIFI = `<svg class="a2hs-sb-ic" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2 4.4a9 9 0 0 1 12 0"/><path d="M4.3 6.8a6 6 0 0 1 7.4 0"/><path d="M6.5 9a3 3 0 0 1 3 0"/><circle cx="8" cy="10.8" r="0.5" fill="currentColor" stroke="none"/></svg>`;
+const SB_BATTERY = `<svg class="a2hs-sb-bat" viewBox="0 0 25 12" fill="none" aria-hidden="true"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="currentColor" stroke-opacity="0.45"/><rect x="2" y="2" width="16" height="8" rx="1.5" fill="currentColor"/><path d="M23 4v4c.9-.4.9-3.6 0-4z" fill="currentColor" fill-opacity="0.45"/></svg>`;
+const IOS_CHROME = `
+  <div class="a2hs-statusbar">
+    <span class="a2hs-sb-time">9:41</span>
+    <span class="a2hs-sb-icons">${SB_SIGNAL}${SB_WIFI}${SB_BATTERY}</span>
+  </div>
+  <span class="a2hs-island"></span>`;
+
 /** Closing scene for Android: the app icon popping onto a home-screen grid. */
 const HOME_SCENE = `
   <div class="a2hs-scene" data-scene="3">
@@ -170,8 +181,8 @@ function guideBody(platform) {
 
   return `
     <div class="a2hs-phone" data-platform="${platform}" data-step="1">
-      <span class="a2hs-phone-notch"></span>
-      <div class="a2hs-phone-screen">${scenes}</div>
+      ${ios ? '' : '<span class="a2hs-phone-notch"></span>'}
+      <div class="a2hs-phone-screen">${ios ? IOS_CHROME : ''}${scenes}</div>
     </div>
     <div class="a2hs-dots">${dots}</div>
     <p class="a2hs-caption" aria-live="polite"></p>
