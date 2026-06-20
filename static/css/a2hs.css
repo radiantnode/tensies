@@ -269,7 +269,8 @@
 
   .a2hs-phone[data-step="1"] [data-scene="1"],
   .a2hs-phone[data-step="2"] [data-scene="2"],
-  .a2hs-phone[data-step="3"] [data-scene="3"] { opacity: 1; }
+  .a2hs-phone[data-step="3"] [data-scene="3"],
+  .a2hs-phone[data-step="4"] [data-scene="4"] { opacity: 1; }
 
   /* Android app page behind the Chrome bar — bar-top photo under a scrim. */
   .a2hs-app-canvas {
@@ -694,7 +695,8 @@
 
   .a2hs-phone[data-step="1"] [data-scene="1"] .a2hs-tap,
   .a2hs-phone[data-step="2"] [data-scene="2"] .a2hs-tap,
-  .a2hs-phone[data-step="3"] [data-scene="3"] .a2hs-tap {
+  .a2hs-phone[data-step="3"] [data-scene="3"] .a2hs-tap,
+  .a2hs-phone[data-step="4"] [data-scene="4"] .a2hs-tap {
     animation: a2hs-tap-c 1.9s ease-out infinite;
   }
 
@@ -746,6 +748,19 @@
     60% { transform: scale(1.12); }
     100% { transform: scale(1); opacity: 1; }
   }
+
+  /* iOS scene 4 (launch): the icon presses in like a tap, synced to the ripple. */
+  .a2hs-phone[data-step="4"] [data-scene="4"] .a2hs-home-icon {
+    animation: a2hs-launch 1.9s ease-in-out infinite;
+  }
+
+  @keyframes a2hs-launch {
+    0%, 62%, 100% { transform: scale(1); }
+    34% { transform: scale(0.86); }
+  }
+
+  /* Keep the home grid clear of the iOS status bar. */
+  .a2hs-phone[data-platform="ios"] .a2hs-home { padding-block-start: 32px; }
 
   .a2hs-home-icon {
     inline-size: 48px;

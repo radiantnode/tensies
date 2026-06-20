@@ -41,7 +41,6 @@ const GLASSES_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidde
 const CHEV_D = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
 const STAR_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><path d="M12 4l2.3 4.7 5.2.8-3.7 3.6.9 5.1L12 15.8 7.3 18.2l.9-5.1L4.5 9.5l5.2-.8z"/></svg>`;
 
-const STEP_COUNT = 3;
 const STEP_MS = 1900;
 
 // ── iOS status bar (time + signal/wifi/battery) and Dynamic Island ──
@@ -55,18 +54,26 @@ const IOS_CHROME = `
   </div>
   <span class="a2hs-island"></span>`;
 
-/** Closing scene for Android: the app icon popping onto a home-screen grid. */
-const HOME_SCENE = `
-  <div class="a2hs-scene" data-scene="3">
+/**
+ * A generic home screen with the Tensies app icon. Used as Android's closing
+ * "installed" scene and iOS's "launch it" scene (with a tap-to-open cue).
+ * @param {number} scene  which data-scene slot
+ * @param {boolean} [tap] add a tap ripple over the icon (launch cue)
+ */
+function homeScene(scene, tap = false) {
+  return `
+  <div class="a2hs-scene" data-scene="${scene}">
     <div class="a2hs-home">
       <div class="a2hs-home-grid">${'<i></i>'.repeat(8)}</div>
-      <div class="a2hs-home-app">
+      <div class="a2hs-home-app${tap ? ' a2hs-ios-target' : ''}">
         <img class="a2hs-home-icon" src="${APP_ICON}" alt="" width="48" height="48">
         <span class="a2hs-home-label">Tensies</span>
+        ${tap ? '<span class="a2hs-tap"></span>' : ''}
       </div>
       <div class="a2hs-home-dots"><i></i><i></i></div>
     </div>
   </div>`;
+}
 
 // ── iOS scenes (reproduce the real Safari chrome) ──
 
@@ -143,7 +150,7 @@ function guideBody(platform) {
   const ios = platform === 'ios';
 
   const scenes = ios
-    ? `${IOS_SCENE_1}${IOS_SCENE_2}${IOS_SCENE_3}`
+    ? `${IOS_SCENE_1}${IOS_SCENE_2}${IOS_SCENE_3}${homeScene(4, true)}`
     : `<div class="a2hs-scene" data-scene="1">
          <div class="a2hs-browser">
            <div class="a2hs-url-bar a2hs-url-bar-top">
@@ -165,10 +172,11 @@ function guideBody(platform) {
            <div class="a2hs-menu-row">Settings</div>
          </div>
        </div>
-       ${HOME_SCENE}`;
+       ${homeScene(3)}`;
 
+  const stepCount = stepTexts(platform).length;
   const dots = Array.from(
-    { length: STEP_COUNT },
+    { length: stepCount },
     (_, i) => `<button type="button" class="a2hs-dot" data-step="${i + 1}" aria-label="Step ${i + 1}"></button>`,
   ).join('');
 
@@ -198,6 +206,7 @@ function stepTexts(platform) {
         `Tap ${SHARE_SVG}<strong>Share</strong>`,
         `Choose <strong>Add to Home&nbsp;Screen</strong> ${ADD_SVG}<span class="a2hs-caption-hint">Swipe up if you don't see it</span>`,
         `Tap <strong>Add</strong> — you're set`,
+        `Open <strong>Tensies</strong> from your Home Screen`,
       ]
     : [
         `Tap the ${MORE_SVG}<strong>menu</strong>`,
@@ -214,6 +223,7 @@ export class A2hsGuide extends HTMLElement {
   /** @type {ReturnType<typeof setInterval> | undefined} */
   #timer;
   #step = 1;
+  #stepCount = 3;
   /** @type {string[]} */
   #steps = [];
 
@@ -254,6 +264,7 @@ export class A2hsGuide extends HTMLElement {
     this.#dialog = dialog;
     this.#phone = dialog.querySelector('.a2hs-phone');
     this.#steps = stepTexts(platform);
+    this.#stepCount = this.#steps.length;
 
     // Tappable dots: jump to a step and hand control to the user (stop auto-play).
     dialog.querySelectorAll('.a2hs-dot').forEach((dot) => {
@@ -295,7 +306,7 @@ export class A2hsGuide extends HTMLElement {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) return; // no auto-play: the user steps through via the dots
     this.#timer = setInterval(() => {
-      this.#step = (this.#step % STEP_COUNT) + 1;
+      this.#step = (this.#step % this.#stepCount) + 1;
       this.#applyStep();
     }, STEP_MS);
   }
