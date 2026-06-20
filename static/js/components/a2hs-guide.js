@@ -248,7 +248,7 @@ export class A2hsGuide extends HTMLElement {
     dialog.innerHTML = `
       <button type="button" class="a2hs-close" aria-label="Close">${CLOSE_SVG}</button>
       <div class="a2hs-card">
-        <h2 class="a2hs-title">Add Tensies to your Home Screen</h2>
+        <h2 class="a2hs-title">Add to Home Screen</h2>
         <p class="a2hs-sub">One tap to play — full screen, no browser bar.</p>
         ${guideBody(platform)}
       </div>`;
