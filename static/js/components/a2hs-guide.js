@@ -196,7 +196,7 @@ function stepTexts(platform) {
   return platform === 'ios'
     ? [
         `Tap ${SHARE_SVG}<strong>Share</strong>`,
-        `Choose <strong>Add to Home&nbsp;Screen</strong> ${ADD_SVG}`,
+        `Choose <strong>Add to Home&nbsp;Screen</strong> ${ADD_SVG}<span class="a2hs-caption-hint">Swipe up if you don't see it</span>`,
         `Tap <strong>Add</strong> — you're set`,
       ]
     : [

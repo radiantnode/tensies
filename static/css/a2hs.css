@@ -851,6 +851,15 @@
 
   .a2hs-caption-text strong { font-weight: 800; color: var(--color-text); }
 
+  /* Secondary hint line under a step instruction (e.g. "swipe up"). */
+  .a2hs-caption-hint {
+    flex-basis: 100%;
+    margin-block-start: 0.15rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+  }
+
   /* ── CTAs ── */
   .a2hs-install {
     display: inline-flex;
