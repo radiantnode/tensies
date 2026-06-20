@@ -77,7 +77,7 @@ async def delayed_broadcast(code: str, pid: str, is_win: bool, winner_name: str 
     state.ack_events[pid] = ev
     try:
         await asyncio.wait_for(ev.wait(), timeout=ROLL_ACK_TIMEOUT)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         log.info("ack_timeout  game=%s  pid=%s", code, pid[:8])
         metrics.ack_timeouts_total.inc()
         emit("ack_timeout", game_code=code, user_id=pid,

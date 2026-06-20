@@ -6,7 +6,7 @@ Challenges are stored in Redis with a short TTL; JWTs are stateless (HS256).
 import logging
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 from fastapi import APIRouter, Header, HTTPException
@@ -17,7 +17,7 @@ from webauthn import (
     verify_authentication_response,
     verify_registration_response,
 )
-from webauthn.helpers import bytes_to_base64url, base64url_to_bytes
+from webauthn.helpers import base64url_to_bytes, bytes_to_base64url
 from webauthn.helpers.structs import (
     AuthenticatorSelectionCriteria,
     PublicKeyCredentialDescriptor,
@@ -68,7 +68,7 @@ def _validate_username(username: str) -> str:
 # ─── JWT helpers ──────────────────────────────────────────────────────
 
 def _mint_jwt(user_id: str, username: str) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": user_id,
         "username": username,
@@ -83,9 +83,9 @@ def _decode_jwt(token: str) -> dict:
     try:
         return jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
-        raise HTTPException(401, "Token expired")
+        raise HTTPException(401, "Token expired") from None
     except jwt.InvalidTokenError:
-        raise HTTPException(401, "Invalid token")
+        raise HTTPException(401, "Invalid token") from None
 
 
 # ─── Challenge storage (Redis, 120s TTL) ──────────────────────────────
@@ -229,7 +229,7 @@ async def register_verify(body: RegisterVerifyRequest):
                 )
             except Exception as e:
                 if "unique" in str(e).lower():
-                    raise HTTPException(409, "Username already taken")
+                    raise HTTPException(409, "Username already taken") from e
                 raise
 
             transports = cred.get("transports", [])
@@ -412,10 +412,10 @@ async def me(authorization: str | None = Header(None)):
 # py_webauthn expects.
 
 from webauthn.helpers.structs import (
+    AuthenticationCredential,
+    AuthenticatorAssertionResponse,
     AuthenticatorAttestationResponse,
     RegistrationCredential,
-    AuthenticatorAssertionResponse,
-    AuthenticationCredential,
 )
 
 
@@ -441,7 +441,11 @@ def _build_authentication_credential(cred: dict) -> AuthenticationCredential:
             client_data_json=base64url_to_bytes(response["clientDataJSON"]),
             authenticator_data=base64url_to_bytes(response["authenticatorData"]),
             signature=base64url_to_bytes(response["signature"]),
-            user_handle=base64url_to_bytes(response["userHandle"]) if response.get("userHandle") else None,
+            user_handle=(
+                base64url_to_bytes(response["userHandle"])
+                if response.get("userHandle")
+                else None
+            ),
         ),
         type=cred.get("type", "public-key"),
     )

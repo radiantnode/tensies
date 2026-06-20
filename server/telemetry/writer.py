@@ -59,7 +59,7 @@ async def _run(q: asyncio.Queue) -> None:
 async def _drain(q: asyncio.Queue) -> list[dict]:
     try:
         first = await asyncio.wait_for(q.get(), timeout=BATCH_INTERVAL_S)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         return []
     batch = [first]
     deadline = time.monotonic() + BATCH_INTERVAL_S
@@ -69,7 +69,7 @@ async def _drain(q: asyncio.Queue) -> list[dict]:
             break
         try:
             batch.append(await asyncio.wait_for(q.get(), timeout=remaining))
-        except asyncio.TimeoutError:
+        except TimeoutError:
             break
     return batch
 

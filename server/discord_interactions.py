@@ -118,7 +118,9 @@ def _verify_embed(code: str, res: dict) -> dict:
         return {"title": f"Roll Trust — game {code}", "color": COLOR_WARN,
                 "description": "No beacon-backed rolls recorded for this game "
                                "(it may predate Roll Trust, or ran with drand off)."}
-    verified, failed, no_beacon = res.get("verified", 0), res.get("failed", 0), res.get("no_beacon", 0)
+    verified = res.get("verified", 0)
+    failed = res.get("failed", 0)
+    no_beacon = res.get("no_beacon", 0)
     clean = failed == 0
     color = COLOR_OK if clean and no_beacon == 0 else (COLOR_FAIL if failed else COLOR_WARN)
     head = ("✅ Every roll re-derives from the drand beacon" if clean

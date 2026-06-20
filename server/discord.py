@@ -28,7 +28,7 @@ Failures are swallowed and metered: Discord being down never touches gameplay
 import asyncio
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 
@@ -131,7 +131,7 @@ async def _collect(q: asyncio.Queue) -> list[dict]:
             break
         try:
             events.append(await asyncio.wait_for(q.get(), timeout=remaining))
-        except asyncio.TimeoutError:
+        except TimeoutError:
             break
     return events
 
@@ -288,7 +288,7 @@ def _base_embed(title: str, color: int, card: dict) -> dict:
         "color": color,
         "fields": fields,
         "footer": {"text": "Tensies"},
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 

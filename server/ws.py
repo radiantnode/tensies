@@ -3,19 +3,18 @@ import json
 import time
 import uuid
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-
 import jwt as pyjwt
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from . import gamestore, state
 from .broadcast import advance_round, broadcast, delayed_broadcast, drop_player, pause_timeout, send
 from .config import (
-    JWT_SECRET,
     ALLOWED_ORIGINS,
     CREATE_RATE_MAX,
     CREATE_RATE_WINDOW,
     JOIN_RATE_MAX,
     JOIN_RATE_WINDOW,
+    JWT_SECRET,
     MAX_CONNECTIONS_PER_IP,
     MAX_WS_MESSAGE_BYTES,
     MIN_ROLL_INTERVAL,

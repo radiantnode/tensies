@@ -1,0 +1,50 @@
+# Dependency monitoring. Dependabot opens PRs for outdated/insecure deps across
+# every ecosystem in the repo. Updates are grouped (one PR per ecosystem per
+# week for minor/patch) to keep the noise down; majors come as their own PRs so
+# breaking bumps get individual review. CI (.github/workflows/ci.yml) gates each
+# PR exactly like a human one.
+version: 2
+updates:
+  # ── Python runtime deps (requirements.txt) ──────────────────────────────────
+  # Note: requirements.lock is a hand-regenerated freeze (see the header in
+  # requirements.txt), so Dependabot tracks requirements.txt; refresh the lock
+  # when accepting a bump.
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels: [dependencies, python]
+    groups:
+      python-minor-patch:
+        update-types: [minor, patch]
+
+  # ── Frontend build toolchain (package.json — esbuild) ───────────────────────
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels: [dependencies, javascript]
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+
+  # ── GitHub Actions used in workflows ────────────────────────────────────────
+  # Keeps the actions we pin by major tag current (and is the path toward
+  # SHA-pinning + automated bumps).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [dependencies, ci]
+    groups:
+      actions:
+        update-types: [minor, patch]
+
+  # ── Base images in the Dockerfile (node / nginx / python) ───────────────────
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [dependencies, docker]
