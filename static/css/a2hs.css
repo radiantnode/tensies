@@ -824,20 +824,29 @@
   }
 
   /* ── Step caption (swaps with the active dot) ──
-     Top-aligned so the number + first line sit at the same spot on every
-     step; the reserved height absorbs a 2nd line (step 2's hint) without
+     A centered column: the badge+instruction row, then an optional hint
+     line. The reserved height absorbs the 2nd line (step 2's hint) without
      nudging the controls below. */
   .a2hs-caption {
     display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 0.5rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
     min-block-size: 3.1rem;
     max-inline-size: 330px;
     margin-block-end: 1.1rem;
     font-size: 1rem;
     color: var(--color-text-warm);
     text-align: center;
+  }
+
+  /* Badge + instruction, kept tight together and centered as a unit. */
+  .a2hs-caption-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.5rem;
+    max-inline-size: 100%;
   }
 
   .a2hs-caption.swap { animation: a2hs-caption-in 0.35s ease; }
@@ -880,8 +889,7 @@
 
   /* Secondary hint line under a step instruction (e.g. "swipe up"). */
   .a2hs-caption-hint {
-    flex-basis: 100%;
-    margin-block-start: 0.15rem;
+    margin-block-start: 0.2rem;
     font-size: 0.78rem;
     font-weight: 500;
     color: var(--color-text-muted);

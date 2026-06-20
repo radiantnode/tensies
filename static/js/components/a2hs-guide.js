@@ -199,22 +199,23 @@ function guideBody(platform) {
 }
 
 /**
- * Per-step instruction HTML (shown one at a time in the caption under the dots).
+ * Per-step caption (shown one at a time under the dots). `hint` renders as a
+ * separate muted line below the instruction.
  * @param {'ios'|'android'} platform
- * @returns {string[]}
+ * @returns {{ html: string, hint?: string }[]}
  */
 function stepTexts(platform) {
   return platform === 'ios'
     ? [
-        `Tap ${SHARE_SVG}<strong>Share</strong>`,
-        `Choose <strong>Add to Home&nbsp;Screen</strong> ${ADD_SVG}<span class="a2hs-caption-hint">Swipe up if you don't see it</span>`,
-        `Tap <strong>Add</strong> — you're set`,
-        `Open <strong>Tensies</strong> from your Home Screen`,
+        { html: `Tap ${SHARE_SVG}<strong>Share</strong>` },
+        { html: `Choose <strong>Add to Home&nbsp;Screen</strong> ${ADD_SVG}`, hint: `Swipe up if you don't see it` },
+        { html: `Tap <strong>Add</strong> — you're set` },
+        { html: `Open <strong>Tensies</strong> from your Home Screen` },
       ]
     : [
-        `Tap the ${MORE_SVG}<strong>menu</strong>`,
-        `Choose <strong>Install app</strong> ${INSTALL_SVG}`,
-        `Tap <strong>Install</strong> — you're set`,
+        { html: `Tap the ${MORE_SVG}<strong>menu</strong>` },
+        { html: `Choose <strong>Install app</strong> ${INSTALL_SVG}` },
+        { html: `Tap <strong>Install</strong> — you're set` },
       ];
 }
 
@@ -227,7 +228,7 @@ export class A2hsGuide extends HTMLElement {
   #timer;
   #step = 1;
   #stepCount = 3;
-  /** @type {string[]} */
+  /** @type {{ html: string, hint?: string }[]} */
   #steps = [];
 
   /** @param {CustomEvent} e */
@@ -327,7 +328,10 @@ export class A2hsGuide extends HTMLElement {
 
     const caption = /** @type {HTMLElement | null} */ (this.querySelector('.a2hs-caption'));
     if (caption) {
-      caption.innerHTML = `<span class="a2hs-caption-num">${this.#step}</span><span class="a2hs-caption-text">${this.#steps[this.#step - 1] ?? ''}</span>`;
+      const item = this.#steps[this.#step - 1] ?? { html: '' };
+      caption.innerHTML =
+        `<span class="a2hs-caption-row"><span class="a2hs-caption-num">${this.#step}</span><span class="a2hs-caption-text">${item.html}</span></span>`
+        + (item.hint ? `<span class="a2hs-caption-hint">${item.hint}</span>` : '');
       // Restart the swap animation so the new instruction fades in.
       caption.classList.remove('swap');
       void caption.offsetWidth;
