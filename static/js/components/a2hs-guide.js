@@ -210,8 +210,7 @@ function guideBody(platform) {
     </div>
     <div class="a2hs-dots">${dots}</div>
     <p class="a2hs-caption" aria-live="polite"></p>
-    ${cta}
-    <button type="button" class="a2hs-later">Maybe later</button>`;
+    ${cta}`;
 }
 
 /**
@@ -225,7 +224,7 @@ function stepTexts(platform) {
     ? [
         { html: `Tap ${SHARE_SVG}<strong>Share</strong>` },
         { html: `Choose <strong>Add to Home&nbsp;Screen</strong> ${ADD_SVG}`, hint: `Swipe up if you don't see it` },
-        { html: `Tap <strong>Add</strong> — you're set` },
+        { html: `Tap <strong>Add</strong>`, hint: `Make sure Open as Web App is checked` },
         { html: `Open <strong>Tensies</strong> from your Home Screen` },
       ]
     : [
@@ -300,10 +299,6 @@ export class A2hsGuide extends HTMLElement {
     });
 
     dialog.querySelector('.a2hs-close')?.addEventListener('click', () => this.close());
-    dialog.querySelector('.a2hs-later')?.addEventListener('click', () => {
-      dismissBanner();
-      this.close();
-    });
     dialog.querySelector('.a2hs-install')?.addEventListener('click', async () => {
       const accepted = await triggerNativeInstall();
       if (accepted) this.close();

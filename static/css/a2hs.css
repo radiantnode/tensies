@@ -192,7 +192,7 @@
     background:
       radial-gradient(125% 95% at 0% 0%, rgba(255, 212, 152, 0.5) 0%, rgba(120, 70, 36, 0) 40%),
       linear-gradient(150deg, #2a2018 0%, #120c07 72%);
-    border: 0.33px solid rgba(255, 224, 178, 0.4);
+    border: 1px solid rgba(255, 224, 178, 0.35);
     border-radius: 30px;
     overflow: hidden;
     isolation: isolate;
@@ -522,6 +522,7 @@
 
   .a2hs-confirm-x {
     display: inline-flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
     inline-size: 18px;
@@ -535,13 +536,18 @@
 
   .a2hs-confirm-title {
     flex: 1;
+    min-inline-size: 0;
     font-size: 10.5px;
     font-weight: 700;
     text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     color: #fff;
   }
 
   .a2hs-confirm-add {
+    flex-shrink: 0;
     padding: 3px 11px;
     background: #0a84ff;
     border-radius: 999px;
