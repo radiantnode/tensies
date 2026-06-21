@@ -11,11 +11,14 @@ import './components/onboarding-screen.js';
 import './components/profile-screen.js';
 import './components/game-detail-screen.js';
 import './components/nav-menu.js';
+import './components/a2hs-guide.js';
 
+import { setupInstall } from './a2hs.js';
 import { maybeReconnect } from './net.js';
 import { bootstrap } from './router.js';
 import { installTouchGuard } from './touch.js';
 
 installTouchGuard();
+setupInstall();
 
 bootstrap({ resumeSession: maybeReconnect });

@@ -1,0 +1,978 @@
+/* Add-to-Home-Screen: the landing banner + the animated install walkthrough.
+   All gated on by JS (mobile UA only), so these rules match nothing on the
+   desktop pixel harness. Tokens-first, no inline styles (style-src 'self'). */
+
+@layer components {
+  /* The host adds no box when idle — the dialog only exists while open. */
+  a2hs-guide { display: contents; }
+
+  /* ── Landing banner (top, smart-banner style) ── */
+  .a2hs-banner {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 110;             /* above the landing header (z-100) */
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+    padding-block-start: env(safe-area-inset-top);
+    background: linear-gradient(100deg, rgba(40, 24, 12, 0.97) 0%, rgba(24, 13, 6, 0.97) 100%);
+    border-block-end: 1px solid rgba(210, 150, 60, 0.4);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: a2hs-banner-in 0.4s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  }
+
+  @keyframes a2hs-banner-in {
+    from { opacity: 0; transform: translateY(-100%); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Hidden (not removed) while the nav menu is open, so it never floats over it. */
+  body.nav-menu-open .a2hs-banner { visibility: hidden; }
+
+  /* Push the landing header below the banner (height measured into the var). */
+  .landing-screen.a2hs-has-banner .app-header {
+    inset-block-start: var(--a2hs-banner-h, 60px);
+    padding-block-start: 0;
+  }
+
+  .landing-screen.a2hs-has-banner .app-header::before { display: none; }
+
+  .a2hs-banner-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-inline-size: 0;
+    padding: 0.6rem 0.5rem 0.6rem 0.85rem;
+    background: transparent;
+    border: 0;
+    text-align: start;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .a2hs-banner-icon {
+    flex-shrink: 0;
+    inline-size: 40px;
+    block-size: 40px;
+    background: #000;
+    border-radius: 9px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  }
+
+  .a2hs-banner-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-inline-size: 0;
+  }
+
+  .a2hs-banner-title {
+    font-size: 0.92rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    color: var(--color-text);
+  }
+
+  .a2hs-banner-sub {
+    font-size: 0.74rem;
+    line-height: 1.3;
+    color: var(--color-text-muted);
+  }
+
+  .a2hs-banner-cta {
+    flex-shrink: 0;
+    align-self: center;
+    margin-inline-start: auto;
+    padding: 0.4rem 0.85rem;
+    background: var(--color-accent);
+    border-radius: 999px;
+    box-shadow: 0 2px 8px var(--color-accent-soft);
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: #fff;
+  }
+
+  .a2hs-banner-close {
+    flex-shrink: 0;
+    inline-size: 40px;
+    align-self: stretch;
+    background: transparent;
+    border: 0;
+    border-inline-start: 0;
+    color: var(--color-text-muted);
+    cursor: pointer;
+  }
+
+  .a2hs-banner-close svg { inline-size: 15px; block-size: 15px; }
+  .a2hs-banner-close:hover { color: var(--color-text-warm); }
+
+  /* Nav-menu "Add to Home Screen" entry (reuses .menu-whats-new-btn styling). */
+  .menu-a2hs-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+  }
+
+  .menu-a2hs-btn svg { inline-size: 19px; block-size: 19px; }
+
+  /* ── Walkthrough overlay (extends .overlay-dialog from overlays.css) ── */
+  .a2hs-overlay { background: rgba(6, 3, 1, 0.99); }
+
+  .a2hs-overlay[open] {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: calc(1.5rem + env(safe-area-inset-top)) 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
+    overflow-y: auto;
+  }
+
+  .a2hs-close {
+    position: fixed;
+    inset-block-start: calc(0.6rem + env(safe-area-inset-top));
+    inset-inline-end: 0.9rem;
+    z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 40px;
+    block-size: 40px;
+    background: rgba(30, 18, 10, 0.7);
+    border: 1px solid var(--color-border-strong);
+    border-radius: 50%;
+    color: var(--color-text-warm);
+    cursor: pointer;
+  }
+
+  .a2hs-close svg { inline-size: 18px; block-size: 18px; }
+  .a2hs-close:hover { background: var(--color-raised-hover); }
+
+  .a2hs-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-block: auto;        /* centers when it fits, scrolls when it doesn't */
+    max-inline-size: 360px;
+    text-align: center;
+  }
+
+  /* Warm gold heading (same treatment as the menu headings; kept local so the
+     protected nav-menu baseline isn't disturbed by a shared-selector refactor). */
+  .a2hs-title {
+    font-size: clamp(1.3rem, 5.5vw, 1.6rem);
+    font-weight: 900;
+    letter-spacing: 0.005em;
+    line-height: 1.3;
+    -webkit-text-stroke: 1px #f1cf98;
+    paint-order: stroke fill;
+    background: linear-gradient(180deg, #fff6e9 0%, #f6dcb0 52%, #e7ba7f 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+  }
+
+  .a2hs-sub {
+    margin-block: 0.4rem 1.25rem;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+  }
+
+  /* ── Phone mockup ── */
+  .a2hs-phone {
+    position: relative;
+    inline-size: 212px;
+    block-size: 410px;
+    margin-block-end: 1.25rem;
+    padding: 2.5px;
+    background:
+      radial-gradient(125% 95% at 0% 0%, rgba(255, 212, 152, 0.5) 0%, rgba(120, 70, 36, 0) 40%),
+      linear-gradient(150deg, #2a2018 0%, #120c07 72%);
+    border: 1px solid rgba(255, 224, 178, 0.35);
+    border-radius: 30px;
+    overflow: hidden;
+    isolation: isolate;
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
+    box-shadow:
+      0 18px 40px rgba(0, 0, 0, 0.6),                 /* drop shadow */
+      -5px -5px 20px rgba(255, 196, 120, 0.32),       /* warm glow — light source, top-left */
+      0 0 22px rgba(255, 186, 102, 0.15),             /* ambient amber halo */
+      inset 0.5px 0.5px 1px rgba(255, 222, 172, 0.25),/* lit inner edge, top-left */
+      inset -1px -1px 4px rgba(18, 9, 4, 0.45);       /* shaded inner edge, bottom-right */
+  }
+
+  /* Android: simple top notch pill. */
+  .a2hs-phone-notch {
+    position: absolute;
+    inset-block-start: 9px;
+    inset-inline-start: 50%;
+    z-index: 6;
+    inline-size: 52px;
+    block-size: 6px;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 3px;
+  }
+
+  /* iOS: status bar + Dynamic Island, clipped inside the screen. */
+  .a2hs-statusbar {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    block-size: 24px;
+    padding: 0 11px;
+    color: #fff;
+    pointer-events: none;
+  }
+
+  .a2hs-sb-time {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  }
+
+  .a2hs-sb-icons {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.6));
+  }
+
+  .a2hs-sb-ic { block-size: 7.5px; inline-size: auto; }
+  .a2hs-sb-bat { block-size: 9px; inline-size: auto; }
+
+  .a2hs-island {
+    position: absolute;
+    inset-block-start: 6px;
+    inset-inline-start: 50%;
+    z-index: 6;
+    inline-size: 40px;
+    block-size: 13px;
+    transform: translateX(-50%);
+    background: #000;
+    border-radius: 999px;
+  }
+
+  .a2hs-phone-screen {
+    position: relative;
+    inline-size: 100%;
+    block-size: 100%;
+    overflow: hidden;
+    background: #0d0805;
+    border: 4px solid #000;
+    border-radius: 27.5px;
+  }
+
+  .a2hs-scene {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    border-radius: 27.5px;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  .a2hs-phone[data-step="1"] [data-scene="1"],
+  .a2hs-phone[data-step="2"] [data-scene="2"],
+  .a2hs-phone[data-step="3"] [data-scene="3"],
+  .a2hs-phone[data-step="4"] [data-scene="4"] { opacity: 1; }
+
+  /* Android app page behind the Chrome bar — bar-top photo under a scrim. */
+  .a2hs-app-canvas {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    background:
+      linear-gradient(rgba(6, 3, 1, 0.5), rgba(6, 3, 1, 0.68)),
+      #0d0805 url('/static/images/landing-mich.webp') center top / cover no-repeat;
+  }
+
+  .a2hs-canvas-logo { filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6)); }
+
+  .a2hs-canvas-word {
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    color: var(--color-accent);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  }
+
+  /* ── iOS scene 1: a real (signed-in) landing screenshot, scaled to fill,
+     with the Safari bar floating over the bottom like Safari itself. ── */
+  .a2hs-ios-page {
+    position: absolute;
+    inset: 0;
+    background: #0d0805 url('/static/images/landing-mich.webp') center top / cover no-repeat;
+  }
+
+  /* Show the same bar-top page behind the share sheet / confirmation, so the
+     dimmed page reads through like real iOS (the sheet-dim darkens it more). */
+  .a2hs-phone[data-platform="ios"] [data-scene="2"],
+  .a2hs-phone[data-platform="ios"] [data-scene="3"] {
+    background:
+      linear-gradient(rgba(6, 3, 1, 0.5), rgba(6, 3, 1, 0.68)),
+      #0d0805 url('/static/images/landing-mich.webp') center top / cover no-repeat;
+  }
+
+  .a2hs-ios-bar {
+    position: absolute;
+    inset-inline: 6px;
+    inset-block-end: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 9px 9px;
+    background: rgba(38, 38, 41, 0.94);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 17px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .a2hs-ios-url {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 9px;
+    background: rgba(74, 74, 79, 0.55);
+    border-radius: 11px;
+  }
+
+  .a2hs-ios-url-text {
+    flex: 1;
+    font-size: 10px;
+    font-weight: 500;
+    text-align: center;
+    color: #fff;
+  }
+
+  .a2hs-ios-url-ext,
+  .a2hs-ios-url-reload { display: inline-flex; color: rgba(235, 235, 240, 0.85); }
+  .a2hs-ios-url-ext .a2hs-glyph { inline-size: 14px; block-size: 14px; }
+  .a2hs-ios-url-reload .a2hs-glyph { inline-size: 13px; block-size: 13px; }
+
+  .a2hs-ios-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-inline: 2px;
+  }
+
+  .a2hs-ios-tool {
+    position: relative;
+    display: inline-flex;
+    color: rgba(245, 245, 250, 0.95);
+  }
+
+  .a2hs-ios-tool .a2hs-glyph { inline-size: 18px; block-size: 18px; }
+  .a2hs-ios-tool-dim { color: rgba(130, 130, 138, 0.7); }
+
+  /* Tap-target wrappers position a centered ripple over their control. */
+  .a2hs-ios-target { position: relative; }
+
+  /* ── iOS scene 2: share sheet ── */
+  .a2hs-sheet-dim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); }
+
+  .a2hs-ios-sheet {
+    position: absolute;
+    inset-inline: 6px;
+    inset-block-end: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 9px 10px 10px;
+    background: rgba(44, 44, 46, 0.98);
+    border-radius: 16px;
+    box-shadow: 0 -8px 22px rgba(0, 0, 0, 0.5);
+  }
+
+  .a2hs-phone[data-step="2"] [data-scene="2"] .a2hs-ios-sheet {
+    animation: a2hs-sheet-up 0.45s cubic-bezier(0.2, 0.85, 0.25, 1);
+  }
+
+  @keyframes a2hs-sheet-up {
+    from { transform: translateY(55%); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+
+  .a2hs-sheet-grabber {
+    align-self: center;
+    inline-size: 30px;
+    block-size: 4px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 2px;
+  }
+
+  .a2hs-ios-sheet-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-block-end: 6px;
+    border-block-end: 0.5px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .a2hs-ios-sheet-head img { border-radius: 7px; }
+
+  .a2hs-ios-sheet-name {
+    display: flex;
+    flex-direction: column;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .a2hs-ios-sheet-name small { font-size: 8px; font-weight: 400; color: rgba(235, 235, 240, 0.5); }
+
+  .a2hs-ios-circles {
+    display: flex;
+    justify-content: space-between;
+    padding-block: 2px;
+  }
+
+  .a2hs-ios-circle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    inline-size: 24%;
+  }
+
+  .a2hs-ios-circle .a2hs-glyph {
+    inline-size: 30px;
+    block-size: 30px;
+    padding: 7px;
+    background: rgba(118, 118, 128, 0.32);
+    border-radius: 50%;
+    color: #fff;
+  }
+
+  .a2hs-ios-circle i {
+    overflow: hidden;
+    max-inline-size: 100%;
+    font-size: 6px;
+    font-style: normal;
+    line-height: 1.1;
+    text-align: center;
+    color: rgba(235, 235, 240, 0.65);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .a2hs-ios-list { display: flex; flex-direction: column; }
+
+  .a2hs-ios-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 5px;
+    font-size: 9.5px;
+    color: #fff;
+    border-block-start: 0.5px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .a2hs-ios-row:first-child { border-block-start: 0; }
+  .a2hs-ios-row-ic { display: inline-flex; }
+  .a2hs-ios-row-ic .a2hs-glyph { inline-size: 16px; block-size: 16px; color: #fff; }
+
+  /* The touched row gets iOS's selection highlight while its step is active. */
+  .a2hs-phone[data-step="2"] .a2hs-ios-row.a2hs-ios-target {
+    background: rgba(255, 255, 255, 0.13);
+    border-radius: 7px;
+  }
+
+  /* ── iOS scene 3: "Add to Home Screen" confirmation ── */
+  .a2hs-ios-confirm {
+    position: absolute;
+    inset-block-start: 28px;
+    inset-inline: 6px;
+    overflow: hidden;
+    background: rgba(28, 28, 30, 0.99);
+    border-radius: 14px;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
+  }
+
+  .a2hs-phone[data-step="3"] [data-scene="3"] .a2hs-ios-confirm {
+    animation: a2hs-confirm-down 0.4s cubic-bezier(0.2, 0.85, 0.25, 1);
+  }
+
+  @keyframes a2hs-confirm-down {
+    from { transform: translateY(-28%); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+
+  .a2hs-confirm-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 9px 8px;
+  }
+
+  .a2hs-confirm-x {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    inline-size: 18px;
+    block-size: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+    color: rgba(235, 235, 240, 0.8);
+  }
+
+  .a2hs-confirm-x svg { inline-size: 9px; block-size: 9px; }
+
+  .a2hs-confirm-title {
+    flex: 1;
+    min-inline-size: 0;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #fff;
+  }
+
+  .a2hs-confirm-add {
+    flex-shrink: 0;
+    padding: 3px 11px;
+    background: #0a84ff;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .a2hs-confirm-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 9px;
+    border-block-start: 0.5px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .a2hs-confirm-icon { inline-size: 34px; block-size: 34px; border-radius: 8px; }
+
+  .a2hs-confirm-fields { display: flex; flex-direction: column; gap: 4px; text-align: start; }
+
+  .a2hs-confirm-name {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10.5px;
+    color: #fff;
+  }
+
+  .a2hs-confirm-caret {
+    inline-size: 1.5px;
+    block-size: 12px;
+    margin-inline-start: 1px;
+    background: #0a84ff;
+  }
+
+  .a2hs-confirm-url { font-size: 8.5px; color: rgba(235, 235, 240, 0.45); }
+
+  .a2hs-confirm-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 9px;
+    border-block-start: 0.5px solid rgba(255, 255, 255, 0.12);
+    font-size: 9.5px;
+    color: #fff;
+  }
+
+  .a2hs-ios-switch {
+    position: relative;
+    inline-size: 26px;
+    block-size: 15px;
+    background: #34c759;
+    border-radius: 999px;
+  }
+
+  .a2hs-ios-switch::after {
+    content: '';
+    position: absolute;
+    inset-block-start: 1.5px;
+    inset-inline-start: 12.5px;
+    inline-size: 12px;
+    block-size: 12px;
+    background: #fff;
+    border-radius: 50%;
+  }
+
+  .a2hs-confirm-note {
+    padding: 7px 9px 9px;
+    font-size: 7.5px;
+    line-height: 1.45;
+    text-align: start;
+    color: rgba(235, 235, 240, 0.45);
+  }
+
+  /* Android scene 2: show the landing page behind the menu overlay. */
+  .a2hs-phone[data-platform="android"] [data-scene="2"] {
+    background:
+      linear-gradient(rgba(6, 3, 1, 0.5), rgba(6, 3, 1, 0.68)),
+      #0d0805 url('/static/images/landing-mich.webp') center top / cover no-repeat;
+  }
+
+  /* ── Android scene 1: Chrome top bar ── */
+  .a2hs-browser {
+    display: flex;
+    flex-direction: column;
+    block-size: 100%;
+    background: #0d0805;
+  }
+
+  .a2hs-url-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 7px 9px;
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 9px;
+    color: rgba(235, 215, 195, 0.85);
+  }
+
+  .a2hs-url {
+    padding: 3px 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    letter-spacing: 0.02em;
+  }
+
+  .a2hs-tool {
+    position: relative;
+    display: inline-flex;
+    color: rgba(210, 190, 170, 0.85);
+  }
+
+  .a2hs-tool .a2hs-glyph { inline-size: 18px; block-size: 18px; }
+  .a2hs-tool-active { color: var(--color-accent); }
+
+  .a2hs-phone[data-step="1"] .a2hs-tool-active {
+    animation: a2hs-pulse 1.9s ease-in-out infinite;
+  }
+
+  @keyframes a2hs-pulse {
+    0%, 100% { filter: none; }
+    50% { filter: drop-shadow(0 0 6px var(--color-accent)); }
+  }
+
+  /* ── Android scene 2: overflow menu ── */
+  .a2hs-menu {
+    position: absolute;
+    inset-block-start: 8px;
+    inset-inline-end: 8px;
+    inline-size: 64%;
+    padding: 4px;
+    background: rgba(40, 32, 25, 0.99);
+    border-radius: 12px;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55);
+    transform-origin: top right;
+  }
+
+  .a2hs-phone[data-step="2"] [data-scene="2"] .a2hs-menu {
+    animation: a2hs-menu-in 0.4s cubic-bezier(0.2, 0.85, 0.25, 1);
+  }
+
+  @keyframes a2hs-menu-in {
+    from { transform: scale(0.6); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+
+  .a2hs-menu-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 6px;
+    font-size: 10px;
+    color: var(--color-text-warm);
+  }
+
+  .a2hs-menu-row .a2hs-glyph { inline-size: 16px; block-size: 16px; }
+  .a2hs-menu-row-active { color: var(--color-accent); font-weight: 700; }
+
+  /* ── Tap ripple (centered in its target wrapper) ── */
+  .a2hs-tap {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    inline-size: 28px;
+    block-size: 28px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 2.5px solid #fff;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .a2hs-phone[data-step="1"] [data-scene="1"] .a2hs-tap,
+  .a2hs-phone[data-step="2"] [data-scene="2"] .a2hs-tap,
+  .a2hs-phone[data-step="3"] [data-scene="3"] .a2hs-tap {
+    animation: a2hs-tap-c 1.9s ease-out infinite;
+  }
+
+  @keyframes a2hs-tap-c {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    12% { opacity: 0.9; }
+    40% { transform: translate(-50%, -50%) scale(1.05); opacity: 0; }
+    100% { opacity: 0; }
+  }
+
+  /* ── Home screen: a realistic app grid with Tensies sitting among the apps ── */
+  .a2hs-home {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    block-size: 100%;
+    padding: 22px 14px 14px;
+    background: linear-gradient(165deg, #3a2a4a 0%, #1a1226 100%);
+  }
+
+  /* Keep the grid clear of the iOS status bar. */
+  .a2hs-phone[data-platform="ios"] .a2hs-home { padding-block-start: 32px; }
+
+  .a2hs-home-grid {
+    display: grid;
+    /* minmax(0,1fr) keeps all four columns equal — otherwise the Tensies
+       label's min-content widens its column and the right icons drift. */
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px 10px;
+  }
+
+  .a2hs-home-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-inline-size: 0;
+  }
+
+  /* Generic placeholder app + its faint label. */
+  .a2hs-home-ph {
+    inline-size: 100%;
+    aspect-ratio: 1;
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 22.4%; /* iOS app-icon squircle ratio */
+  }
+
+  .a2hs-home-phlabel {
+    inline-size: 62%;
+    block-size: 3px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+  }
+
+  /* Tensies cell: same footprint as the generic apps, real icon + label. */
+  .a2hs-home-tensies { position: relative; }
+
+  .a2hs-home-icon {
+    inline-size: 100%;
+    block-size: auto;
+    aspect-ratio: 1;
+    border-radius: 22.4%; /* iOS app-icon squircle ratio */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  }
+
+  .a2hs-home-label {
+    font-size: 5.5px;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+    white-space: nowrap; /* show "Tensies" in full, centered (may spill into the gap) */
+  }
+
+  /* Scene 4 (launch): the icon wiggles to invite a tap. */
+  .a2hs-phone[data-step="4"] [data-scene="4"] .a2hs-home-tensies {
+    animation: a2hs-wiggle 0.6s ease-in-out infinite;
+  }
+
+  @keyframes a2hs-wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    20% { transform: rotate(-8deg); }
+    40% { transform: rotate(8deg); }
+    60% { transform: rotate(-5deg); }
+    80% { transform: rotate(5deg); }
+  }
+
+  /* Android scene 3: the freshly installed icon pops onto the grid. */
+  .a2hs-phone[data-step="3"] [data-scene="3"] .a2hs-home-tensies {
+    animation: a2hs-pop 0.6s cubic-bezier(0.2, 1.35, 0.4, 1);
+  }
+
+  @keyframes a2hs-pop {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.12); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* iOS scene 4 (launch): the icon keeps the generic apps' size; the tap
+     ripple alone signals "tap to open" (no scale, so it never looks smaller). */
+
+  .a2hs-home-dots {
+    display: flex;
+    gap: 5px;
+    align-self: center;
+    margin-block-start: auto;
+  }
+
+  .a2hs-home-dots i {
+    inline-size: 5px;
+    block-size: 5px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+  }
+
+  .a2hs-home-dots i:first-child { background: rgba(255, 255, 255, 0.85); }
+
+  /* ── Progress dots ── */
+  .a2hs-dots {
+    display: flex;
+    gap: 9px;
+    margin-block-end: 0.9rem;
+  }
+
+  .a2hs-dot {
+    inline-size: 8px;
+    block-size: 8px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.22);
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .a2hs-dot.active {
+    background: #fff;
+    transform: scale(1.3);
+    box-shadow: 0 0 9px rgba(255, 255, 255, 0.4);
+  }
+
+  /* ── Step caption (swaps with the active dot) ──
+     A centered column: the badge+instruction row, then an optional hint
+     line. The reserved height absorbs the 2nd line (step 2's hint) without
+     nudging the controls below. */
+  .a2hs-caption {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-block-size: 3.1rem;
+    max-inline-size: 330px;
+    margin-block-end: 1.1rem;
+    font-size: 1rem;
+    color: var(--color-text-warm);
+    text-align: center;
+  }
+
+  /* Badge + instruction, kept tight together and centered as a unit. */
+  .a2hs-caption-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.5rem;
+    max-inline-size: 100%;
+  }
+
+  .a2hs-caption.swap { animation: a2hs-caption-in 0.35s ease; }
+
+  @keyframes a2hs-caption-in {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .a2hs-caption-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    inline-size: 24px;
+    block-size: 24px;
+    background: var(--color-accent);
+    border-radius: 50%;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #fff;
+  }
+
+  .a2hs-caption-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+    line-height: 24px; /* first-line band matches the 24px number badge */
+  }
+
+  .a2hs-caption-text .a2hs-glyph {
+    inline-size: 16px;
+    block-size: 16px;
+    color: var(--color-amber);
+  }
+
+  .a2hs-caption-text strong { font-weight: 800; color: var(--color-text); }
+
+  /* Secondary hint line under a step instruction (e.g. "swipe up"). */
+  .a2hs-caption-hint {
+    margin-block-start: 0.2rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+  }
+
+  /* ── CTAs ── */
+  .a2hs-install {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    inline-size: 100%;
+    max-inline-size: 300px;
+    margin-block-end: 0.65rem;
+  }
+
+  .a2hs-install .a2hs-glyph { inline-size: 18px; block-size: 18px; }
+
+  .a2hs-later {
+    padding: 0.5rem;
+    background: none;
+    border: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
+  .a2hs-later:hover { color: var(--color-text-warm); }
+
+  /* Honor reduced motion: the numbered list still conveys every step. */
+  @media (prefers-reduced-motion: reduce) {
+    .a2hs-banner,
+    .a2hs-tap,
+    .a2hs-ios-sheet,
+    .a2hs-ios-confirm,
+    .a2hs-menu,
+    .a2hs-home-app,
+    .a2hs-caption,
+    .a2hs-tool-active { animation: none; }
+    .a2hs-scene { transition: none; }
+  }
+}

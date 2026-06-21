@@ -18,7 +18,7 @@ const { execSync } = require('child_process');
 const { chromium } = require('@playwright/test');
 
 // Keep in sync with baselines/CAPTURE-ENV.txt when you re-baseline.
-const EXPECTED = '140.0.7339.16';
+const EXPECTED = '149.0.7827.55';
 
 // Absolute path to the repo root (four levels up from this file).
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');

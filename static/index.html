@@ -46,6 +46,7 @@
   <link rel="stylesheet" href="/static/css/auth.css">
   <link rel="stylesheet" href="/static/css/profile.css">
   <link rel="stylesheet" href="/static/css/game-detail.css">
+  <link rel="stylesheet" href="/static/css/a2hs.css">
 
   <!-- Preload the whole module graph so it fetches in parallel instead of
        waterfalling app -> router/net -> components. -->
@@ -83,6 +84,8 @@
   <link rel="modulepreload" href="/static/js/components/lobby-screen.js">
   <link rel="modulepreload" href="/static/js/components/game-screen.js">
   <link rel="modulepreload" href="/static/js/components/nav-menu.js">
+  <link rel="modulepreload" href="/static/js/a2hs.js">
+  <link rel="modulepreload" href="/static/js/components/a2hs-guide.js">
   <script type="module" src="/static/js/app.js"></script>
 </head>
 <body>
@@ -110,6 +113,10 @@
 </main>
 
 <nav-menu></nav-menu>
+
+<!-- Add-to-Home-Screen walkthrough. Body-level custom element; inert (no box)
+     until opened via the a2hs-open event from the landing banner / nav menu. -->
+<a2hs-guide></a2hs-guide>
 
 <!-- Non-host wait screen while the game is paused. Body-level <dialog> so the
      board stays live underneath; visually mirrors the loading screen. -->
