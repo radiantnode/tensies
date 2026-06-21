@@ -7,6 +7,7 @@ loop across two isolated Playwright instances.
 
 | Date | Scope | Result | Passed | Total | Highlight |
 |------|-------|--------|--------|-------|-----------|
+| [2026-06-21T03:11:00](2026-06-21T03-11-00.md) | Game | ✅ PASS | 24 | 24 | Core suite vs the **hardened prod stack** (read-only containers, file secrets, egress split, nginx-unprivileged); WebAuthn user written to read-only Postgres; Redis password gone from logs; broadcast 890ms; 0 console errors |
 | [2026-06-17T20:30:00](2026-06-17T20-30-00.md) | Game | ✅ PASS | 31 | 31 | End Game feature (tap-to-confirm, overlay scoreboard, dismiss); overlay consistency 2995–3037ms across 6 rounds; prod bundle `app-be6e5702.js`; auth degraded to JWT (RP_ID mismatch) |
 | [2026-06-15T17:49:00](2026-06-15T17-49-00.md) | Game | ✅ PASS | 34 | 34 | First 34-step run with auth (WebAuthn CDP Virtual Authenticator); celebration-echo guard held (0 flashes across 20 overlays); all overlay durations 3002–3045ms |
 | [2026-06-11T08:45:00](2026-06-11T08-45-00.md) | Game | ✅ PASS | 28 | 28 | First full suite against rewrite-v2 (blank-canvas frontend, 25/25 pixel baselines at zero diff); all invariants held; known post-reveal `showFor()` race recurred once on prod (759ms, pre-existing — noted on Step 27) |
