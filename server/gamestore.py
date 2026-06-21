@@ -20,6 +20,7 @@ import json
 import secrets
 import string
 import time
+from urllib.parse import urlsplit
 
 import redis.asyncio as aioredis
 
@@ -46,6 +47,22 @@ def _gkey(code: str) -> str:
     return f"game:{code}"
 
 
+def _redact(url: str) -> str:
+    """A connection URL with any credentials stripped (scheme://host:port).
+
+    REDIS_URL embeds its password inline, so it must never reach a log or error
+    string verbatim. This drops the userinfo and keeps only the non-sensitive
+    target, which is all an operator needs to diagnose a connection problem.
+    """
+    try:
+        p = urlsplit(url)
+        host = p.hostname or "?"
+        netloc = f"{host}:{p.port}" if p.port else host
+        return f"{p.scheme}://{netloc}" if p.scheme else netloc
+    except ValueError:
+        return "<redacted>"
+
+
 async def init() -> None:
     """Connect to Redis and register Lua scripts. Fails loudly if unreachable."""
     global _r
@@ -54,11 +71,13 @@ async def init() -> None:
         await _r.ping()
     except Exception as e:  # noqa: BLE001 — surface a clear, actionable error
         raise RuntimeError(
-            f"Cannot reach Redis at {REDIS_URL}. Redis is required to run "
+            f"Cannot reach Redis at {_redact(REDIS_URL)}. Redis is required to run "
             f"Tensies; start one or set REDIS_URL. ({e})"
         ) from e
     _register_scripts()
-    log.info("gamestore connected  redis=%s", REDIS_URL)
+    # Don't log REDIS_URL (or anything derived from it) — it carries the password
+    # inline. The host is static config; the connect confirmation is the signal.
+    log.info("gamestore connected to Redis")
 
 
 async def close() -> None:
