@@ -176,10 +176,7 @@ function guideBody(platform) {
              <span class="a2hs-url">tensies.app</span>
              <span class="a2hs-tool a2hs-tool-active a2hs-tool-more">${MORE_SVG}<span class="a2hs-tap"></span></span>
            </div>
-           <div class="a2hs-app-canvas">
-             <img class="a2hs-canvas-logo" src="/static/images/logo.svg" alt="" width="40" height="40">
-             <span class="a2hs-canvas-word">TENSIES</span>
-           </div>
+           <div class="a2hs-app-canvas"></div>
          </div>
        </div>
        <div class="a2hs-scene" data-scene="2">

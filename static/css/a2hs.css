@@ -297,7 +297,7 @@
     gap: 5px;
     background:
       linear-gradient(rgba(6, 3, 1, 0.5), rgba(6, 3, 1, 0.68)),
-      var(--color-bg) url('/static/images/bar-top.webp') center 10% / cover no-repeat;
+      #0d0805 url('/static/images/landing-mich.webp') center top / cover no-repeat;
   }
 
   .a2hs-canvas-logo { filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6)); }
@@ -619,6 +619,13 @@
     line-height: 1.45;
     text-align: start;
     color: rgba(235, 235, 240, 0.45);
+  }
+
+  /* Android scene 2: show the landing page behind the menu overlay. */
+  .a2hs-phone[data-platform="android"] [data-scene="2"] {
+    background:
+      linear-gradient(rgba(6, 3, 1, 0.5), rgba(6, 3, 1, 0.68)),
+      #0d0805 url('/static/images/landing-mich.webp') center top / cover no-repeat;
   }
 
   /* ── Android scene 1: Chrome top bar ── */
