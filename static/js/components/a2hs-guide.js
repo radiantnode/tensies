@@ -28,7 +28,7 @@ const INSTALL_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidde
 const CLOSE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>`;
 
 // ── iOS Safari chrome glyphs ──
-const EXT_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 11c-.83 0-1.5-.67-1.5-1.5V7a1 1 0 0 0-1-1h-2.5C14.67 6 14 5.33 14 4.5a2 2 0 1 0-4 0c0 .83-.67 1.5-1.5 1.5H6a1 1 0 0 0-1 1v2.5C5 10.33 4.33 11 3.5 11a2 2 0 1 0 0 4c.83 0 1.5.67 1.5 1.5V19a1 1 0 0 0 1 1h2.5c.83 0 1.5-.67 1.5-1.5a2 2 0 1 1 4 0c0 .83.67 1.5 1.5 1.5H18a1 1 0 0 0 1-1v-2.5c0-.83.67-1.5 1.5-1.5a2 2 0 1 0 0-4z"/></svg>`;
+const EXT_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 1 1 8 0v4" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
 const RELOAD_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><path d="M20 8a8 8 0 1 0 1.3 6"/><path d="M20 3v5h-5"/></svg>`;
 const CHEV_L = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>`;
 const CHEV_R = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>`;

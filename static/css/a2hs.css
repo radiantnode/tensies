@@ -121,7 +121,7 @@
   .menu-a2hs-btn svg { inline-size: 19px; block-size: 19px; }
 
   /* ── Walkthrough overlay (extends .overlay-dialog from overlays.css) ── */
-  .a2hs-overlay { background: rgba(6, 3, 1, 0.94); }
+  .a2hs-overlay { background: rgba(6, 3, 1, 0.99); }
 
   .a2hs-overlay[open] {
     flex-direction: column;
@@ -185,8 +185,8 @@
   /* ── Phone mockup ── */
   .a2hs-phone {
     position: relative;
-    inline-size: 172px;
-    block-size: 332px;
+    inline-size: 212px;
+    block-size: 410px;
     margin-block-end: 1.25rem;
     padding: 2.5px;
     background:
@@ -194,6 +194,9 @@
       linear-gradient(150deg, #2a2018 0%, #120c07 72%);
     border: 0.33px solid rgba(255, 224, 178, 0.4);
     border-radius: 30px;
+    overflow: hidden;
+    isolation: isolate;
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
     box-shadow:
       0 18px 40px rgba(0, 0, 0, 0.6),                 /* drop shadow */
       -5px -5px 20px rgba(255, 196, 120, 0.32),       /* warm glow — light source, top-left */
@@ -274,6 +277,7 @@
     inset: 0;
     display: flex;
     flex-direction: column;
+    border-radius: 27.5px;
     opacity: 0;
     transition: opacity 0.5s ease;
   }
@@ -320,7 +324,7 @@
   .a2hs-phone[data-platform="ios"] [data-scene="3"] {
     background:
       linear-gradient(rgba(6, 3, 1, 0.5), rgba(6, 3, 1, 0.68)),
-      var(--color-bg) url('/static/images/bar-top.webp') center 10% / cover no-repeat;
+      #0d0805 url('/static/images/landing-mich.webp') center top / cover no-repeat;
   }
 
   .a2hs-ios-bar {
@@ -695,10 +699,10 @@
     position: absolute;
     inset-block-start: 50%;
     inset-inline-start: 50%;
-    inline-size: 24px;
-    block-size: 24px;
-    background: rgba(255, 255, 255, 0.22);
-    border: 1.5px solid rgba(255, 255, 255, 0.75);
+    inline-size: 28px;
+    block-size: 28px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 2.5px solid #fff;
     border-radius: 50%;
     opacity: 0;
     pointer-events: none;
@@ -706,8 +710,7 @@
 
   .a2hs-phone[data-step="1"] [data-scene="1"] .a2hs-tap,
   .a2hs-phone[data-step="2"] [data-scene="2"] .a2hs-tap,
-  .a2hs-phone[data-step="3"] [data-scene="3"] .a2hs-tap,
-  .a2hs-phone[data-step="4"] [data-scene="4"] .a2hs-tap {
+  .a2hs-phone[data-step="3"] [data-scene="3"] .a2hs-tap {
     animation: a2hs-tap-c 1.9s ease-out infinite;
   }
 
@@ -780,6 +783,19 @@
     white-space: nowrap; /* show "Tensies" in full, centered (may spill into the gap) */
   }
 
+  /* Scene 4 (launch): the icon wiggles to invite a tap. */
+  .a2hs-phone[data-step="4"] [data-scene="4"] .a2hs-home-tensies {
+    animation: a2hs-wiggle 0.6s ease-in-out infinite;
+  }
+
+  @keyframes a2hs-wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    20% { transform: rotate(-8deg); }
+    40% { transform: rotate(8deg); }
+    60% { transform: rotate(-5deg); }
+    80% { transform: rotate(5deg); }
+  }
+
   /* Android scene 3: the freshly installed icon pops onto the grid. */
   .a2hs-phone[data-step="3"] [data-scene="3"] .a2hs-home-tensies {
     animation: a2hs-pop 0.6s cubic-bezier(0.2, 1.35, 0.4, 1);
@@ -829,9 +845,9 @@
   }
 
   .a2hs-dot.active {
-    background: var(--color-accent);
+    background: #fff;
     transform: scale(1.3);
-    box-shadow: 0 0 9px var(--color-accent-soft);
+    box-shadow: 0 0 9px rgba(255, 255, 255, 0.4);
   }
 
   /* ── Step caption (swaps with the active dot) ──
