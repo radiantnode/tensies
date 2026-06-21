@@ -86,6 +86,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Apply the latest Debian security updates to the base image's OS packages
+# (openssl, perl-base, …). The pinned python base tag lags Debian's security
+# repo, so a fresh build still ships fixable CVEs that the image-security scan
+# gates on; upgrading in place clears them. apt lists are removed so nothing
+# extra ships, and the setuid strip in the final RUN below covers any new bits.
+RUN apt-get update \
+    && apt-get -y upgrade \
+    && rm -rf /var/lib/apt/lists/*
+
 # Lift the compiled dependency set from the builder. No gcc/cmake/apt-lists ship.
 COPY --from=pybuild /opt/venv /opt/venv
 
