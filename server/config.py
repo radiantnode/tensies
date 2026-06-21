@@ -45,6 +45,28 @@ def _list(name: str) -> list[str]:
     return [item for item in raw.replace(",", " ").split() if item]
 
 
+def _secret(name: str, default: str | None = None) -> str | None:
+    """Read a secret from `{name}_FILE` (a path, e.g. a mounted Docker secret)
+    if set, else from the `{name}` env var, else `default`.
+
+    The file form keeps the value out of the process environment, where it would
+    otherwise be readable via `docker inspect` and `/proc/<pid>/environ`. An
+    unreadable or empty file falls back to the env var so a misconfigured mount
+    can't silently blank a required secret.
+    """
+    path = os.environ.get(f"{name}_FILE")
+    if path:
+        try:
+            value = open(path, encoding="utf-8").read().strip()
+            if value:
+                return value
+            log.warning("%s_FILE=%s is empty; falling back to %s env var", name, path, name)
+        except OSError as e:
+            log.warning("could not read %s_FILE=%s (%s); falling back to %s env var",
+                        name, path, e, name)
+    return os.environ.get(name, default)
+
+
 # ─── Gameplay ────────────────────────────────────────────────────────────
 MIN_ROLL_INTERVAL = 0.25     # min seconds between a player's rolls (rate limit)
 ROLL_ACK_TIMEOUT = 2.0       # wait for the roller's reveal ack before broadcasting
@@ -60,7 +82,7 @@ PAUSE_MAX = 3600.0
 # ─── Shared state (Redis) ────────────────────────────────────────────────
 # Game state and cross-instance fan-out live in Redis so the app can run as
 # multiple instances behind a plain round-robin load balancer. REQUIRED.
-REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = _secret("REDIS_URL", "redis://localhost:6379/0")
 
 # Identifies this instance in logs / ownership bookkeeping.
 INSTANCE_ID = os.environ.get("INSTANCE_ID") or socket.gethostname()
@@ -110,8 +132,8 @@ TRUSTED_PROXY_HOPS = _int("TRUSTED_PROXY_HOPS", 1)
 # When set, /metrics and /stats/* require `Authorization: Bearer <token>`.
 # Unset leaves them open — both compose files set tokens so dev and prod are
 # authenticated; routes.py logs a warning when either is left unset.
-METRICS_TOKEN = os.environ.get("METRICS_TOKEN") or None
-STATS_TOKEN = os.environ.get("STATS_TOKEN") or None
+METRICS_TOKEN = _secret("METRICS_TOKEN") or None
+STATS_TOKEN = _secret("STATS_TOKEN") or None
 
 
 # ─── Frontend asset serving ──────────────────────────────────────────────
@@ -166,14 +188,14 @@ HSTS_PRELOAD = _flag("HSTS_PRELOAD", False)
 # in-process; only the Postgres writer + Grafana pusher are skipped.
 TELEMETRY_ENABLED = _flag("TELEMETRY_ENABLED", True)
 
-POSTGRES_DSN = os.environ.get(
+POSTGRES_DSN = _secret(
     "POSTGRES_DSN", "postgresql://tensies:tensies@postgres:5432/tensies"
 )
 GRAFANA_LIVE_URL = os.environ.get(
     "GRAFANA_LIVE_URL", "http://grafana:3000/api/live/push"
 )
 GRAFANA_USER = os.environ.get("GRAFANA_USER", "admin")
-GRAFANA_PASS = os.environ.get("GRAFANA_PASS", "admin")
+GRAFANA_PASS = _secret("GRAFANA_PASS", "admin")
 
 PING_INTERVAL = 5.0          # seconds between server→client WS pings
 
@@ -184,7 +206,7 @@ PING_INTERVAL = 5.0          # seconds between server→client WS pings
 # the target channel id. The bot must be in the server and able to view/send in
 # that channel (Send Messages + Embed Links). See docs/DISCORD.md.
 DISCORD_ENABLED = _flag("DISCORD_ENABLED", False)
-DISCORD_BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN") or None
+DISCORD_BOT_TOKEN = _secret("DISCORD_BOT_TOKEN") or None
 DISCORD_CHANNEL_ID = os.environ.get("DISCORD_CHANNEL_ID") or None
 DISCORD_API_BASE = os.environ.get(
     "DISCORD_API_BASE", "https://discord.com/api/v10"
@@ -223,5 +245,5 @@ WEBAUTHN_ORIGIN = [
     for o in os.environ.get("WEBAUTHN_ORIGIN", APP_URL or "http://localhost:8888").split(",")
     if o.strip()
 ]
-JWT_SECRET = os.environ.get("JWT_SECRET", "dev-secret-change-in-prod")
+JWT_SECRET = _secret("JWT_SECRET", "dev-secret-change-in-prod")
 JWT_EXPIRY_DAYS = _int("JWT_EXPIRY_DAYS", 30)

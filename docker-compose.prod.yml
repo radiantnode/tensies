@@ -40,8 +40,11 @@ services:
       GRAFANA_LIVE_URL: http://grafana:3000/api/live/push
       GRAFANA_USER: admin
       GRAFANA_PASS: "${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}"
-      METRICS_TOKEN: "${METRICS_TOKEN:?set METRICS_TOKEN}"
-      STATS_TOKEN: "${STATS_TOKEN:?set STATS_TOKEN}"
+      # App-owned secrets are delivered as mounted files (see the `secrets:` block
+      # below + top-level definitions), NOT env vars — so they don't show up in
+      # `docker inspect` or /proc/<pid>/environ. config._secret() reads *_FILE.
+      METRICS_TOKEN_FILE: /run/secrets/metrics_token
+      STATS_TOKEN_FILE: /run/secrets/stats_token
       ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS}"
       # Public origin → absolute og:image/twitter:image so the iOS share sheet can
       # render the invite-link preview with the Tensies icon. Optional; relative
@@ -62,8 +65,9 @@ services:
       CSP_EXTRA_SCRIPT_SRC: "${CSP_EXTRA_SCRIPT_SRC:-}"
       CSP_EXTRA_CONNECT_SRC: "${CSP_EXTRA_CONNECT_SRC:-}"
       CSP_EXTRA_IMG_SRC: "${CSP_EXTRA_IMG_SRC:-}"
-      # Signs JWT auth tokens. Generate with: openssl rand -hex 32
-      JWT_SECRET: "${JWT_SECRET:?set JWT_SECRET}"
+      # Signs JWT auth tokens. Delivered as a mounted file (see `secrets:` below),
+      # not an env var. Generate with: openssl rand -hex 32
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
       # WebAuthn relying party ID — the bare domain users register passkeys on
       # (no scheme, no port). e.g. "tensies.app"
       WEBAUTHN_RP_ID: "${WEBAUTHN_RP_ID:?set WEBAUTHN_RP_ID}"
@@ -94,18 +98,27 @@ services:
         condition: service_healthy
     networks: [internal]
     restart: unless-stopped
+    secrets:
+      - jwt_secret
+      - stats_token
+      - metrics_token
     # ── Hardening ──────────────────────────────────────────────────────────
     # The app writes nothing to disk at runtime and PYTHONDONTWRITEBYTECODE is
-    # set, so the root FS is read-only; only /tmp is a (small) tmpfs. No Linux
-    # capabilities are needed (uvicorn binds 8000, a high port, as a non-root
-    # user) and no-new-privileges blocks any setuid escalation. init: true gives
-    # uvicorn a real PID 1 for signal handling + zombie reaping.
+    # set, so the root FS is read-only; only /tmp is a (small) tmpfs, mounted
+    # noexec/nosuid/nodev so the one writable path can't be used to stage and run
+    # a binary. No Linux capabilities are needed (uvicorn binds 8000, a high port,
+    # as a non-root user) and no-new-privileges blocks any setuid escalation.
+    # init: true gives uvicorn a real PID 1 for signal handling + zombie reaping.
+    # Resource + pid caps bound the blast radius of a runaway/compromised worker.
     read_only: true
     tmpfs:
-      - /tmp:size=16m
+      - /tmp:size=16m,mode=1777,noexec,nosuid,nodev
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     init: true
+    pids_limit: 256
+    cpus: 1.0
+    mem_limit: 512m
     healthcheck:
       test: ["CMD", "python", "-c",
              "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/',timeout=4).status==200 else 1)"]
@@ -139,9 +152,12 @@ services:
     # Non-root master on a high port means no caps and no privilege escalation.
     read_only: true
     tmpfs:
-      - /tmp:size=32m
+      - /tmp:size=32m,mode=1777,noexec,nosuid,nodev
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
+    pids_limit: 256
+    cpus: 0.5
+    mem_limit: 128m
 
   redis:
     image: redis:7.4.1-alpine@sha256:c1e88455c85225310bbea54816e9c3f4b5295815e6dbf80c34d40afc6df28275
@@ -155,6 +171,9 @@ services:
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
+    pids_limit: 128
+    cpus: 0.5
+    mem_limit: 256m
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 5s
@@ -177,6 +196,9 @@ services:
     # plus /var/run/postgresql + /tmp — a read-only root FS needs those tmpfs'd
     # and the matching cap_add set, which is a separate, test-heavy change.
     security_opt: ["no-new-privileges:true"]
+    pids_limit: 256
+    cpus: 1.0
+    mem_limit: 1g
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U tensies"]
       interval: 5s
@@ -200,6 +222,9 @@ services:
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
+    pids_limit: 128
+    cpus: 0.5
+    mem_limit: 512m
     networks: [internal]
     restart: unless-stopped
 
@@ -211,6 +236,9 @@ services:
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    cpus: 0.25
+    mem_limit: 128m
     depends_on:
       postgres:
         condition: service_healthy
@@ -243,6 +271,9 @@ services:
     # read_only root FS would need /tmp + a few dirs tmpfs'd — left as a
     # follow-up to avoid breaking plugin/datasource provisioning.
     security_opt: ["no-new-privileges:true"]
+    pids_limit: 256
+    cpus: 1.0
+    mem_limit: 512m
     # Direct Grafana access on the host. Defaults to loopback (reach it via an
     # SSH tunnel: `ssh -L 8889:127.0.0.1:8889 user@host`). To expose it on the
     # box's network set GRAFANA_PUBLISH to e.g. 0.0.0.0:8889 — but Grafana's
@@ -258,6 +289,21 @@ services:
 networks:
   internal:
     driver: bridge
+
+# App-owned secrets, mounted into the web container as files under /run/secrets
+# (config._secret reads the matching *_FILE env). Delivering them as files keeps
+# them out of the container environment (docker inspect / /proc/<pid>/environ).
+# Create the source files before `up` (they're gitignored under ops/secrets/):
+#   printf %s "$JWT_SECRET"    > ops/secrets/jwt_secret
+#   printf %s "$STATS_TOKEN"   > ops/secrets/stats_token
+#   printf %s "$METRICS_TOKEN" > ops/secrets/metrics_token   # also used by prometheus
+secrets:
+  jwt_secret:
+    file: ./ops/secrets/jwt_secret
+  stats_token:
+    file: ./ops/secrets/stats_token
+  metrics_token:
+    file: ./ops/secrets/metrics_token
 
 volumes:
   pg_data:
