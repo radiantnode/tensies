@@ -35,14 +35,16 @@ services:
     expose:
       - "8000"
     environment:
-      REDIS_URL: "redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379/0"
-      POSTGRES_DSN: "postgresql://tensies:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/tensies"
+      # Every credential is delivered as a mounted file (see the `secrets:` block
+      # below + the top-level definitions), NOT an env var — so none of them show
+      # up in `docker inspect` or /proc/<pid>/environ. config._secret() reads the
+      # matching *_FILE path. The redis URL / postgres DSN carry their passwords
+      # inline, so the whole connection string lives in its secret file.
+      REDIS_URL_FILE: /run/secrets/redis_url
+      POSTGRES_DSN_FILE: /run/secrets/pg_dsn
       GRAFANA_LIVE_URL: http://grafana:3000/api/live/push
       GRAFANA_USER: admin
-      GRAFANA_PASS: "${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}"
-      # App-owned secrets are delivered as mounted files (see the `secrets:` block
-      # below + top-level definitions), NOT env vars — so they don't show up in
-      # `docker inspect` or /proc/<pid>/environ. config._secret() reads *_FILE.
+      GRAFANA_PASS_FILE: /run/secrets/grafana_admin_password
       METRICS_TOKEN_FILE: /run/secrets/metrics_token
       STATS_TOKEN_FILE: /run/secrets/stats_token
       ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS}"
@@ -96,12 +98,18 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks: [internal]
+    # `edge` carries the only outbound internet the stack needs (the drand beacon
+    # + Discord); `internal` (egress-disabled) reaches redis/postgres/grafana. The
+    # backends sit on `internal` only, so a compromised one can't phone home.
+    networks: [internal, edge]
     restart: unless-stopped
     secrets:
       - jwt_secret
       - stats_token
       - metrics_token
+      - redis_url
+      - pg_dsn
+      - grafana_admin_password
     # ── Hardening ──────────────────────────────────────────────────────────
     # The app writes nothing to disk at runtime and PYTHONDONTWRITEBYTECODE is
     # set, so the root FS is read-only; only /tmp is a (small) tmpfs, mounted
@@ -145,7 +153,10 @@ services:
     ports:
       - "${WEB_PUBLISH:-127.0.0.1:8000}:8080"
     depends_on: [web]
-    networks: [internal]
+    # `edge` only: nginx needs a non-internal network for its published port to
+    # work (Docker won't NAT a host port to an internal-only container) and to
+    # reach `web` (also on edge). It never initiates outbound itself.
+    networks: [edge]
     restart: unless-stopped
     # Read-only root FS: nginx's pid, temp dirs, and logs are routed to /tmp +
     # stdout/stderr in ops/nginx.conf, so /tmp (tmpfs) is the only writable path.
@@ -164,18 +175,31 @@ services:
     # Run directly as the redis user so the entrypoint never needs to drop privs
     # (su-exec would require CAP_SETUID/SETGID, which we drop below).
     user: redis
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD}",
-              "--save", "", "--appendonly", "no"]
-    # Persistence is off (no RDB/AOF), so the root FS can be read-only with no
-    # writable volume; no caps or privilege escalation are needed.
+    # The password comes from a mounted secret file. We materialise a tiny config
+    # on the /tmp tmpfs and exec redis-server against it, rather than passing
+    # --requirepass on the command line — so the password never lands in the
+    # process argv (visible via `ps` / /proc/<pid>/cmdline) or the environment.
+    # `cat` runs as a child, so the secret isn't in the `sh -c` argv either.
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        printf 'requirepass %s\nsave ""\nappendonly no\n' "$$(cat /run/secrets/redis_password)" > /tmp/redis.conf
+        exec redis-server /tmp/redis.conf
+    secrets:
+      - redis_password
+    # Persistence is off (no RDB/AOF), so the root FS can be read-only; only the
+    # /tmp tmpfs (for the generated config) is writable. No caps / no escalation.
     read_only: true
+    tmpfs:
+      - /tmp:size=8m,mode=1777,noexec,nosuid,nodev
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     pids_limit: 128
     cpus: 0.5
     mem_limit: 256m
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      # REDISCLI_AUTH keeps the password out of argv (vs redis-cli -a <pw>).
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$(cat /run/secrets/redis_password)\" redis-cli ping | grep -q PONG"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -186,15 +210,23 @@ services:
     image: postgres:16.4-alpine@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c
     environment:
       POSTGRES_USER: tensies
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}"
+      # Read from a mounted secret file instead of the environment.
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
       POSTGRES_DB: tensies
+    secrets:
+      - pg_password
     volumes:
       - pg_data:/var/lib/postgresql/data
-    # no-new-privileges is always safe. We stop short of read_only/cap_drop here:
-    # the postgres entrypoint runs as root and uses gosu to drop to the postgres
-    # user (needs CHOWN/SET[UG]ID/DAC_OVERRIDE/FOWNER) and writes to its data dir
-    # plus /var/run/postgresql + /tmp — a read-only root FS needs those tmpfs'd
-    # and the matching cap_add set, which is a separate, test-heavy change.
+    # Read-only root FS: the data dir lives on its volume and the runtime scratch
+    # paths (/tmp + the postgres socket dir) are tmpfs. The entrypoint starts as
+    # root to chown the data dir and gosu-drops to the postgres user, so it keeps
+    # exactly the caps that needs and nothing else.
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777,nosuid,nodev
+      - /run/postgresql:size=64m,mode=0775,uid=70,gid=70,nosuid,nodev
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
     security_opt: ["no-new-privileges:true"]
     pids_limit: 256
     cpus: 1.0
@@ -231,7 +263,13 @@ services:
   postgres_exporter:
     image: prometheuscommunity/postgres-exporter:v0.15.0@sha256:386b12d19eab2a37d7cd8ca8b4c7491cc7a830d9581f49af6c98a393da9605e6
     environment:
-      DATA_SOURCE_NAME: "postgresql://tensies:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/tensies?sslmode=disable"
+      # Split form so the password comes from a mounted secret file, not the DSN
+      # in the environment.
+      DATA_SOURCE_URI: "postgres:5432/tensies?sslmode=disable"
+      DATA_SOURCE_USER: tensies
+      DATA_SOURCE_PASS_FILE: /run/secrets/pg_password
+    secrets:
+      - pg_password
     # Stateless Go binary that writes nothing — fully locked down.
     read_only: true
     cap_drop: [ALL]
@@ -249,27 +287,39 @@ services:
     image: grafana/grafana:11.2.0@sha256:408afb9726de5122b00a2576763a8a57a3c86d5b0eff5305bc994ceb3eb96c3f
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "false"
-      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}"
-      # Consumed by the provisioned Postgres datasource (it reads ${POSTGRES_PASSWORD}
-      # from Grafana's env — see ops/grafana/provisioning-prod/datasources).
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}"
+      # Admin password from a mounted secret file (Grafana's __FILE convention).
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
       GF_LIVE_ALLOWED_ORIGINS: "${GRAFANA_ROOT_URL:?set GRAFANA_ROOT_URL}"
       GF_USERS_DEFAULT_THEME: dark
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/live-games.json
       GF_SERVER_ROOT_URL: "${GRAFANA_ROOT_URL:?set GRAFANA_ROOT_URL}"
+      # No outbound internet on the `internal` network — turn off the update check
+      # and usage analytics so Grafana doesn't try (and log failures) on boot.
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
       # Retained to match dev dashboard rendering (owner decision: don't change
       # the Grafana flag). The stored-XSS vector via player names is closed at
       # the source instead — names are sanitized server-side at intake (M1).
       GF_PANELS_DISABLE_SANITIZE_HTML: "true"
+    # The Postgres datasource password is read from the mounted secret file via
+    # Grafana's $__file{} provider (see provisioning-prod/datasources.yaml), so no
+    # DB password is in Grafana's environment.
+    secrets:
+      - grafana_admin_password
+      - pg_password
     volumes:
       - ./ops/grafana/provisioning-prod/datasources:/etc/grafana/provisioning/datasources:ro
       - ./ops/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./ops/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
-    # no-new-privileges is safe; grafana writes its sqlite + plugins under
-    # /var/lib/grafana (the volume) and reads provisioning read-only, so a full
-    # read_only root FS would need /tmp + a few dirs tmpfs'd — left as a
-    # follow-up to avoid breaking plugin/datasource provisioning.
+    # Read-only root FS: Grafana writes its sqlite + plugins under /var/lib/grafana
+    # (the volume) and provisioning is mounted read-only; /tmp is the only other
+    # writable path it needs. Runs as the non-root grafana user already.
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777,nosuid,nodev
+    cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     pids_limit: 256
     cpus: 1.0
@@ -280,23 +330,38 @@ services:
     # admin UI shouldn't face the public internet; tunnel or firewall it.
     ports:
       - "${GRAFANA_PUBLISH:-127.0.0.1:8889}:3000"
-    networks: [internal]
+    # `edge` is required for the host-published admin port (Docker won't NAT a
+    # host port to an internal-only container); `internal` reaches postgres +
+    # prometheus. Being on edge means Grafana can phone home (plugin/update
+    # checks) — those are disabled above; the true data stores stay egress-free.
+    networks: [internal, edge]
     depends_on:
       - prometheus
       - postgres
     restart: unless-stopped
 
 networks:
+  # Egress-disabled: services on `internal` have NO route to the internet. The
+  # data stores — redis, postgres, postgres_exporter, prometheus — sit on this
+  # network ONLY, so a compromised one can't exfiltrate or pull a second-stage
+  # payload. (Docker also won't NAT a host port to an internal-only container, so
+  # anything that needs a published port must also join `edge` below.)
   internal:
     driver: bridge
+    internal: true
+  # Has a gateway (egress + host-published ports). Joined only by the services
+  # that genuinely need it: web (drand beacon + Discord egress), nginx (the
+  # public ingress port), and grafana (its admin UI port; its outbound phone-home
+  # is disabled via GF_ANALYTICS_* above).
+  edge:
+    driver: bridge
 
-# App-owned secrets, mounted into the web container as files under /run/secrets
-# (config._secret reads the matching *_FILE env). Delivering them as files keeps
-# them out of the container environment (docker inspect / /proc/<pid>/environ).
-# Create the source files before `up` (they're gitignored under ops/secrets/):
-#   printf %s "$JWT_SECRET"    > ops/secrets/jwt_secret
-#   printf %s "$STATS_TOKEN"   > ops/secrets/stats_token
-#   printf %s "$METRICS_TOKEN" > ops/secrets/metrics_token   # also used by prometheus
+# All secrets are mounted into the consuming containers as files under
+# /run/secrets (kept out of the environment, so they don't show up in
+# `docker inspect` or /proc/<pid>/environ). Materialise the source files before
+# `up` — they're gitignored under ops/secrets/. See .env.prod.example for a
+# one-liner that derives them all from .env.prod, e.g.:
+#   printf 'redis://:%s@redis:6379/0' "$REDIS_PASSWORD" > ops/secrets/redis_url
 secrets:
   jwt_secret:
     file: ./ops/secrets/jwt_secret
@@ -304,6 +369,16 @@ secrets:
     file: ./ops/secrets/stats_token
   metrics_token:
     file: ./ops/secrets/metrics_token
+  redis_password:
+    file: ./ops/secrets/redis_password
+  redis_url:
+    file: ./ops/secrets/redis_url
+  pg_password:
+    file: ./ops/secrets/pg_password
+  pg_dsn:
+    file: ./ops/secrets/pg_dsn
+  grafana_admin_password:
+    file: ./ops/secrets/grafana_admin_password
 
 volumes:
   pg_data:

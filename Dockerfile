@@ -55,8 +55,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install deps first for layer caching. Prefer the fully-pinned lock for
-# reproducible/prod builds; fall back to requirements.txt if the lock is absent.
+# Install deps first for layer caching. Prefer the fully-pinned, hashed lock for
+# reproducible/prod builds (installed with --require-hashes so a tampered or
+# MITM'd index can't substitute a different artifact); fall back to the unhashed
+# requirements.txt only if the lock is absent.
 COPY requirements.txt requirements.lock* ./
 # Optional build-time CA bundle (BuildKit secret `proxy_ca`): lets pip reach the
 # index behind a TLS-intercepting egress proxy. Absent in normal builds -> plain
@@ -64,7 +66,9 @@ COPY requirements.txt requirements.lock* ./
 RUN --mount=type=secret,id=proxy_ca \
     pip install --no-cache-dir \
       $(test -s /run/secrets/proxy_ca && echo --cert=/run/secrets/proxy_ca) \
-      -r $( [ -f requirements.lock ] && echo requirements.lock || echo requirements.txt )
+      $( [ -f requirements.lock ] \
+           && echo "--require-hashes -r requirements.lock" \
+           || echo "-r requirements.txt" )
 
 # ── Stage 3b: the Python app (default build target) ───────────────────────────
 # Clean slim base with NO build toolchain — only the prebuilt venv and the app
