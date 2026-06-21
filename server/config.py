@@ -225,3 +225,15 @@ WEBAUTHN_ORIGIN = [
 ]
 JWT_SECRET = os.environ.get("JWT_SECRET", "dev-secret-change-in-prod")
 JWT_EXPIRY_DAYS = _int("JWT_EXPIRY_DAYS", 30)
+
+
+# ─── Web Push (VAPID) ──────────────────────────────────────────────────
+# Browser push notifications via the Web Push protocol. Off by default; needs a
+# VAPID keypair (generate one with `python scripts/gen_vapid.py`). The public key
+# is handed to the client so it can subscribe; the private key signs outgoing
+# pushes. VAPID_SUBJECT is a contact URI (mailto: or https:) push services use to
+# reach the operator. See docs/PUSH.md.
+PUSH_ENABLED = _flag("PUSH_ENABLED", False)
+VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY") or None
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY") or None
+VAPID_SUBJECT = os.environ.get("VAPID_SUBJECT", "mailto:michael@simmonstx.com")

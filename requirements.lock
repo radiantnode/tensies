@@ -33,3 +33,9 @@ pyasn1-modules==0.4.2
 pycparser==3.0
 pyOpenSSL==26.3.0
 blspy==2.0.3
+
+# Web Push (VAPID). pywebpush pulls in py-vapid + http-ece (+ requests); pinned
+# here so the locked build is reproducible.
+pywebpush==2.0.3
+py-vapid==1.9.2
+http-ece==1.2.1

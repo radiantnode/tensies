@@ -13,9 +13,14 @@ import './components/game-detail-screen.js';
 import './components/nav-menu.js';
 
 import { maybeReconnect } from './net.js';
+import { subscribeToPush } from './push.js';
 import { bootstrap } from './router.js';
 import { installTouchGuard } from './touch.js';
 
 installTouchGuard();
 
 bootstrap({ resumeSession: maybeReconnect });
+
+// Best-effort Web Push opt-in. No-ops unless the user is signed in, the browser
+// supports push, and push is enabled server-side; otherwise it quietly returns.
+subscribeToPush().catch(() => {});

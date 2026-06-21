@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
@@ -8,6 +9,7 @@ from server import db, discord, drand, fanout, gamestore, reaper, telemetry
 from server.auth import router as auth_router
 from server.config import FRONTEND_DIST
 from server.discord_interactions import router as discord_router
+from server.push_routes import router as push_router
 from server.routes import router as http_router
 from server.security import SecurityHeadersMiddleware
 from server.ws import router as ws_router
@@ -74,7 +76,28 @@ if not FRONTEND_DIST:
 
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
+
+# The service worker is served from the site root so its scope is "/" (a worker
+# under /static/ could only control /static/). Read once at startup from the
+# source tree (present in both dev and the prod image). Declared before the
+# routers so the /{code} join-deeplink catch-all can't shadow it.
+_SW_JS = (Path(__file__).resolve().parent / "static" / "sw.js").read_text()
+
+
+@app.get("/sw.js")
+async def service_worker() -> Response:
+    return Response(
+        content=_SW_JS,
+        media_type="text/javascript; charset=utf-8",
+        headers={
+            "Cache-Control": "no-cache",
+            "Service-Worker-Allowed": "/",
+        },
+    )
+
+
 app.include_router(auth_router)
 app.include_router(http_router)
 app.include_router(discord_router)
+app.include_router(push_router)
 app.include_router(ws_router)

@@ -110,6 +110,17 @@ discord_interactions_total = Counter(
     "Discord slash-command interactions handled", ["command", "outcome"]
 )
 
+# ─── Web Push (VAPID) ─────────────────────────────────────────────────
+push_sent_total = Counter(
+    "tensies_push_sent_total", "Web Push messages delivered to a subscription"
+)
+push_failed_total = Counter(
+    "tensies_push_failed_total", "Web Push send failures", ["reason"]
+)
+push_pruned_total = Counter(
+    "tensies_push_pruned_total", "Dead push subscriptions pruned (404/410)"
+)
+
 # ─── drand beacon ─────────────────────────────────────────────────────
 drand_beacon_fetches_total = Counter(
     "tensies_drand_beacon_fetches_total", "Successful drand beacon fetches"

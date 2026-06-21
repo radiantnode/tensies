@@ -88,6 +88,18 @@ def _decode_jwt(token: str) -> dict:
         raise HTTPException(401, "Invalid token") from None
 
 
+def require_user(authorization: str | None = Header(None)) -> dict:
+    """FastAPI dependency: extract + verify the bearer JWT, return its claims
+    ({"sub": user_id, "username": ...}). Raises 401 when missing/invalid.
+
+    Shared by any endpoint that must act as a signed-in account (e.g. the push
+    subscribe/unsubscribe routes), so they authenticate exactly like /auth/me.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(401, "Not authenticated")
+    return _decode_jwt(authorization[7:])
+
+
 # ─── Challenge storage (Redis, 120s TTL) ──────────────────────────────
 
 CHALLENGE_TTL = 120  # seconds
