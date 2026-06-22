@@ -1,6 +1,7 @@
 import hashlib
 import re
 from pathlib import Path
+from string import Template
 
 STATIC_DIR = Path("static")
 ASSET_REF = re.compile(r'"(/static/[^"?]+\.(?:css|js))"')
@@ -49,24 +50,47 @@ def build_index_html() -> str:
     return ASSET_REF.sub(lambda m: f'"{m.group(1)}?v={version}"', html)
 
 
-# og:image / twitter:image whose content is a root-relative /static path. iOS
-# LinkPresentation builds the share-sheet preview from these but wants ABSOLUTE
-# URLs, so we prefix them with the public origin when APP_URL is set.
-_SOCIAL_IMAGE = re.compile(
-    r'(<meta\s+(?:property="og:image"|name="twitter:image")\s+content=")(/[^"]*)(">)'
-)
+_SHARE_IMAGE_PATH = "/static/images/share-hero.png"
+
+# Default values for the $template_vars in index.html. Routes can override any
+# of these by passing keyword arguments to render_page().
+PAGE_DEFAULTS = {
+    "page_title": "Tensies",
+    "share_title": "Let's play Tensies!",
+    "share_description": "Roll all ten to win the round — real-time multiplayer dice game.",
+    "share_image": _SHARE_IMAGE_PATH,
+    "canonical_url": "/",
+}
 
 
-def absolutize_social_images(html: str, base_url: str) -> str:
-    """Rewrite root-relative og:image/twitter:image URLs to absolute on `base_url`.
+def build_page_template(html_source: str, app_url: str = "") -> tuple[Template, dict[str, str]]:
+    """Wrap the cache-busted index.html in a Template and resolve defaults.
 
-    No-op when base_url is empty so dev/preview keep relative URLs. Asset (css/js)
-    references are left relative — only the social-preview images need to resolve
-    for an off-site fetcher (iOS, social crawlers)."""
-    if not base_url:
-        return html
-    base = base_url.rstrip("/")
-    return _SOCIAL_IMAGE.sub(lambda m: f"{m.group(1)}{base}{m.group(2)}{m.group(3)}", html)
+    Called once at startup. The returned (Template, defaults) pair is passed to
+    render_page() per-request — defaults for most routes, with overrides for
+    pages like profiles."""
+    base = app_url.rstrip("/")
+    defaults = PAGE_DEFAULTS.copy()
+    if base:
+        defaults["share_image"] = f"{base}{_SHARE_IMAGE_PATH}"
+        defaults["canonical_url"] = base + "/"
+    return Template(html_source), defaults
+
+
+def _escape_attr(val: str) -> str:
+    """Escape for use inside a double-quoted HTML attribute.
+
+    Escapes &, <, >, and " — but NOT single quotes, which are fine inside
+    content="..." and look ugly when escaped in share-preview titles."""
+    return val.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+
+
+def render_page(template: Template, defaults: dict[str, str], **overrides: str) -> str:
+    """Substitute the page template with defaults + per-page overrides.
+
+    All values are escaped for double-quoted HTML attributes."""
+    merged = {k: _escape_attr(v) for k, v in {**defaults, **overrides}.items()}
+    return template.safe_substitute(merged)
 
 
 def build_js_cache() -> dict[str, str]:
