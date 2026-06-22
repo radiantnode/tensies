@@ -399,17 +399,18 @@ async def profile_vanity(username: str) -> HTMLResponse:
                 username.lower(),
             )
         display = user["username"]
-        desc_parts = []
-        if stats:
-            desc_parts.append(f"{stats['total_wins']} wins across {stats['total_games']} games")
+        desc_parts = [f"@{display}'s profile on Tensies."]
+        if stats and stats["total_games"]:
+            desc_parts.append(f"{stats['total_wins']} wins across {stats['total_games']} games.")
         if user["bio"]:
             desc_parts.append(user["bio"])
+        desc_parts.append("Challenge them to a game — no download required.")
         base = APP_URL.rstrip("/") if APP_URL else ""
         html = render_page(
             _tmpl, _defaults,
-            page_title=f"Play Tensies with @{display}!",
+            page_title=f"@{display} — Tensies Player Profile",
             share_title=f"Play Tensies with @{display}!",
-            share_description=" — ".join(desc_parts) if desc_parts else "Player profile on Tensies",
+            share_description=" ".join(desc_parts),
             canonical_url=f"{base}/@{display}" if base else f"/@{display}",
         )
         return HTMLResponse(html)

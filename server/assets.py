@@ -55,9 +55,9 @@ _SHARE_IMAGE_PATH = "/static/images/share-hero.png"
 # Default values for the $template_vars in index.html. Routes can override any
 # of these by passing keyword arguments to render_page().
 PAGE_DEFAULTS = {
-    "page_title": "Tensies",
-    "share_title": "Let's play Tensies!",
-    "share_description": "Roll all ten to win the round — real-time multiplayer dice game.",
+    "page_title": "Tensies — Real-Time Multiplayer Dice Game",
+    "share_title": "Tensies — Real-Time Multiplayer Dice Game",
+    "share_description": "Roll all ten dice to match the target and win the round. Free, real-time multiplayer — no download, just share a code and play.",
     "share_image": _SHARE_IMAGE_PATH,
     "canonical_url": "/",
 }
