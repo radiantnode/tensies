@@ -57,7 +57,10 @@ _SHARE_IMAGE_PATH = "/static/images/share-hero.png"
 PAGE_DEFAULTS = {
     "page_title": "Tensies — Real-Time Multiplayer Dice Game",
     "share_title": "Tensies — Real-Time Multiplayer Dice Game",
-    "share_description": "Roll all ten dice to match the target and win the round. Free, real-time multiplayer — no download, just share a code and play.",
+    "share_description": (
+        "Roll all ten dice to match the target and win the round."
+        " Free, real-time multiplayer — no download, just share a code and play."
+    ),
     "share_image": _SHARE_IMAGE_PATH,
     "canonical_url": "/",
 }
@@ -82,7 +85,10 @@ def _escape_attr(val: str) -> str:
 
     Escapes &, <, >, and " — but NOT single quotes, which are fine inside
     content="..." and look ugly when escaped in share-preview titles."""
-    return val.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+    return (
+        val.replace("&", "&amp;").replace("<", "&lt;")
+        .replace(">", "&gt;").replace('"', "&quot;")
+    )
 
 
 def render_page(template: Template, defaults: dict[str, str], **overrides: str) -> str:

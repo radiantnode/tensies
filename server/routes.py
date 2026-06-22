@@ -15,7 +15,10 @@ router = APIRouter()
 # read from FRONTEND_DIST; in dev it's assembled from the raw source with
 # cache-busting hashes. Either way, render_page() substitutes the $meta_vars
 # per-request (defaults for most routes, overrides for profiles etc.).
-_html_source = (Path(FRONTEND_DIST) / "index.html").read_text() if FRONTEND_DIST else build_index_html()
+if FRONTEND_DIST:
+    _html_source = (Path(FRONTEND_DIST) / "index.html").read_text()
+else:
+    _html_source = build_index_html()
 _tmpl, _defaults = build_page_template(_html_source, APP_URL)
 _index_html = render_page(_tmpl, _defaults)
 
