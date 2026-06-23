@@ -80,8 +80,11 @@ for (const sub of ['images', 'fonts']) {
     const name = basename(file, ext);
     const raw = readFileSync(file);
     const contents = ext === '.svg' ? minifySvg(raw.toString()) : raw;
-    const url = writeHashed(sub, name, ext, contents);
-    manifest.set(`/static/${sub}/${basename(file)}`, url);
+    // Preserve subdirectory structure (e.g. images/splash/foo.png)
+    const relFromSrc = file.slice(dir.length + 1);  // "splash/foo.png" or "foo.png"
+    const relDir = join(sub, dirname(relFromSrc)).replace(/\/+$/, '');
+    const url = writeHashed(relDir, name, ext, contents);
+    manifest.set(`/static/${sub}/${relFromSrc}`, url);
   }
 }
 
