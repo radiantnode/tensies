@@ -129,20 +129,11 @@
   }
 
   .winner-round-pill::before {
-    content: '';
-    position: absolute;
-    inset: 0;
     padding: 1px;
-    border-radius: inherit;
     background: linear-gradient(to bottom left,
       rgba(252, 200, 126, 0.95) 0%,
       rgba(216, 148, 80, 0.55) 38%,
       rgba(150, 96, 46, 0.2) 100%);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
-    pointer-events: none;
   }
 
   .winner-box {

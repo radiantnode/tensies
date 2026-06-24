@@ -5,12 +5,7 @@
 @layer components {
   .landing-screen,
   .join-screen {
-    display: flex;
-    flex-direction: column;
     position: relative;
-    block-size: 100%;
-    overflow: hidden;
-    background: var(--color-panel-screen);
     background: var(--color-panel-screen);
   }
 

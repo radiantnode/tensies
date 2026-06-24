@@ -34,6 +34,17 @@
   [hidden] { display: none !important; }
 
   .screen:not(.active):not(.staging):not(.dissolving) { display: none !important; }
+
+  /* Shared screen base — every screen is a full-height flex column. Individual
+     screen rules add background and any extras (position, max-block-size). */
+  .screen.active,
+  .screen.staging,
+  .screen.dissolving {
+    display: flex;
+    flex-direction: column;
+    block-size: 100%;
+    overflow: hidden;
+  }
 }
 
 @layer tokens {

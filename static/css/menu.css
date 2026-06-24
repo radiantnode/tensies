@@ -72,7 +72,6 @@
     gap: 0.75rem;
     padding: calc(env(safe-area-inset-top) + 4.25rem) 1.25rem 2rem;
     min-block-size: 100%;
-    box-sizing: border-box;
   }
 
   /* About section */
@@ -195,19 +194,7 @@
     font-size: 1rem;
     line-height: 1.7;
     color: rgba(235, 215, 195, 0.8);
-    --fade-top: 0px;
-    --fade-bottom: 0px;
-    -webkit-mask-image: linear-gradient(to bottom,
-      transparent 0, #000 var(--fade-top),
-      #000 calc(100% - var(--fade-bottom)), transparent 100%);
-            mask-image: linear-gradient(to bottom,
-      transparent 0, #000 var(--fade-top),
-      #000 calc(100% - var(--fade-bottom)), transparent 100%);
-    transition: --fade-top 0.15s linear, --fade-bottom 0.15s linear;
   }
-
-  .menu-changelog-body.can-scroll-up { --fade-top: 24px; }
-  .menu-changelog-body.can-scroll-down { --fade-bottom: 24px; }
 
   .menu-changelog-body h2 {
     margin: 1.5rem 0 0.1rem;

@@ -3,12 +3,8 @@
 
 @layer components {
   .game-screen {
-    display: flex;
-    flex-direction: column;
     position: relative;
-    block-size: 100%;
     max-block-size: 100%;
-    overflow: hidden;
   }
 
   /* Round status card */
@@ -44,20 +40,11 @@
   }
 
   .round-label::before {
-    content: '';
-    position: absolute;
-    inset: 0;
     padding: 1px;
-    border-radius: inherit;
     background: linear-gradient(to bottom left,
       rgba(252, 200, 126, 0.95) 0%,
       rgba(216, 148, 80, 0.55) 38%,
       rgba(150, 96, 46, 0.2) 100%);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
-    pointer-events: none;
   }
 
   .round-status .round-target-die { margin: 0; }
@@ -190,7 +177,6 @@
     position: relative;
     z-index: 1;
     transform: translateY(-2.3rem);
-    padding: 0.85rem 3.5rem;
     background: rgba(30, 15, 6, 0.22);
     border: none;
     border-radius: 50%;
@@ -223,20 +209,11 @@
   }
 
   .btn-roll::after {
-    content: '';
-    position: absolute;
-    inset: 0;
     padding: 1.5px;
-    border-radius: inherit;
     background: linear-gradient(to bottom left,
       rgba(252, 200, 126, 0.8) 0%,
       rgba(216, 148, 80, 0.55) 38%,
       rgba(150, 96, 46, 0.25) 100%);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
-    pointer-events: none;
   }
 
   @property --glow-angle {

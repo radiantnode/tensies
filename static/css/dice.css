@@ -58,10 +58,6 @@
   .face-3 { transform: rotateX(-90deg) translateZ(28px); }
   .face-4 { transform: rotateX(90deg) translateZ(28px); }
 
-  /* Match — same look as regular dice */
-  .die-3d.match .face { background: var(--die-face); }
-  .die-3d.match .face .dot.active { background: var(--die-pip); }
-
   /* 3-D tumble animations — three variants so dice look unsynchronised */
   @keyframes tumble3d-a {
     0% { transform: rotateX(0deg) rotateY(0deg); }

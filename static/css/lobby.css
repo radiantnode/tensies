@@ -9,11 +9,7 @@
 
 @layer components {
   .lobby-screen {
-    display: flex;
-    flex-direction: column;
     position: relative;
-    block-size: 100%;
-    overflow: hidden;
     background: var(--color-panel-screen);
   }
 
@@ -176,21 +172,7 @@
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    /* Edge fades as a scroll affordance: widths are 0 (no fade) and grow only
-       when there's content to scroll toward — JS toggles .can-scroll-up/down. */
-    --fade-top: 0px;
-    --fade-bottom: 0px;
-    -webkit-mask-image: linear-gradient(to bottom,
-      transparent 0, #000 var(--fade-top),
-      #000 calc(100% - var(--fade-bottom)), transparent 100%);
-            mask-image: linear-gradient(to bottom,
-      transparent 0, #000 var(--fade-top),
-      #000 calc(100% - var(--fade-bottom)), transparent 100%);
-    transition: --fade-top 0.15s linear, --fade-bottom 0.15s linear;
   }
-
-  .player-list.can-scroll-up { --fade-top: 24px; }
-  .player-list.can-scroll-down { --fade-bottom: 24px; }
   .player-list::-webkit-scrollbar { display: none; }
 
   .player-list-item {

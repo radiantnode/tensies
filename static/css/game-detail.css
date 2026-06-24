@@ -1,9 +1,5 @@
 @layer components {
   .game-detail-screen {
-    display: flex;
-    flex-direction: column;
-    block-size: 100%;
-    overflow: hidden;
     background: rgba(6, 3, 1, 0.93);
   }
 
@@ -17,9 +13,6 @@
     padding-inline: 1.25rem;
     padding-block: 1.5rem 2rem;
     text-align: center;
-  }
-
-  .game-detail-screen .screen-body {
     position: relative;
   }
 
@@ -134,20 +127,11 @@
   }
 
   .gd-player-avatar-ring::before {
-    content: '';
-    position: absolute;
-    inset: 0;
     padding: 1.5px;
-    border-radius: inherit;
     background: linear-gradient(to bottom left,
       rgba(252, 200, 126, 0.8) 0%,
       rgba(216, 148, 80, 0.55) 38%,
       rgba(150, 96, 46, 0.25) 100%);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
-    pointer-events: none;
   }
 
   .gd-player-avatar {

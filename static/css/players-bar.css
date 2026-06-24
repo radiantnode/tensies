@@ -62,11 +62,6 @@
     color: rgba(230, 200, 160, 0.85);
   }
 
-  .player-mini-wins.leading {
-    background: rgba(150, 95, 35, 0.22);
-    color: rgba(230, 200, 160, 0.85);
-  }
-
   .player-mini-progress {
     block-size: 6px;
     overflow: hidden;
