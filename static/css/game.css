@@ -94,7 +94,7 @@
     flex-direction: column;
     flex: 1;
     min-block-size: 0;
-    padding: 0 1rem 0.75rem;
+    padding: 0 1rem 0;
     overflow: hidden;
   }
 
@@ -112,6 +112,7 @@
   .zone-unmatched {
     position: relative;
     flex: 1;
+    margin-block-end: 3rem;
   }
 
   .die-wrapper {
@@ -143,31 +144,70 @@
 
   /* Roll button */
   .roll-area {
+    position: relative;
     flex-shrink: 0;
-    padding-block-start: 0.85rem;
-    padding-block-end: calc(1.5rem + env(safe-area-inset-bottom));
+    margin-inline: -1rem;
+    padding-block-start: 0;
+    padding-block-end: env(safe-area-inset-bottom);
+    padding-inline: 1rem;
     text-align: center;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    background-image: linear-gradient(
+      to right,
+      rgba(170, 115, 45, 0.35) 0%,
+      rgba(255, 200, 100, 0.7) calc(50% - 5rem),
+      rgba(170, 115, 45, 0.35) calc(50% - 3rem),
+      transparent calc(50% - 3rem),
+      transparent calc(50% + 3rem),
+      rgba(170, 115, 45, 0.35) calc(50% + 3rem),
+      rgba(255, 200, 100, 0.7) calc(50% + 5rem),
+      rgba(170, 115, 45, 0.35) 100%
+    );
+    background-size: 100% 1px;
+    background-repeat: no-repeat;
+    background-position: top;
+  }
+
+  .roll-area::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    translate: -50% 0;
+    width: 6rem;
+    height: 3rem;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border-radius: 3rem 3rem 0 0;
+    border-block-start: 1px solid rgba(200, 150, 70, 0.65);
+    border-inline: 1px solid rgba(200, 150, 70, 0.65);
   }
 
   .btn-roll {
+    position: relative;
+    z-index: 1;
+    transform: translateY(-2.3rem);
     padding: 0.85rem 3.5rem;
-    background: linear-gradient(180deg, rgba(44, 24, 10, 0.5) 0%, rgba(22, 11, 3, 0.42) 100%);
-    border-block-start: 1px solid rgba(170, 115, 45, 0.3);
-    border-inline-start: 1px solid rgba(150, 95, 35, 0.22);
-    border-inline-end: 1px solid rgba(120, 75, 25, 0.28);
-    border-block-end: 1px solid rgba(0, 0, 0, 0.65);
-    border-radius: var(--radius-md);
+    background: rgba(30, 15, 6, 0.22);
+    border: none;
+    border-radius: 50%;
+    aspect-ratio: 1;
+    padding: 0;
+    width: 4.5rem;
     box-shadow:
-      inset 0 1px 0 rgba(230, 180, 80, 0.16),
-      inset 0 5px 9px rgba(220, 170, 70, 0.05),
-      inset 0 -2px 5px rgba(0, 0, 0, 0.45),
-      0 5px 16px rgba(0, 0, 0, 0.75),
-      0 2px 5px rgba(0, 0, 0, 0.55);
+      inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.2),
+      inset 2px -2px 6px rgba(70, 28, 8, 0.2),
+      2px -2px 9px rgba(255, 186, 102, 0.15),
+      0 3px 12px rgba(0, 0, 0, 0.3),
+      0 0 18px rgba(255, 186, 102, 0.08);
     font-size: 1.25rem;
     font-weight: 800;
     letter-spacing: 0.12em;
-    color: rgba(215, 180, 130, 0.82);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+    color: rgba(240, 200, 140, 0.9);
+    text-shadow: 0 0 6px rgba(255, 186, 102, 0.4), 0 1px 2px rgba(0, 0, 0, 0.85);
     cursor: pointer;
     touch-action: manipulation;
     backdrop-filter: blur(3px);
@@ -175,33 +215,82 @@
     transition: transform 0.07s ease, box-shadow 0.07s ease, background 0.07s ease;
   }
 
-  .btn-roll:hover:not(:disabled) {
-    background: linear-gradient(180deg, rgba(54, 30, 12, 0.56) 0%, rgba(30, 15, 5, 0.48) 100%);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 210, 90, 0.24),
-      inset 0 5px 9px rgba(230, 180, 80, 0.07),
-      inset 0 -2px 5px rgba(0, 0, 0, 0.45),
-      0 7px 20px rgba(0, 0, 0, 0.8),
-      0 3px 6px rgba(0, 0, 0, 0.6);
+  .btn-roll::before {
+    content: '';
+    position: absolute;
+    inset: -2rem;
+    border-radius: 50%;
   }
 
-  .btn-roll:active:not(:disabled) {
-    background: rgba(15, 7, 2, 0.55);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 210, 90, 0.1),
-      inset 0 -1px 2px rgba(0, 0, 0, 0.3),
-      0 2px 6px rgba(0, 0, 0, 0.6),
-      0 1px 2px rgba(0, 0, 0, 0.4);
-    transform: translateY(3px);
+  .btn-roll::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1.5px;
+    border-radius: inherit;
+    background: linear-gradient(to bottom left,
+      rgba(252, 200, 126, 0.8) 0%,
+      rgba(216, 148, 80, 0.55) 38%,
+      rgba(150, 96, 46, 0.25) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  @property --glow-angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+  }
+
+  .btn-roll:disabled::after {
+    background: conic-gradient(
+      from var(--glow-angle),
+      rgba(150, 96, 46, 0.3) 0deg,
+      rgba(255, 220, 140, 0.9) 30deg,
+      rgba(255, 240, 180, 1) 60deg,
+      rgba(255, 220, 140, 0.9) 90deg,
+      rgba(150, 96, 46, 0.3) 120deg,
+      rgba(150, 96, 46, 0.3) 360deg
+    );
+    animation: border-rotate 0.8s linear infinite;
   }
 
   .btn-roll:disabled {
-    background: rgba(10, 5, 1, 0.25);
-    border-color: rgba(100, 70, 20, 0.2);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    color: rgba(180, 140, 80, 0.2);
+    color: rgba(215, 180, 130, 0.2);
+    text-shadow: none;
+    box-shadow:
+      inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.2),
+      inset 2px -2px 6px rgba(70, 28, 8, 0.2),
+      2px -2px 9px rgba(255, 186, 102, 0.15),
+      0 3px 12px rgba(0, 0, 0, 0.3),
+      0 0 24px rgba(255, 186, 102, 0.18);
     cursor: not-allowed;
-    backdrop-filter: none;
+    animation: orb-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes orb-pulse {
+    0%, 100% {
+      box-shadow:
+        inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.2),
+        inset 2px -2px 6px rgba(70, 28, 8, 0.2),
+        0 0 12px rgba(255, 186, 102, 0.1),
+        0 0 24px rgba(255, 170, 60, 0.08);
+    }
+    50% {
+      box-shadow:
+        inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.2),
+        inset 2px -2px 6px rgba(70, 28, 8, 0.2),
+        0 0 30px rgba(255, 186, 102, 0.55),
+        0 0 60px rgba(255, 170, 60, 0.35),
+        0 0 90px rgba(255, 170, 60, 0.15);
+    }
+  }
+
+  @keyframes border-rotate {
+    to { --glow-angle: 360deg; }
   }
 
   @media (max-width: 480px) {
