@@ -78,7 +78,7 @@ export class LandingScreen extends HTMLElement {
     banner.setAttribute('aria-label', 'Add Tensies to your Home Screen');
     banner.innerHTML = `
       <button type="button" class="a2hs-banner-main">
-        <img class="a2hs-banner-icon" src="/static/images/apple-touch-icon-180.png" alt="">
+        <img class="a2hs-banner-icon" src="/static/images/icon-180.png" alt="">
         <span class="a2hs-banner-text">
           <span class="a2hs-banner-title">Add to Home Screen</span>
           <span class="a2hs-banner-sub">Faster launch, full screen &amp; more</span>
