@@ -1,8 +1,8 @@
 apiVersion: 1
 
-# Prod datasource provisioning. The Postgres password is read from the
-# environment (Grafana expands ${VAR} in provisioning files) rather than being
-# committed, unlike the dev provisioning/datasources/datasources.yaml.
+# Prod datasource provisioning. The Postgres password is read from the mounted
+# secret file via Grafana's $__file{} provider — so it's never in Grafana's
+# environment (nor committed, unlike the dev provisioning/datasources).
 datasources:
   - name: Postgres
     uid: postgres
@@ -11,7 +11,7 @@ datasources:
     url: postgres:5432
     user: tensies
     secureJsonData:
-      password: ${POSTGRES_PASSWORD}
+      password: $__file{/run/secrets/pg_password}
     jsonData:
       database: tensies
       sslmode: disable
