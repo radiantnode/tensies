@@ -232,6 +232,59 @@
     pointer-events: none;
   }
 
+  @property --glow-angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+  }
+
+  .btn-roll:disabled::after {
+    background: conic-gradient(
+      from var(--glow-angle),
+      rgba(150, 96, 46, 0.3) 0deg,
+      rgba(255, 220, 140, 0.9) 30deg,
+      rgba(255, 240, 180, 1) 60deg,
+      rgba(255, 220, 140, 0.9) 90deg,
+      rgba(150, 96, 46, 0.3) 120deg,
+      rgba(150, 96, 46, 0.3) 360deg
+    );
+    animation: border-rotate 0.8s linear infinite;
+  }
+
+  .btn-roll:disabled {
+    color: rgba(215, 180, 130, 0.2);
+    text-shadow: none;
+    box-shadow:
+      inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.2),
+      inset 2px -2px 6px rgba(70, 28, 8, 0.2),
+      2px -2px 9px rgba(255, 186, 102, 0.15),
+      0 3px 12px rgba(0, 0, 0, 0.3),
+      0 0 24px rgba(255, 186, 102, 0.18);
+    cursor: not-allowed;
+    animation: orb-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes orb-pulse {
+    0%, 100% {
+      box-shadow:
+        inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.2),
+        inset 2px -2px 6px rgba(70, 28, 8, 0.2),
+        0 0 12px rgba(255, 186, 102, 0.1),
+        0 0 24px rgba(255, 170, 60, 0.08);
+    }
+    50% {
+      box-shadow:
+        inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.2),
+        inset 2px -2px 6px rgba(70, 28, 8, 0.2),
+        0 0 30px rgba(255, 186, 102, 0.55),
+        0 0 60px rgba(255, 170, 60, 0.35),
+        0 0 90px rgba(255, 170, 60, 0.15);
+    }
+  }
+
+  @keyframes border-rotate {
+    to { --glow-angle: 360deg; }
+  }
 
   @media (max-width: 480px) {
     .zone-matched { inline-size: calc(2 * 50px + 14px); }
