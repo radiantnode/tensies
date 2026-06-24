@@ -14,7 +14,7 @@ import { triggerNativeInstall, hasNativePrompt, dismissBanner } from '../a2hs.js
  * box to any screen — it stays inert until opened.
  */
 
-const APP_ICON = '/static/images/apple-touch-icon-180.png';
+const APP_ICON = '/static/images/icon-180.png';
 
 // Inline SVG glyphs (stroke/fill = currentColor; no inline styles, CSP-safe).
 const S = 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
