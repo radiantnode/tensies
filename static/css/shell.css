@@ -9,7 +9,21 @@
     position: relative;
     flex-shrink: 0;
     padding-block-start: env(safe-area-inset-top);
-    border-block-end: 1px solid rgba(180, 100, 20, 0.25);
+    border-block-end: none;
+  }
+
+  .game-topbar::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    block-size: 1px;
+    background: linear-gradient(
+      to right,
+      rgba(170, 115, 45, 0.35) 0%,
+      rgba(255, 200, 100, 0.7) 50%,
+      rgba(170, 115, 45, 0.35) 100%
+    );
   }
 
   /* Opaque shield behind the iOS status bar so nothing shows through
@@ -35,6 +49,10 @@
     background: var(--color-panel);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+  }
+
+  .game-topbar .topbar-title-row {
+    border-block-end: none;
   }
 
   .game-title {
