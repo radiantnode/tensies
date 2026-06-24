@@ -50,7 +50,7 @@ The dice physics feel right. They gather, shake, scatter across a virtual bar to
 Everything else:
 
 - Live multiplayer over WebSocket. Updates in under a second.
-- Reconnect grace period: 30 seconds normally, an hour if the game is paused. Phone goes dark mid-round, you get your seat back.
+- Reconnect grace period: 60 seconds normally, an hour if the game is paused. Phone goes dark mid-round, you get your seat back.
 - Host pause, for a bar run, a bathroom break, or figuring out who's buying the next round. Hangs for up to an hour.
 - If the host vanishes, the next person in the room quietly takes over. Nobody waits.
 - Share by link, SMS, or [audio](docs/audio-sharing/README.md) from the lobby. One phone chirps the code, the other listens and fills it in.

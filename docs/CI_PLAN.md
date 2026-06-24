@@ -1,9 +1,9 @@
 # CI plan — GitHub Actions
 
-What "proper" continuous integration for Tensies should look like. This is a
-design doc, not yet wired up (there is no `.github/workflows/` today). It
-captures the test/build surface, the jobs that gate it, and the design choices
-that matter so the implementation is mechanical when we pick it up.
+What "proper" continuous integration for Tensies should look like. The basics
+are wired up (`.github/workflows/ci.yml` and `codeql.yml`), but this doc
+captures the full test/build surface and the design choices that matter for
+expanding coverage.
 
 ## What CI has to cover
 
