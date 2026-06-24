@@ -215,6 +215,13 @@
     transition: transform 0.07s ease, box-shadow 0.07s ease, background 0.07s ease;
   }
 
+  .btn-roll::before {
+    content: '';
+    position: absolute;
+    inset: -2rem;
+    border-radius: 50%;
+  }
+
   .btn-roll::after {
     content: '';
     position: absolute;
