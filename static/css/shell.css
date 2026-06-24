@@ -62,7 +62,6 @@
   .game-title {
     display: flex;
     align-items: center;
-    gap: 0;
     padding: 0.5rem 0.75rem 0.5rem 0.4rem;
     font-size: 1.2rem;
     font-weight: 900;
@@ -130,20 +129,11 @@
   }
 
   .header-username::before {
-    content: '';
-    position: absolute;
-    inset: 0;
     padding: 1px;
-    border-radius: inherit;
     background: linear-gradient(to bottom left,
       rgba(252, 200, 126, 0.5) 0%,
       rgba(216, 148, 80, 0.3) 38%,
       rgba(150, 96, 46, 0.1) 100%);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
-    pointer-events: none;
   }
 
   .header-username + .game-menu-btn {
