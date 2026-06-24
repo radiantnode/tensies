@@ -20,5 +20,9 @@ h11==0.16.0
 webauthn==2.8.0
 PyJWT==2.13.0
 
+# Web Push (VAPID) notifications — encrypts + signs payloads for the browser
+# Push API. Pulls in py-vapid, http-ece, and cryptography.
+pywebpush==2.0.3
+
 # BLS12-381 signature verification for drand beacon
 blspy==2.0.3

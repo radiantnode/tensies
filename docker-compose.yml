@@ -32,6 +32,12 @@ services:
       DISCORD_PUBLIC_KEY: ${DISCORD_PUBLIC_KEY:-}
       DISCORD_APPLICATION_ID: ${DISCORD_APPLICATION_ID:-}
       DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:-}
+      # Web Push (optional, off by default). Generate keys with
+      # `python scripts/gen_vapid.py`. See docs/PUSH.md.
+      PUSH_ENABLED: ${PUSH_ENABLED:-0}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:michael@simmonstx.com}
     depends_on:
       postgres:
         condition: service_healthy

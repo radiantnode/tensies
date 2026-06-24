@@ -83,6 +83,12 @@ services:
       DISCORD_PUBLIC_KEY: "${DISCORD_PUBLIC_KEY:-}"
       DISCORD_APPLICATION_ID: "${DISCORD_APPLICATION_ID:-}"
       DISCORD_GUILD_ID: "${DISCORD_GUILD_ID:-}"
+      # Web Push (optional). Off unless PUSH_ENABLED is set; the private key is a
+      # secret — pass it via .env.prod, never inline. See docs/PUSH.md.
+      PUSH_ENABLED: "${PUSH_ENABLED:-0}"
+      VAPID_PUBLIC_KEY: "${VAPID_PUBLIC_KEY:-}"
+      VAPID_PRIVATE_KEY: "${VAPID_PRIVATE_KEY:-}"
+      VAPID_SUBJECT: "${VAPID_SUBJECT:-}"
       # Prod static-asset mode: serve the prebuilt, fingerprinted index.html that
       # the build baked into the image (nginx serves everything under /static).
       # The app does zero asset work — no in-process JS cache, no StaticFiles.
