@@ -30,6 +30,7 @@
  * @property {Record<string, PlayerSnapshot>} players
  * @property {string} [winner_name] Present on `round_won` frames.
  * @property {number} [pause_remaining_ms] Present on paused frames sent to the host.
+ * @property {string} [commentary] TAS commentary line for the roller's own roll.
  */
 
 /**

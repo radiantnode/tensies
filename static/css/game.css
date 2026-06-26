@@ -129,9 +129,42 @@
   .zone-matched .die-scene:nth-child(3n+1) { transform: rotate(-2.5deg); }
   .zone-matched .die-scene:nth-child(3n+2) { transform: rotate(1.5deg); }
 
+  /* TAS commentary (above roll button dome) */
+  .tas-commentary {
+    position: absolute;
+    z-index: 5;
+    left: 50%;
+    bottom: 7rem;
+    translate: -50% 0;
+    inline-size: 90%;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    font-weight: 600;
+    color: var(--color-text-warm);
+    text-shadow: var(--shadow-text);
+    text-align: center;
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.6) 30%, transparent 65%);
+    padding: 3rem 2rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+
+  .tas-commentary.visible {
+    opacity: 1;
+    transition: opacity 0.25s ease;
+  }
+
+  .tas-commentary.fading {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
   /* Roll button */
   .roll-area {
     position: relative;
+    z-index: 10;
     flex-shrink: 0;
     margin-inline: -1rem;
     padding-block-start: 0;

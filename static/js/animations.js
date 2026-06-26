@@ -2,6 +2,7 @@
 import { FACE_ROTATIONS, makeDie, myDiceKey, placeGrid } from './dice.js';
 import { saveDicePositions } from './dice-positions.js';
 import { renderMyArea, renderPlayersBar } from './game-render.js';
+import { showCommentary } from './commentary.js';
 import { hideWinner, showWinner } from './overlays.js';
 import { showFor } from './router.js';
 import { state } from './state.js';
@@ -198,6 +199,7 @@ export function tryReveal() {
     state.rolling = false;
     const btn = /** @type {HTMLButtonElement | null} */ (document.getElementById('roll-btn'));
     if (btn) btn.disabled = false;
+    if (snap.commentary) showCommentary(snap.commentary);
     if (state.ws && state.ws.readyState === WebSocket.OPEN) {
       state.ws.send(JSON.stringify({ action: 'roll_done' }));
     }

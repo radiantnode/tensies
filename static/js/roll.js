@@ -1,5 +1,6 @@
 // @ts-check
 import { startShake, tryReveal } from './animations.js';
+import { hideCommentary } from './commentary.js';
 import { state } from './state.js';
 
 /**
@@ -15,6 +16,7 @@ export function roll() {
   const winner = /** @type {HTMLDialogElement | null} */ (document.getElementById('winner-overlay'));
   if (winner?.open) return;
 
+  hideCommentary();
   state.rolling = true;
   state.awaitingAck = true;
   state.pendingRollState = null;

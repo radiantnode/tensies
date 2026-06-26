@@ -154,6 +154,16 @@ export function renderMyArea(snap) {
   zones.appendChild(matchedZone);
   area.appendChild(zones);
 
+  // TAS commentary lives on the game-screen (not my-area) so overflow:hidden
+  // does not clip it. Re-create only if missing (game-screen is not rebuilt).
+  const screen = area.closest('.game-screen');
+  if (screen && !screen.querySelector('#tas-commentary')) {
+    const commentaryEl = document.createElement('div');
+    commentaryEl.id = 'tas-commentary';
+    commentaryEl.className = 'tas-commentary';
+    screen.appendChild(commentaryEl);
+  }
+
   const rollArea = document.createElement('div');
   rollArea.className = 'roll-area';
   const btn = document.createElement('button');

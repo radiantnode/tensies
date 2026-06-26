@@ -1,5 +1,6 @@
 import asyncio
 import json
+import random
 import time
 import uuid
 
@@ -304,6 +305,28 @@ async def handle_roll(session: Session, msg: dict) -> None:
          locked_after=result["locked_after"],
          drand_round=drand_round)
 
+    # ── TAS commentary (sync, zero-await) ──────────────────────────────
+    # Skip commentary on round-ending rolls — the winner overlay speaks for itself.
+    from server import tas
+    commentary = None
+    if matched < 10 and random.random() < 0.4:
+        if p["roll_count"] == 1:
+            tas_tag = "first_roll"
+        elif len(result["newly_locked"]) >= 3:
+            tas_tag = "hot_streak"
+        elif len(result["newly_locked"]) == 0:
+            tas_tag = "whiff"
+        elif matched >= 8:
+            tas_tag = "close"
+        else:
+            tas_tag = "default"
+        commentary = tas.get_phrase("roll_heckle", tas_tag, {
+            "name": session.name,
+            "matched": matched,
+            "roll_count": p["roll_count"],
+            "target": target,
+        }, player_id=session.pid)
+
     if matched == 10:
         # Atomic CAS: only the first finisher across all instances wins.
         if not await gamestore.try_finish_round(code):
@@ -328,14 +351,20 @@ async def handle_roll(session: Session, msg: dict) -> None:
              final_dice=list(p["dice"]))
         snap = await gamestore.snapshot(code)
         if snap:
-            await send(session.ws, state_msg(snap, code, "round_won", winner_name=session.name))
+            msg_out = state_msg(snap, code, "round_won", winner_name=session.name)
+            if commentary:
+                msg_out["commentary"] = commentary
+            await send(session.ws, msg_out)
         asyncio.create_task(delayed_broadcast(code, session.pid, True, winner_name=session.name))
     else:
         log.info("roll     game=%s  player=%s  matched=%d/10  target=%d",
                  code, session.name, matched, target)
         snap = await gamestore.snapshot(code)
         if snap:
-            await send(session.ws, state_msg(snap, code))
+            msg_out = state_msg(snap, code)
+            if commentary:
+                msg_out["commentary"] = commentary
+            await send(session.ws, msg_out)
         asyncio.create_task(delayed_broadcast(code, session.pid, False, None))
 
 

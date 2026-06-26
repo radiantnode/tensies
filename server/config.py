@@ -215,6 +215,18 @@ DRAND_CHAIN_HASH = os.environ.get(
 DRAND_POLL_INTERVAL = _float("DRAND_POLL_INTERVAL", 3.0)
 
 
+# ─── Tensies Attitude System (TAS) ──────────────────────────────────────
+# Weather-driven personality that heckles/cheers players. Phrases live in
+# Postgres (tas_phrases); mood is derived from weather + air quality at the
+# server's location. Set TAS_LAT/TAS_LON to enable weather polling; without
+# them mood stays "neutral" (phrases still serve, just from the neutral pool).
+TAS_ENABLED = _flag("TAS_ENABLED", True)
+TAS_LAT = os.environ.get("TAS_LAT") or None
+TAS_LON = os.environ.get("TAS_LON") or None
+TAS_SNARKINESS = os.environ.get("TAS_SNARKINESS", "friendly_drunk")
+TAS_WEATHER_INTERVAL = _float("TAS_WEATHER_INTERVAL", 1800.0)
+
+
 # ─── WebAuthn / user accounts ─────────────────────────────────────────
 WEBAUTHN_RP_ID = os.environ.get("WEBAUTHN_RP_ID", "localhost")
 WEBAUTHN_RP_NAME = os.environ.get("WEBAUTHN_RP_NAME", "Tensies")
