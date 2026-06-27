@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
-from server import db, discord, drand, fanout, gamestore, reaper, telemetry
+from server import db, discord, drand, fanout, gamestore, reaper, tas, telemetry
 from server.auth import router as auth_router
 from server.config import FRONTEND_DIST
 from server.discord_interactions import router as discord_router
@@ -24,6 +24,7 @@ async def lifespan(app: FastAPI):
     await gamestore.init()
     await fanout.start()
     await drand.start()
+    await tas.start()
     await telemetry.start()
     await discord.start()
     await reaper.start()
@@ -33,6 +34,7 @@ async def lifespan(app: FastAPI):
         await reaper.stop()
         await discord.stop()
         await telemetry.stop()
+        await tas.stop()
         await drand.stop()
         await fanout.stop()
         await gamestore.close()
