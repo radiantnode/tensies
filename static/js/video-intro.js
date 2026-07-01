@@ -9,6 +9,10 @@
 const FADE_OUT_MS = 400;
 const FADE_IN_MS = 1000;
 const EARLY_FADE_IN_S = 1;
+// Hard ceiling on the whole intro. Comfortably longer than the clip, but a
+// backstop so a stalled/undecodable video (never plays, never fires `ended`,
+// never rejects) still reveals the game instead of stranding a hidden screen.
+const MAX_INTRO_MS = 8000;
 
 /**
  * Play the intro sequence. Seeks the already-autoplaying intro video to
@@ -39,9 +43,11 @@ export function playIntro(buildGame) {
 
     // 3. Fade the game screen in 1s before the video ends.
     let fadeStarted = false;
+    let failsafe = 0;
     const revealGame = () => {
       if (fadeStarted) return;
       fadeStarted = true;
+      clearTimeout(failsafe);
       main.classList.remove('intro-hidden');
       void main.offsetHeight;
       main.classList.remove('intro-fade-out');
@@ -69,6 +75,7 @@ export function playIntro(buildGame) {
     // the video ends before the rAF loop catches it), reveal the game anyway so
     // a playback failure costs the animation, not a stranded hidden screen.
     intro.addEventListener('ended', revealGame, { once: true });
+    failsafe = setTimeout(revealGame, MAX_INTRO_MS);
     const playPromise = intro.play();
     if (playPromise) playPromise.catch(revealGame);
   });
