@@ -37,28 +37,39 @@ export function playIntro(buildGame) {
       buildGame();
     }, FADE_OUT_MS);
 
-    // 3. Start fading in the game screen 1s before the video ends.
+    // 3. Fade the game screen in 1s before the video ends.
     let fadeStarted = false;
+    const revealGame = () => {
+      if (fadeStarted) return;
+      fadeStarted = true;
+      main.classList.remove('intro-hidden');
+      void main.offsetHeight;
+      main.classList.remove('intro-fade-out');
+      main.classList.add('intro-fade-in');
+
+      setTimeout(() => {
+        main.classList.remove('intro-fade-in');
+        intro.classList.remove('playing');
+        resolve(undefined);
+      }, FADE_IN_MS);
+    };
     const startFadeIn = () => {
       if (fadeStarted) return;
       const remaining = intro.duration - intro.currentTime;
-      if (remaining <= EARLY_FADE_IN_S) {
-        fadeStarted = true;
-        main.classList.remove('intro-hidden');
-        void main.offsetHeight;
-        main.classList.remove('intro-fade-out');
-        main.classList.add('intro-fade-in');
-
-        setTimeout(() => {
-          main.classList.remove('intro-fade-in');
-          intro.classList.remove('playing');
-          resolve(undefined);
-        }, FADE_IN_MS);
-      } else {
-        requestAnimationFrame(startFadeIn);
-      }
+      if (remaining <= EARLY_FADE_IN_S) revealGame();
+      else requestAnimationFrame(startFadeIn);
     };
     if (intro.duration) requestAnimationFrame(startFadeIn);
     else intro.addEventListener('loadedmetadata', () => requestAnimationFrame(startFadeIn), { once: true });
+
+    // Explicitly (re)start playback. On the first game the page-load autoplay
+    // is still running, so seeking is enough; but once it plays through with
+    // looping off it's left in the `ended` state, and a second game start must
+    // kick it off again or the intro never plays. If playback can't start (or
+    // the video ends before the rAF loop catches it), reveal the game anyway so
+    // a playback failure costs the animation, not a stranded hidden screen.
+    intro.addEventListener('ended', revealGame, { once: true });
+    const playPromise = intro.play();
+    if (playPromise) playPromise.catch(revealGame);
   });
 }
