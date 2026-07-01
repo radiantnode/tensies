@@ -46,7 +46,7 @@
 
   <!-- First-paint assets, warmed before anything blocks. -->
   <link rel="preload" href="/static/images/logo.svg" as="image">
-  <link rel="preload" href="/static/images/bar-top.webp" as="image" type="image/webp">
+
   <link rel="preload" href="/static/fonts/inter-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 
   <!-- Critical CSS: layer order, tokens, reset, loading screen, view-transition setup. -->
@@ -88,6 +88,7 @@
   <link rel="modulepreload" href="/static/js/animations.js">
   <link rel="modulepreload" href="/static/js/roll.js">
   <link rel="modulepreload" href="/static/js/overlays.js">
+  <link rel="modulepreload" href="/static/js/video-intro.js">
   <link rel="modulepreload" href="/static/js/audio-share.js">
   <link rel="modulepreload" href="/static/js/eq-icon.js">
   <link rel="modulepreload" href="/static/js/components/app-header.js">
@@ -108,6 +109,21 @@
   <script type="module" src="/static/js/app.js"></script>
 </head>
 <body>
+
+<video id="bg-video" class="bg-video" autoplay muted playsinline loop preload="auto"
+       poster="/static/video/poster-landing.webp">
+  <source src="/static/video/landing-hevc.mp4" type="video/mp4; codecs=hvc1">
+  <source src="/static/video/landing-h264.mp4" type="video/mp4">
+</video>
+
+<video id="intro-video" class="bg-video intro-video" autoplay muted playsinline loop preload="auto">
+  <source src="/static/video/game-start-hevc.mp4" type="video/mp4; codecs=hvc1">
+  <source src="/static/video/game-start-h264.mp4" type="video/mp4">
+</video>
+
+<!-- Game board background: a fixed, full-viewport layer sharing the intro
+     video's geometry, so the intro→board handoff doesn't shift the image. -->
+<div id="game-bg" class="game-bg" aria-hidden="true"></div>
 
 <main>
 

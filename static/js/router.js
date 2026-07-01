@@ -6,6 +6,7 @@ import {
 import { saveGameCode, hasSession } from './session.js';
 import { state } from './state.js';
 import { showScreen, showLoading, leaveLoading } from './transitions.js';
+import { playIntro } from './video-intro.js';
 
 /** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
 
@@ -251,9 +252,13 @@ export function showFor(snap) {
     return;
   }
 
+  // First start (lobby → game): play the intro video.
+  const fromLobby = byId('lobby').classList.contains('active');
   leaveLoading(() => {
     hideWinner();
-    showScreen('game', { staged: true, onSwap: () => gameScreen().render(snap) });
+    const reveal = () => showScreen('game', { staged: true, onSwap: () => gameScreen().render(snap) });
+    if (fromLobby) playIntro(reveal);
+    else reveal();
     // Just resumed: drop the pause overlay after the toggle's slide-off.
     const pauseDialog = /** @type {HTMLDialogElement | null} */ (document.getElementById('pause-overlay'));
     if (pauseDialog?.open) setTimeout(hidePaused, RESUME_CLOSE_DELAY_MS);

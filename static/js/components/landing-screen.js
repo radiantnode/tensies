@@ -23,9 +23,9 @@ export class LandingScreen extends HTMLElement {
     this.innerHTML = `
       <app-header></app-header>
       <div class="screen-body">
-        <img src="/static/images/logo.svg" class="logo-mark" alt="">
-        <h1 id="landing-title" class="logo">TENSIES</h1>
-        <p class="tagline">Roll all ten to win</p>
+        <img src="/static/images/logo.svg" class="logo-mark landing-hidden" alt="">
+        <h1 id="landing-title" class="logo landing-hidden">TENSIES</h1>
+        <p class="tagline landing-hidden">Roll all ten to win</p>
         <form id="landing-form" class="form-stack" autocomplete="off" novalidate>
           <label class="field-hint" for="name-input">Enter a player name or go with it</label>
           <input id="name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20">

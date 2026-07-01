@@ -5,6 +5,8 @@
   .game-screen {
     position: relative;
     max-block-size: 100%;
+    /* Background lives on the fixed #game-bg layer (critical.css) so it shares
+       the intro video's geometry and doesn't shift on the intro→board handoff. */
   }
 
   /* Round status card */
