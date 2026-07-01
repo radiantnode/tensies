@@ -278,6 +278,10 @@ function handleMessage(msg) {
     }
     case 'game_ended': {
       resetRollState();
+      // The game screen is a persistent shell element, so its in-game menu
+      // (open when you tapped "End Game") would otherwise stay open and show
+      // up on the next game's board. Reset it as the game tears down.
+      /** @type {import('./components/game-screen.js').GameScreen} */ (byId('game')).closeMenu();
       const code = state.gameCode;
       clearSession();
       state.currentState = null;
