@@ -121,6 +121,10 @@
   <source src="/static/video/game-start-h264.mp4" type="video/mp4">
 </video>
 
+<!-- Game board background: a fixed, full-viewport layer sharing the intro
+     video's geometry, so the intro→board handoff doesn't shift the image. -->
+<div id="game-bg" class="game-bg" aria-hidden="true"></div>
+
 <main>
 
   <!-- Inline loading screen: paints from the critical CSS above with no JS.

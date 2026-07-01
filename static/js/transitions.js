@@ -50,6 +50,10 @@ function settledTransition() {
  */
 export function showScreen(id, { force = false, staged = false, onSwap } = {}) {
   const target = byId(id);
+  // Reveal the fixed game-board background only on the game screen (see the
+  // #game-bg layer in critical.css). Set before any early return so every
+  // enter/exit path — staged, view-transition, or plain — stays in sync.
+  document.body.classList.toggle('in-game', id === 'game');
   if (!force && target.classList.contains('active')) {
     onSwap?.();
     return settledTransition();

@@ -99,6 +99,24 @@
     display: block;
   }
 
+  /* Game board background painted on a fixed, full-viewport layer — the same
+     geometry as the intro video — so the intro→board handoff doesn't shift the
+     image. Painting it on .game-screen instead makes `cover` recrop against a
+     box that changes fixed→relative across the staged reveal, so it jumps. */
+  .game-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: var(--color-bg) url('/static/video/poster-game.webp') center / cover no-repeat;
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  body.in-game .game-bg {
+    opacity: 1;
+    visibility: visible;
+  }
+
   main.intro-fade-out {
     opacity: 0;
     transition: opacity 400ms ease-out;
