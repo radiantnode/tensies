@@ -256,13 +256,9 @@ export function showFor(snap) {
   const fromLobby = byId('lobby').classList.contains('active');
   leaveLoading(() => {
     hideWinner();
-    if (fromLobby) {
-      playIntro(() => {
-        showScreen('game', { staged: true, onSwap: () => gameScreen().render(snap) });
-      });
-    } else {
-      showScreen('game', { staged: true, onSwap: () => gameScreen().render(snap) });
-    }
+    const reveal = () => showScreen('game', { staged: true, onSwap: () => gameScreen().render(snap) });
+    if (fromLobby) playIntro(reveal);
+    else reveal();
     // Just resumed: drop the pause overlay after the toggle's slide-off.
     const pauseDialog = /** @type {HTMLDialogElement | null} */ (document.getElementById('pause-overlay'));
     if (pauseDialog?.open) setTimeout(hidePaused, RESUME_CLOSE_DELAY_MS);
