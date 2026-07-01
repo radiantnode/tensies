@@ -77,7 +77,44 @@
     block-size: calc(100% + env(safe-area-inset-top) + env(safe-area-inset-bottom));
     overflow: hidden;
     overscroll-behavior: none;
-    background: var(--color-bg) url('/static/images/bar-top.webp') center 10% / cover no-repeat;
+    background: var(--color-bg);
+  }
+
+  .bg-video {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .intro-video {
+    display: none;
+    z-index: 0;
+  }
+
+  .intro-video.playing {
+    display: block;
+  }
+
+  main.intro-fade-out {
+    opacity: 0;
+    transition: opacity 400ms ease-out;
+  }
+
+  main.intro-hidden {
+    visibility: hidden;
+  }
+
+  main.intro-fade-in {
+    animation: intro-reveal 1000ms ease-in forwards;
+  }
+
+  @keyframes intro-reveal {
+    from { opacity: 0; }
+    to   { opacity: 1; }
   }
 
   body {
@@ -191,7 +228,7 @@
     padding: calc(1.25rem + env(safe-area-inset-top)) calc(1.5rem + env(safe-area-inset-right))
              calc(1.25rem + env(safe-area-inset-bottom)) calc(1.5rem + env(safe-area-inset-left));
     text-align: center;
-    background: var(--color-bg) url('/static/images/bar-top.webp') center / cover no-repeat;
+    background: var(--color-bg);
   }
 
   .rotate-overlay::before {

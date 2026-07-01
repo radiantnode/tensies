@@ -3,7 +3,17 @@
    nav menu opens (the hamburger itself stays clickable). */
 
 @layer components {
-  .landing-screen,
+  .landing-hidden { visibility: hidden; }
+
+  .landing-screen {
+    position: relative;
+    background: linear-gradient(
+      to top,
+      rgba(6, 3, 1, 0.96) 0%,
+      transparent 95%
+    );
+  }
+
   .join-screen {
     position: relative;
     background: var(--color-panel-screen);

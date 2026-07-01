@@ -5,6 +5,7 @@ import { playCode } from '../audio-share.js';
 import { byId } from '../dom.js';
 import { EQ_ICON_HTML } from '../eq-icon.js';
 import { startGame } from '../net.js';
+
 import { updateScrollFades } from '../scroll-fades.js';
 import { state } from '../state.js';
 

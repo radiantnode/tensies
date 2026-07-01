@@ -5,6 +5,7 @@
   .game-screen {
     position: relative;
     max-block-size: 100%;
+    background: var(--color-bg) url('/static/video/poster-game.webp') center / cover no-repeat;
   }
 
   /* Round status card */

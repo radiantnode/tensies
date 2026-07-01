@@ -1,0 +1,64 @@
+// @ts-check
+
+/**
+ * Game-start video intro: the intro video autoplays hidden+looping so iOS
+ * grants playback permission. On game start we seek to 0, show it, and
+ * let it play once — then fade in the game screen.
+ */
+
+const FADE_OUT_MS = 400;
+const FADE_IN_MS = 1000;
+const EARLY_FADE_IN_S = 1;
+
+/**
+ * Play the intro sequence. Seeks the already-autoplaying intro video to
+ * the start, shows it, and fades everything else out. Works from any
+ * context (tap or WS callback) because the video is already playing.
+ * @param {() => void} buildGame
+ * @returns {Promise<void>}
+ */
+export function playIntro(buildGame) {
+  return new Promise((resolve) => {
+    const intro = /** @type {HTMLVideoElement} */ (document.getElementById('intro-video'));
+    const bg = /** @type {HTMLVideoElement} */ (document.getElementById('bg-video'));
+    const main = /** @type {HTMLElement} */ (document.querySelector('main'));
+
+    // 1. Seek to start, stop looping so it plays once, and show it.
+    intro.loop = false;
+    intro.currentTime = 0;
+    intro.classList.add('playing');
+
+    // 2. Fade out UI simultaneously.
+    main.classList.add('intro-fade-out');
+
+    setTimeout(() => {
+      main.classList.add('intro-hidden');
+      bg.pause();
+      buildGame();
+    }, FADE_OUT_MS);
+
+    // 3. Start fading in the game screen 1s before the video ends.
+    let fadeStarted = false;
+    const startFadeIn = () => {
+      if (fadeStarted) return;
+      const remaining = intro.duration - intro.currentTime;
+      if (remaining <= EARLY_FADE_IN_S) {
+        fadeStarted = true;
+        main.classList.remove('intro-hidden');
+        void main.offsetHeight;
+        main.classList.remove('intro-fade-out');
+        main.classList.add('intro-fade-in');
+
+        setTimeout(() => {
+          main.classList.remove('intro-fade-in');
+          intro.classList.remove('playing');
+          resolve(undefined);
+        }, FADE_IN_MS);
+      } else {
+        requestAnimationFrame(startFadeIn);
+      }
+    };
+    if (intro.duration) requestAnimationFrame(startFadeIn);
+    else intro.addEventListener('loadedmetadata', () => requestAnimationFrame(startFadeIn), { once: true });
+  });
+}
