@@ -192,6 +192,13 @@ export function showFor(snap) {
     saveGameCode(snap.code);
   }
 
+  // A live game drives the screen now, so normalise the URL to '/'. If we
+  // arrived via a named route like /join, leaving that in the address bar
+  // makes a refresh re-show the join screen — bootstrap() resolves named
+  // routes before the saved-session check, so resumeSession() never runs.
+  // '/' is not a hijacking route; it falls through to the resume path.
+  if (location.pathname !== '/') history.replaceState({ id: 'landing' }, '', '/');
+
   // Screen-specific DOM work rides showScreen's onSwap so it runs with the
   // target screen displayed — the dice scatter needs the zone's pixel rect,
   // which reads 0×0 while the screen is still `display: none` (the bug that
