@@ -16,11 +16,24 @@
 
   .join-screen {
     position: relative;
-    /* Match the nav menu's video scrim exactly (see .game-menu in menu.css):
-       same darkness and blur, so the video reads identically behind both. */
+    background: transparent;
+  }
+
+  /* The video scrim lives on ::before, NOT the screen root. A backdrop-filter
+     on .join-screen itself makes it a stacking context, which traps the
+     app-header's z-index:100 below the z-50 nav menu (the menu then covers the
+     header — including the hamburger to close it). On the pseudo-element the
+     blur still matches the nav menu's scrim (see .game-menu in menu.css) while
+     the header keeps escaping to the root stacking context. */
+  .join-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
     background: rgba(8, 4, 1, 0.88);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+    pointer-events: none;
   }
 
   /* Landing header floats out of flow; only its chrome hides until the menu

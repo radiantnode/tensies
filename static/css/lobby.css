@@ -10,11 +10,21 @@
 @layer components {
   .lobby-screen {
     position: relative;
-    /* Match the nav menu's video scrim exactly (see .game-menu in menu.css):
-       same darkness and blur, so the video reads identically behind both. */
+    background: transparent;
+  }
+
+  /* Scrim on ::before, not the screen root — a backdrop-filter here would make
+     .lobby-screen a stacking context and trap the app-header's z-index:100
+     below the z-50 nav menu. See the matching note on .join-screen. */
+  .lobby-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
     background: rgba(8, 4, 1, 0.88);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+    pointer-events: none;
   }
 
   /* Positioned so the absolute .btn-back chip anchors inside the body (below
