@@ -65,7 +65,6 @@ export class LobbyScreen extends HTMLElement {
           <ul class="player-list" id="lobby-players" aria-label="Players"></ul>
         </section>
         <button id="start-btn" type="button" class="btn btn-primary btn-block" hidden>Start Game</button>
-        <p id="waiting-msg" class="waiting-msg"></p>
       </div>`;
 
     this.#list = byId('lobby-players');
@@ -144,15 +143,7 @@ export class LobbyScreen extends HTMLElement {
     }
 
     const startBtn = byId('start-btn');
-    const waitingMsg = byId('waiting-msg');
-    if (snap.host === state.myId) {
-      startBtn.hidden = false;
-      waitingMsg.textContent =
-        Object.keys(snap.players).length < 2 ? 'Invite friends — or start solo!' : '';
-    } else {
-      startBtn.hidden = true;
-      waitingMsg.textContent = 'Waiting for the host to start…';
-    }
+    startBtn.hidden = snap.host !== state.myId;
     requestAnimationFrame(() => this.#updateFades());
   }
 

@@ -222,11 +222,4 @@
      margin and "HOST" follows naturally. */
   .you-badge:first-of-type,
   .host-badge:first-of-type { margin-inline-start: auto; }
-
-  .waiting-msg {
-    margin-block-start: 0.75rem;
-    font-size: 0.95rem;
-    color: var(--color-text-muted);
-    text-shadow: var(--shadow-text);
-  }
 }
