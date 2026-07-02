@@ -136,8 +136,12 @@ export class LobbyScreen extends HTMLElement {
     const section = this.querySelector('.lobby-players-section');
     if (section) /** @type {HTMLElement} */ (section).hidden = others.length === 0;
 
+    const isHost = snap.host === state.myId;
+    byId('lobby-title').textContent = isHost
+      ? 'Waiting for players…'
+      : 'Waiting for host to start…';
     const startBtn = byId('start-btn');
-    startBtn.hidden = snap.host !== state.myId;
+    startBtn.hidden = !isHost;
     requestAnimationFrame(() => this.#updateFades());
   }
 
