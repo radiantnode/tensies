@@ -64,6 +64,7 @@ export class LobbyScreen extends HTMLElement {
           <h2 id="players-label" class="section-label">Fellow Bar Rats</h2>
           <ul class="player-list" id="lobby-players" aria-label="Players"></ul>
         </section>
+        <p id="lobby-solo-hint" class="lobby-solo-hint" hidden>Invite players or play solo!</p>
         <button id="start-btn" type="button" class="btn btn-primary btn-block" hidden>Start Game</button>
       </div>`;
 
@@ -136,7 +137,10 @@ export class LobbyScreen extends HTMLElement {
     const section = this.querySelector('.lobby-players-section');
     if (section) /** @type {HTMLElement} */ (section).hidden = others.length === 0;
 
+    // Solo host: fill the gap the hidden section leaves with a dim invite hint.
     const isHost = snap.host === state.myId;
+    byId('lobby-solo-hint').hidden = !(isHost && others.length === 0);
+
     byId('lobby-title').textContent = isHost
       ? 'Waiting for players…'
       : 'Waiting for host to start…';
