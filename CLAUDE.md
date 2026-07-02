@@ -240,6 +240,7 @@ maxDiffPixels:0; behaviour is unchanged except documented fixes.)
 | `reconnect` | rejoin a held slot after a drop; payload: `code`, `token` (the private reconnect token) |
 | `start` | host starts the game (host only) |
 | `pause` | host-only toggle that freezes/unfreezes rolling for everyone |
+| `leave` | voluntarily leave a game (lobby Back button); drops immediately with no grace hold so the roster updates for everyone at once |
 | `roll` | roll unlocked dice |
 | `roll_done` | client signals its reveal animation has completed |
 | `pong` | reply to the server's keepalive ping |

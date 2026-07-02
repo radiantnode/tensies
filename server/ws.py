@@ -7,7 +7,7 @@ import jwt as pyjwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from . import gamestore, state
-from .broadcast import advance_round, broadcast, delayed_broadcast, drop_player, pause_timeout, send
+from .broadcast import advance_round, broadcast, delayed_broadcast, do_drop, drop_player, pause_timeout, send
 from .config import (
     ALLOWED_ORIGINS,
     CREATE_RATE_MAX,
@@ -423,6 +423,22 @@ async def handle_end_game(session: Session, msg: dict) -> None:
         t.cancel()
 
 
+async def handle_leave(session: Session, msg: dict) -> None:
+    """A player leaving voluntarily (the lobby Back button): drop them now with
+    no grace hold, so the roster updates for everyone immediately. Falls through
+    the shared do_drop path, so host transfer / game deletion / broadcast all
+    still apply. If the client's socket closes first, the normal grace path in
+    the disconnect finally block is the fallback."""
+    code = session.code
+    if not code:
+        return
+    old = state.drop_tasks.pop((code, session.pid), None)
+    if old:
+        old.cancel()
+    await gamestore.mark_disconnected(code, session.pid)
+    await do_drop(code, session.pid, grace_ms=0, reason="leave")
+
+
 async def handle_roll_done(session: Session, msg: dict) -> None:
     ev = state.ack_events.get(session.pid)
     if ev is not None:
@@ -443,6 +459,7 @@ ACTIONS = {
     "roll": handle_roll,
     "pause": handle_pause,
     "end_game": handle_end_game,
+    "leave": handle_leave,
     "roll_done": handle_roll_done,
     "pong": handle_pong,
 }
