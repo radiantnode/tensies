@@ -142,7 +142,7 @@
     gap: 0.25rem;
     position: absolute;
     inset-block-start: 1.25rem;
-    inset-inline-start: 2rem;
+    inset-inline-start: calc(2rem - 5px);
     padding: 0.45rem 0.9rem 0.45rem 0.7rem;
     background: var(--color-raised);
     border: 1px solid var(--color-border-strong);
