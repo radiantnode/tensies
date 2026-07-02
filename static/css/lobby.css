@@ -10,7 +10,11 @@
 @layer components {
   .lobby-screen {
     position: relative;
-    background: var(--color-panel-screen);
+    /* Match the nav menu's video scrim exactly (see .game-menu in menu.css):
+       same darkness and blur, so the video reads identically behind both. */
+    background: rgba(8, 4, 1, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
   /* Lobby content sits top-aligned beneath the header (it's a tall screen
