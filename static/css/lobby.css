@@ -158,6 +158,13 @@
     border-block-start: 1px solid var(--color-border);
   }
 
+  /* Pin Start to the bottom of the column even when the players section is
+     hidden (solo lobby) — the auto margin absorbs the free space the section's
+     flex:1 would otherwise fill, so the button never drifts up. */
+  .lobby-body > .btn-primary {
+    margin-block-start: auto;
+  }
+
   .section-label {
     margin-block-end: 0.75rem;
     font-size: 0.72rem;
@@ -200,10 +207,10 @@
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
   }
 
-  .you-badge,
   .host-badge {
     min-inline-size: 3.5rem;
     padding: 0.2rem 0.5rem;
+    margin-inline-start: auto; /* push the badge to the end of the row */
     background: var(--color-raised);
     border: 1px solid var(--color-border-strong);
     border-radius: 6px;
@@ -212,14 +219,4 @@
     text-align: center;
     color: var(--color-text-label);
   }
-
-  .you-badge {
-    background: var(--color-raised-hover);
-    color: var(--color-text-warm);
-  }
-
-  /* Push the first badge to the end; if both exist, "you" takes the auto
-     margin and "HOST" follows naturally. */
-  .you-badge:first-of-type,
-  .host-badge:first-of-type { margin-inline-start: auto; }
 }

@@ -109,38 +109,32 @@ export class LobbyScreen extends HTMLElement {
 
     const list = this.#list;
     if (!list) return;
-    // Sort: current player first, then insertion order.
-    const entries = Object.entries(snap.players);
-    entries.sort(([a], [b]) =>
-      a === state.myId ? -1 : b === state.myId ? 1 : 0
-    );
-    for (const [pid, player] of entries) {
+    // "Fellow Bar Rats" is everyone *but* you — listing yourself is redundant.
+    const others = Object.entries(snap.players).filter(([pid]) => pid !== state.myId);
+    for (const [pid, player] of others) {
       let row = this.#rows.get(pid);
       if (!row) {
         row = document.createElement('li');
         row.className = 'player-list-item';
         this.#rows.set(pid, row);
       }
-      // Always prepend "you" row, append others.
-      if (pid === state.myId) {
-        list.prepend(row);
-      } else {
-        list.appendChild(row);
-      }
-      row.textContent = player.name;
-      if (pid === state.myId) {
-        row.appendChild(this.#badge('you-badge', 'YOU'));
-      }
+      list.appendChild(row);
+      row.textContent = player.name; // resets children, clearing any stale badge
       if (pid === snap.host) {
         row.appendChild(this.#badge('host-badge', 'HOST'));
       }
     }
+    const shown = new Set(others.map(([pid]) => pid));
     for (const [pid, row] of this.#rows) {
-      if (!snap.players[pid]) {
+      if (!shown.has(pid)) {
         row.remove();
         this.#rows.delete(pid);
       }
     }
+    // Nothing to show when you're the only one here — hide the whole section
+    // rather than leave a bare "Fellow Bar Rats" heading over an empty list.
+    const section = this.querySelector('.lobby-players-section');
+    if (section) /** @type {HTMLElement} */ (section).hidden = others.length === 0;
 
     const startBtn = byId('start-btn');
     startBtn.hidden = snap.host !== state.myId;
