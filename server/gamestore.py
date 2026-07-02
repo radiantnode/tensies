@@ -324,6 +324,12 @@ async def get_player(code: str, pid: str) -> dict | None:
 
 # ─── Mutations ──────────────────────────────────────────────────────────────
 
+async def set_player_photo(code: str, pid: str, photo: str) -> None:
+    """Store a signed-in player's avatar URL on their game slot. Read back
+    generically by snapshot() as players[pid]['photo']."""
+    await _r.hset(_gkey(code), f"p:{pid}:photo", photo)
+
+
 async def set_player_after_roll(code: str, pid: str, *, dice, locked,
                                  roll_count: int, last_roll_ms: int,
                                  drand_round: int | None = None) -> None:

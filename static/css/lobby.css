@@ -236,6 +236,35 @@
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
   }
 
+  .lobby-avatar-ring {
+    flex-shrink: 0;
+    inline-size: 2rem;
+    block-size: 2rem;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--color-field);
+    /* Same faint ring as the profile's non-winner recent avatars. */
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+
+  .lobby-avatar {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Sit next to the avatar (overriding the screen-body centred text), take the
+     free space, and truncate so a long name can't shove the badge off. */
+  .lobby-player-name {
+    flex: 1;
+    min-inline-size: 0;
+    text-align: start;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .host-badge {
     min-inline-size: 3.5rem;
     padding: 0.2rem 0.5rem;

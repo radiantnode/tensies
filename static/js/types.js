@@ -16,6 +16,8 @@
  * @property {boolean} has_rolled
  * @property {number} roll_count
  * @property {boolean} [disconnected]
+ * @property {string | null} [photo] Account avatar URL; null/absent for
+ *   anonymous players (the client falls back to the default avatar).
  */
 
 /**

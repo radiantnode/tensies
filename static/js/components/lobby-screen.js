@@ -13,6 +13,9 @@ import { state } from '../state.js';
 
 const COPY_HINT = 'Click to copy or show your friends or don’t.';
 
+/** Fallback avatar for anonymous players (no account photo). */
+const DEFAULT_AVATAR = '/static/images/avatar-default.svg';
+
 const joinLink = () => `${location.origin}/${state.gameCode}`;
 
 /**
@@ -117,13 +120,21 @@ export class LobbyScreen extends HTMLElement {
       if (!row) {
         row = document.createElement('li');
         row.className = 'player-list-item';
+        // Built once; name/avatar/badge are patched in place below so a
+        // roster change doesn't reload avatars or reset the row.
+        row.innerHTML =
+          '<span class="lobby-avatar-ring"><img class="lobby-avatar" alt=""></span>' +
+          '<span class="lobby-player-name"></span>';
         this.#rows.set(pid, row);
       }
       list.appendChild(row);
-      row.textContent = player.name; // resets children, clearing any stale badge
-      if (pid === snap.host) {
-        row.appendChild(this.#badge('host-badge', 'HOST'));
-      }
+      const img = /** @type {HTMLImageElement} */ (row.querySelector('.lobby-avatar'));
+      const src = player.photo || DEFAULT_AVATAR;
+      if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+      /** @type {HTMLElement} */ (row.querySelector('.lobby-player-name')).textContent = player.name;
+      const badge = row.querySelector('.host-badge');
+      if (pid === snap.host && !badge) row.appendChild(this.#badge('host-badge', 'HOST'));
+      else if (pid !== snap.host && badge) badge.remove();
     }
     const shown = new Set(others.map(([pid]) => pid));
     for (const [pid, row] of this.#rows) {
