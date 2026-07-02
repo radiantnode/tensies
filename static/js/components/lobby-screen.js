@@ -2,9 +2,10 @@
 import './app-header.js';
 import { getAuthUser } from '../auth.js';
 import { playCode } from '../audio-share.js';
+import { BACK_BUTTON_HTML } from '../back-button.js';
 import { byId } from '../dom.js';
 import { EQ_ICON_HTML } from '../eq-icon.js';
-import { startGame } from '../net.js';
+import { leaveGame, startGame } from '../net.js';
 import { updateScrollFades } from '../scroll-fades.js';
 import { state } from '../state.js';
 
@@ -41,6 +42,7 @@ export class LobbyScreen extends HTMLElement {
     this.innerHTML = `
       <app-header></app-header>
       <div class="screen-body lobby-body">
+        <button id="lobby-back-btn" type="button" class="btn-back">${BACK_BUTTON_HTML}</button>
         <h1 id="lobby-title" class="lobby-title">Waiting for players…</h1>
         <p class="lobby-hint">Share this link to invite friends</p>
         <button id="lobby-code" type="button" class="code-display" aria-label="Copy invite link">——</button>
@@ -70,6 +72,7 @@ export class LobbyScreen extends HTMLElement {
     this.#list.addEventListener('scroll', () => this.#updateFades(), { passive: true });
     window.addEventListener('resize', this.#onResize);
 
+    byId('lobby-back-btn').addEventListener('click', () => leaveGame());
     byId('lobby-code').addEventListener('click', () => this.#copyJoinLink());
     byId('share-btn').addEventListener('click', () => this.#share());
     byId('play-code-btn').addEventListener('click', () => this.#playCode());

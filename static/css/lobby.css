@@ -17,11 +17,16 @@
     -webkit-backdrop-filter: blur(8px);
   }
 
+  /* Positioned so the absolute .btn-back chip anchors inside the body (below
+     the header), matching the join screen (.join-screen .screen-body). */
+  .lobby-screen .screen-body { position: relative; }
+
   /* Lobby content sits top-aligned beneath the header (it's a tall screen
-     with the scrollable player list), rather than vertically centred. */
+     with the scrollable player list), rather than vertically centred. The
+     extra top padding clears the floating Back chip above the title. */
   .lobby-body {
     justify-content: flex-start;
-    padding: 2rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
+    padding: 3.75rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
   }
 
   /* The shared .or-divider stretches to its container on landing (the form
