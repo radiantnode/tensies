@@ -122,7 +122,15 @@
   .menu-a2hs-btn svg { inline-size: 19px; block-size: 19px; }
 
   /* ── Walkthrough overlay (extends .overlay-dialog from overlays.css) ── */
-  .a2hs-overlay { background: rgba(6, 3, 1, 0.99); }
+  /* Same scrim as the join screen (.join-screen::before in landing.css): a
+     translucent dark wash + backdrop blur over the landing video, rather than a
+     flat near-opaque fill. The close/card are children, so the blur only hits
+     what's behind the dialog. */
+  .a2hs-overlay {
+    background: rgba(8, 4, 1, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
 
   .a2hs-overlay[open] {
     flex-direction: column;
