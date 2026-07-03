@@ -159,7 +159,7 @@ function currentName() {
 export function createGame() {
   const name = currentName();
   state.pendingOrigin = 'landing';
-  showLoading();
+  showLoading('Creating game…');
   connectWs(() => send('create', { name }));
 }
 
