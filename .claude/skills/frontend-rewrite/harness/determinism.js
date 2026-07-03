@@ -38,6 +38,21 @@ async function settle(page) {
   await page.evaluate(async () => {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
   });
+  // Freeze any autoplaying <video> (the landing/intro background videos) to a
+  // fixed frame. CSS-animation pausing below doesn't touch video playback, so a
+  // looping bg-video otherwise never yields two stable consecutive screenshots.
+  // Pinning currentTime to 0 makes capture and verify freeze on the same frame.
+  await page.evaluate(() => Promise.all(
+    [...document.querySelectorAll('video')].map((v) => new Promise((res) => {
+      try {
+        v.pause();
+        v.loop = false;
+        v.addEventListener('seeked', () => res(), { once: true });
+        v.currentTime = 0;
+        setTimeout(res, 400); // fallback if already at 0 / no seek fires
+      } catch { res(); }
+    })),
+  ));
   await page.addStyleTag({
     content: `*,*::before,*::after{animation-play-state:paused!important;` +
       `transition:none!important;caret-color:transparent!important}`,
