@@ -187,9 +187,6 @@
     background: var(--color-panel-screen);
   }
 
-  .loading-screen .logo-mark { margin-block-end: -3.5rem; }
-  .loading-screen .logo { margin-block-end: 2.5rem; }
-
   .loading-msg {
     max-inline-size: 280px;
     block-size: 3.5rem;
