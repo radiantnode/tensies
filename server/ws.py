@@ -7,7 +7,15 @@ import jwt as pyjwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from . import db, gamestore, state
-from .broadcast import advance_round, broadcast, delayed_broadcast, do_drop, drop_player, pause_timeout, send
+from .broadcast import (
+    advance_round,
+    broadcast,
+    delayed_broadcast,
+    do_drop,
+    drop_player,
+    pause_timeout,
+    send,
+)
 from .config import (
     ALLOWED_ORIGINS,
     CREATE_RATE_MAX,
