@@ -125,6 +125,11 @@ export class LobbyScreen extends HTMLElement {
         row.innerHTML =
           '<span class="lobby-avatar-ring"><img class="lobby-avatar" alt=""></span>' +
           '<span class="lobby-player-name"></span>';
+        // Fade+slide the row in as the player joins. One-shot: added only on
+        // creation (keyed rows are built once) and cleared when it finishes, so
+        // re-renders never replay it.
+        row.classList.add('player-enter');
+        row.addEventListener('animationend', () => row.classList.remove('player-enter'), { once: true });
         this.#rows.set(pid, row);
       }
       list.appendChild(row);
@@ -139,8 +144,10 @@ export class LobbyScreen extends HTMLElement {
     const shown = new Set(others.map(([pid]) => pid));
     for (const [pid, row] of this.#rows) {
       if (!shown.has(pid)) {
-        row.remove();
+        // Drop from the registry now so a rejoin builds a fresh (re-animating)
+        // row, but collapse+fade the DOM node out before removing it.
         this.#rows.delete(pid);
+        this.#collapseAndRemove(row);
       }
     }
     // Nothing to show when you're the only one here — hide the whole section
@@ -158,6 +165,32 @@ export class LobbyScreen extends HTMLElement {
     const startBtn = byId('start-btn');
     startBtn.hidden = !isHost;
     requestAnimationFrame(() => this.#updateFades());
+  }
+
+  /**
+   * Collapse a leaving player's row to zero height while fading it out, then
+   * drop it from the DOM. Height can't transition from `auto`, so pin the
+   * measured height first, then animate to 0. The negative bottom margin eats
+   * the flex `gap` the collapsing row would otherwise keep reserving.
+   * @param {HTMLElement} row
+   */
+  #collapseAndRemove(row) {
+    const start = row.offsetHeight;
+    row.style.blockSize = `${start}px`;
+    void row.offsetHeight; // force reflow so the transition has a from-value
+    row.classList.add('player-leave');
+    row.style.blockSize = '0';
+    row.style.opacity = '0';
+    row.style.paddingBlock = '0';
+    row.style.marginBlockEnd = '-0.5rem';
+    let done = false;
+    const finish = () => { if (done) return; done = true; row.remove(); };
+    row.addEventListener('transitionend', (e) => {
+      if (e.propertyName === 'block-size') finish();
+    }, { once: true });
+    // Fallback if transitionend never fires (e.g. reduced-motion collapses the
+    // duration so the event may be skipped).
+    setTimeout(finish, 400);
   }
 
   /**
