@@ -156,17 +156,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-block: auto;        /* centers when it fits, scrolls when it doesn't */
+    /* Both margins auto → centered in the overlay's safe content box (it already
+       pads for the top and bottom insets), and it scrolls when it doesn't fit.
+       Overriding just margin-block-end with a fixed value would cancel this auto
+       and pin the card to the bottom. */
+    margin-block: auto;
     max-inline-size: 360px;
     text-align: center;
-  }
-
-  /* iOS: the overlay pads for the bottom safe-area (home indicator), which
-     pushes the visual centre up. Pull the card back down by that amount. */
-  @supports (margin: env(safe-area-inset-bottom)) {
-    .a2hs-card {
-      margin-block-end: calc(-1 * env(safe-area-inset-bottom, 0px));
-    }
   }
 
   /* Warm gold heading (same treatment as the menu headings; kept local so the
