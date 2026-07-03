@@ -17,7 +17,7 @@
     overflow: hidden;
     padding-block-start: env(safe-area-inset-top);
     background: linear-gradient(100deg, rgba(40, 24, 12, 0.97) 0%, rgba(24, 13, 6, 0.97) 100%);
-    border-block-end: 1px solid rgba(210, 150, 60, 0.4);
+    /* Bottom border is the shared app-header glow (.a2hs-banner::after in shell.css). */
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -88,19 +88,23 @@
     align-self: center;
     margin-inline-start: auto;
     padding: 0.4rem 0.85rem;
-    background: var(--color-accent);
+    /* Dim warm-brown pill with a beige label — a quiet CTA that recedes into the
+       banner rather than the hot-pink accent. */
+    background: rgba(14, 7, 3, 0.9);   /* deep warm brown, darker than any token */
     border-radius: 999px;
-    box-shadow: 0 2px 8px var(--color-accent-soft);
     font-size: 0.82rem;
     font-weight: 800;
     letter-spacing: 0.02em;
-    color: #fff;
+    color: var(--color-text-warm);
   }
 
   .a2hs-banner-close {
     flex-shrink: 0;
     inline-size: 40px;
     align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: transparent;
     border: 0;
     border-inline-start: 0;
@@ -108,7 +112,7 @@
     cursor: pointer;
   }
 
-  .a2hs-banner-close svg { inline-size: 15px; block-size: 15px; }
+  .a2hs-banner-close svg { inline-size: 20px; block-size: 20px; }
   .a2hs-banner-close:hover { color: var(--color-text-warm); }
 
   /* Nav-menu "Add to Home Screen" entry (reuses .menu-whats-new-btn styling). */

@@ -18,7 +18,8 @@
      to directly under the title row, which its z-index:100 keeps above the menu.
      One source for the gradient across both positions. */
   .game-topbar::after,
-  .game-screen:has(.game-menu.open) .topbar-title-row::after {
+  .game-screen:has(.game-menu.open) .topbar-title-row::after,
+  .a2hs-banner::after {
     content: '';
     position: absolute;
     inset-inline: 0;
