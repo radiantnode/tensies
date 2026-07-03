@@ -226,6 +226,18 @@
     50%      { opacity: 1; }
   }
 
+  /* Freeze the Roll Trust scanner while the screen is mid view-transition.
+     The VT snapshots the incoming screen at t=0, cross-fades, then hands off to
+     the live DOM; an infinite animation runs on under the snapshot and visibly
+     jumps to its advanced pose at hand-off. `vt-settling` (added to the target
+     for the duration of the swap) holds these at t=0 so the snapshot and the
+     live view match — they start cleanly once the fade settles. */
+  .vt-settling .gd-trust-badge,
+  .vt-settling .gd-trust-scan-line,
+  .vt-settling .gd-trust-status {
+    animation-play-state: paused;
+  }
+
   .gd-trust-done {
     animation: gd-fade-in 0.4s ease-out;
   }
