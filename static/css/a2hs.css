@@ -314,7 +314,7 @@
     gap: 5px;
     background:
       linear-gradient(rgba(6, 3, 1, 0.5), rgba(6, 3, 1, 0.68)),
-      #0d0805 url('/static/images/landing-mich.webp') center top / cover no-repeat;
+      #0d0805 url('/static/images/landing-mich.webp?v=2') center top / cover no-repeat;
   }
 
   .a2hs-canvas-logo { filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6)); }
@@ -332,7 +332,7 @@
   .a2hs-ios-page {
     position: absolute;
     inset: 0;
-    background: #0d0805 url('/static/images/landing-mich.webp') center top / cover no-repeat;
+    background: #0d0805 url('/static/images/landing-mich.webp?v=2') center top / cover no-repeat;
   }
 
   /* Show the same bar-top page behind the share sheet / confirmation, so the
@@ -341,7 +341,7 @@
   .a2hs-phone[data-platform="ios"] [data-scene="3"] {
     background:
       linear-gradient(rgba(6, 3, 1, 0.5), rgba(6, 3, 1, 0.68)),
-      #0d0805 url('/static/images/landing-mich.webp') center top / cover no-repeat;
+      #0d0805 url('/static/images/landing-mich.webp?v=2') center top / cover no-repeat;
   }
 
   .a2hs-ios-bar {
@@ -642,7 +642,7 @@
   .a2hs-phone[data-platform="android"] [data-scene="2"] {
     background:
       linear-gradient(rgba(6, 3, 1, 0.5), rgba(6, 3, 1, 0.68)),
-      #0d0805 url('/static/images/landing-mich.webp') center top / cover no-repeat;
+      #0d0805 url('/static/images/landing-mich.webp?v=2') center top / cover no-repeat;
   }
 
   /* ── Android scene 1: Chrome top bar ── */
