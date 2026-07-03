@@ -31,6 +31,15 @@ export class LobbyScreen extends HTMLElement {
   /** @type {HTMLElement | null} */
   #list = null;
 
+  /** @type {boolean} whether the local player hosts (drives the solo-hint). */
+  #isHost = false;
+
+  /** @type {boolean} last-applied emptiness, so the section only fades on change. */
+  #sectionEmpty = true;
+
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
+  #sectionHideTimer;
+
   /** @type {ReturnType<typeof setTimeout> | undefined} */
   #copyResetTimer;
 
@@ -145,19 +154,18 @@ export class LobbyScreen extends HTMLElement {
     for (const [pid, row] of this.#rows) {
       if (!shown.has(pid)) {
         // Drop from the registry now so a rejoin builds a fresh (re-animating)
-        // row, but collapse+fade the DOM node out before removing it.
+        // row, but collapse+fade the DOM node out before removing it. Re-sync the
+        // empty state once it's gone so the last leaver's row can finish
+        // animating before the section is hidden.
         this.#rows.delete(pid);
-        this.#collapseAndRemove(row);
+        this.#collapseAndRemove(row, () => this.#syncEmptyState());
       }
     }
-    // Nothing to show when you're the only one here — hide the whole section
-    // rather than leave a bare "Fellow Bar Rats" heading over an empty list.
-    const section = this.querySelector('.lobby-players-section');
-    if (section) /** @type {HTMLElement} */ (section).hidden = others.length === 0;
-
-    // Solo host: fill the gap the hidden section leaves with a dim invite hint.
     const isHost = snap.host === state.myId;
-    byId('lobby-solo-hint').hidden = !(isHost && others.length === 0);
+    this.#isHost = isHost;
+    // Hide the section / show the solo hint based on the live DOM, so a row still
+    // collapsing out keeps the section visible until its exit animation ends.
+    this.#syncEmptyState();
 
     byId('lobby-title').textContent = isHost
       ? 'Waiting for players…'
@@ -173,8 +181,9 @@ export class LobbyScreen extends HTMLElement {
    * measured height first, then animate to 0. The negative bottom margin eats
    * the flex `gap` the collapsing row would otherwise keep reserving.
    * @param {HTMLElement} row
+   * @param {() => void} [onDone] run after the row leaves the DOM
    */
-  #collapseAndRemove(row) {
+  #collapseAndRemove(row, onDone) {
     const start = row.offsetHeight;
     row.style.blockSize = `${start}px`;
     void row.offsetHeight; // force reflow so the transition has a from-value
@@ -184,13 +193,62 @@ export class LobbyScreen extends HTMLElement {
     row.style.paddingBlock = '0';
     row.style.marginBlockEnd = '-0.5rem';
     let done = false;
-    const finish = () => { if (done) return; done = true; row.remove(); };
+    const finish = () => { if (done) return; done = true; row.remove(); onDone?.(); };
     row.addEventListener('transitionend', (e) => {
       if (e.propertyName === 'block-size') finish();
     }, { once: true });
     // Fallback if transitionend never fires (e.g. reduced-motion collapses the
     // duration so the event may be skipped).
     setTimeout(finish, 400);
+  }
+
+  /**
+   * Hide the players section (and reveal the solo-host hint) only once no row
+   * remains in the DOM. Keying off the live child count — not the roster length
+   * — keeps the section visible while the last leaver's row collapses out, so
+   * its exit animation isn't cut short by an instant display:none.
+   */
+  #syncEmptyState() {
+    const empty = !this.#list || this.#list.childElementCount === 0;
+    const section = /** @type {HTMLElement | null} */ (this.querySelector('.lobby-players-section'));
+    const hint = byId('lobby-solo-hint');
+    if (!section) return;
+    if (empty !== this.#sectionEmpty) {
+      this.#sectionEmpty = empty;
+      clearTimeout(this.#sectionHideTimer);
+      if (empty) {
+        // Fade the whole section out (label + last collapsing row), then remove
+        // it from layout — rather than snapping it away with display:none. The
+        // solo hint waits until the fade finishes so the two don't overlap.
+        hint.hidden = true;
+        section.classList.add('is-hiding');
+        const reveal = () => {
+          if (!this.#sectionEmpty) return; // someone rejoined mid-fade
+          section.hidden = true;
+          hint.hidden = !this.#isHost;
+        };
+        const onEnd = (/** @type {TransitionEvent} */ e) => {
+          if (e.propertyName !== 'opacity') return;
+          section.removeEventListener('transitionend', onEnd);
+          reveal();
+        };
+        section.addEventListener('transitionend', onEnd);
+        this.#sectionHideTimer = setTimeout(reveal, 400);
+      } else {
+        // First player: reveal and fade in, mirroring the row's entrance.
+        hint.hidden = true;
+        section.hidden = false;
+        section.classList.add('is-hiding'); // start transparent…
+        void section.offsetHeight;          // …reflow, then transition to opaque
+        section.classList.remove('is-hiding');
+      }
+    } else if (empty) {
+      // Steady empty state (e.g. initial solo host): no fade, just settled.
+      section.hidden = true;
+      hint.hidden = !this.#isHost;
+    } else {
+      hint.hidden = true; // steady non-empty
+    }
   }
 
   /**
