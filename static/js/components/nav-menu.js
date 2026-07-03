@@ -223,7 +223,7 @@ export class NavMenu extends HTMLElement {
     this.innerHTML = `
       <nav class="menu-panel" aria-label="Menu">
         <div class="menu-about">
-          <h2 class="menu-about-heading">Built at the bar, because you don't have to go home but you can't stay there.</h2>
+          <h2 class="menu-about-heading">Built at the bar because you don't have to go home but you can't stay there.</h2>
           <p class="menu-about-body">Someone had the bright idea to build a bar game instead of just playing one. That someone was me, and the bar was very much open. <strong>Tensies</strong> is what came out of it: ten dice, one target number, everyone racing to lock all ten first. It runs in your browser, takes forty seconds to explain, and has absolutely no business being as competitive as it gets. Works best with real people in the same room — which, if you're reading this, hopefully describes the situation.</p>
           <button type="button" class="menu-whats-new-btn">See What's New</button>
           <a href="https://buymeacoffee.com/radiantnode" target="_blank" rel="noopener noreferrer" class="menu-beer-btn">
