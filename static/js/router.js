@@ -74,8 +74,22 @@ export function showSignin() {
 export function showProfile(username) {
   const path = `/@${username}`;
   history.pushState({ id: 'profile', username }, '', path);
-  return showScreen('profile', {
-    onSwap: () => /** @type {import('./components/profile-screen.js').ProfileScreen} */ (byId('profile')).show(username),
+  enterProfile(username);
+}
+
+/**
+ * Fetch a profile behind the loading screen, then swap to the fully-painted
+ * screen so the view transition captures populated content — the same shape as
+ * the game-start flow, where loading holds until the snapshot is in hand. A
+ * bare swap would animate to an empty card and pop the data in once the fetch
+ * resolves.
+ * @param {string} username
+ */
+function enterProfile(username) {
+  const screen = /** @type {import('./components/profile-screen.js').ProfileScreen} */ (byId('profile'));
+  showLoading();
+  screen.load(username).then((result) => {
+    leaveLoading(() => showScreen('profile', { onSwap: () => screen.render(username, result) }));
   });
 }
 
@@ -113,6 +127,19 @@ export function showOnboarding(username, stats) {
  * @param {{ resumeSession: () => void }} deps
  */
 export function bootstrap({ resumeSession }) {
+  // Keep profile links (the /@username header pill) in-app. As bare anchors the
+  // browser does a full document navigation, which tears down and restarts the
+  // fixed #bg-video (poster flash → replay from frame 0 = a visible flicker).
+  // Routing through showProfile() uses the History API, so the video keeps
+  // looping — matching the reload-free create-game → lobby path.
+  document.addEventListener('click', (e) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const link = /** @type {HTMLElement} */ (e.target).closest('a.header-username');
+    const match = link?.getAttribute('href')?.match(/^\/@(.+)$/);
+    if (!match) return;
+    e.preventDefault();
+    showProfile(decodeURIComponent(match[1]));
+  });
   window.addEventListener('popstate', (e) => {
     const gameMatch = location.pathname.match(/^\/games\/(.+)$/);
     if (gameMatch) {
@@ -124,10 +151,7 @@ export function bootstrap({ resumeSession }) {
     }
     const profileMatch = location.pathname.match(/^\/@(.+)$/);
     if (profileMatch) {
-      const username = decodeURIComponent(profileMatch[1]);
-      showScreen('profile', {
-        onSwap: () => /** @type {import('./components/profile-screen.js').ProfileScreen} */ (byId('profile')).show(username),
-      });
+      enterProfile(decodeURIComponent(profileMatch[1]));
       return;
     }
     showScreen(ROUTES[location.pathname] ?? 'landing');
@@ -144,10 +168,7 @@ export function bootstrap({ resumeSession }) {
   // Vanity profile URLs: /@username → profile screen.
   const profileMatch = location.pathname.match(/^\/@(.+)$/);
   if (profileMatch) {
-    const username = decodeURIComponent(profileMatch[1]);
-    leaveLoading(() => showScreen('profile', {
-      onSwap: () => /** @type {import('./components/profile-screen.js').ProfileScreen} */ (byId('profile')).show(username),
-    }));
+    enterProfile(decodeURIComponent(profileMatch[1]));
     return;
   }
   // Named routes (signin, welcome) get their own screen directly — before
