@@ -72,24 +72,35 @@ export function showSignin() {
  * @param {string} username
  */
 export function showProfile(username) {
-  const path = `/@${username}`;
-  history.pushState({ id: 'profile', username }, '', path);
-  enterProfile(username);
+  history.pushState({ id: 'profile', username }, '', `/@${username}`);
+  enterFetched('profile', username);
 }
 
 /**
- * Fetch a profile behind the loading screen, then swap to the fully-painted
- * screen so the view transition captures populated content — the same shape as
- * the game-start flow, where loading holds until the snapshot is in hand. A
- * bare swap would animate to an empty card and pop the data in once the fetch
- * resolves.
- * @param {string} username
+ * Navigate to a game's post-game detail view.
+ * @param {string} code
  */
-function enterProfile(username) {
-  const screen = /** @type {import('./components/profile-screen.js').ProfileScreen} */ (byId('profile'));
+export function showGameDetail(code) {
+  history.pushState({ id: 'game-detail', code }, '', `/games/${code}`);
+  enterFetched('game-detail', code);
+}
+
+/**
+ * Fetch a data-backed screen behind the loading screen, then swap with a
+ * synchronous render so the view transition captures populated content — the
+ * same shape as the game-start flow, where loading holds until the snapshot is
+ * in hand. A bare swap would animate to an empty screen and pop the data in
+ * once the fetch resolves. The target must expose `load(arg) => result` and
+ * `render(arg, result)`.
+ * @param {'profile' | 'game-detail'} id
+ * @param {string} arg
+ */
+function enterFetched(id, arg) {
+  const screen = /** @type {{ load(a: string): Promise<any>, render(a: string, r: any): void }} */ (
+    /** @type {unknown} */ (byId(id)));
   showLoading();
-  screen.load(username).then((result) => {
-    leaveLoading(() => showScreen('profile', { onSwap: () => screen.render(username, result) }));
+  screen.load(arg).then((result) => {
+    leaveLoading(() => showScreen(id, { onSwap: () => screen.render(arg, result) }));
   });
 }
 
@@ -98,17 +109,6 @@ function enterProfile(username) {
  * @param {string} username
  * @param {object | null} [stats]
  */
-/**
- * Navigate to a game's post-game detail view.
- * @param {string} code
- */
-export function showGameDetail(code) {
-  const path = `/games/${code}`;
-  history.pushState({ id: 'game-detail', code }, '', path);
-  return showScreen('game-detail', {
-    onSwap: () => /** @type {import('./components/game-detail-screen.js').GameDetailScreen} */ (byId('game-detail')).show(code),
-  });
-}
 
 export function showOnboarding(username, stats) {
   const transition = navigate('/welcome');
@@ -143,15 +143,12 @@ export function bootstrap({ resumeSession }) {
   window.addEventListener('popstate', (e) => {
     const gameMatch = location.pathname.match(/^\/games\/(.+)$/);
     if (gameMatch) {
-      const code = decodeURIComponent(gameMatch[1]);
-      showScreen('game-detail', {
-        onSwap: () => /** @type {import('./components/game-detail-screen.js').GameDetailScreen} */ (byId('game-detail')).show(code),
-      });
+      enterFetched('game-detail', decodeURIComponent(gameMatch[1]));
       return;
     }
     const profileMatch = location.pathname.match(/^\/@(.+)$/);
     if (profileMatch) {
-      enterProfile(decodeURIComponent(profileMatch[1]));
+      enterFetched('profile', decodeURIComponent(profileMatch[1]));
       return;
     }
     showScreen(ROUTES[location.pathname] ?? 'landing');
@@ -159,16 +156,13 @@ export function bootstrap({ resumeSession }) {
   // Game detail URLs: /games/<code> → game-detail screen.
   const gameMatch = location.pathname.match(/^\/games\/(.+)$/);
   if (gameMatch) {
-    const code = decodeURIComponent(gameMatch[1]);
-    leaveLoading(() => showScreen('game-detail', {
-      onSwap: () => /** @type {import('./components/game-detail-screen.js').GameDetailScreen} */ (byId('game-detail')).show(code),
-    }));
+    enterFetched('game-detail', decodeURIComponent(gameMatch[1]));
     return;
   }
   // Vanity profile URLs: /@username → profile screen.
   const profileMatch = location.pathname.match(/^\/@(.+)$/);
   if (profileMatch) {
-    enterProfile(decodeURIComponent(profileMatch[1]));
+    enterFetched('profile', decodeURIComponent(profileMatch[1]));
     return;
   }
   // Named routes (signin, welcome) get their own screen directly — before
