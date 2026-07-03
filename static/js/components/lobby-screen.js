@@ -67,7 +67,7 @@ export class LobbyScreen extends HTMLElement {
           <h2 id="players-label" class="section-label">Fellow Bar Rats</h2>
           <ul class="player-list" id="lobby-players" aria-label="Players"></ul>
         </section>
-        <p id="lobby-solo-hint" class="lobby-solo-hint" hidden>Invite players or play solo!</p>
+        <p id="lobby-solo-hint" class="lobby-solo-hint" hidden>Invite friends or play solo!</p>
         <button id="start-btn" type="button" class="btn btn-primary btn-block" hidden>Start Game</button>
       </div>`;
 
