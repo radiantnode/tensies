@@ -23,6 +23,12 @@ import { playIntro } from './video-intro.js';
 /** @type {Record<string, string>} */
 const ROUTES = { '/': 'landing', '/join': 'join', '/signin': 'signin', '/welcome': 'onboarding', '/profile': 'profile', '/games': 'game-detail' };
 
+// Monotonic navigation counter. enterFetched() defers its swap behind a fetch +
+// the loading-gate, so a later navigation can start before an earlier one
+// finishes; each navigation bumps this and stale completions bail (see
+// enterFetched). Guards against rapid Back/Forward landing on the wrong screen.
+let navToken = 0;
+
 /**
  * Push (or replace) a history entry for `path` and show its screen.
  * @param {string} path
@@ -72,7 +78,11 @@ export function showSignin() {
  * @param {string} username
  */
 export function showProfile(username) {
-  history.pushState({ id: 'profile', username }, '', `/@${username}`);
+  const path = `/@${username}`;
+  // Already here (a double-tap, or a tap that fires twice) — ignore so we don't
+  // stack a duplicate history entry that a single Back can't escape.
+  if (location.pathname === path) return;
+  history.pushState({ id: 'profile', username }, '', path);
   enterFetched('profile', username);
 }
 
@@ -81,7 +91,9 @@ export function showProfile(username) {
  * @param {string} code
  */
 export function showGameDetail(code) {
-  history.pushState({ id: 'game-detail', code }, '', `/games/${code}`);
+  const path = `/games/${code}`;
+  if (location.pathname === path) return;
+  history.pushState({ id: 'game-detail', code }, '', path);
   enterFetched('game-detail', code);
 }
 
@@ -96,11 +108,20 @@ export function showGameDetail(code) {
  * @param {string} arg
  */
 function enterFetched(id, arg) {
+  const token = ++navToken;
   const screen = /** @type {{ load(a: string): Promise<any>, render(a: string, r: any): void }} */ (
     /** @type {unknown} */ (byId(id)));
   showLoading();
   screen.load(arg).then((result) => {
-    leaveLoading(() => showScreen(id, { onSwap: () => screen.render(arg, result) }));
+    // A newer navigation (rapid Back/Forward, or a fresh link) started while
+    // this fetch/loading-gate was in flight — its swap already happened, so
+    // dropping this stale completion keeps us on the current screen instead of
+    // clobbering it (the source of the flaky Back button).
+    if (token !== navToken) return;
+    leaveLoading(() => {
+      if (token !== navToken) return;
+      showScreen(id, { onSwap: () => screen.render(arg, result) });
+    });
   });
 }
 
@@ -141,6 +162,10 @@ export function bootstrap({ resumeSession }) {
     showProfile(decodeURIComponent(match[1]));
   });
   window.addEventListener('popstate', (e) => {
+    // Supersede any in-flight enterFetched — the enterFetched branches below
+    // bump again, but the direct showScreen('landing') branch relies on this so
+    // a stale fetch can't swap back over it.
+    navToken++;
     const gameMatch = location.pathname.match(/^\/games\/(.+)$/);
     if (gameMatch) {
       enterFetched('game-detail', decodeURIComponent(gameMatch[1]));
