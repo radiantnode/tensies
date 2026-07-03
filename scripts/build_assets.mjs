@@ -48,9 +48,16 @@ function writeHashed(relDir, name, ext, contents) {
   return `/static/${relDir}/${outName}`.replace(/\/+/g, '/');
 }
 
-// Replace every known original asset URL in a text blob with its hashed URL.
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Replace every known original asset URL in a text blob with its hashed URL,
+// dropping any dev-only cache-bust query (e.g. `landing-mich.webp?v=2`): the
+// content hash in the filename is the version in prod, so the query is redundant
+// there — and leaving it would point at a nonexistent `…-HASH.webp?v=2` file.
 function rewriteRefs(text) {
-  for (const [from, to] of manifest) text = text.split(from).join(to);
+  for (const [from, to] of manifest) {
+    text = text.replace(new RegExp(escapeRe(from) + '(?:\\?[^"\'\\s)]*)?', 'g'), () => to);
+  }
   return text;
 }
 
@@ -73,7 +80,7 @@ const minifySvg = (text) => {
   return s.trim();
 };
 
-for (const sub of ['images', 'fonts']) {
+for (const sub of ['images', 'fonts', 'video']) {
   const dir = join(SRC, sub);
   for (const file of walk(dir)) {
     const ext = extname(file);
