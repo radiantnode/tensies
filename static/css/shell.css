@@ -9,19 +9,15 @@
     position: relative;
     flex-shrink: 0;
     padding-block-start: env(safe-area-inset-top);
-    border-block-end: 1px solid rgba(180, 100, 20, 0.25);
   }
 
-  .game-screen .game-topbar {
-    border-block-end: none;
-  }
-
-  .game-screen .game-topbar::after {
+  .game-topbar::after {
     content: '';
     position: absolute;
     inset-inline: 0;
     inset-block-end: 0;
     block-size: 1px;
+    z-index: 101;
     background: linear-gradient(
       to right,
       rgba(170, 115, 45, 0.35) 0%,
@@ -49,14 +45,9 @@
     align-items: center;
     position: relative;
     z-index: 100;
-    border-block-end: 1px solid rgba(180, 100, 20, 0.2);
     background: var(--color-panel);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-  }
-
-  .game-screen .game-topbar .topbar-title-row {
-    border-block-end: none;
   }
 
   .game-title {

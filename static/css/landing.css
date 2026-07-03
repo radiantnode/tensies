@@ -45,13 +45,12 @@
     z-index: 100;
   }
 
-  .landing-screen .game-topbar { border-block-end-color: transparent; }
+  .landing-screen .game-topbar::after { opacity: 0; }
 
   .landing-screen .topbar-title-row {
     background: transparent;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    border-block-end-color: transparent;
   }
 
   .landing-screen .game-title { visibility: hidden; }
@@ -61,15 +60,14 @@
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
   }
 
-  body.nav-menu-open .landing-screen .game-topbar {
-    border-block-end-color: rgba(180, 100, 20, 0.25);
+  body.nav-menu-open .landing-screen .game-topbar::after {
+    opacity: 1;
   }
 
   body.nav-menu-open .landing-screen .topbar-title-row {
     background: rgba(8, 4, 1, 0.58);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border-block-end-color: rgba(180, 100, 20, 0.2);
   }
 
   body.nav-menu-open .landing-screen .game-title { visibility: visible; }
