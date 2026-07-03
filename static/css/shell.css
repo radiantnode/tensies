@@ -17,7 +17,6 @@
     inset-inline: 0;
     inset-block-end: 0;
     block-size: 1px;
-    z-index: 101;
     background: linear-gradient(
       to right,
       rgba(170, 115, 45, 0.35) 0%,
@@ -25,6 +24,12 @@
       rgba(170, 115, 45, 0.35) 100%
     );
   }
+
+  /* Pre-game headers only: lift the glow above the title-row's opaque
+     z-index:100 background (which fills the whole header there). The game
+     screen omits this on purpose — its glow sits below the players bar, isn't
+     occluded, and must stay under the game menu overlay (z-index:50). */
+  .game-topbar.app-header::after { z-index: 101; }
 
   /* Opaque shield behind the iOS status bar so nothing shows through
      the clock/signal area. Covers the safe-area zone above the header. */
