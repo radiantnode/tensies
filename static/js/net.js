@@ -172,7 +172,7 @@ export function joinGame() {
   }
   const name = currentName();
   state.pendingOrigin = 'join';
-  showLoading();
+  showLoading('Joining game…');
   connectWs(() => send('join', { name, code }));
 }
 
