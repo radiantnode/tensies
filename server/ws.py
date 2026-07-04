@@ -6,8 +6,16 @@ import uuid
 import jwt as pyjwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from . import gamestore, state
-from .broadcast import advance_round, broadcast, delayed_broadcast, drop_player, pause_timeout, send
+from . import db, gamestore, state
+from .broadcast import (
+    advance_round,
+    broadcast,
+    delayed_broadcast,
+    do_drop,
+    drop_player,
+    pause_timeout,
+    send,
+)
 from .config import (
     ALLOWED_ORIGINS,
     CREATE_RATE_MAX,
@@ -36,7 +44,7 @@ class Session:
     __slots__ = (
         "ws", "pid", "code", "name", "ip",
         # Authenticated account (set by handle_auth if the client sends a JWT).
-        "user_id", "username",
+        "user_id", "username", "photo",
         # Telemetry meta — populated on connect, used by send() and the
         # disconnect finally block to attribute counters and emit lifecycle
         # events. Cheap (one allocation per WS), no global maps required.
@@ -66,6 +74,7 @@ class Session:
         self.games_joined = 0
         self.user_id: str | None = None
         self.username: str | None = None
+        self.photo: str | None = None
         self.session_started_emitted = False
         self.send_lock = asyncio.Lock()
         self.pinger: Pinger | None = None
@@ -96,6 +105,17 @@ async def handle_auth(session: Session, msg: dict) -> None:
         # Use the account UUID as the player ID so telemetry and game state
         # are keyed by the durable account, not the ephemeral session PID.
         session.pid = session.user_id
+        # Look up the account's avatar so lobby/game rows can show it. Best
+        # effort: Postgres is optional and this must never block auth.
+        if db.available() and session.user_id:
+            try:
+                async with db.pool().acquire() as con:
+                    session.photo = await con.fetchval(
+                        "SELECT profile_photo_url FROM users WHERE id = $1",
+                        uuid.UUID(session.user_id),
+                    )
+            except Exception:  # noqa: BLE001 — avatar is cosmetic, never fatal
+                log.warning("auth photo lookup failed pid=%s", session.pid[:8])
         await send(session.ws, {
             "type": "auth_ok",
             "username": session.username,
@@ -131,6 +151,8 @@ async def handle_create(session: Session, msg: dict) -> None:
          session_id=session.session_id)
     emit("player_joined", game_code=code, user_id=session.pid, name=name,
          session_id=session.session_id, player_count=1)
+    if session.photo:
+        await gamestore.set_player_photo(code, session.pid, session.photo)
     await send(session.ws, {"type": "reconnect_token", "token": token})
     snap = await gamestore.snapshot(code)
     if snap:
@@ -168,6 +190,8 @@ async def handle_join(session: Session, msg: dict) -> None:
     log.info("join     game=%s  player=%s  players=%d", join_code, name, res)
     emit("player_joined", game_code=join_code, user_id=session.pid, name=name,
          session_id=session.session_id, player_count=res)
+    if session.photo:
+        await gamestore.set_player_photo(join_code, session.pid, session.photo)
     await send(session.ws, {"type": "reconnect_token", "token": token})
     snap = await gamestore.snapshot(join_code)
     if snap:
@@ -423,6 +447,22 @@ async def handle_end_game(session: Session, msg: dict) -> None:
         t.cancel()
 
 
+async def handle_leave(session: Session, msg: dict) -> None:
+    """A player leaving voluntarily (the lobby Back button): drop them now with
+    no grace hold, so the roster updates for everyone immediately. Falls through
+    the shared do_drop path, so host transfer / game deletion / broadcast all
+    still apply. If the client's socket closes first, the normal grace path in
+    the disconnect finally block is the fallback."""
+    code = session.code
+    if not code:
+        return
+    old = state.drop_tasks.pop((code, session.pid), None)
+    if old:
+        old.cancel()
+    await gamestore.mark_disconnected(code, session.pid)
+    await do_drop(code, session.pid, grace_ms=0, reason="leave")
+
+
 async def handle_roll_done(session: Session, msg: dict) -> None:
     ev = state.ack_events.get(session.pid)
     if ev is not None:
@@ -443,6 +483,7 @@ ACTIONS = {
     "roll": handle_roll,
     "pause": handle_pause,
     "end_game": handle_end_game,
+    "leave": handle_leave,
     "roll_done": handle_roll_done,
     "pong": handle_pong,
 }

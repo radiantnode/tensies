@@ -2,15 +2,19 @@
 import './app-header.js';
 import { getAuthUser } from '../auth.js';
 import { playCode } from '../audio-share.js';
+import { BACK_BUTTON_HTML } from '../back-button.js';
 import { byId } from '../dom.js';
 import { EQ_ICON_HTML } from '../eq-icon.js';
-import { startGame } from '../net.js';
+import { leaveGame, startGame } from '../net.js';
 import { updateScrollFades } from '../scroll-fades.js';
 import { state } from '../state.js';
 
 /** @typedef {import('../types.js').GameSnapshot} GameSnapshot */
 
 const COPY_HINT = 'Click to copy or show your friends or don’t.';
+
+/** Fallback avatar for anonymous players (no account photo). */
+const DEFAULT_AVATAR = '/static/images/avatar-default.svg';
 
 const joinLink = () => `${location.origin}/${state.gameCode}`;
 
@@ -27,6 +31,15 @@ export class LobbyScreen extends HTMLElement {
   /** @type {HTMLElement | null} */
   #list = null;
 
+  /** @type {boolean} whether the local player hosts (drives the solo-hint). */
+  #isHost = false;
+
+  /** @type {boolean} last-applied emptiness, so the section only fades on change. */
+  #sectionEmpty = true;
+
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
+  #sectionHideTimer;
+
   /** @type {ReturnType<typeof setTimeout> | undefined} */
   #copyResetTimer;
 
@@ -41,6 +54,7 @@ export class LobbyScreen extends HTMLElement {
     this.innerHTML = `
       <app-header></app-header>
       <div class="screen-body lobby-body">
+        <button id="lobby-back-btn" type="button" class="btn-back">${BACK_BUTTON_HTML}</button>
         <h1 id="lobby-title" class="lobby-title">Waiting for players…</h1>
         <p class="lobby-hint">Share this link to invite friends</p>
         <button id="lobby-code" type="button" class="code-display" aria-label="Copy invite link">——</button>
@@ -62,14 +76,15 @@ export class LobbyScreen extends HTMLElement {
           <h2 id="players-label" class="section-label">Fellow Bar Rats</h2>
           <ul class="player-list" id="lobby-players" aria-label="Players"></ul>
         </section>
+        <p id="lobby-solo-hint" class="lobby-solo-hint" hidden>Invite friends or play solo!</p>
         <button id="start-btn" type="button" class="btn btn-primary btn-block" hidden>Start Game</button>
-        <p id="waiting-msg" class="waiting-msg"></p>
       </div>`;
 
     this.#list = byId('lobby-players');
     this.#list.addEventListener('scroll', () => this.#updateFades(), { passive: true });
     window.addEventListener('resize', this.#onResize);
 
+    byId('lobby-back-btn').addEventListener('click', () => leaveGame());
     byId('lobby-code').addEventListener('click', () => this.#copyJoinLink());
     byId('share-btn').addEventListener('click', () => this.#share());
     byId('play-code-btn').addEventListener('click', () => this.#playCode());
@@ -107,50 +122,133 @@ export class LobbyScreen extends HTMLElement {
 
     const list = this.#list;
     if (!list) return;
-    // Sort: current player first, then insertion order.
-    const entries = Object.entries(snap.players);
-    entries.sort(([a], [b]) =>
-      a === state.myId ? -1 : b === state.myId ? 1 : 0
-    );
-    for (const [pid, player] of entries) {
+    // "Fellow Bar Rats" is everyone *but* you — listing yourself is redundant.
+    const others = Object.entries(snap.players).filter(([pid]) => pid !== state.myId);
+    for (const [pid, player] of others) {
       let row = this.#rows.get(pid);
       if (!row) {
         row = document.createElement('li');
         row.className = 'player-list-item';
+        // Built once; name/avatar/badge are patched in place below so a
+        // roster change doesn't reload avatars or reset the row.
+        row.innerHTML =
+          '<span class="lobby-avatar-ring"><img class="lobby-avatar" alt=""></span>' +
+          '<span class="lobby-player-name"></span>';
+        // Fade+slide the row in as the player joins. One-shot: added only on
+        // creation (keyed rows are built once) and cleared when it finishes, so
+        // re-renders never replay it.
+        row.classList.add('player-enter');
+        row.addEventListener('animationend', () => row.classList.remove('player-enter'), { once: true });
         this.#rows.set(pid, row);
       }
-      // Always prepend "you" row, append others.
-      if (pid === state.myId) {
-        list.prepend(row);
-      } else {
-        list.appendChild(row);
-      }
-      row.textContent = player.name;
-      if (pid === state.myId) {
-        row.appendChild(this.#badge('you-badge', 'YOU'));
-      }
-      if (pid === snap.host) {
-        row.appendChild(this.#badge('host-badge', 'HOST'));
-      }
+      list.appendChild(row);
+      const img = /** @type {HTMLImageElement} */ (row.querySelector('.lobby-avatar'));
+      const src = player.photo || DEFAULT_AVATAR;
+      if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+      /** @type {HTMLElement} */ (row.querySelector('.lobby-player-name')).textContent = player.name;
+      const badge = row.querySelector('.host-badge');
+      if (pid === snap.host && !badge) row.appendChild(this.#badge('host-badge', 'HOST'));
+      else if (pid !== snap.host && badge) badge.remove();
     }
+    const shown = new Set(others.map(([pid]) => pid));
     for (const [pid, row] of this.#rows) {
-      if (!snap.players[pid]) {
-        row.remove();
+      if (!shown.has(pid)) {
+        // Drop from the registry now so a rejoin builds a fresh (re-animating)
+        // row, but collapse+fade the DOM node out before removing it. Re-sync the
+        // empty state once it's gone so the last leaver's row can finish
+        // animating before the section is hidden.
         this.#rows.delete(pid);
+        this.#collapseAndRemove(row, () => this.#syncEmptyState());
       }
     }
+    const isHost = snap.host === state.myId;
+    this.#isHost = isHost;
+    // Hide the section / show the solo hint based on the live DOM, so a row still
+    // collapsing out keeps the section visible until its exit animation ends.
+    this.#syncEmptyState();
 
+    byId('lobby-title').textContent = isHost
+      ? 'Waiting for players…'
+      : 'Waiting for host to start…';
     const startBtn = byId('start-btn');
-    const waitingMsg = byId('waiting-msg');
-    if (snap.host === state.myId) {
-      startBtn.hidden = false;
-      waitingMsg.textContent =
-        Object.keys(snap.players).length < 2 ? 'Invite friends — or start solo!' : '';
-    } else {
-      startBtn.hidden = true;
-      waitingMsg.textContent = 'Waiting for the host to start…';
-    }
+    startBtn.hidden = !isHost;
     requestAnimationFrame(() => this.#updateFades());
+  }
+
+  /**
+   * Collapse a leaving player's row to zero height while fading it out, then
+   * drop it from the DOM. Height can't transition from `auto`, so pin the
+   * measured height first, then animate to 0. The negative bottom margin eats
+   * the flex `gap` the collapsing row would otherwise keep reserving.
+   * @param {HTMLElement} row
+   * @param {() => void} [onDone] run after the row leaves the DOM
+   */
+  #collapseAndRemove(row, onDone) {
+    const start = row.offsetHeight;
+    row.style.blockSize = `${start}px`;
+    void row.offsetHeight; // force reflow so the transition has a from-value
+    row.classList.add('player-leave');
+    row.style.blockSize = '0';
+    row.style.opacity = '0';
+    row.style.paddingBlock = '0';
+    row.style.marginBlockEnd = '-0.5rem';
+    let done = false;
+    const finish = () => { if (done) return; done = true; row.remove(); onDone?.(); };
+    row.addEventListener('transitionend', (e) => {
+      if (e.propertyName === 'block-size') finish();
+    }, { once: true });
+    // Fallback if transitionend never fires (e.g. reduced-motion collapses the
+    // duration so the event may be skipped).
+    setTimeout(finish, 400);
+  }
+
+  /**
+   * Hide the players section (and reveal the solo-host hint) only once no row
+   * remains in the DOM. Keying off the live child count — not the roster length
+   * — keeps the section visible while the last leaver's row collapses out, so
+   * its exit animation isn't cut short by an instant display:none.
+   */
+  #syncEmptyState() {
+    const empty = !this.#list || this.#list.childElementCount === 0;
+    const section = /** @type {HTMLElement | null} */ (this.querySelector('.lobby-players-section'));
+    const hint = byId('lobby-solo-hint');
+    if (!section) return;
+    if (empty !== this.#sectionEmpty) {
+      this.#sectionEmpty = empty;
+      clearTimeout(this.#sectionHideTimer);
+      if (empty) {
+        // Fade the whole section out (label + last collapsing row), then remove
+        // it from layout — rather than snapping it away with display:none. The
+        // solo hint waits until the fade finishes so the two don't overlap.
+        hint.hidden = true;
+        section.classList.add('is-hiding');
+        const reveal = () => {
+          if (!this.#sectionEmpty) return; // someone rejoined mid-fade
+          section.hidden = true;
+          hint.hidden = !this.#isHost;
+        };
+        const onEnd = (/** @type {TransitionEvent} */ e) => {
+          if (e.propertyName !== 'opacity') return;
+          section.removeEventListener('transitionend', onEnd);
+          reveal();
+        };
+        section.addEventListener('transitionend', onEnd);
+        this.#sectionHideTimer = setTimeout(reveal, 400);
+      } else {
+        // First player: reveal and fade in, mirroring the row's entrance.
+        hint.hidden = true;
+        section.hidden = false;
+        section.classList.add('is-hiding'); // start transparent…
+        void section.offsetHeight;          // …reflow, then transition to opaque
+        section.classList.remove('is-hiding');
+      }
+    } else if (empty) {
+      // Steady empty state (e.g. initial solo host): no fade, just settled.
+      section.hidden = true;
+      hint.hidden = !this.#isHost;
+    } else {
+      hint.hidden = true; // steady non-empty
+    }
   }
 
   /**

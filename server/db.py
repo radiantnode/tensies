@@ -37,6 +37,12 @@ def pool() -> asyncpg.Pool:
     return _pool
 
 
+def available() -> bool:
+    """Whether the Postgres pool is up. Postgres is optional (telemetry off /
+    the no-DB dev wrapper), so callers on the hot path must guard on this."""
+    return _pool is not None
+
+
 async def _migrate() -> None:
     async with _pool.acquire() as con:
         await con.execute(

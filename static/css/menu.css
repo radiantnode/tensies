@@ -70,7 +70,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    padding: calc(env(safe-area-inset-top) + 4.25rem) 1.25rem 2rem;
+    padding: calc(env(safe-area-inset-top) + 5.5rem) 1.25rem 2rem;
     min-block-size: 100%;
   }
 
@@ -285,9 +285,6 @@
     inline-size: 1rem;
     block-size: 1rem;
   }
-
-  /* Pushes the pause toggle to the bottom of the menu panel. */
-  .menu-spacer { flex: 1; }
 
   /* ── In-game menu items (pause toggle + status) ── */
   .menu-item {

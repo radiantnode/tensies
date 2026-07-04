@@ -11,7 +11,7 @@
  * silence — over the air, speaker/room ringing fills any gap, so silence is
  * undetectable (measured: the previous tone stays the strongest bin right
  * through an 80 ms gap). The dedicated separator tone is what makes repeated
- * letters ("AAB…") decodable. The frame is sent 3× (~4.4 s total); the
+ * letters ("AAB…") decodable. The frame is sent 4× (~7 s total); the
  * decoder accepts the first frame whose checksum validates.
  *
  * Platform notes:
@@ -101,7 +101,7 @@ const SYMBOLS = [
 ];
 
 /**
- * Schedule the full 3-frame transmission of `code` on a fresh oscillator
+ * Schedule the full 4-frame transmission of `code` on a fresh oscillator
  * wired to `destination`. Exported as a seam so a loopback test can route the
  * encoder into {@link decodeFromNode} without a speaker or mic.
  * @param {BaseAudioContext} ctx

@@ -9,14 +9,17 @@
     position: relative;
     flex-shrink: 0;
     padding-block-start: env(safe-area-inset-top);
-    border-block-end: 1px solid rgba(180, 100, 20, 0.25);
   }
 
-  .game-screen .game-topbar {
-    border-block-end: none;
-  }
-
-  .game-screen .game-topbar::after {
+  /* Bottom-border glow. By default it sits at the bottom of the whole top bar —
+     under the app header on pre-game screens, under the scoreboard on the game
+     screen. When the game menu is open it slides over the scoreboard (and this
+     glow, which sits below the menu overlay at z-index:50), so the glow moves up
+     to directly under the title row, which its z-index:100 keeps above the menu.
+     One source for the gradient across both positions. */
+  .game-topbar::after,
+  .game-screen:has(.game-menu.open) .topbar-title-row::after,
+  .a2hs-banner::after {
     content: '';
     position: absolute;
     inset-inline: 0;
@@ -29,6 +32,14 @@
       rgba(170, 115, 45, 0.35) 100%
     );
   }
+
+  /* Pre-game headers: lift the glow above the title-row's opaque z-index:100
+     background (which fills the whole header there). */
+  .game-topbar.app-header::after { z-index: 101; }
+
+  /* Game menu open: hand the glow off from the topbar bottom (now under the
+     menu) to the title-row bottom (above it). */
+  .game-screen:has(.game-menu.open) .game-topbar::after { opacity: 0; }
 
   /* Opaque shield behind the iOS status bar so nothing shows through
      the clock/signal area. Covers the safe-area zone above the header. */
@@ -49,14 +60,9 @@
     align-items: center;
     position: relative;
     z-index: 100;
-    border-block-end: 1px solid rgba(180, 100, 20, 0.2);
     background: var(--color-panel);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-  }
-
-  .game-screen .game-topbar .topbar-title-row {
-    border-block-end: none;
   }
 
   .game-title {

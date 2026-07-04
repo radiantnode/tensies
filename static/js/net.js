@@ -3,7 +3,7 @@ import { myDiceKey } from './dice.js';
 import { byId } from './dom.js';
 import { renderMyArea, renderPlayersBar } from './game-render.js';
 import { showWinner } from './overlays.js';
-import { showFor, showGameDetail } from './router.js';
+import { showFor, showGameDetail, showLanding } from './router.js';
 import { getAuthToken, isSignedIn, getAuthUser } from './auth.js';
 import {
   savePlayerId, saveReconnectToken, readSession, hasSession, clearSession,
@@ -159,7 +159,7 @@ function currentName() {
 export function createGame() {
   const name = currentName();
   state.pendingOrigin = 'landing';
-  showLoading();
+  showLoading('Creating game…');
   connectWs(() => send('create', { name }));
 }
 
@@ -172,13 +172,37 @@ export function joinGame() {
   }
   const name = currentName();
   state.pendingOrigin = 'join';
-  showLoading();
+  showLoading('Joining game…');
   connectWs(() => send('join', { name, code }));
 }
 
 /** Host-only: start the game. */
 export function startGame() {
   send('start');
+}
+
+/**
+ * Leave the lobby without playing and return to landing. We send an explicit
+ * `leave` frame *before* closing so the server drops us with no grace hold and
+ * the roster updates for everyone immediately (a plain close would leave us in
+ * the list for the full reconnect grace). Order matters: clearSession() runs
+ * before the close so handleWsClose() doesn't read it as a dropped connection
+ * and reconnect us straight back in.
+ */
+export function leaveGame() {
+  send('leave'); // ask the server to drop us now, while the socket is still open
+  clearSession();
+  state.reconnecting = false;
+  state.currentState = null;
+  state.gameCode = null;
+  resetRollState();
+  const ws = state.ws;
+  state.ws = null;
+  if (ws) {
+    ws.onclose = null; // deliberate leave — suppress the reconnect path
+    ws.close();
+  }
+  showLanding();
 }
 
 /**
@@ -278,6 +302,10 @@ function handleMessage(msg) {
     }
     case 'game_ended': {
       resetRollState();
+      // The game screen is a persistent shell element, so its in-game menu
+      // (open when you tapped "End Game") would otherwise stay open and show
+      // up on the next game's board. Reset it as the game tears down.
+      /** @type {import('./components/game-screen.js').GameScreen} */ (byId('game')).closeMenu();
       const code = state.gameCode;
       clearSession();
       state.currentState = null;

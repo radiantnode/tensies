@@ -17,7 +17,7 @@
     overflow: hidden;
     padding-block-start: env(safe-area-inset-top);
     background: linear-gradient(100deg, rgba(40, 24, 12, 0.97) 0%, rgba(24, 13, 6, 0.97) 100%);
-    border-block-end: 1px solid rgba(210, 150, 60, 0.4);
+    /* Bottom border is the shared app-header glow (.a2hs-banner::after in shell.css). */
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -88,19 +88,23 @@
     align-self: center;
     margin-inline-start: auto;
     padding: 0.4rem 0.85rem;
-    background: var(--color-accent);
+    /* Dim warm-brown pill with a beige label — a quiet CTA that recedes into the
+       banner rather than the hot-pink accent. */
+    background: rgba(14, 7, 3, 0.9);   /* deep warm brown, darker than any token */
     border-radius: 999px;
-    box-shadow: 0 2px 8px var(--color-accent-soft);
     font-size: 0.82rem;
     font-weight: 800;
     letter-spacing: 0.02em;
-    color: #fff;
+    color: var(--color-text-warm);
   }
 
   .a2hs-banner-close {
     flex-shrink: 0;
     inline-size: 40px;
     align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: transparent;
     border: 0;
     border-inline-start: 0;
@@ -108,7 +112,7 @@
     cursor: pointer;
   }
 
-  .a2hs-banner-close svg { inline-size: 15px; block-size: 15px; }
+  .a2hs-banner-close svg { inline-size: 20px; block-size: 20px; }
   .a2hs-banner-close:hover { color: var(--color-text-warm); }
 
   /* Nav-menu "Add to Home Screen" entry (reuses .menu-whats-new-btn styling). */
@@ -122,7 +126,15 @@
   .menu-a2hs-btn svg { inline-size: 19px; block-size: 19px; }
 
   /* ── Walkthrough overlay (extends .overlay-dialog from overlays.css) ── */
-  .a2hs-overlay { background: rgba(6, 3, 1, 0.99); }
+  /* Same scrim as the join screen (.join-screen::before in landing.css): a
+     translucent dark wash + backdrop blur over the landing video, rather than a
+     flat near-opaque fill. The close/card are children, so the blur only hits
+     what's behind the dialog. */
+  .a2hs-overlay {
+    background: rgba(8, 4, 1, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
 
   .a2hs-overlay[open] {
     flex-direction: column;
@@ -156,17 +168,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-block: auto;        /* centers when it fits, scrolls when it doesn't */
+    /* Both margins auto → centered in the overlay's safe content box (it already
+       pads for the top and bottom insets), and it scrolls when it doesn't fit.
+       Overriding just margin-block-end with a fixed value would cancel this auto
+       and pin the card to the bottom. */
+    margin-block: auto;
     max-inline-size: 360px;
     text-align: center;
-  }
-
-  /* iOS: the overlay pads for the bottom safe-area (home indicator), which
-     pushes the visual centre up. Pull the card back down by that amount. */
-  @supports (margin: env(safe-area-inset-bottom)) {
-    .a2hs-card {
-      margin-block-end: calc(-1 * env(safe-area-inset-bottom, 0px));
-    }
   }
 
   /* Warm gold heading (same treatment as the menu headings; kept local so the
@@ -296,7 +304,7 @@
   .a2hs-phone[data-step="3"] [data-scene="3"],
   .a2hs-phone[data-step="4"] [data-scene="4"] { opacity: 1; }
 
-  /* Android app page behind the Chrome bar — bar-top photo under a scrim. */
+  /* Android app page behind the Chrome bar — landing photo under a scrim. */
   .a2hs-app-canvas {
     flex: 1;
     display: flex;
@@ -306,17 +314,7 @@
     gap: 5px;
     background:
       linear-gradient(rgba(6, 3, 1, 0.5), rgba(6, 3, 1, 0.68)),
-      #0d0805 url('/static/images/landing-mich.webp') center top / cover no-repeat;
-  }
-
-  .a2hs-canvas-logo { filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6)); }
-
-  .a2hs-canvas-word {
-    font-size: 12px;
-    font-weight: 900;
-    letter-spacing: 0.12em;
-    color: var(--color-accent);
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+      #0d0805 url('/static/images/landing-mich.webp?v=2') center top / cover no-repeat;
   }
 
   /* ── iOS scene 1: a real (signed-in) landing screenshot, scaled to fill,
@@ -324,16 +322,16 @@
   .a2hs-ios-page {
     position: absolute;
     inset: 0;
-    background: #0d0805 url('/static/images/landing-mich.webp') center top / cover no-repeat;
+    background: #0d0805 url('/static/images/landing-mich.webp?v=2') center top / cover no-repeat;
   }
 
-  /* Show the same bar-top page behind the share sheet / confirmation, so the
+  /* Show the same landing page behind the share sheet / confirmation, so the
      dimmed page reads through like real iOS (the sheet-dim darkens it more). */
   .a2hs-phone[data-platform="ios"] [data-scene="2"],
   .a2hs-phone[data-platform="ios"] [data-scene="3"] {
     background:
       linear-gradient(rgba(6, 3, 1, 0.5), rgba(6, 3, 1, 0.68)),
-      #0d0805 url('/static/images/landing-mich.webp') center top / cover no-repeat;
+      #0d0805 url('/static/images/landing-mich.webp?v=2') center top / cover no-repeat;
   }
 
   .a2hs-ios-bar {
@@ -634,7 +632,7 @@
   .a2hs-phone[data-platform="android"] [data-scene="2"] {
     background:
       linear-gradient(rgba(6, 3, 1, 0.5), rgba(6, 3, 1, 0.68)),
-      #0d0805 url('/static/images/landing-mich.webp') center top / cover no-repeat;
+      #0d0805 url('/static/images/landing-mich.webp?v=2') center top / cover no-repeat;
   }
 
   /* ── Android scene 1: Chrome top bar ── */
@@ -957,20 +955,6 @@
 
   .a2hs-install .a2hs-glyph { inline-size: 18px; block-size: 18px; }
 
-  .a2hs-later {
-    padding: 0.5rem;
-    background: none;
-    border: 0;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--color-text-muted);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    cursor: pointer;
-  }
-
-  .a2hs-later:hover { color: var(--color-text-warm); }
-
   /* Honor reduced motion: the numbered list still conveys every step. */
   @media (prefers-reduced-motion: reduce) {
     .a2hs-banner,
@@ -978,7 +962,6 @@
     .a2hs-ios-sheet,
     .a2hs-ios-confirm,
     .a2hs-menu,
-    .a2hs-home-app,
     .a2hs-caption,
     .a2hs-tool-active { animation: none; }
     .a2hs-scene { transition: none; }
