@@ -143,10 +143,11 @@ change at desktop width.
 
 ```
 static/
-  index.html             thin shell: the inline #loading markup, the stylesheet
-                         <link>s (critical.css first), the modulepreload graph,
-                         the <*-screen> component tags, and the pause/winner
-                         <dialog> overlays.
+  index.html             thin shell: the inline #loading markup (pure-CSS dice
+                         loader), the stylesheet <link>s (critical.css first),
+                         the modulepreload graph, the bg-video + intro-video
+                         elements, all eight <*-screen> component tags, and the
+                         <a2hs-guide> + pause/winner <dialog> overlays.
   css/                   ALL rules live in explicit cascade layers
                          (@layer reset, tokens, elements, components, utilities
                          — declared once at the top of critical.css, the first
@@ -156,7 +157,8 @@ static/
                          <link>s.
     critical.css         @font-face, the @layer order, semantic tokens
                          (--color-*/--shadow-*/--radius-*), reset, shared logo,
-                         the loading screen, view-transition setup, and the
+                         the loading screen + its pure-CSS dice-hop loader
+                         (pink 6 + ivory 4), view-transition setup, and the
                          .staging/.dissolving screen states (staged reveals)
     controls.css         inputs, .btn variants, .error-msg
     shell.css            shared .game-topbar / app-header / .screen-body
@@ -169,6 +171,12 @@ static/
     dice.css             .die-scene / .die-3d / .face / tumble + pop animations
     menu.css             game menu + nav menu (about / changelog) + pause status
     overlays.css         winner + pause <dialog> styling
+    auth.css             sign-in + onboarding screens (passkey flow)
+    profile.css          public player profile screen (/@username)
+    game-detail.css      per-game detail screen (opened from a profile)
+    a2hs.css             Add-to-Home-Screen landing banner + the animated
+                         install-walkthrough <dialog>; JS-gated (mobile UA
+                         only) so it matches nothing on the desktop harness
   js/                    every module is strict-checked JS (// @ts-check +
                          jsconfig.json at the repo root); named exports, JSDoc
                          on the public API
@@ -210,6 +218,19 @@ static/
     touch.js             installTouchGuard() — capture-phase touchstart guard:
                          blocks iOS double-tap zoom; rapid taps on a ready roll
                          button still register
+    auth.js              WebAuthn passkey ceremony orchestration + JWT session
+                         helpers (base64url ↔ ArrayBuffer per the WebAuthn spec)
+    video-intro.js       game-start video intro: hidden looping autoplay to win
+                         iOS playback permission, then seek-0/show/play-once and
+                         fade the game screen in; also drives the landing bg video
+    a2hs.js              Add-to-Home-Screen orchestration: platform detection +
+                         install plumbing (Android beforeinstallprompt vs the
+                         iOS Share-sheet walkthrough fallback)
+    audio-share.js       experimental phone-to-phone game-code transfer — the
+                         5-letter code as an FSK sine-tone melody (pure Web
+                         Audio, no deps)
+    eq-icon.js           EQ_ICON_HTML — shared 5-bar equalizer icon for the
+                         audio-share buttons (styled by .btn-audio .eq)
     components/          light-DOM custom elements; the host IS the #id.screen
       app-header.js      <app-header> shared top bar (hamburger → nav menu)
       landing-screen.js  <landing-screen>  (#landing) — owns showError
@@ -220,6 +241,12 @@ static/
                          toggles body.nav-menu-open (landing header chrome)
       player-card.js     <player-card> players-bar mini card
       round-target.js    <round-target> round-header die
+      signin-screen.js   <signin-screen>       (#signin) passkey register / sign-in
+      onboarding-screen.js <onboarding-screen> (#onboarding) post-signup profile setup
+      profile-screen.js  <profile-screen>      (#profile) public profile at /@username
+      game-detail-screen.js <game-detail-screen> (#game-detail) per-game detail view
+      a2hs-guide.js      <a2hs-guide> body-level <dialog> install walkthrough
+                         (CSS/SVG phone mockup, three cross-fading steps)
 ```
 
 (The loading screen is inline HTML in `index.html`, not a component, so it
