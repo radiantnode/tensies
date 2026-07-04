@@ -41,7 +41,7 @@ Mobile-only, like the rest of the app — none of this renders on desktop.
   "orientation": "portrait",
   "background_color": "#1a0e08",
   "theme_color": "#1a0e08",
-  "icons": [ …192, 512, 512-maskable… ]
+  "icons": [ 180, 512, 1024 — all "purpose": "any" ]
 }
 ```
 
@@ -53,8 +53,9 @@ Mobile-only, like the rest of the app — none of this renders on desktop.
   overlay note below.)
 - **`background_color`/`theme_color`** — the splash/letterbox and system UI
   tint, matched to the bar-top palette (`#1a0e08`).
-- **maskable icon** — `icon-512-maskable.png` lets Android crop the icon to the
-  launcher's shape without clipping the dice.
+- **icons** — three PNGs (`icon-180`/`icon-512`/`icon-1024`), all
+  `purpose: "any"`. There's no maskable variant today, so Android renders the
+  square icon as-is rather than cropping it to the launcher's shape.
 
 ### iOS / Android meta tags (`static/index.html`)
 
@@ -66,7 +67,7 @@ driven by Apple meta tags:
 | `apple-mobile-web-app-capable = yes` | iOS launches standalone (no Safari chrome) |
 | `apple-mobile-web-app-status-bar-style = black-translucent` | content extends **under** the status bar; we reclaim that space with safe-area padding |
 | `apple-mobile-web-app-title = Tensies` | the home-screen label |
-| `apple-touch-icon` (`apple-touch-icon-180.png`) | the iOS home-screen icon |
+| `apple-touch-icon` (`icon-512.png` + `icon-1024.png`) | the iOS home-screen icon |
 | `mobile-web-app-capable = yes` | the standards/Android equivalent |
 | `theme-color = #1a0e08` | Android status-bar tint |
 | `viewport … viewport-fit=cover` | lets the page paint into the notch/safe areas (required for the insets to be non-zero) |
