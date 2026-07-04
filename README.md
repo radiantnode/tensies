@@ -34,7 +34,7 @@ This is not serious software. It's a hobby project that got a little out of hand
 ## How to play
 
 - One person creates a game and shares the code (or just texts the link).
-- Up to five players join. The host hits **Start**.
+- Everyone else joins with the code. The host hits **Start**.
 - A target number appears. Everybody rolls their ten dice at once.
 - Dice that match the target lock automatically. Keep rolling the rest.
 - First player to lock all ten wins the round.
@@ -56,6 +56,9 @@ Everything else:
 - Share by link, SMS, or [audio](docs/audio-sharing/README.md) from the lobby. One phone chirps the code, the other listens and fills it in.
 - Dice positions stay put across refreshes.
 - Scales horizontally: game state lives in Redis, so you can run as many server instances as you want behind a plain round-robin load balancer. Any instance can serve any game.
+- Optional accounts via passkeys — sign in with Face ID, Touch ID, or a security key (WebAuthn, no passwords). You get a public profile at `/@you` with lifetime stats and a game-by-game history. Skip it and just pick a name if you'd rather.
+- Provably fair when it's turned on: every roll is derived from the [drand](https://drand.love) public randomness beacon, and any finished game can be verified afterward. See [`docs/ROLL_TRUST.md`](docs/ROLL_TRUST.md).
+- Installs to your home screen like a real app, with a guided walkthrough for iOS's well-hidden Add-to-Home-Screen. See [`docs/PWA_INSTALL.md`](docs/PWA_INSTALL.md).
 
 ---
 
@@ -63,25 +66,25 @@ Everything else:
 
 ### Server
 
-Python + [FastAPI](https://fastapi.tiangolo.com/) for the async WebSocket server, with a thin REST layer for static assets, metrics, and admin stats.
+Python + [FastAPI](https://fastapi.tiangolo.com/) for the async WebSocket server, with a thin REST layer for static assets, metrics, admin stats, passkey auth, and the public profile/game APIs.
 
 [Redis](https://redis.io/) is where game state lives. Cross-instance fan-out runs over pub/sub. All player data is a Redis hash, so rolling is parallel: distinct players write distinct fields. The one contested write (crowning a round winner) is an atomic Lua compare-and-set.
 
-[Uvicorn](https://www.uvicorn.org/) is the ASGI server, with `--workers` in prod and `--reload` in dev. [asyncpg](https://github.com/MagicStack/asyncpg) + [Postgres](https://www.postgresql.org/) handle the telemetry event log and rollup tables; those writes are async and stay off the hot path.
+[Uvicorn](https://www.uvicorn.org/) is the ASGI server — `--reload` in dev; in prod each instance runs single-process and you scale out horizontally, several `web` replicas behind nginx (no `--workers`). [asyncpg](https://github.com/MagicStack/asyncpg) + [Postgres](https://www.postgresql.org/) back the telemetry event log and rollup tables *and* the accounts/passkey store; those writes are async and stay off the roll hot path. Postgres is optional for gameplay and telemetry, but required once accounts are in play.
 
 [Prometheus](https://prometheus.io/) runs in-process tracking active games, players, roll latency, and WS frame counts. [Grafana](https://grafana.com/) provisions five dashboards automatically from `ops/grafana/dashboards/`; one uses Grafana Live for sub-second push updates. [nginx](https://nginx.org/) sits in front of the web instances in prod as the load balancer.
 
 ### Client
 
-Vanilla JavaScript split by concern across `static/js/`, loaded as ES modules with no framework. In dev it loads straight from the browser with no build step; cache-busting is a content hash appended at server startup. In prod an esbuild pipeline bundles and minifies everything into a single JS file and a single CSS file, fingerprints all assets, and pre-compresses them for nginx: 39 requests down to 7, 132 KB of JS+CSS+HTML down to 21 KB on the wire. Details in [`docs/ASSET_PIPELINE.md`](docs/ASSET_PIPELINE.md).
+Vanilla JavaScript split by concern across `static/js/`, loaded as ES modules with no framework. In dev it loads straight from the browser with no build step; cache-busting is a content hash appended at server startup. In prod an esbuild pipeline bundles and minifies everything into one JS file and two CSS files (a tiny critical stylesheet plus the rest), fingerprints all assets, and pre-compresses them for nginx: ~60 requests down to 12, ~347 KB of JS+CSS+HTML down to ~47 KB gzipped on the wire. Details in [`docs/ASSET_PIPELINE.md`](docs/ASSET_PIPELINE.md).
 
-The dice are pure CSS 3D transforms on `.die-3d` faces. The bar-top background is a photo.
+The dice are pure CSS 3D transforms on `.die-3d` faces. Behind the board, the landing and game screens play a muted looping video, with a WebP poster for instant first paint.
 
 ### Infrastructure
 
 [Docker + Docker Compose](https://docs.docker.com/compose/) for everything. `docker-compose.yml` is local dev: bind mount, hot reload, relaxed auth. `docker-compose.prod.yml` is production: pinned digest images, non-root user, internal networking, bearer-gated endpoints.
 
-[Playwright](https://playwright.dev/) handles integration testing via Claude Code's MCP server. It covers full two-player games, reconnect, pause, host handoff, and animation timing.
+[Playwright](https://playwright.dev/) drives testing on two fronts: a CI job runs the WebSocket protocol against two live instances sharing one Redis, and a pixel-regression harness guards the frontend against 49 baselines at a mobile viewport. Interactive multi-client checks run through Claude Code's MCP servers — full two-player games, reconnect, pause, host handoff, and animation timing.
 
 ### Built with
 
@@ -108,7 +111,7 @@ The volume mount means edits take effect immediately. You only need to rebuild i
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --scale web=3
 ```
 
-See `.env.prod.example` for the full env var list. The ones that matter most: `REDIS_URL`, `ALLOWED_ORIGINS`, `METRICS_TOKEN`, `MAX_GAMES`, and the rate limits.
+See `.env.prod.example` for the full env var list. The ones that matter most: `REDIS_URL`, `ALLOWED_ORIGINS`, `METRICS_TOKEN`, `JWT_SECRET`, `WEBAUTHN_RP_ID`, `MAX_GAMES`, and the rate limits — `JWT_SECRET` and `WEBAUTHN_RP_ID` are required in prod, the container won't start without them.
 
 ---
 
