@@ -52,7 +52,7 @@ Mobile-only, like the rest of the app — none of this renders on desktop.
   (In a browser tab there is no real web orientation lock — see the rotate
   overlay note below.)
 - **`background_color`/`theme_color`** — the splash/letterbox and system UI
-  tint, matched to the bar-top palette (`#1a0e08`).
+  tint, matched to the app's dark palette (`#1a0e08`).
 - **icons** — three PNGs (`icon-180`/`icon-512`/`icon-1024`), all
   `purpose: "any"`. There's no maskable variant today, so Android renders the
   square icon as-is rather than cropping it to the launcher's shape.
@@ -79,7 +79,7 @@ edge-to-edge, every screen pads itself out of the unsafe zones with
 `env(safe-area-inset-*)`. Key spots:
 
 - `critical.css` — `html` is sized `100% + safe-area-top + safe-area-bottom` and
-  `body` is pulled up by `-safe-area-bottom`, so the bar-top background fills the
+  `body` is pulled up by `-safe-area-bottom`, so the background fills the
   whole device including behind the status bar and home indicator. The loading
   screen pads top/bottom by the insets.
 - `shell.css` / `menu.css` — the top bar and nav menu pad `safe-area-inset-top`

@@ -85,18 +85,7 @@ Dev appends `?v=<hash>` to every URL at server startup, and the app shell plus e
 
 The landing and game screens play a short muted video loop behind the UI (`bg-video` and `intro-video` in `index.html`), each with a WebP poster that paints instantly while the clip loads (`poster-landing.webp`, `poster-game.webp`). Two sources ship per clip — `*-hevc.mp4` (smaller, for devices that decode HEVC) with an `*-h264.mp4` fallback — and the pipeline fingerprints all four. Videos and posters get no `.gz` sibling: both are already-compressed formats, so gzip saves nothing. nginx serves the mp4s via HTTP range requests, so a first load streams only the opening chunk rather than the whole file.
 
-The posters are WebP at quality 75. That number came from a comparison on the *old* static landing photo — a 2.5 MB PNG — where across four quality levels every one looked identical at mobile size (the only size that matters), so q75 won at ~214 KB:
-
-```
-PNG  ████████████████████████████████████████████████████████  2,508 KB
-q85  ███████                                                     331 KB
-q80  ██████                                                      268 KB
-q75  █████                                                       214 KB
-```
-
-<p align="center"><img src="images/bar-top-format-comparison.png" alt="bar-top format comparison"></p>
-
-That original photo (`bar-top.webp`) is no longer used — the video loop replaced it — but the file still sits in `static/images/` and gets fingerprinted into `dist/`, so it's ~214 KB of dead weight worth pruning.
+The posters are WebP at quality 75 — visually identical to lossless at mobile size (the only size that matters) for a fraction of the bytes.
 
 ---
 

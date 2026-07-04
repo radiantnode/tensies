@@ -304,7 +304,7 @@
   .a2hs-phone[data-step="3"] [data-scene="3"],
   .a2hs-phone[data-step="4"] [data-scene="4"] { opacity: 1; }
 
-  /* Android app page behind the Chrome bar — bar-top photo under a scrim. */
+  /* Android app page behind the Chrome bar — landing photo under a scrim. */
   .a2hs-app-canvas {
     flex: 1;
     display: flex;
@@ -325,7 +325,7 @@
     background: #0d0805 url('/static/images/landing-mich.webp?v=2') center top / cover no-repeat;
   }
 
-  /* Show the same bar-top page behind the share sheet / confirmation, so the
+  /* Show the same landing page behind the share sheet / confirmation, so the
      dimmed page reads through like real iOS (the sheet-dim darkens it more). */
   .a2hs-phone[data-platform="ios"] [data-scene="2"],
   .a2hs-phone[data-platform="ios"] [data-scene="3"] {

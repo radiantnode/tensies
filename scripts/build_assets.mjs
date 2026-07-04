@@ -10,7 +10,7 @@
 //     HTML and binary assets all share one fingerprinting scheme — and so we
 //     can rewrite asset references *inside* a bundle before hashing it.
 //   * Assets are hashed first; then JS/CSS bundles have any "/static/..."
-//     string references (e.g. logo-loser.svg used from JS, the font + bar-top
+//     string references (e.g. logo-loser.svg used from JS, the font + poster
 //     url() in critical.css) rewritten to the hashed paths before *their* hash
 //     is taken. esbuild does not rewrite string-literal URLs, so we do it.
 //   * critical.css stays a separate <link> (NOT inlined): the CSP is
@@ -119,7 +119,7 @@ const NONCRIT = readdirSync(join(SRC, 'css'))
   manifest.set('/static/css/app.css', writeHashed('css', 'app', '.css', rewriteRefs(min)));
 }
 
-// ── 4. Minify critical.css, rewrite its url() refs (font + bar-top), hash ─────
+// ── 4. Minify critical.css, rewrite its url() refs (font + poster), hash ──────
 {
   const raw = readFileSync(join(SRC, 'css', 'critical.css'), 'utf8');
   const min = (await esbuild.transform(raw, { loader: 'css', minify: true })).code;
