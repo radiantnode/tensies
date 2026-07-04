@@ -50,7 +50,6 @@
 @layer tokens {
   :root {
     --color-accent: #ff4d6d;
-    --color-accent-soft: rgba(255, 77, 109, 0.4);
     --color-success: #2ecc71;
     --color-bg: #1a0e08;
     --color-panel: rgba(8, 4, 1, 0.58);
