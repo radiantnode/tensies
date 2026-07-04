@@ -94,7 +94,9 @@ sessions, ack_events, drop_tasks, pause_tasks # live asyncio objects, owned by t
 
 Games are destroyed when the last player disconnects. Distinct players write distinct hash fields (atomic `HSET`/`HINCRBY`, no contention), so simultaneous rolling stays parallel; the one contended write — crowning the round winner — is an atomic Lua compare-and-set (`try_finish_round`). A periodic **reaper** (`server/reaper.py`) is the cross-instance backstop for grace-drops / pause-caps whose owning instance died, and publishes the global active-games gauge (aggregate it with `max()` across instances, not `sum()`).
 
-Key env vars (`server/config.py`): `REDIS_URL`, `TELEMETRY_ENABLED`, `ALLOWED_ORIGINS` (WS origin allowlist), `METRICS_TOKEN`/`STATS_TOKEN` (bearer-gate `/metrics`+`/stats`), `MAX_GAMES`, `MAX_PLAYERS_PER_GAME`, `MAX_CONNECTIONS_PER_IP`, `CREATE_RATE_*`/`JOIN_RATE_*`, `MAX_WS_MESSAGE_BYTES`. Behind a trusted proxy, set `TRUST_PROXY_HEADERS`/`TRUSTED_PROXY_HOPS` so the per-IP caps read the real client from `X-Forwarded-For`. Security response headers are governed by `SECURITY_HEADERS` (CSP, on by default), `CSP_OVERRIDE`/`CSP_EXTRA_SCRIPT_SRC`/`CSP_EXTRA_CONNECT_SRC`, and the `HSTS_*` group (off in dev, on for HTTPS deploys) — see `server/security.py`. Asset serving is split on `FRONTEND_DIST` (see Cache-busting).
+**Accounts / auth.** Passkey (WebAuthn) sign-up/sign-in lives in `server/auth.py` — a `/auth/*` router (register/login `options`+`verify`, `/auth/me`) backed by a Postgres `users`/`webauthn_credentials` schema via `server/db.py`. Sessions are JWTs (HS256); the client authenticates its WebSocket with the `auth` action, which rebinds `session.pid` to the account UUID. `main.py` calls `db.init()` before serving because auth needs Postgres even when telemetry is off — gameplay itself still degrades gracefully when the DB is absent (`db.available()`). Public read APIs hang off `server/routes.py`: `/api/profile/{username}`, `/api/game/{code}`, `/api/game/{code}/verify`, `/api/verify/{code}/{pid}/{roll_count}`, plus SPA shells for `/@{username}`, `/games/{code}`, `/signin`, and `/welcome`.
+
+Key env vars (`server/config.py`): `REDIS_URL`, `TELEMETRY_ENABLED`, `ALLOWED_ORIGINS` (WS origin allowlist), `METRICS_TOKEN`/`STATS_TOKEN` (bearer-gate `/metrics`+`/stats`), `MAX_GAMES`, `MAX_PLAYERS_PER_GAME`, `MAX_CONNECTIONS_PER_IP`, `CREATE_RATE_*`/`JOIN_RATE_*`, `MAX_WS_MESSAGE_BYTES`. Accounts add `JWT_SECRET`, `JWT_EXPIRY_DAYS`, `WEBAUTHN_RP_ID`, `WEBAUTHN_RP_NAME`, `WEBAUTHN_ORIGIN`; provably-fair rolling adds `ENABLE_DRAND_ROLLING`, `DRAND_BASE_URL`, `DRAND_CHAIN_HASH`, `DRAND_POLL_INTERVAL` (`server/drand.py`); the optional Discord notifier adds `DISCORD_ENABLED`, `DISCORD_BOT_TOKEN`, `DISCORD_CHANNEL_ID`, `DISCORD_PUBLIC_KEY`, `DISCORD_APPLICATION_ID`, `DISCORD_GUILD_ID` (`server/discord.py`); `APP_URL` sets the absolute og:image origin. Behind a trusted proxy, set `TRUST_PROXY_HEADERS`/`TRUSTED_PROXY_HOPS` so the per-IP caps read the real client from `X-Forwarded-For`. Security response headers are governed by `SECURITY_HEADERS` (CSP, on by default), `CSP_OVERRIDE`/`CSP_EXTRA_SCRIPT_SRC`/`CSP_EXTRA_CONNECT_SRC`/`CSP_EXTRA_IMG_SRC`, and the `HSTS_*` group (off in dev, on for HTTPS deploys) — see `server/security.py`. Asset serving is split on `FRONTEND_DIST` (see Cache-busting).
 
 ### Code layout
 
@@ -262,11 +264,13 @@ maxDiffPixels:0; behaviour is unchanged except documented fixes.)
 **Client → server** (`action` field):
 | action | description |
 |--------|-------------|
+| `auth` | authenticate the session with a passkey JWT; payload: `token` (rebinds `session.pid` to the account UUID) |
 | `create` | create new game; payload: `name` |
 | `join` | join existing game; payload: `name`, `code` |
-| `reconnect` | rejoin a held slot after a drop; payload: `code`, `token` (the private reconnect token) |
+| `reconnect` | rejoin a held slot after a drop; payload: `player_id`, `game_code`, `token` (the private reconnect token) |
 | `start` | host starts the game (host only) |
 | `pause` | host-only toggle that freezes/unfreezes rolling for everyone |
+| `end_game` | host-only; ends the game immediately and broadcasts final per-player stats |
 | `leave` | voluntarily leave a game (lobby Back button); drops immediately with no grace hold so the roster updates for everyone at once |
 | `roll` | roll unlocked dice |
 | `roll_done` | client signals its reveal animation has completed |
@@ -276,12 +280,14 @@ maxDiffPixels:0; behaviour is unchanged except documented fixes.)
 | type | description |
 |------|-------------|
 | `welcome` | connection established; contains `player_id` |
+| `auth_ok` | auth succeeded; carries `username`, `user_id`, `player_id` |
 | `reconnect_token` | private token (sent after create/join) the client stores to rejoin a held slot |
 | `state` | full game state snapshot |
 | `round_won` | state snapshot with `winner_name`; triggers overlay |
+| `game_ended` | host ended the game; carries `ended_by`, `round_num`, and a `players` map of `name`/`wins` |
 | `error` | `msg` field with human-readable reason |
 
-The full state snapshot shape is defined by `state_msg()` in `server/game.py`. It includes `target`, `round_num`, `started`, `paused`, `host`, and a `players` dict with `name`, `dice`, `wins`, `has_rolled`, and `roll_count` per player.
+The full state snapshot shape is defined by `state_msg()` in `server/game.py`. It includes `code`, `target`, `round_num`, `started`, `paused`, `host` (and `pause_remaining_ms` while paused), and a `players` dict with `name`, `dice`, `wins`, `has_rolled`, `roll_count`, `disconnected`, and `photo` per player.
 
 A terminal `error` frame carries `fatal: true` (the only producer today is the pause cap below). The client clears its saved session and returns to the landing screen instead of treating it as an in-game error.
 
@@ -309,6 +315,8 @@ This is implemented in `delayed_broadcast()` (`server/broadcast.py`) via an `asy
 2. Players roll; `apply_roll()` re-randomises unlocked dice and auto-locks any that match `target`
 3. First player to lock all 10 wins the round → `handle_roll` sets `round_over=True`, sends `round_won` privately and schedules a `delayed_broadcast`
 4. After `ROUND_WIN_DELAY` seconds, `delayed_broadcast` advances `target` (cycles 1→2→3→4→5→6→1), increments `round_num`, calls `deal_round()` again to clear per-round state
+
+When `ENABLE_DRAND_ROLLING` is set (default **off** → local RNG), `handle_roll` derives the unlocked dice from the drand League-of-Entropy beacon (`server/drand.py`) instead of `random`, and records the `drand_round` on the roll — making every roll provably fair and replayable via `/api/game/{code}/verify` and `/api/verify/{code}/{pid}/{roll_count}`. `apply_roll()` stays pure: it takes an optional `dice_values` and otherwise randomises locally. See [`docs/ROLL_TRUST.md`](docs/ROLL_TRUST.md).
 
 ### Asset serving & cache-busting
 
