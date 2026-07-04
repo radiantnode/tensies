@@ -286,9 +286,6 @@
     block-size: 1rem;
   }
 
-  /* Pushes the pause toggle to the bottom of the menu panel. */
-  .menu-spacer { flex: 1; }
-
   /* ── In-game menu items (pause toggle + status) ── */
   .menu-item {
     display: flex;
