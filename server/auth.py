@@ -131,12 +131,11 @@ class LoginVerifyRequest(BaseModel):
 @router.post("/register/options")
 async def register_options(body: RegisterOptionsRequest):
     username = _validate_username(body.username)
-    username_lower = username.lower()
 
-    # Check uniqueness
+    # Check uniqueness (case-insensitive)
     async with db.pool().acquire() as con:
         exists = await con.fetchval(
-            "SELECT 1 FROM users WHERE username_lower = $1", username_lower
+            "SELECT 1 FROM users WHERE LOWER(username) = LOWER($1)", username
         )
     if exists:
         raise HTTPException(409, "Username already taken")
@@ -193,7 +192,6 @@ async def register_options(body: RegisterOptionsRequest):
 @router.post("/register/verify")
 async def register_verify(body: RegisterVerifyRequest):
     username = _validate_username(body.username)
-    username_lower = username.lower()
     challenge = await _pop_challenge(body.nonce)
 
     # Reconstruct the credential bytes from the client's base64url JSON
@@ -219,12 +217,11 @@ async def register_verify(body: RegisterVerifyRequest):
             try:
                 await con.execute(
                     """
-                    INSERT INTO users (id, username, username_lower, legacy_pid)
-                    VALUES ($1, $2, $3, $4)
+                    INSERT INTO users (id, username, legacy_pid)
+                    VALUES ($1, $2, $3)
                     """,
                     uuid.UUID(user_id_str),
                     username,
-                    username_lower,
                     body.legacy_pid,
                 )
             except Exception as e:
@@ -282,12 +279,11 @@ async def register_verify(body: RegisterVerifyRequest):
 @router.post("/login/options")
 async def login_options(body: LoginOptionsRequest):
     username = _validate_username(body.username)
-    username_lower = username.lower()
 
     async with db.pool().acquire() as con:
         user = await con.fetchrow(
-            "SELECT id, username FROM users WHERE username_lower = $1",
-            username_lower,
+            "SELECT id, username FROM users WHERE LOWER(username) = LOWER($1)",
+            username,
         )
         if not user:
             raise HTTPException(404, "No account with that username")
@@ -334,13 +330,13 @@ async def login_options(body: LoginOptionsRequest):
 
 @router.post("/login/verify")
 async def login_verify(body: LoginVerifyRequest):
-    username_lower = body.username.strip().lower()
+    username = body.username.strip()
     challenge = await _pop_challenge(body.nonce)
 
     async with db.pool().acquire() as con:
         user = await con.fetchrow(
-            "SELECT id, username FROM users WHERE username_lower = $1",
-            username_lower,
+            "SELECT id, username FROM users WHERE LOWER(username) = LOWER($1)",
+            username,
         )
         if not user:
             raise HTTPException(404, "No account with that username")

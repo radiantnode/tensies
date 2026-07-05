@@ -163,7 +163,7 @@ async def api_profile(username: str) -> dict:
     async with store.pool().acquire() as con:
         user = await con.fetchrow(
             "SELECT id, username, created_ts, profile_photo_url, location, admin, bio "
-            "FROM users WHERE username_lower = $1",
+            "FROM users WHERE LOWER(username) = $1",
             username.lower(),
         )
         if user is None:
@@ -391,14 +391,14 @@ async def profile_vanity(username: str) -> HTMLResponse:
         from server.telemetry import store
         async with store.pool().acquire() as con:
             user = await con.fetchrow(
-                "SELECT username, profile_photo_url, bio FROM users WHERE username_lower = $1",
+                "SELECT username, profile_photo_url, bio FROM users WHERE LOWER(username) = $1",
                 username.lower(),
             )
             if user is None:
                 return HTMLResponse(_index_html)
             stats = await con.fetchrow(
                 "SELECT total_wins, total_games FROM player_stats WHERE user_id = ("
-                "SELECT id::text FROM users WHERE username_lower = $1)",
+                "SELECT id::text FROM users WHERE LOWER(username) = $1)",
                 username.lower(),
             )
         display = user["username"]
