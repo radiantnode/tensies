@@ -29,9 +29,8 @@ export class SigninScreen extends HTMLElement {
         <p class="tagline">Sign in or create an account</p>
         ${available ? `
         <form id="signin-form" class="form-stack" autocomplete="off" novalidate>
-          <label class="field-hint" for="username-input">Pick a username</label>
           <input id="username-input" name="username" type="text"
-                 aria-label="Username" placeholder="username"
+                 aria-label="Username" placeholder="Enter your username"
                  maxlength="30" autocapitalize="none" autocomplete="username webauthn"
                  spellcheck="false">
           <button id="auth-submit-btn" type="submit" class="btn btn-primary">Sign In / Sign Up</button>
