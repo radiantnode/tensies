@@ -9,9 +9,8 @@
     padding: 0.6rem 0.75rem;
     overflow-x: auto;
     scrollbar-width: none;
-    background: var(--color-panel);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    /* Frosted-panel background + blur is shared with .topbar-title-row in
+       shell.css (one declaration for both top-bar surfaces). */
   }
 
   .players-bar::-webkit-scrollbar { display: none; }

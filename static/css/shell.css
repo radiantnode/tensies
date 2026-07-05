@@ -55,14 +55,24 @@
     z-index: 100;
   }
 
+  /* The two game top-bar surfaces — the title row and the players bar — share
+     one frosted panel (identical color + blur). They stay separate elements on
+     purpose: the in-game menu slides down between them (over the players bar,
+     under the title row's z-index:100), which a single backdrop-filter on the
+     shared .game-topbar parent would break by forming a stacking context. One
+     declaration, two layers. */
+  .topbar-title-row,
+  .players-bar {
+    background: var(--color-panel);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
   .topbar-title-row {
     display: flex;
     align-items: center;
     position: relative;
     z-index: 100;
-    background: var(--color-panel);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
   }
 
   .game-title {
