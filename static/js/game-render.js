@@ -46,13 +46,22 @@ export function renderPlayersBar(snap) {
   const top = maxWins(snap);
   const bar = byId('players-bar');
 
+  // Drop cards for players who left before reconciling positions, so a stale
+  // node can't offset the index-based placement below.
+  for (const [pid, card] of barCards) {
+    if (!snap.players[pid]) {
+      card.remove();
+      barCards.delete(pid);
+    }
+  }
+
   const sorted = Object.entries(snap.players).sort(([aId], [bId]) => {
     if (aId === state.myId) return -1;
     if (bId === state.myId) return 1;
     return snap.players[bId].wins - snap.players[aId].wins;
   });
 
-  for (const [pid, player] of sorted) {
+  sorted.forEach(([pid, player], i) => {
     const isMe = pid === state.myId;
     const matched = player.has_rolled
       ? player.dice.filter((d) => d === snap.target).length
@@ -71,15 +80,14 @@ export function renderPlayersBar(snap) {
     setAttr(card, 'leading', player.wins > 0 && player.wins === top);
     setAttr(card, 'hot', hot);
     setAttr(card, 'disconnected', Boolean(player.disconnected));
-    bar.appendChild(card); // appendChild moves to preserve sort order
-  }
 
-  for (const [pid, card] of barCards) {
-    if (!snap.players[pid]) {
-      card.remove();
-      barCards.delete(pid);
-    }
-  }
+    // Only move a card when it isn't already in its target slot. Re-inserting a
+    // node (even in the same spot) cancels the fill's in-flight width
+    // transition, so the progress bar would snap instead of filling. During a
+    // round the sort order is stable, so settled cards are left untouched and
+    // their transition runs to completion.
+    if (bar.children[i] !== card) bar.insertBefore(card, bar.children[i] ?? null);
+  });
 }
 
 /**

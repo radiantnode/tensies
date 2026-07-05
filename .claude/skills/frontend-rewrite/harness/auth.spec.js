@@ -167,6 +167,7 @@ const RECENT_GAMES = [
 const PROFILE_WITH_STATS = {
   username: 'Mich',
   member_since: '2026-01-15T00:00:00',
+  founding_member: true,
   profile_photo_url: null,
   stats: {
     total_games: 42,
@@ -189,6 +190,7 @@ const PROFILE_WITH_PHOTO = {
 const PROFILE_EMPTY = {
   username: 'Newbie',
   member_since: '2026-06-01T00:00:00',
+  founding_member: false,
   profile_photo_url: null,
   stats: null,
 };

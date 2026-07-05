@@ -33,10 +33,94 @@
     z-index: 101;
   }
 
+  /* Avatar row — hosts the optional "Founding Roller" designation that
+     flanks the avatar on both sides. */
+  .profile-avatar-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.9rem;
+    inline-size: 100%;
+  }
+
+  /* Each side of the designation — a star + wordmark that hug the avatar.
+     Equal flex width on both flanks keeps the avatar horizontally centred;
+     the content aligns toward the avatar so the star bookends the outer edge.
+     Hidden by default; shown for founding members. */
+  .founding-flank {
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    /* Nudge up to the avatar's optical centre (the ring carries a 0.75rem
+       bottom margin). */
+    margin-block-start: -0.75rem;
+  }
+
+  .founding-flank--left { justify-content: flex-end; }
+  .founding-flank--right { justify-content: flex-start; }
+
+  /* Star clusters: nudge the left one 3px toward the edge, and fade each trio
+     out toward the outer (screen) edge so the star nearest the wordmark is
+     brightest. */
+  .founding-flank--left .founding-stars {
+    transform: translateX(-3px);
+    -webkit-mask-image: linear-gradient(to left, #000 20%, transparent 95%);
+            mask-image: linear-gradient(to left, #000 20%, transparent 95%);
+  }
+  .founding-flank--right .founding-stars {
+    -webkit-mask-image: linear-gradient(to right, #000 20%, transparent 95%);
+            mask-image: linear-gradient(to right, #000 20%, transparent 95%);
+  }
+
+  /* Gold-gradient treatment shared by the wordmarks and the stars:
+     metallic cream → gold → deep amber, with a soft warm glow. */
+  .founding-word,
+  .founding-star {
+    font-weight: 800;
+    text-transform: uppercase;
+    background: linear-gradient(180deg,
+      #fdeec6 0%,
+      #f3d59f 40%,
+      #e6b877 60%,
+      #c98f4a 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: #f1cf98; /* fallback where background-clip: text is unsupported */
+    /* Glow via drop-shadow — text-shadow doesn't show through clipped text. */
+    filter:
+      drop-shadow(0 0 5px rgba(255, 186, 102, 0.3))
+      drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+  }
+
+  .founding-word {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+  }
+
+  /* Spread "Roller" (6 chars) to match the wider "Founding" (8 chars). */
+  .founding-word--roller { letter-spacing: 0.443em; }
+
+  /* Tight cluster of three stars bookending each flank. */
+  .founding-stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .founding-star {
+    font-size: 0.68rem;
+    line-height: 1;
+  }
+
   .profile-avatar-ring {
     position: relative;
     inline-size: 72px;
     block-size: 72px;
+    /* Never let the flanking designation squeeze the avatar oval on narrow
+       viewports — the stars overflow off-screen instead. */
+    flex-shrink: 0;
     border-radius: 50%;
     margin-block-end: 0.75rem;
     box-shadow:

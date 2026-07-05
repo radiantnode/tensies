@@ -10,7 +10,7 @@
 //     HTML and binary assets all share one fingerprinting scheme — and so we
 //     can rewrite asset references *inside* a bundle before hashing it.
 //   * Assets are hashed first; then JS/CSS bundles have any "/static/..."
-//     string references (e.g. logo-loser.svg used from JS, the font + bar-top
+//     string references (e.g. logo-loser.svg used from JS, the font + poster
 //     url() in critical.css) rewritten to the hashed paths before *their* hash
 //     is taken. esbuild does not rewrite string-literal URLs, so we do it.
 //   * critical.css stays a separate <link> (NOT inlined): the CSP is
@@ -48,9 +48,16 @@ function writeHashed(relDir, name, ext, contents) {
   return `/static/${relDir}/${outName}`.replace(/\/+/g, '/');
 }
 
-// Replace every known original asset URL in a text blob with its hashed URL.
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Replace every known original asset URL in a text blob with its hashed URL,
+// dropping any dev-only cache-bust query (e.g. `landing-mich.webp?v=2`): the
+// content hash in the filename is the version in prod, so the query is redundant
+// there — and leaving it would point at a nonexistent `…-HASH.webp?v=2` file.
 function rewriteRefs(text) {
-  for (const [from, to] of manifest) text = text.split(from).join(to);
+  for (const [from, to] of manifest) {
+    text = text.replace(new RegExp(escapeRe(from) + '(?:\\?[^"\'\\s)]*)?', 'g'), () => to);
+  }
   return text;
 }
 
@@ -73,7 +80,7 @@ const minifySvg = (text) => {
   return s.trim();
 };
 
-for (const sub of ['images', 'fonts']) {
+for (const sub of ['images', 'fonts', 'video']) {
   const dir = join(SRC, sub);
   for (const file of walk(dir)) {
     const ext = extname(file);
@@ -101,18 +108,34 @@ for (const sub of ['images', 'fonts']) {
   manifest.set('/static/js/app.js', writeHashed('js', 'app', '.js', js));
 }
 
-// ── 3. Bundle + minify the non-critical CSS (index.html order) ────────────────
-// Derive the non-critical list from every .css file in static/css/ except critical.css.
-const NONCRIT = readdirSync(join(SRC, 'css'))
+// ── 3. Bundle + minify the non-critical CSS (index.html <link> order) ─────────
+// Concatenation order IS cascade order: same-specificity rules in the same
+// @layer break ties by source order, so the bundle must match the per-file
+// <link> order the browser applies in dev (index.html) — NOT readdirSync's
+// alphabetical order, which silently flips those ties (e.g. it drops shell.css
+// last, so its .screen-body padding beats lobby.css's .lobby-body and the lobby
+// title collides with the floating Back chip). Derive the order from index.html
+// itself so it stays self-maintaining; append any stray .css not linked there (a
+// forgotten <link>) at the end so it's still bundled, with a warning.
+const indexHtml = readFileSync(join(SRC, 'index.html'), 'utf8');
+const linked = [...new Set(
+  [...indexHtml.matchAll(/\/static\/css\/([\w-]+)\.css/g)].map((m) => m[1]),
+)].filter((n) => n !== 'critical');
+const unlinked = readdirSync(join(SRC, 'css'))
   .filter((f) => f.endsWith('.css') && f !== 'critical.css')
-  .map((f) => f.replace(/\.css$/, ''));
+  .map((f) => f.replace(/\.css$/, ''))
+  .filter((n) => !linked.includes(n));
+if (unlinked.length) {
+  console.warn(`  warn: ${unlinked.map((n) => `${n}.css`).join(', ')} not <link>ed in index.html; appended last`);
+}
+const NONCRIT = [...linked, ...unlinked];
 {
   const concat = NONCRIT.map((n) => readFileSync(join(SRC, 'css', `${n}.css`))).join('\n');
   const min = (await esbuild.transform(concat, { loader: 'css', minify: true })).code;
   manifest.set('/static/css/app.css', writeHashed('css', 'app', '.css', rewriteRefs(min)));
 }
 
-// ── 4. Minify critical.css, rewrite its url() refs (font + bar-top), hash ─────
+// ── 4. Minify critical.css, rewrite its url() refs (font + poster), hash ──────
 {
   const raw = readFileSync(join(SRC, 'css', 'critical.css'), 'utf8');
   const min = (await esbuild.transform(raw, { loader: 'css', minify: true })).code;

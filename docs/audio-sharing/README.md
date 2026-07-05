@@ -71,13 +71,13 @@ Lab conditions don't tell you much about a bar. The `fieldtests/` directory has 
 
 The short version: volume is everything. Pass rate scales from 11% at low volume to 88% at high. Ambient noise barely registers. The loudest environment scored the highest because the speaker was cranked.
 
-The seventh session (S7) is the first with a *measured* volume — 60% on the iPhone volume bar — which anchors the curve in real percentages: the 1000 Hz voices hit 100% by 60% and plateau there, so a 50% floor covers the shippable menu. It also walks back an earlier claim that high volume *redeems* the low-frequency voices; at the same bar, quieter, most of them regressed. They sit at the decoder's threshold and aren't dependable at any realistic volume.
+The seventh session (S7) is the first with a *measured* volume — 60% on the iPhone volume bar — which anchors the curve in real percentages: the 1800 Hz voices hit 100% by 60% and plateau there, so a 50% floor covers the shippable menu. It also walks back an earlier claim that high volume *redeems* the low-frequency voices; at the same bar, quieter, most of them regressed. They sit at the decoder's threshold and aren't dependable at any realistic volume.
 
-Voices at the default 1000 Hz frequency band decode at 97%+ from half volume up. Drop to 800 Hz and you need full volume. Drop to 600 Hz and it's a coin flip.
+Voices at the default 1800 Hz frequency band decode at 97%+ from half volume up. Drop to 800 Hz and you need full volume. Drop to 600 Hz and it's a coin flip.
 
 Nine voices are shippable today: current, triangle, soft-sine, bell, chime, kalimba, organ, vibes, and portamento-dream. All went 6/6 in every session at half volume or above. Three are dead: gameboy got a dedicated 24-test deep-dive at max volume and still only hit 54%. Steel-drum and marimba-low are worse.
 
-Effects eat signal margin. Reverb costs about 9 dB. Tremolo is worse. A clean waveform at 1000 Hz survives almost anything. A reverb-heavy voice at 750 Hz survives almost nothing.
+Effects eat signal margin. Reverb costs about 9 dB. Tremolo is worse. A clean waveform at 1800 Hz survives almost anything. A reverb-heavy voice at 750 Hz survives almost nothing.
 
 All testing has been on one iPhone. Android is an open question.
 

@@ -10,14 +10,33 @@
 @layer components {
   .lobby-screen {
     position: relative;
-    background: var(--color-panel-screen);
+    background: transparent;
   }
 
+  /* Scrim on ::before, not the screen root — a backdrop-filter here would make
+     .lobby-screen a stacking context and trap the app-header's z-index:100
+     below the z-50 nav menu. See the matching note on .join-screen. */
+  .lobby-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: rgba(8, 4, 1, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    pointer-events: none;
+  }
+
+  /* Positioned so the absolute .btn-back chip anchors inside the body (below
+     the header), matching the join screen (.join-screen .screen-body). */
+  .lobby-screen .screen-body { position: relative; }
+
   /* Lobby content sits top-aligned beneath the header (it's a tall screen
-     with the scrollable player list), rather than vertically centred. */
+     with the scrollable player list), rather than vertically centred. The
+     extra top padding clears the floating Back chip above the title. */
   .lobby-body {
     justify-content: flex-start;
-    padding: 2rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
+    padding: 5.25rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
   }
 
   /* The shared .or-divider stretches to its container on landing (the form
@@ -144,10 +163,43 @@
     min-block-size: 0;
     inline-size: 100%;
     max-inline-size: 400px;
-    margin-block-end: 1.5rem;
+    margin-block-end: 0.75rem;
     padding-block-start: 1.25rem;
     border-block-start: 1px solid var(--color-border);
+    /* Fade the section in/out as it fills/empties (driven by #syncEmptyState,
+       which toggles .is-hiding around the display swap). */
+    transition: opacity 0.3s ease;
   }
+
+  .lobby-players-section.is-hiding { opacity: 0; }
+
+  /* Pin Start to the bottom of the column even when the players section is
+     hidden (solo lobby) — the auto margin absorbs the free space the section's
+     flex:1 would otherwise fill, so the button never drifts up. */
+  .lobby-body > .btn-primary {
+    margin-block-start: auto;
+  }
+
+  /* Solo host: takes the hidden players section's place, filling the gap
+     between the invite buttons and Start with a dim, centred invite hint. */
+  .lobby-solo-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-block-size: 0;
+    inline-size: 100%;
+    /* Cancel the invite-actions 1.5rem bottom margin so the hint box spans the
+       full gap between the buttons and its text centres exactly (without this
+       the box starts 1.5rem low, so the text reads too far down). */
+    margin-block: -1.5rem 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+    text-align: center;
+  }
+  .lobby-solo-hint[hidden] { display: none; }
 
   .section-label {
     margin-block-end: 0.75rem;
@@ -175,49 +227,76 @@
   }
   .player-list::-webkit-scrollbar { display: none; }
 
+  /* Flat containing box matching the profile's "Recent Games" rows
+     (.recent-game): raised surface, rounded, no border/shadow. */
   .player-list-item {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
+    gap: 0.6rem;
+    padding: 0.6rem 0.75rem;
     background: var(--color-raised);
-    border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    box-shadow:
-      inset 0 1px 0 rgba(220, 170, 70, 0.06),
-      0 2px 8px rgba(0, 0, 0, 0.3);
     font-weight: 600;
     color: var(--color-text-warm);
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
   }
 
-  .you-badge,
+  /* Entrance for a newly joined player: fade in while sliding up. Applied once
+     on row creation (lobby-screen.js) and removed on animationend. Global
+     reduced-motion guard collapses the duration, so it's instant there. */
+  .player-list-item.player-enter {
+    animation: player-enter 0.3s ease-out both;
+  }
+
+  @keyframes player-enter {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Exit for a leaving player: collapse block-size to 0 while fading. Driven by
+     #collapseAndRemove (JS pins the start height, then transitions to 0);
+     overflow hides the content as the box closes. */
+  .player-list-item.player-leave {
+    overflow: hidden;
+    pointer-events: none;
+    transition: block-size 0.28s ease, opacity 0.28s ease,
+      padding-block 0.28s ease, margin-block-end 0.28s ease;
+  }
+
+  .lobby-avatar-ring {
+    flex-shrink: 0;
+    inline-size: 2rem;
+    block-size: 2rem;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--color-field);
+    /* Same faint ring as the profile's non-winner recent avatars. */
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+
+  .lobby-avatar {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Sit next to the avatar (overriding the screen-body centred text), take the
+     free space, and truncate so a long name can't shove the badge off. */
+  .lobby-player-name {
+    flex: 1;
+    min-inline-size: 0;
+    text-align: start;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .host-badge {
-    min-inline-size: 3.5rem;
-    padding: 0.2rem 0.5rem;
-    background: var(--color-raised);
-    border: 1px solid var(--color-border-strong);
-    border-radius: 6px;
+    margin-inline-start: auto; /* push the label to the end of the row */
     font-size: 0.7rem;
     font-weight: 700;
     text-align: center;
-    color: var(--color-text-label);
-  }
-
-  .you-badge {
-    background: var(--color-raised-hover);
-    color: var(--color-text-warm);
-  }
-
-  /* Push the first badge to the end; if both exist, "you" takes the auto
-     margin and "HOST" follows naturally. */
-  .you-badge:first-of-type,
-  .host-badge:first-of-type { margin-inline-start: auto; }
-
-  .waiting-msg {
-    margin-block-start: 0.75rem;
-    font-size: 0.95rem;
-    color: var(--color-text-muted);
-    text-shadow: var(--shadow-text);
+    color: var(--color-amber);
   }
 }

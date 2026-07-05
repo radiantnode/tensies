@@ -26,20 +26,13 @@
   .overlay-dialog::backdrop { background: transparent; }
 
   /* ── Pause overlay (non-host) ──
-     Visually identical to the loading screen — same background, logo, bar,
-     and message — but a <dialog> so the game board stays live underneath. */
+     Mirrors the loading screen — same background, dice loader, and message —
+     but a <dialog> so the game board stays live underneath. */
   .pause-overlay[open] {
     flex-direction: column;
     padding: calc(2rem + env(safe-area-inset-top)) 2rem calc(2rem + env(safe-area-inset-bottom));
     background: rgba(6, 3, 1, 0.92);
     text-align: center;
-  }
-
-  /* Match the loading screen's logo spacing exactly, without triggering the
-     view-transition morph that's scoped to .loading-screen/.landing-screen. */
-  .pause-overlay .logo-mark {
-    margin-block-end: -3.5rem;
-    view-transition-name: none;
   }
 
   .pause-overlay .logo {

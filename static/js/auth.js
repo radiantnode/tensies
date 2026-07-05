@@ -190,7 +190,9 @@ export async function loginPasskey(username) {
   });
   if (!optRes.ok) {
     const err = await optRes.json();
-    throw new Error(err.detail || 'Login failed');
+    const e = /** @type {any} */ (new Error(err.detail || 'Login failed'));
+    e.status = optRes.status; // 404 → no such account (used by signInOrUp)
+    throw e;
   }
   const { options, nonce } = await optRes.json();
 
@@ -241,4 +243,26 @@ export async function loginPasskey(username) {
   const result = await verifyRes.json();
   saveAuthToken(result.token);
   return result;
+}
+
+// ─── Combined sign-in / sign-up ──────────────────────────────────────
+
+/**
+ * One-button auth: try to sign in with an existing account; if none exists
+ * (login options returns 404, before any passkey prompt), create one instead.
+ * Any other failure (cancelled ceremony, unknown device) propagates unchanged.
+ * @param {string} username
+ * @returns {Promise<{ mode: 'signin' } | { mode: 'signup', username: string, stats: any }>}
+ */
+export async function signInOrUp(username) {
+  try {
+    await loginPasskey(username);
+    return { mode: 'signin' };
+  } catch (/** @type {any} */ error) {
+    if (error && error.status === 404) {
+      const result = await registerPasskey(username);
+      return { mode: 'signup', username: result.user.username, stats: result.stats };
+    }
+    throw error;
+  }
 }

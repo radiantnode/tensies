@@ -69,12 +69,13 @@ class SecurityHeadersMiddleware:
         self.app = app
         self.csp = build_csp() if SECURITY_HEADERS else None
         self.hsts = build_hsts() if SECURITY_HEADERS else None
-        self.active = bool(self.csp or self.hsts)
 
     async def __call__(self, scope, receive, send) -> None:
-        if not self.active or scope["type"] != "http":
+        if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
+
+        path = scope.get("path", "")
 
         async def _send(message):
             if message["type"] == "http.response.start":
@@ -83,6 +84,19 @@ class SecurityHeadersMiddleware:
                     headers["Content-Security-Policy"] = self.csp
                 if self.hsts:
                     headers["Strict-Transport-Security"] = self.hsts
+                # Keep the app shell (and dev-served /static) from going stale.
+                # A cached HTML document points at old hashed asset URLs, so a PWA
+                # — which caches aggressively and in a store separate from Safari
+                # — can boot a version-skewed module graph and hang on the inline
+                # loading screen (only a reinstall clears it). Force the document
+                # to revalidate; in prod nginx proxies "/" here so this covers it
+                # too, while nginx serves the content-hashed /static bundles with
+                # their own far-future immutable cache (this middleware never runs
+                # for those). In dev, /static is app-served, so revalidate it too.
+                if "cache-control" not in headers:
+                    ctype = headers.get("content-type", "")
+                    if path.startswith("/static/") or ctype.startswith("text/html"):
+                        headers["Cache-Control"] = "no-cache"
             await send(message)
 
         await self.app(scope, receive, _send)
