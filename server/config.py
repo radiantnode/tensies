@@ -7,6 +7,7 @@ to the given default when the env var is unset or unparseable).
 import logging
 import os
 import socket
+from datetime import UTC, datetime
 
 # ─── Logging ─────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -225,3 +226,8 @@ WEBAUTHN_ORIGIN = [
 ]
 JWT_SECRET = os.environ.get("JWT_SECRET", "dev-secret-change-in-prod")
 JWT_EXPIRY_DAYS = _int("JWT_EXPIRY_DAYS", 30)
+
+# ─── Founding member ("Founding Roller") ──────────────────────────────
+# Accounts created strictly before this instant earn the Founding Roller
+# designation on their profile. Fixed UTC cutoff: through end of Jul 19, 2026.
+FOUNDING_CUTOFF = datetime(2026, 7, 20, tzinfo=UTC)

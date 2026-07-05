@@ -17,7 +17,25 @@ export class ProfileScreen extends HTMLElement {
     this.innerHTML = `
       <app-header></app-header>
       <div class="profile-card" id="profile-card">
-        <div class="profile-avatar-ring"><img class="profile-avatar" src="/static/images/avatar-default.svg" alt="" aria-hidden="true"></div>
+        <div class="profile-avatar-row">
+          <div class="founding-flank founding-flank--left" hidden>
+            <span class="founding-stars" aria-hidden="true">
+              <span class="founding-star">★</span>
+              <span class="founding-star">★</span>
+              <span class="founding-star">★</span>
+            </span>
+            <span class="founding-word">Founding</span>
+          </div>
+          <div class="profile-avatar-ring"><img class="profile-avatar" src="/static/images/avatar-default.svg" alt="" aria-hidden="true"></div>
+          <div class="founding-flank founding-flank--right" hidden>
+            <span class="founding-word founding-word--roller">Roller</span>
+            <span class="founding-stars" aria-hidden="true">
+              <span class="founding-star">★</span>
+              <span class="founding-star">★</span>
+              <span class="founding-star">★</span>
+            </span>
+          </div>
+        </div>
         <p class="profile-username" id="profile-username"></p>
       </div>
       <div class="screen-body">
@@ -105,6 +123,11 @@ export class ProfileScreen extends HTMLElement {
       const avatar = document.querySelector('.profile-avatar');
       if (avatar) avatar.src = data.profile_photo_url;
     }
+    // "Founding Roller" designation flanks the avatar for pre-cutoff accounts.
+    const founding = data.founding_member === true;
+    this.querySelectorAll('.founding-flank').forEach((el) => {
+      /** @type {HTMLElement} */ (el).hidden = !founding;
+    });
     bioEl.textContent = data.bio || '';
     // Pills (location, etc.)
     const pillsEl = document.getElementById('profile-pills');

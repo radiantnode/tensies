@@ -7,7 +7,15 @@ from fastapi.responses import HTMLResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from .assets import build_index_html, build_page_template, render_page
-from .config import APP_URL, FRONTEND_DIST, METRICS_TOKEN, STATS_TOKEN, TELEMETRY_ENABLED, log
+from .config import (
+    APP_URL,
+    FOUNDING_CUTOFF,
+    FRONTEND_DIST,
+    METRICS_TOKEN,
+    STATS_TOKEN,
+    TELEMETRY_ENABLED,
+    log,
+)
 
 router = APIRouter()
 
@@ -163,7 +171,7 @@ async def api_profile(username: str) -> dict:
     async with store.pool().acquire() as con:
         user = await con.fetchrow(
             "SELECT id, username, created_ts, profile_photo_url, location, admin, bio "
-            "FROM users WHERE username_lower = $1",
+            "FROM users WHERE LOWER(username) = $1",
             username.lower(),
         )
         if user is None:
@@ -250,6 +258,7 @@ async def api_profile(username: str) -> dict:
     return {
         "username": user["username"],
         "member_since": user["created_ts"].isoformat() if user["created_ts"] else None,
+        "founding_member": bool(user["created_ts"] and user["created_ts"] < FOUNDING_CUTOFF),
         "profile_photo_url": user["profile_photo_url"],
         "location": user["location"],
         "admin": bool(user["admin"]),
@@ -391,14 +400,14 @@ async def profile_vanity(username: str) -> HTMLResponse:
         from server.telemetry import store
         async with store.pool().acquire() as con:
             user = await con.fetchrow(
-                "SELECT username, profile_photo_url, bio FROM users WHERE username_lower = $1",
+                "SELECT username, profile_photo_url, bio FROM users WHERE LOWER(username) = $1",
                 username.lower(),
             )
             if user is None:
                 return HTMLResponse(_index_html)
             stats = await con.fetchrow(
                 "SELECT total_wins, total_games FROM player_stats WHERE user_id = ("
-                "SELECT id::text FROM users WHERE username_lower = $1)",
+                "SELECT id::text FROM users WHERE LOWER(username) = $1)",
                 username.lower(),
             )
         display = user["username"]
