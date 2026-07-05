@@ -3,7 +3,7 @@ import './app-header.js';
 import { byId } from '../dom.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
 import {
-  registerPasskey, loginPasskey, validateUsername, isWebAuthnAvailable,
+  signInOrUp, validateUsername, isWebAuthnAvailable,
 } from '../auth.js';
 import { showLanding, showOnboarding } from '../router.js';
 
@@ -34,9 +34,7 @@ export class SigninScreen extends HTMLElement {
                  aria-label="Username" placeholder="username"
                  maxlength="30" autocapitalize="none" autocomplete="username webauthn"
                  spellcheck="false">
-          <button id="signup-btn" type="submit" class="btn btn-primary">Sign Up</button>
-          <div class="or-divider" aria-hidden="true"><span>or</span></div>
-          <button id="signin-btn" type="button" class="btn btn-secondary">Sign In</button>
+          <button id="auth-submit-btn" type="submit" class="btn btn-primary">Sign In / Sign Up</button>
           <p class="error-msg" id="signin-error" role="alert" aria-live="polite"></p>
         </form>
         ` : `
@@ -50,19 +48,16 @@ export class SigninScreen extends HTMLElement {
 
     const form = byId('signin-form');
     const usernameInput = /** @type {HTMLInputElement} */ (byId('username-input'));
-    const signupBtn = byId('signup-btn');
-    const signinBtn = byId('signin-btn');
+    const submitBtn = byId('auth-submit-btn');
 
     /** @param {boolean} disabled */
     const setLoading = (disabled) => {
       usernameInput.disabled = disabled;
-      signupBtn.classList.toggle('btn-loading', disabled);
-      signinBtn.classList.toggle('btn-loading', disabled);
-      /** @type {HTMLButtonElement} */ (signupBtn).disabled = disabled;
-      /** @type {HTMLButtonElement} */ (signinBtn).disabled = disabled;
+      submitBtn.classList.toggle('btn-loading', disabled);
+      /** @type {HTMLButtonElement} */ (submitBtn).disabled = disabled;
     };
 
-    // Sign Up (form submit)
+    // One button, double duty: sign in if the account exists, else sign up.
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const username = usernameInput.value.trim();
@@ -71,26 +66,14 @@ export class SigninScreen extends HTMLElement {
       this.showError('');
       setLoading(true);
       try {
-        const result = await registerPasskey(username);
-        showOnboarding(result.user.username, result.stats);
+        const outcome = await signInOrUp(username);
+        if (outcome.mode === 'signup') {
+          showOnboarding(outcome.username, outcome.stats);
+        } else {
+          showLanding();
+        }
       } catch (/** @type {any} */ error) {
-        this.showError(error.message || 'Sign up failed');
-      } finally {
-        setLoading(false);
-      }
-    });
-
-    // Sign In
-    signinBtn.addEventListener('click', async () => {
-      const username = usernameInput.value.trim();
-      if (!username) { this.showError('Enter your username'); return; }
-      this.showError('');
-      setLoading(true);
-      try {
-        await loginPasskey(username);
-        showLanding();
-      } catch (/** @type {any} */ error) {
-        this.showError(error.message || 'Sign in failed');
+        this.showError(error.message || 'Something went wrong');
       } finally {
         setLoading(false);
       }
