@@ -49,6 +49,21 @@
      menu) to the title-row bottom (above it). */
   .game-screen:has(.game-menu.open) .game-topbar::after { opacity: 0; }
 
+  /* Non-game screens (the pre-game app-header): opaque shield behind the iOS
+     status bar so nothing shows through the clock/signal area. The game screen
+     doesn't need it — its .game-topbar background already fills the safe area. */
+  .game-topbar.app-header::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    block-size: env(safe-area-inset-top);
+    background: var(--color-panel);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 100;
+  }
+
   .topbar-title-row {
     display: flex;
     align-items: center;
@@ -67,20 +82,14 @@
     -webkit-backdrop-filter: none;
   }
 
-  /* Menu open: the parent's backdrop-filter traps the title row in its stacking
-     context (below the z-index:50 menu). Hand the frosted surface back to the
-     title row so its z-index:100 re-escapes above the menu (hamburger stays
-     tappable); the players bar drops under the menu overlay as before. */
+  /* Menu open: drop the parent's backdrop-filter so it stops being a stacking
+     context — the title row's z-index:100 re-escapes above the z-index:50 menu
+     (hamburger stays tappable). The header stays transparent, so the dark menu
+     overlay shows straight through it; the players bar drops under the menu. */
   .game-screen:has(.game-menu.open) .game-topbar:not(.app-header) {
     background: transparent;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-  }
-
-  .game-screen:has(.game-menu.open) .game-topbar:not(.app-header) .topbar-title-row {
-    background: var(--color-panel);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
   }
 
   .game-title {
