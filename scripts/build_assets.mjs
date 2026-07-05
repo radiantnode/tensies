@@ -108,11 +108,27 @@ for (const sub of ['images', 'fonts', 'video']) {
   manifest.set('/static/js/app.js', writeHashed('js', 'app', '.js', js));
 }
 
-// ── 3. Bundle + minify the non-critical CSS (index.html order) ────────────────
-// Derive the non-critical list from every .css file in static/css/ except critical.css.
-const NONCRIT = readdirSync(join(SRC, 'css'))
+// ── 3. Bundle + minify the non-critical CSS (index.html <link> order) ─────────
+// Concatenation order IS cascade order: same-specificity rules in the same
+// @layer break ties by source order, so the bundle must match the per-file
+// <link> order the browser applies in dev (index.html) — NOT readdirSync's
+// alphabetical order, which silently flips those ties (e.g. it drops shell.css
+// last, so its .screen-body padding beats lobby.css's .lobby-body and the lobby
+// title collides with the floating Back chip). Derive the order from index.html
+// itself so it stays self-maintaining; append any stray .css not linked there (a
+// forgotten <link>) at the end so it's still bundled, with a warning.
+const indexHtml = readFileSync(join(SRC, 'index.html'), 'utf8');
+const linked = [...new Set(
+  [...indexHtml.matchAll(/\/static\/css\/([\w-]+)\.css/g)].map((m) => m[1]),
+)].filter((n) => n !== 'critical');
+const unlinked = readdirSync(join(SRC, 'css'))
   .filter((f) => f.endsWith('.css') && f !== 'critical.css')
-  .map((f) => f.replace(/\.css$/, ''));
+  .map((f) => f.replace(/\.css$/, ''))
+  .filter((n) => !linked.includes(n));
+if (unlinked.length) {
+  console.warn(`  warn: ${unlinked.map((n) => `${n}.css`).join(', ')} not <link>ed in index.html; appended last`);
+}
+const NONCRIT = [...linked, ...unlinked];
 {
   const concat = NONCRIT.map((n) => readFileSync(join(SRC, 'css', `${n}.css`))).join('\n');
   const min = (await esbuild.transform(concat, { loader: 'css', minify: true })).code;
