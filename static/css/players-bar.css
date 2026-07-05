@@ -9,9 +9,6 @@
     padding: 0.6rem 0.75rem;
     overflow-x: auto;
     scrollbar-width: none;
-    background: var(--color-panel);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
   }
 
   .players-bar::-webkit-scrollbar { display: none; }

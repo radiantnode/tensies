@@ -11,6 +11,14 @@
     padding-block-start: env(safe-area-inset-top);
   }
 
+  /* Game screen only (not the pre-game app-header): one frosted surface behind
+     the whole top bar — the title row and players bar sit on it transparently. */
+  .game-topbar:not(.app-header) {
+    background: var(--color-panel);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
   /* Bottom-border glow. By default it sits at the bottom of the whole top bar —
      under the app header on pre-game screens, under the scoreboard on the game
      screen. When the game menu is open it slides over the scoreboard (and this
@@ -41,9 +49,10 @@
      menu) to the title-row bottom (above it). */
   .game-screen:has(.game-menu.open) .game-topbar::after { opacity: 0; }
 
-  /* Opaque shield behind the iOS status bar so nothing shows through
-     the clock/signal area. Covers the safe-area zone above the header. */
-  .game-topbar::before {
+  /* Non-game screens (the pre-game app-header): opaque shield behind the iOS
+     status bar so nothing shows through the clock/signal area. The game screen
+     doesn't need it — its .game-topbar background already fills the safe area. */
+  .game-topbar.app-header::before {
     content: '';
     position: absolute;
     inset-block-start: 0;
@@ -63,6 +72,24 @@
     background: var(--color-panel);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Game screen only: the frosted surface lives on .game-topbar, so the title
+     row sits on it transparently (no double blur). */
+  .game-topbar:not(.app-header) .topbar-title-row {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  /* Menu open: drop the parent's backdrop-filter so it stops being a stacking
+     context — the title row's z-index:100 re-escapes above the z-index:50 menu
+     (hamburger stays tappable). The header stays transparent, so the dark menu
+     overlay shows straight through it; the players bar drops under the menu. */
+  .game-screen:has(.game-menu.open) .game-topbar:not(.app-header) {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .game-title {
