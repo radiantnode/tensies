@@ -7,7 +7,15 @@ from fastapi.responses import HTMLResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from .assets import build_index_html, build_page_template, render_page
-from .config import APP_URL, FOUNDING_CUTOFF, FRONTEND_DIST, METRICS_TOKEN, STATS_TOKEN, TELEMETRY_ENABLED, log
+from .config import (
+    APP_URL,
+    FOUNDING_CUTOFF,
+    FRONTEND_DIST,
+    METRICS_TOKEN,
+    STATS_TOKEN,
+    TELEMETRY_ENABLED,
+    log,
+)
 
 router = APIRouter()
 
