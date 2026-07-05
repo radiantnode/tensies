@@ -119,10 +119,14 @@ export class ProfileScreen extends HTMLElement {
     const data = result.data;
 
     nameEl.textContent = data.username;
-    if (data.profile_photo_url) {
-      const avatar = document.querySelector('.profile-avatar');
-      if (avatar) avatar.src = data.profile_photo_url;
-    }
+    // Scope to THIS screen: the sign-in screen also has a `.profile-avatar`
+    // and precedes us in the DOM, so an unscoped querySelector would write the
+    // photo onto the sign-in avatar (and miss ours). Reset to the default when
+    // there's no photo so a previous profile's photo can't linger.
+    const avatar = /** @type {HTMLImageElement | null} */ (
+      this.querySelector('.profile-avatar')
+    );
+    if (avatar) avatar.src = data.profile_photo_url || '/static/images/avatar-default.svg';
     // "Founding Roller" designation flanks the avatar for pre-cutoff accounts.
     const founding = data.founding_member === true;
     this.querySelectorAll('.founding-flank').forEach((el) => {
