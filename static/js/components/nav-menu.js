@@ -10,182 +10,197 @@ const A2HS_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 
 // Baked changelog HTML — content, not code; the changelog skill regenerates it.
 const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
-<h2>1.18.0 ("Cherry on Top")</h2>
+<h2>1.23.0 ("Regular's Tab")</h2>
+<p>Sunday, July 5, 2026</p>
+<ul>
+<li>The sign-in button pulls double duty now: same button whether you're making a new account or getting back into an old one. Type your name and go.</li>
+<li>Your username isn't picky about capitals anymore. "MikeD" and "miked" get you the same seat.</li>
+<li>If you were here early, your profile wears a "Founding Roller" badge. You were rolling before it was cool. 😎</li>
+<li>The scoreboard up top got a cleaner coat of frost, and the little progress bars slide up instead of snapping.</li>
+</ul>
+<h2>1.22.1 ("House Cleaning")</h2>
+<p>Saturday, July 4, 2026</p>
+<ul>
+<li>Fresh code reaches your phone faster now, so you're never stuck on a stale version between rounds. ⚡</li>
+<li><em>Behind the scenes: swept out a pile of unused styling and old art so the app stays light and quick to load.</em></li>
+</ul>
+<h2>1.22.0 ("Loaded Dice")</h2>
+<p>Friday, July 3, 2026</p>
+<ul>
+<li>The loading screen got a fun little tumbling-dice animation while you wait, and it tells you whether you're creating or joining. 🎲</li>
+<li>The lobby list breathes now: players slide in and out as folks come and go instead of just popping.</li>
+<li>Smoother trips in and out of profiles and past-game pages, no jarring jumps.</li>
+<li>The Add-to-Home-Screen guide sits dead center and matches the rest of the app.</li>
+</ul>
+<h2>1.21.0 ("Bar Tab")</h2>
+<p>Thursday, July 2, 2026</p>
+<ul>
+<li>Changed your mind in the lobby? There's a Back button now, and leaving drops you right away so everyone else sees the roster update instantly. 🚪</li>
+<li>The lobby shows your account picture next to your name, and the title tells you if you're hosting or joining.</li>
+<li>Rolling solo? A little hint nudges you to invite friends or just play on your own.</li>
+</ul>
+<h2>1.20.1 ("One More Round")</h2>
+<p>Wednesday, July 1, 2026</p>
+<ul>
+<li>Fixed the intro video refusing to play again on your second game of the night. Encore granted. 🎬</li>
+<li>The menu tidies itself away when a game ends, and the background stops jumping around during the intro.</li>
+</ul>
+<h2>1.20.0 ("Opening Credits")</h2>
+<p>Tuesday, June 30, 2026</p>
+<ul>
+<li>Games now kick off with a short video intro, and there's moving video behind the landing screen too. A little showtime before the dice fly. 🎬</li>
+</ul>
+<h2>1.19.0 ("Fresh Coat")</h2>
 <p>Wednesday, June 24, 2026</p>
 <ul>
-<li>The roll button is a big floating circle now. Easier to find, easier to tap.</li>
-<li>When it's not your turn, the button pulses with a rotating glow so you know it's alive. 🫧</li>
-<li>Fresh app icons everywhere, so Tensies looks right on your home screen and share sheet.</li>
-<li><em>Behind the scenes: tightened tap targets and scoped visual effects to keep the board clean.</em></li>
+<li>The Roll button is now a big round floating button that's way easier to thumb mid-round, with a glowing pulse while you wait your turn. 👆</li>
+<li>New app icons across the board, so Tensies looks sharp on your home screen.</li>
+<li><em>Behind the scenes: tidied up the styling so things stay snappy and consistent.</em></li>
 </ul>
-<h2>1.17.1 ("Rim Salt")</h2>
+<h2>1.18.0 ("Word of Mouth")</h2>
 <p>Tuesday, June 23, 2026</p>
 <ul>
-<li>Share links look better. When you text someone a Tensies link, the preview card actually does its job.</li>
-<li>Fixed the share icon on iOS so it shows up where it belongs. 📱</li>
-<li><em>Behind the scenes: tidied up how pages present themselves to search engines and social previews.</em></li>
+<li>Share a Tensies link and it now shows a proper preview with the right icon, so your invite looks good in the group chat. 🔗</li>
+<li>Fixed the icon that showed up when you shared to the iOS share sheet.</li>
 </ul>
-<h2>1.17.0 ("Pocket Pour")</h2>
+<h2>1.17.1 ("Nightcap")</h2>
+<p>Monday, June 22, 2026</p>
+<ul>
+<li><em>Behind the scenes: routine housekeeping to keep the plumbing current and safe.</em></li>
+</ul>
+<h2>1.17.0 ("Take It Home")</h2>
 <p>Sunday, June 21, 2026</p>
 <ul>
-<li>An animated walkthrough shows you how to add Tensies to your home screen, step by step. 🏠</li>
+<li>Added a friendly walkthrough that shows you exactly how to add Tensies to your phone's home screen, so it launches like a real app. 📱</li>
 </ul>
-<h2>1.16.1 ("Well Drink")</h2>
+<h2>1.16.1 ("Last Orders")</h2>
 <p>Saturday, June 20, 2026</p>
 <ul>
-<li>Fixed a bug where the standings on your profile showed players in the wrong order. Your wins are your wins. 🏆</li>
-<li><em>Behind the scenes: bumped every dependency, added automated security scanning, set up a CI gate.</em></li>
+<li>Rounded up a batch of small security and dependency updates, plus a fix so your profile's recent games line up in the right order. 🔒</li>
+<li><em>Behind the scenes: added a security policy and automated checks so problems get caught before they reach you.</em></li>
 </ul>
-<h2>1.16.0 ("The Group Chat")</h2>
+<h2>1.16.0 ("Round the Room")</h2>
 <p>Friday, June 19, 2026</p>
 <ul>
-<li>When a game ends, you land on the game's detail page instead of a throwaway overlay. Your scoreboard sticks around.</li>
-<li>Got a Discord server? Tensies can post game updates there: who joined, who won, round by round.</li>
-<li>There's a /verify command in Discord too, so anyone can check that the dice were fair without leaving the chat. 🎲</li>
+<li>When a game wraps, you get whisked straight to that game's page with the final scoreboard.</li>
+<li>Optional Discord notifications can now announce your games, and there's a Discord command to double-check any roll was fair. 🔌</li>
 </ul>
-<h2>1.15.0 ("House Rules")</h2>
+<h2>1.15.0 ("Provably Fair Pour")</h2>
 <p>Thursday, June 18, 2026</p>
 <ul>
-<li>Your profile has a bio and location field now.</li>
-<li>Every roll is backed by a distributed randomness beacon (drand), which means you can mathematically prove the dice weren't rigged. Not that you'd accuse your friends of anything. 🛡️</li>
-<li>Each game has its own page at /games/CODE with a Roll Trust section. Tap the shield to see the cryptographic proof.</li>
-<li><em>Behind the scenes: the randomness verification runs end to end, from the beacon to the roll to the proof page.</em></li>
+<li>Every roll can now be proven fair. Tensies pulls its randomness from a public, tamper-proof beacon, and each finished game has a page where anyone can check the dice were legit. 🔐</li>
+<li>Profiles gained a bio and a location, so the crew knows who's who.</li>
 </ul>
-<h2>1.14.0 ("Closing Time")</h2>
+<h2>1.14.0 ("Calling It")</h2>
 <p>Wednesday, June 17, 2026</p>
 <ul>
-<li>Hosts can end the game. When it's over, everyone sees a scoreboard with final standings, avatars, and bragging rights. 🍻</li>
-<li>The game-ended screen survives a refresh, so you can't lose your receipts.</li>
-<li><em>Behind the scenes: tuned profile recent games to count everyone who actually showed up.</em></li>
+<li>Hosts can now End Game whenever they want, and everyone gets a clean final scoreboard with pictures and win counts. Perfect for when the food shows up. 🍔</li>
 </ul>
-<h2>1.13.1 ("Napkin Notes")</h2>
+<h2>1.13.1 ("Booth Talk")</h2>
 <p>Tuesday, June 16, 2026</p>
 <ul>
-<li><em>Behind the scenes: reviewed outside feedback on the codebase, sharpened a few things based on what held up.</em></li>
+<li><em>Behind the scenes: gathered outside feedback and worked through it so the game keeps getting sharper.</em></li>
 </ul>
-<h2>1.13.0 ("Bar Card")</h2>
+<h2>1.13.0 ("Name on the Door")</h2>
 <p>Monday, June 15, 2026</p>
 <ul>
-<li>You've got a public profile at /@yourusername with your stats, avatar, and recent games. Show it off or don't. 🪪</li>
-<li>Your username pill on the landing and lobby links straight to your profile.</li>
-<li>Signing in works everywhere now, including prod.</li>
-<li><em>Behind the scenes: wrote data repair scripts to backfill stats for players who were rolling before accounts existed.</em></li>
+<li>You've got a real profile now, living at your own /@username, with your stats and a photo.</li>
+<li>Your win counts and history carry over onto your account, so your bragging rights are official. 🏆</li>
 </ul>
-<h2>1.12.0 ("Regular's Tab")</h2>
+<h2>1.12.0 ("Signed In")</h2>
 <p>Sunday, June 14, 2026</p>
 <ul>
-<li>You can create an account with a passkey. No passwords, no email, just your fingerprint or face. Your stats carry over from anonymous games. 🔑</li>
-<li>Once signed in, your name shows up in a pill in the header.</li>
-<li>The changelog scrolls as one smooth page now instead of fighting with the menu panel.</li>
-<li>Fixed a gap at the bottom of the screen on iOS when running from the home screen.</li>
+<li>Once you're signed in, Tensies remembers you: your name shows up in the header and the sign-in bits get out of your way. 👋</li>
+<li>Nicer fit on iPhones, with the app filling the whole screen instead of leaving awkward gaps at the bottom.</li>
 </ul>
-<h2>1.11.0 ("Jukebox")</h2>
+<h2>1.11.0 ("Karaoke Night")</h2>
 <p>Saturday, June 13, 2026</p>
 <ul>
-<li>The dice on the landing screen wiggle. They're happy to see you. 🎲</li>
-<li>Buttons have a shimmer sweep that catches the light. Looks good in a dim bar.</li>
-<li>Share and Play sit side by side in the lobby so inviting friends is faster.</li>
-<li>Player badges (YOU, HOST) both show up now, and you're always sorted to the top.</li>
-<li><em>Behind the scenes: built a standalone soundboard tool for field-testing the audio code share across different phones.</em></li>
+<li>Forgot the game code and don't feel like typing? One phone can chirp the code out loud and another can listen and grab it. Yes, really. 🔊</li>
+<li>The landing dice give a playful little wiggle, buttons got a subtle shine, and the lobby shows who's you and who's hosting at a glance.</li>
 </ul>
-<h2>1.10.0 ("On Tap")</h2>
+<h2>1.10.0 ("Pocket Pour")</h2>
 <p>Friday, June 12, 2026</p>
 <ul>
-<li>Tensies is installable. Add it to your home screen and it launches full screen, like a real app. 📲</li>
-<li>The invite button uses your phone's native share sheet, so you can text, AirDrop, whatever.</li>
-<li>Turn your phone sideways and you'll see a "rotate your phone" screen instead of a sideways mess.</li>
-<li>Experimental: the lobby has a Play button that chirps your game code as audio, and a Listen button that decodes it. Hold your phones close.</li>
+<li>You can install Tensies to your home screen now and it opens like a real app, full screen, no browser bars. 📲</li>
+<li>Sharing an invite got easier with your phone's built-in share sheet.</li>
 </ul>
-<h2>1.9.0 ("Same Round, New Glass")</h2>
+<h2>1.9.2 ("Steady Hands")</h2>
 <p>Thursday, June 11, 2026</p>
 <ul>
-<li>Fixed a bug where the winner overlay could flash away if another player's roll came in at the wrong moment.</li>
-<li>Dice land in their scattered positions before the board paints, so they don't snap into place after the fact.</li>
-<li>Safari users, the 3D dice stay 3D during screen transitions now. They were going flat. 🧊</li>
-<li>The loading screen holds until your dice are actually rendered, then dissolves.</li>
-<li><em>Behind the scenes: rebuilt the entire frontend from scratch with stricter code organization. Every view was pixel-verified against the original.</em></li>
+<li>Squashed a few gremlins: the winner screen no longer flickers away too soon, the dice land in place before the board shows up, and 3-D dice stopped looking flat on iPhones. 🐛</li>
+<li>The loading screen now waits for the dice to be ready, then melts away smoothly.</li>
 </ul>
-<h2>1.8.1 ("Bar Back")</h2>
+<h2>1.9.1 ("Tuning Fork")</h2>
 <p>Wednesday, June 10, 2026</p>
 <ul>
-<li><em>Behind the scenes: overhauled dev tooling and session bootstrapping. Pinned browser versions for consistent test results.</em></li>
+<li><em>Behind the scenes: rebuilt the app's insides from a clean slate so new stuff is easier to add without changing a thing you see or feel.</em></li>
 </ul>
-<h2>1.8.0 ("Quick Pour")</h2>
+<h2>1.9.0 ("Instant Replay")</h2>
 <p>Monday, June 8, 2026</p>
 <ul>
-<li>The winner overlay pops up right after the dice scatter instead of waiting for a stale animation. Faster bragging rights. 👑</li>
-<li><em>Behind the scenes: added a build pipeline that bundles, minifies, and fingerprints every asset. Prod loads are leaner.</em></li>
+<li>The winner screen pops up the moment the winning dice land, no more waiting around for it. 🏆</li>
+<li><em>Behind the scenes: your phone downloads less and loads faster now, thanks to leaner packed-up files and a lighter background image.</em></li>
 </ul>
-<h2>1.7.0 ("Bouncer")</h2>
+<h2>1.8.0 ("Clean Pour")</h2>
 <p>Sunday, June 7, 2026</p>
 <ul>
-<li>Fixed a bug where the winner overlay would flash away if a broadcast landed mid-reveal. Your moment of glory stays put.</li>
-<li>Join links are cleaner. tensies.app/ABCD instead of tensies.app/?join=ABCD. 🔗</li>
-<li><em>Behind the scenes: strict security headers (CSP, HSTS), nginx in front for prod, metrics endpoints locked down.</em></li>
+<li>Invite links are prettier and simpler now (just /yourcode), so they're easy to read out or paste.</li>
+<li>Fixed the winner screen vanishing when someone else's roll landed at the same moment. ⏸️</li>
+<li><em>Behind the scenes: tightened up security so the app stays safe out on the open web.</em></li>
 </ul>
-<h2>1.6.0 ("Open Bar")</h2>
+<h2>1.7.0 ("Round on the House")</h2>
 <p>Monday, June 1, 2026</p>
 <ul>
-<li>Games can run across multiple servers now, sharing one Redis backend. Tensies can handle a packed house. 🍺</li>
-<li>Security got a tune-up: patched dependencies, locked down the container, added abuse guards.</li>
-<li>The frontend was rewritten into web components, pixel-identical to what you know. Same look, better architecture.</li>
-<li><em>Behind the scenes: all game state lives in Redis now so any server can pick up any game. Built from a barstool in Cap Cana, Dominican Republic.</em></li>
+<li><em>Behind the scenes: rebuilt the engine so loads of games can run at once, anywhere, and stay fast even with a full house. Boring to build, but you feel it on a busy night.</em></li>
 </ul>
-<h2>1.5.0 ("Happy Hour")</h2>
+<h2>1.6.0 ("Top Shelf")</h2>
 <p>Sunday, May 31, 2026</p>
 <ul>
-<li>Everything looks warmer. The landing page, the lobby, the buttons, the fonts, all of it got redecorated.</li>
-<li>The dice are properly 3D now, lit to match the bar. They look like real dice on real wood.</li>
-<li>Losers see cracked dice on the round-end screen. Winners get a glowing 3D die flying at them with their name in gold. You earned it. 💀</li>
-<li>There's a nav menu now (hamburger on the landing page) with an About section and a What's New panel.</li>
-<li>Rounds count up (1, 2, 3, 4, 5, 6, repeat) instead of down. Feels more natural.</li>
-<li><em>Behind the scenes: self-hosted the Inter font, rebuilt overlays and status elements to match the warm aesthetic.</em></li>
+<li>Big visual glow-up: a warm, cozy bar look across the landing, lobby, and board, with dice that actually look lit by the room.</li>
+<li>The winner screen got the star treatment, dice flying in toward you and the winner's name in gold. Lose a round and your dice crack in half. Ouch. 💔</li>
+<li>Menus tucked into a tidy nav so About and What's New are a tap away.</li>
 </ul>
-<h2>1.4.0 ("Last Call")</h2>
+<h2>1.5.0 ("Last Call")</h2>
 <p>Saturday, May 30, 2026</p>
 <ul>
-<li>Hosts can pause the game. Perfect for a bar run, a bathroom break, or settling who's buying the next round. Everyone else sees a "waiting for the host" screen while the board stays live underneath. ⏸️</li>
-<li>If the host's phone dies during a pause, another player gets promoted so the crew isn't stuck. If nobody comes back for an hour, the game wraps itself up.</li>
-<li>Reconnect uses a private token now, so nobody can hijack your seat.</li>
-<li><em>Behind the scenes: tuned the dashboards and started tracking more per game to keep matches fair.</em></li>
+<li>Whoever's hosting can pause the game now. Great for a bar run, a bathroom break, or sorting out who's buying the next round. ⏸️</li>
+<li>Paused games hang on for up to an hour, so your phone taking a nap won't end the night. And if the host wanders off, someone else picks up the reins.</li>
+<li>Slip back into your seat cleanly if you drop, right where you left off.</li>
 </ul>
-<h2>1.3.0 ("Cocktail Menu")</h2>
+<h2>1.4.0 ("Happy Hour")</h2>
 <p>Friday, May 29, 2026</p>
 <ul>
-<li>There's an in-game menu now. Tap the hamburger to open it. It's the skeleton for bigger things, but it's there. 🍔</li>
-<li><em>Behind the scenes: built out analytics dashboards and the test harness.</em></li>
+<li>Tapped a hamburger menu into the game so more controls have a home. 🕹️</li>
+<li><em>Behind the scenes: built the tools to watch games live and keep everything running smooth and fair.</em></li>
 </ul>
-<h2>1.2.0 ("Coaster")</h2>
+<h2>1.3.0 ("On the Rocks")</h2>
 <p>Thursday, May 28, 2026</p>
 <ul>
-<li>Your dice stay put now, even if you refresh or your phone naps. 🛋️</li>
-<li>There's a proper loading screen instead of the old disconnect/reconnect dialogs. It tells you what's happening.</li>
-<li>Fixed a bug where the winner overlay could stick around and block the next round.</li>
-<li><em>Behind the scenes: split the codebase into modules, added a telemetry pipeline, started tracking game events.</em></li>
+<li>Your scattered dice stay exactly where they were, even after a refresh or your phone dozing off. 🎲</li>
+<li>A smooth single loading screen replaced the old jumble of disconnect and reconnect popups.</li>
+<li>Fixed the winner screen hanging around longer than it should.</li>
 </ul>
-<h2>1.1.0 ("Designated Driver")</h2>
+<h2>1.2.0 ("Plugged In")</h2>
 <p>Wednesday, May 27, 2026</p>
 <ul>
-<li>If your phone drops the connection, you've got 30 seconds to get back in. A little overlay lets you know it's trying. 🔌</li>
-<li>Other players see the dice change at the right moment now, synced with the roller's animation instead of spoiling the reveal.</li>
-<li>Fixed a freeze when your re-roll landed on the exact same numbers. Spooky, but gone.</li>
-<li>The game header got a dice logo, warmer text, and animated progress bars.</li>
-<li>Tensies link previews look good now. OG tags and a proper card image.</li>
-<li><em>Behind the scenes: dice rolls are server-authoritative, so nobody can cheat from the client side.</em></li>
+<li>Lost your connection mid-game? You'll slide right back in where you left off. 🔌</li>
+<li>Share links look good now, with a proper preview card when you drop one in a chat.</li>
+<li>Fixed a sneaky freeze when your re-roll landed on the exact same numbers. Spooky, but no longer sticky.</li>
 </ul>
-<h2>1.0.1 ("Garnish")</h2>
+<h2>1.1.0 ("Making a Mark")</h2>
 <p>Tuesday, May 26, 2026</p>
 <ul>
-<li>Tensies has a logo. A pair of dice, as the favicon and app icon. 🎲</li>
-<li><em>Behind the scenes: moved dice rolling to the server so every roll is legit.</em></li>
+<li>Tensies got its own dice logo and favicon, so it's easy to spot. 🎲</li>
+<li>Rolls are called by the server now, keeping everyone's dice honest and in sync.</li>
 </ul>
-<h2>1.0.0 ("First Round")</h2>
+<h2>1.0.0 ("Opening Tab")</h2>
 <p>Monday, May 25, 2026</p>
 <ul>
-<li>A bar regular and his friends love playing Tensies, the dice game. One night, a few heated rounds deep and drinks in, he thought it'd be great to play anywhere, even when you forget the dice. So he started having Claude build the game, sketched the very first game board himself, and kept tinkering on it from his barstool, chatting with Claude between rounds.</li>
-<li>The whole game was already built before anyone remembered to type git init. By the time the first commit landed, you could create a game, invite friends with a link or a text, roll your dice with physics and animations, and watch your opponents in real time. Ten dice, one target, first to lock them all wins the round.</li>
-<li>iOS friendly from the start. No scroll, no zoom, rapid taps all register. Five players fit at the bar at once. 🍺</li>
-<li><em>Behind the scenes: the git history starts at "Initial commit" but the game was already a whole thing. Classic "I'll set up version control later" energy.</em></li>
+<li>A bar regular and his friends love playing Tensies, the dice game. One night, a few heated rounds deep and drinks in, he figured it'd be great to play anywhere, even when nobody remembered to bring the dice. So he started having Claude build the game, sketched the very first board himself on the spot, and kept tinkering from his barstool between rounds.</li>
+<li>Roll ten dice, match the target number, keep the ones that hit, and re-roll the rest until all ten land. First to lock all ten takes the round.</li>
+<li>Play with your whole crew in real time, watch each other's progress live, and invite friends with a tap or a text. 🍺</li>
+<li><em>Behind the scenes: the git history only starts here because he forgot to run git init until the game already worked. Whoops.</em></li>
 </ul>
 <div class="menu-changelog-footer">
   <p class="menu-changelog-footer-lead">Still scrolling? Either you're into the nerdy bits or just doomscrolling between rounds.</p>
