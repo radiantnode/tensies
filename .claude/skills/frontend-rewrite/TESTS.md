@@ -92,7 +92,7 @@ States that require a fake JWT in `localStorage` before page load (so `refreshAu
 
 | # | Screenshot | Checks | Spec |
 |---|-----------|--------|------|
-| 34 | <img src="harness/baselines/signin-mobile.png" width="60"> | Sign-in/sign-up screen reached via nav menu `.menu-auth-btn`; no JWT needed. Single "Sign In / Sign Up" button does double duty (signs in if the account exists, else registers) | [auth.spec.js:26](harness/auth.spec.js#L26) |
+| 34 | <img src="harness/baselines/signin-mobile.png" width="60"> | Sign-in/sign-up screen reached via nav menu `.menu-auth-btn`; no JWT needed. Gold-glow default avatar above the title; single "Sign In / Sign Up" button does double duty (signs in if the account exists, else registers) | [auth.spec.js:26](harness/auth.spec.js#L26) |
 | 35 | <img src="harness/baselines/landing-signed-in-mobile.png" width="60"> | Landing with JWT injected; name input hidden, label hidden, `@TestUser` pill in header | [auth.spec.js:39](harness/auth.spec.js#L39) |
 | 36 | <img src="harness/baselines/onboarding-mobile.png" width="60"> | Post-signup welcome screen; JWT + `sessionStorage('tensies_onboarding')` seeded, navigated to `/welcome`; `@TestUser` username and vanity URL | [auth.spec.js:51](harness/auth.spec.js#L51) |
 | 37 | <img src="harness/baselines/nav-menu-signed-in-mobile.png" width="60"> | Nav menu when signed in; shows "Sign out" instead of "Sign in or Sign up" | [auth.spec.js:67](harness/auth.spec.js#L67) |
