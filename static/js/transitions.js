@@ -50,6 +50,17 @@ function settledTransition() {
  */
 export function showScreen(id, { force = false, staged = false, onSwap } = {}) {
   const target = byId(id);
+  // Reveal the fixed game-board background only on the game screen (see the
+  // #game-bg layer in critical.css). Set before any early return so every
+  // enter/exit path — staged, view-transition, or plain — stays in sync.
+  const inGame = id === 'game';
+  document.body.classList.toggle('in-game', inGame);
+  // playIntro pauses the landing video on game start; resume it whenever we
+  // leave the game so the background isn't frozen back on landing/lobby.
+  if (!inGame) {
+    const bg = /** @type {HTMLVideoElement | null} */ (document.getElementById('bg-video'));
+    if (bg?.paused) bg.play().catch(() => {});
+  }
   if (!force && target.classList.contains('active')) {
     onSwap?.();
     return settledTransition();

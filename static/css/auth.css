@@ -3,11 +3,7 @@
   /* ── Sign-in screen ──────────────────────────────────────────────── */
 
   .signin-screen {
-    display: flex;
-    flex-direction: column;
     position: relative;
-    block-size: 100%;
-    overflow: hidden;
     background: var(--color-panel-screen);
   }
 
@@ -44,11 +40,7 @@
   /* ── Onboarding screen ───────────────────────────────────────────── */
 
   .onboarding-screen {
-    display: flex;
-    flex-direction: column;
     position: relative;
-    block-size: 100%;
-    overflow: hidden;
     background: var(--color-panel-screen);
   }
 

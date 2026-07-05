@@ -132,7 +132,7 @@ Confirmed by observing a real game (`page.on('websocket')` → `framereceived`):
   "uvicorn"). Launch with `setsid … &` and kill by port, not by an `-f` pattern
   that matches the launcher.
 
-## The state catalog we built (28 states)
+## The state catalog we built (49 states)
 
 Use as the reference inventory. Approach: **static** = served files only;
 **synth** = `pinWebSocket` frame rewrite; **auth** = fake JWT in localStorage
@@ -169,11 +169,13 @@ Use as the reference inventory. Approach: **static** = served files only;
 | nav-menu-signed-in | auth | JWT injected → menu shows "Sign out" instead of "Sign in or Sign up" |
 | game-board-signed-in | auth | JWT + WS auth intercept (fake `auth_ok`) → board with `@username` pill next to hamburger |
 | game-board-signed-out | auth | same dice layout as signed-in, no JWT → no pill; companion for auth-aware diffing |
-| profile-with-stats | auth | `page.route` intercepts `/api/profile/*` with deterministic stats JSON; avatar ring + gold username + 6 stat cards |
+| profile-with-stats | auth | `page.route` intercepts `/api/profile/*` with deterministic stats JSON; avatar ring + gold username + 8 stat cards |
 | profile-with-photo | auth | same as above but with `profile_photo_url` set (uses default SVG as stand-in for deterministic capture) |
 | profile-empty | auth | profile with `stats: null` → "No games played yet" empty state |
 | game-detail-verified | auth | `page.route` intercepts `/api/game/*` + `/api/game/*/verify`; all 95 rolls pass drand verification |
 | game-detail-no-data | auth | same stub pattern; verify returns `total: 0` → "No beacon data for this game" |
+| a2hs-banner | real | `/?a2hs=ios` localhost override (whole `Date` pinned for the mock status-bar clock) → the Add-to-Home-Screen install banner over the frozen landing |
+| a2hs-step1..4 | real | open the guide, then click `.a2hs-dot[data-step=n]` to freeze each of the 4 iOS walkthrough steps → the phone-mockup scene |
 
 **Deliberately not captured** (transient / external, no stable frame): the
 initial `#loading` flash, the mid-roll shake animation (frozen by

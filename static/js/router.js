@@ -6,6 +6,7 @@ import {
 import { saveGameCode, hasSession } from './session.js';
 import { state } from './state.js';
 import { showScreen, showLoading, leaveLoading } from './transitions.js';
+import { playIntro } from './video-intro.js';
 
 /** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
 
@@ -21,6 +22,12 @@ import { showScreen, showLoading, leaveLoading } from './transitions.js';
 
 /** @type {Record<string, string>} */
 const ROUTES = { '/': 'landing', '/join': 'join', '/signin': 'signin', '/welcome': 'onboarding', '/profile': 'profile', '/games': 'game-detail' };
+
+// Monotonic navigation counter. enterFetched() defers its swap behind a fetch +
+// the loading-gate, so a later navigation can start before an earlier one
+// finishes; each navigation bumps this and stale completions bail (see
+// enterFetched). Guards against rapid Back/Forward landing on the wrong screen.
+let navToken = 0;
 
 /**
  * Push (or replace) a history entry for `path` and show its screen.
@@ -72,9 +79,49 @@ export function showSignin() {
  */
 export function showProfile(username) {
   const path = `/@${username}`;
+  // Already here (a double-tap, or a tap that fires twice) — ignore so we don't
+  // stack a duplicate history entry that a single Back can't escape.
+  if (location.pathname === path) return;
   history.pushState({ id: 'profile', username }, '', path);
-  return showScreen('profile', {
-    onSwap: () => /** @type {import('./components/profile-screen.js').ProfileScreen} */ (byId('profile')).show(username),
+  enterFetched('profile', username);
+}
+
+/**
+ * Navigate to a game's post-game detail view.
+ * @param {string} code
+ */
+export function showGameDetail(code) {
+  const path = `/games/${code}`;
+  if (location.pathname === path) return;
+  history.pushState({ id: 'game-detail', code }, '', path);
+  enterFetched('game-detail', code);
+}
+
+/**
+ * Fetch a data-backed screen behind the loading screen, then swap with a
+ * synchronous render so the view transition captures populated content — the
+ * same shape as the game-start flow, where loading holds until the snapshot is
+ * in hand. A bare swap would animate to an empty screen and pop the data in
+ * once the fetch resolves. The target must expose `load(arg) => result` and
+ * `render(arg, result)`.
+ * @param {'profile' | 'game-detail'} id
+ * @param {string} arg
+ */
+function enterFetched(id, arg) {
+  const token = ++navToken;
+  const screen = /** @type {{ load(a: string): Promise<any>, render(a: string, r: any): void }} */ (
+    /** @type {unknown} */ (byId(id)));
+  showLoading();
+  screen.load(arg).then((result) => {
+    // A newer navigation (rapid Back/Forward, or a fresh link) started while
+    // this fetch/loading-gate was in flight — its swap already happened, so
+    // dropping this stale completion keeps us on the current screen instead of
+    // clobbering it (the source of the flaky Back button).
+    if (token !== navToken) return;
+    leaveLoading(() => {
+      if (token !== navToken) return;
+      showScreen(id, { onSwap: () => screen.render(arg, result) });
+    });
   });
 }
 
@@ -83,17 +130,6 @@ export function showProfile(username) {
  * @param {string} username
  * @param {object | null} [stats]
  */
-/**
- * Navigate to a game's post-game detail view.
- * @param {string} code
- */
-export function showGameDetail(code) {
-  const path = `/games/${code}`;
-  history.pushState({ id: 'game-detail', code }, '', path);
-  return showScreen('game-detail', {
-    onSwap: () => /** @type {import('./components/game-detail-screen.js').GameDetailScreen} */ (byId('game-detail')).show(code),
-  });
-}
 
 export function showOnboarding(username, stats) {
   const transition = navigate('/welcome');
@@ -112,21 +148,32 @@ export function showOnboarding(username, stats) {
  * @param {{ resumeSession: () => void }} deps
  */
 export function bootstrap({ resumeSession }) {
+  // Keep profile links (the /@username header pill) in-app. As bare anchors the
+  // browser does a full document navigation, which tears down and restarts the
+  // fixed #bg-video (poster flash → replay from frame 0 = a visible flicker).
+  // Routing through showProfile() uses the History API, so the video keeps
+  // looping — matching the reload-free create-game → lobby path.
+  document.addEventListener('click', (e) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const link = /** @type {HTMLElement} */ (e.target).closest('a.header-username');
+    const match = link?.getAttribute('href')?.match(/^\/@(.+)$/);
+    if (!match) return;
+    e.preventDefault();
+    showProfile(decodeURIComponent(match[1]));
+  });
   window.addEventListener('popstate', (e) => {
+    // Supersede any in-flight enterFetched — the enterFetched branches below
+    // bump again, but the direct showScreen('landing') branch relies on this so
+    // a stale fetch can't swap back over it.
+    navToken++;
     const gameMatch = location.pathname.match(/^\/games\/(.+)$/);
     if (gameMatch) {
-      const code = decodeURIComponent(gameMatch[1]);
-      showScreen('game-detail', {
-        onSwap: () => /** @type {import('./components/game-detail-screen.js').GameDetailScreen} */ (byId('game-detail')).show(code),
-      });
+      enterFetched('game-detail', decodeURIComponent(gameMatch[1]));
       return;
     }
     const profileMatch = location.pathname.match(/^\/@(.+)$/);
     if (profileMatch) {
-      const username = decodeURIComponent(profileMatch[1]);
-      showScreen('profile', {
-        onSwap: () => /** @type {import('./components/profile-screen.js').ProfileScreen} */ (byId('profile')).show(username),
-      });
+      enterFetched('profile', decodeURIComponent(profileMatch[1]));
       return;
     }
     showScreen(ROUTES[location.pathname] ?? 'landing');
@@ -134,19 +181,13 @@ export function bootstrap({ resumeSession }) {
   // Game detail URLs: /games/<code> → game-detail screen.
   const gameMatch = location.pathname.match(/^\/games\/(.+)$/);
   if (gameMatch) {
-    const code = decodeURIComponent(gameMatch[1]);
-    leaveLoading(() => showScreen('game-detail', {
-      onSwap: () => /** @type {import('./components/game-detail-screen.js').GameDetailScreen} */ (byId('game-detail')).show(code),
-    }));
+    enterFetched('game-detail', decodeURIComponent(gameMatch[1]));
     return;
   }
   // Vanity profile URLs: /@username → profile screen.
   const profileMatch = location.pathname.match(/^\/@(.+)$/);
   if (profileMatch) {
-    const username = decodeURIComponent(profileMatch[1]);
-    leaveLoading(() => showScreen('profile', {
-      onSwap: () => /** @type {import('./components/profile-screen.js').ProfileScreen} */ (byId('profile')).show(username),
-    }));
+    enterFetched('profile', decodeURIComponent(profileMatch[1]));
     return;
   }
   // Named routes (signin, welcome) get their own screen directly — before
@@ -190,6 +231,13 @@ export function showFor(snap) {
     state.gameCode = snap.code;
     saveGameCode(snap.code);
   }
+
+  // A live game drives the screen now, so normalise the URL to '/'. If we
+  // arrived via a named route like /join, leaving that in the address bar
+  // makes a refresh re-show the join screen — bootstrap() resolves named
+  // routes before the saved-session check, so resumeSession() never runs.
+  // '/' is not a hijacking route; it falls through to the resume path.
+  if (location.pathname !== '/') history.replaceState({ id: 'landing' }, '', '/');
 
   // Screen-specific DOM work rides showScreen's onSwap so it runs with the
   // target screen displayed — the dice scatter needs the zone's pixel rect,
@@ -251,9 +299,13 @@ export function showFor(snap) {
     return;
   }
 
+  // First start (lobby → game): play the intro video.
+  const fromLobby = byId('lobby').classList.contains('active');
   leaveLoading(() => {
     hideWinner();
-    showScreen('game', { staged: true, onSwap: () => gameScreen().render(snap) });
+    const reveal = () => showScreen('game', { staged: true, onSwap: () => gameScreen().render(snap) });
+    if (fromLobby) playIntro(reveal);
+    else reveal();
     // Just resumed: drop the pause overlay after the toggle's slide-off.
     const pauseDialog = /** @type {HTMLDialogElement | null} */ (document.getElementById('pause-overlay'));
     if (pauseDialog?.open) setTimeout(hidePaused, RESUME_CLOSE_DELAY_MS);

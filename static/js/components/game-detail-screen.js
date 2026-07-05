@@ -8,7 +8,7 @@ import { state } from '../state.js';
 /**
  * <game-detail-screen> — post-game detail view at /games/<code>.
  * Light DOM: the host element *is* `#game-detail.screen`.
- * @typedef {{ show(code: string): Promise<void> }} GameDetailScreen
+ * @typedef {{ load(code: string): Promise<any>, render(code: string, result: any): void }} GameDetailScreen
  */
 export class GameDetailScreen extends HTMLElement {
   connectedCallback() {
@@ -42,10 +42,33 @@ export class GameDetailScreen extends HTMLElement {
   }
 
   /**
-   * Fetch and display a game's post-game detail.
+   * Fetch a game's post-game detail. Returns a result that the synchronous
+   * {@link render} paints — the fetch is kept off the view-transition path so
+   * the swap captures a populated screen (same shape as the profile screen).
    * @param {string} code
+   * @returns {Promise<{ data?: any, error?: string }>}
    */
-  async show(code) {
+  async load(code) {
+    try {
+      const res = await fetch(`/api/game/${encodeURIComponent(code.toUpperCase())}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        return { error: body.detail || 'Game not found' };
+      }
+      return { data: await res.json() };
+    } catch {
+      return { error: 'Could not load game' };
+    }
+  }
+
+  /**
+   * Paint the game detail from a {@link load} result. Synchronous so it runs
+   * inside the view transition's update phase — the screen is captured already
+   * populated instead of animating to an empty body and popping in later.
+   * @param {string} _code Unused; kept for the shared load/render contract.
+   * @param {{ data?: any, error?: string }} result
+   */
+  render(_code, result) {
     const errorEl = document.getElementById('game-detail-error');
     const contentEl = document.getElementById('game-detail-content');
     if (!errorEl || !contentEl) return;
@@ -53,75 +76,69 @@ export class GameDetailScreen extends HTMLElement {
     errorEl.textContent = '';
     contentEl.innerHTML = '';
 
-    try {
-      const res = await fetch(`/api/game/${encodeURIComponent(code.toUpperCase())}`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        errorEl.textContent = body.detail || 'Game not found';
-        return;
-      }
-      const data = await res.json();
-
-      // Duration
-      let duration = '';
-      if (data.duration_ms) {
-        const totalSecs = Math.round(data.duration_ms / 1000);
-        if (totalSecs < 60) duration = `${totalSecs}s`;
-        else if (totalSecs < 3600) duration = `${Math.floor(totalSecs / 60)}m ${totalSecs % 60}s`;
-        else duration = `${(totalSecs / 3600).toFixed(1)}h`;
-      }
-
-      // Play time
-      let playedAt = '';
-      if (data.started_at) {
-        const d = new Date(data.started_at);
-        playedAt = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-          + ' at ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-      }
-
-      // Players
-      const playersHtml = data.players.map((/** @type {any} */ p) => {
-        const photo = p.photo || '/static/images/avatar-default.svg';
-        return `
-          <div class="gd-player">
-            <span class="gd-player-avatar-ring"><img class="gd-player-avatar" src="${photo}" alt=""></span>
-            <span class="gd-player-name">${p.name}</span>
-            <span class="gd-player-wins">${p.wins} win${p.wins !== 1 ? 's' : ''}</span>
-          </div>`;
-      }).join('');
-
-      const justEnded = state.gameJustEnded;
-      state.gameJustEnded = false;
-
-      contentEl.innerHTML = `
-        ${justEnded ? '<p class="gd-ended">Game ended</p>' : ''}
-        <p class="gd-code">${data.game_code}</p>
-        <p class="gd-time">${playedAt}</p>
-        <div class="gd-stats">
-          <div class="gd-stat"><span class="gd-stat-value">${data.num_rounds}</span><span class="gd-stat-label">Rounds</span></div>
-          <div class="gd-stat"><span class="gd-stat-value">${data.num_players}</span><span class="gd-stat-label">Players</span></div>
-          <div class="gd-stat"><span class="gd-stat-value">${duration}</span><span class="gd-stat-label">Duration</span></div>
-        </div>
-        <div class="gd-section">
-          <p class="gd-section-label">Players</p>
-          <div class="gd-players">${playersHtml}</div>
-        </div>
-        <div class="gd-section gd-trust" id="gd-trust">
-          <p class="gd-section-label">Roll Trust</p>
-          <div class="gd-trust-box" id="gd-trust-box">
-            <img class="gd-trust-badge" src="/static/images/roll-trust.svg" alt="" aria-hidden="true">
-            <div class="gd-trust-scanner" id="gd-trust-scanner">
-              <div class="gd-trust-scan-line"></div>
-              <p class="gd-trust-status" id="gd-trust-status">Initializing verification&hellip;</p>
-            </div>
-          </div>
-          <a class="gd-trust-learn" href="https://github.com/radiantnode/tensies/blob/main/docs/ROLL_TRUST.md" target="_blank" rel="noopener">Learn more about Roll Trust</a>
-        </div>`;
-
-      this.#runVerification(data.game_code, data.players);
-    } catch {
-      errorEl.textContent = 'Could not load game';
+    if (result.error) {
+      errorEl.textContent = result.error;
+      return;
     }
+    const data = result.data;
+
+    // Duration
+    let duration = '';
+    if (data.duration_ms) {
+      const totalSecs = Math.round(data.duration_ms / 1000);
+      if (totalSecs < 60) duration = `${totalSecs}s`;
+      else if (totalSecs < 3600) duration = `${Math.floor(totalSecs / 60)}m ${totalSecs % 60}s`;
+      else duration = `${(totalSecs / 3600).toFixed(1)}h`;
+    }
+
+    // Play time
+    let playedAt = '';
+    if (data.started_at) {
+      const d = new Date(data.started_at);
+      playedAt = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        + ' at ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+
+    // Players
+    const playersHtml = data.players.map((/** @type {any} */ p) => {
+      const photo = p.photo || '/static/images/avatar-default.svg';
+      return `
+        <div class="gd-player">
+          <span class="gd-player-avatar-ring"><img class="gd-player-avatar" src="${photo}" alt=""></span>
+          <span class="gd-player-name">${p.name}</span>
+          <span class="gd-player-wins">${p.wins} win${p.wins !== 1 ? 's' : ''}</span>
+        </div>`;
+    }).join('');
+
+    const justEnded = state.gameJustEnded;
+    state.gameJustEnded = false;
+
+    contentEl.innerHTML = `
+      ${justEnded ? '<p class="gd-ended">Game ended</p>' : ''}
+      <p class="gd-code">${data.game_code}</p>
+      <p class="gd-time">${playedAt}</p>
+      <div class="gd-stats">
+        <div class="gd-stat"><span class="gd-stat-value">${data.num_rounds}</span><span class="gd-stat-label">Rounds</span></div>
+        <div class="gd-stat"><span class="gd-stat-value">${data.num_players}</span><span class="gd-stat-label">Players</span></div>
+        <div class="gd-stat"><span class="gd-stat-value">${duration}</span><span class="gd-stat-label">Duration</span></div>
+      </div>
+      <div class="gd-section">
+        <p class="gd-section-label">Players</p>
+        <div class="gd-players">${playersHtml}</div>
+      </div>
+      <div class="gd-section gd-trust" id="gd-trust">
+        <p class="gd-section-label">Roll Trust</p>
+        <div class="gd-trust-box" id="gd-trust-box">
+          <img class="gd-trust-badge" src="/static/images/roll-trust.svg" alt="" aria-hidden="true">
+          <div class="gd-trust-scanner" id="gd-trust-scanner">
+            <div class="gd-trust-scan-line"></div>
+            <p class="gd-trust-status" id="gd-trust-status">Initializing verification&hellip;</p>
+          </div>
+        </div>
+        <a class="gd-trust-learn" href="https://github.com/radiantnode/tensies/blob/main/docs/ROLL_TRUST.md" target="_blank" rel="noopener">Learn more about Roll Trust</a>
+      </div>`;
+
+    this.#runVerification(data.game_code, data.players);
   }
 
   /**

@@ -10,7 +10,7 @@
 //     HTML and binary assets all share one fingerprinting scheme — and so we
 //     can rewrite asset references *inside* a bundle before hashing it.
 //   * Assets are hashed first; then JS/CSS bundles have any "/static/..."
-//     string references (e.g. logo-loser.svg used from JS, the font + bar-top
+//     string references (e.g. logo-loser.svg used from JS, the font + poster
 //     url() in critical.css) rewritten to the hashed paths before *their* hash
 //     is taken. esbuild does not rewrite string-literal URLs, so we do it.
 //   * critical.css stays a separate <link> (NOT inlined): the CSP is
@@ -48,9 +48,16 @@ function writeHashed(relDir, name, ext, contents) {
   return `/static/${relDir}/${outName}`.replace(/\/+/g, '/');
 }
 
-// Replace every known original asset URL in a text blob with its hashed URL.
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Replace every known original asset URL in a text blob with its hashed URL,
+// dropping any dev-only cache-bust query (e.g. `landing-mich.webp?v=2`): the
+// content hash in the filename is the version in prod, so the query is redundant
+// there — and leaving it would point at a nonexistent `…-HASH.webp?v=2` file.
 function rewriteRefs(text) {
-  for (const [from, to] of manifest) text = text.split(from).join(to);
+  for (const [from, to] of manifest) {
+    text = text.replace(new RegExp(escapeRe(from) + '(?:\\?[^"\'\\s)]*)?', 'g'), () => to);
+  }
   return text;
 }
 
@@ -73,15 +80,18 @@ const minifySvg = (text) => {
   return s.trim();
 };
 
-for (const sub of ['images', 'fonts']) {
+for (const sub of ['images', 'fonts', 'video']) {
   const dir = join(SRC, sub);
   for (const file of walk(dir)) {
     const ext = extname(file);
     const name = basename(file, ext);
     const raw = readFileSync(file);
     const contents = ext === '.svg' ? minifySvg(raw.toString()) : raw;
-    const url = writeHashed(sub, name, ext, contents);
-    manifest.set(`/static/${sub}/${basename(file)}`, url);
+    // Preserve subdirectory structure (e.g. images/splash/foo.png)
+    const relFromSrc = file.slice(dir.length + 1);  // "splash/foo.png" or "foo.png"
+    const relDir = join(sub, dirname(relFromSrc)).replace(/\/+$/, '');
+    const url = writeHashed(relDir, name, ext, contents);
+    manifest.set(`/static/${sub}/${relFromSrc}`, url);
   }
 }
 
@@ -109,7 +119,7 @@ const NONCRIT = readdirSync(join(SRC, 'css'))
   manifest.set('/static/css/app.css', writeHashed('css', 'app', '.css', rewriteRefs(min)));
 }
 
-// ── 4. Minify critical.css, rewrite its url() refs (font + bar-top), hash ─────
+// ── 4. Minify critical.css, rewrite its url() refs (font + poster), hash ──────
 {
   const raw = readFileSync(join(SRC, 'css', 'critical.css'), 'utf8');
   const min = (await esbuild.transform(raw, { loader: 'css', minify: true })).code;

@@ -110,6 +110,7 @@ def state_msg(game: dict, code: str, msg_type: str = "state", **extra) -> dict:
                 "has_rolled": p.get("has_rolled", False),
                 "roll_count": p.get("roll_count", 0),
                 "disconnected": p.get("disconnected", False),
+                "photo": p.get("photo"),
             }
             for pid, p in game["players"].items()
         },

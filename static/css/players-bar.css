@@ -9,9 +9,6 @@
     padding: 0.6rem 0.75rem;
     overflow-x: auto;
     scrollbar-width: none;
-    background: var(--color-panel);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
   }
 
   .players-bar::-webkit-scrollbar { display: none; }
@@ -59,11 +56,6 @@
     font-size: 0.58rem;
     font-weight: 700;
     white-space: nowrap;
-    color: rgba(230, 200, 160, 0.85);
-  }
-
-  .player-mini-wins.leading {
-    background: rgba(150, 95, 35, 0.22);
     color: rgba(230, 200, 160, 0.85);
   }
 

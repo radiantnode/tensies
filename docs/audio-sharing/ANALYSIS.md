@@ -128,7 +128,7 @@ steel-drum             ██░░░░░░░░  8/36     0/6  2/6  0/6  0
 ⚠ = passes but with thin signal margins
 
 S7 (60% volume, loud bar) reshuffled the bottom half but left the top
-untouched. The eleven 1800 Hz voices all went 6/6 again — including `flute`,
+untouched. The ten 1800 Hz voices all went 6/6 again — including `flute`,
 which recovered the 6/6 it dropped in S5, restoring its "perfect outside of
 S1" record. Below the safe tier, S7 scattered: `xylophone-low` and
 `marimba-low` posted their best non-S5 scores (6/6 each), while `music-box`,
@@ -315,16 +315,16 @@ Start freq (Hz)   Voices              Pass rate (all sessions)
                   triangle, bell,
                   marimba, flute,
                   kalimba, organ,
-                  vibes
+                  vibes, chime
 900               doorbell             63%
 800               music-box, gameboy   26-63%
 750               steel-drum,          13-63%
                   portamento-dream,
-                  harp, wide-marimba
+                  harp
 700               xylophone-low,       33-63%
                   power-chime,
                   major-bells,
-                  fm-bell
+                  fm-bell, wide-marimba
 650               marimba-low,         17-53%
                   echo-kalimba
 600               kalimba-low          27%

@@ -38,6 +38,30 @@ async function settle(page) {
   await page.evaluate(async () => {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
   });
+  // Freeze any autoplaying <video> (the landing/intro background videos) to a
+  // fixed frame. CSS-animation pausing below doesn't touch video playback, so a
+  // looping bg-video otherwise never yields two stable consecutive screenshots.
+  // Seek to the MIDPOINT (not 0, which is the black first frame) so the captured
+  // background shows real content; the frame at a fixed timestamp is identical
+  // across capture and verify, so it stays deterministic.
+  await page.evaluate(() => Promise.all(
+    [...document.querySelectorAll('video')].map((v) => new Promise((res) => {
+      let done = false;
+      const finish = () => { if (!done) { done = true; res(); } };
+      const freeze = () => {
+        try {
+          v.pause();
+          v.loop = false;
+          const mid = (v.duration && isFinite(v.duration)) ? v.duration / 2 : 0;
+          v.addEventListener('seeked', finish, { once: true });
+          v.currentTime = mid;
+        } catch { finish(); }
+      };
+      if (v.readyState >= 1 /* HAVE_METADATA: duration is known */) freeze();
+      else v.addEventListener('loadedmetadata', freeze, { once: true });
+      setTimeout(finish, 600); // safety net if no seek/metadata event fires
+    })),
+  ));
   await page.addStyleTag({
     content: `*,*::before,*::after{animation-play-state:paused!important;` +
       `transition:none!important;caret-color:transparent!important}`,

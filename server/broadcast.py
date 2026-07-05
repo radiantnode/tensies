@@ -150,8 +150,15 @@ async def drop_player(code: str, pid: str) -> None:
     await do_drop(code, pid)
 
 
-async def do_drop(code: str, pid: str) -> None:
-    """Shared drop logic used by the grace task and the reaper. Idempotent."""
+async def do_drop(
+    code: str, pid: str,
+    grace_ms: int = int(DISCONNECT_GRACE * 1000), reason: str = "drop",
+) -> None:
+    """Shared drop logic used by the grace task and the reaper. Idempotent.
+
+    `grace_ms=0` removes a just-disconnected player immediately (used by the
+    voluntary-leave path); the default holds the slot for the reconnect grace.
+    `reason` labels the emitted player_left event (drop vs leave)."""
     snap = await gamestore.snapshot(code)
     if snap is None:
         return
@@ -178,16 +185,16 @@ async def do_drop(code: str, pid: str) -> None:
         return
 
     name = player["name"]
-    res = await gamestore.drop_player(code, pid, int(DISCONNECT_GRACE * 1000))
+    res = await gamestore.drop_player(code, pid, grace_ms)
     if res["action"] == "noop":
         return
     local = state.connections.get(code)
     if local:
         local.pop(pid, None)
-    log.info("drop     game=%s  player=%s  (%ds timeout)", code, name, int(DISCONNECT_GRACE))
+    log.info("drop     game=%s  player=%s  (reason=%s)", code, name, reason)
     remaining = len(snap["players"]) - 1
     emit("player_left", game_code=code, user_id=pid, name=name,
-         reason="drop", player_count=remaining)
+         reason=reason, player_count=remaining)
 
     if res["action"] == "deleted":
         log.info("close    game=%s  (all dropped)", code)

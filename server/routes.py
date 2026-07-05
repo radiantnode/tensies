@@ -6,24 +6,21 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import HTMLResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-from .assets import absolutize_social_images, build_index_html
+from .assets import build_index_html, build_page_template, render_page
 from .config import APP_URL, FRONTEND_DIST, METRICS_TOKEN, STATS_TOKEN, TELEMETRY_ENABLED, log
 
 router = APIRouter()
 
-# In prod (FRONTEND_DIST set) serve the prebuilt, fingerprinted index.html that
-# the build step produced — it references the hashed bundles nginx serves under
-# /static. In dev, build the document from the raw source on the fly. Either way
-# it's read once here; the document still flows through SecurityHeadersMiddleware
-# so the CSP stays single-sourced in server/security.py.
+# Build the page template once at import. In prod the prebuilt index.html is
+# read from FRONTEND_DIST; in dev it's assembled from the raw source with
+# cache-busting hashes. Either way, render_page() substitutes the $meta_vars
+# per-request (defaults for most routes, overrides for profiles etc.).
 if FRONTEND_DIST:
-    _index_html = (Path(FRONTEND_DIST) / "index.html").read_text()
+    _html_source = (Path(FRONTEND_DIST) / "index.html").read_text()
 else:
-    _index_html = build_index_html()
-
-# Stamp the social-preview image to an absolute URL (no-op when APP_URL is unset).
-# Done here so it covers both serving modes from the one document the routes share.
-_index_html = absolutize_social_images(_index_html, APP_URL)
+    _html_source = build_index_html()
+_tmpl, _defaults = build_page_template(_html_source, APP_URL)
+_index_html = render_page(_tmpl, _defaults)
 
 # Fail loud, not closed: a bare `uvicorn` run stays usable, but warn so an
 # operator never unknowingly exposes these on a public port. Both compose files
@@ -388,7 +385,41 @@ async def game_detail_page(code: str) -> HTMLResponse:
 # collision with game codes (which are [A-Za-z]{5}).
 @router.get("/@{username}")
 async def profile_vanity(username: str) -> HTMLResponse:
-    return HTMLResponse(_index_html)
+    if not TELEMETRY_ENABLED:
+        return HTMLResponse(_index_html)
+    try:
+        from server.telemetry import store
+        async with store.pool().acquire() as con:
+            user = await con.fetchrow(
+                "SELECT username, profile_photo_url, bio FROM users WHERE username_lower = $1",
+                username.lower(),
+            )
+            if user is None:
+                return HTMLResponse(_index_html)
+            stats = await con.fetchrow(
+                "SELECT total_wins, total_games FROM player_stats WHERE user_id = ("
+                "SELECT id::text FROM users WHERE username_lower = $1)",
+                username.lower(),
+            )
+        display = user["username"]
+        desc_parts = [f"@{display}'s profile on Tensies."]
+        if stats and stats["total_games"]:
+            desc_parts.append(f"{stats['total_wins']} wins across {stats['total_games']} games.")
+        if user["bio"]:
+            desc_parts.append(user["bio"])
+        desc_parts.append("Challenge them to a game — no download required.")
+        base = APP_URL.rstrip("/") if APP_URL else ""
+        html = render_page(
+            _tmpl, _defaults,
+            page_title=f"@{display} — Tensies Player Profile",
+            share_title=f"Play Tensies with @{display}!",
+            share_description=" ".join(desc_parts),
+            canonical_url=f"{base}/@{display}" if base else f"/@{display}",
+        )
+        return HTMLResponse(html)
+    except Exception:
+        log.exception("profile meta injection failed for @%s", username)
+        return HTMLResponse(_index_html)
 
 
 # Clean join URLs: GET /<code> serves the SPA, which reads the code from the

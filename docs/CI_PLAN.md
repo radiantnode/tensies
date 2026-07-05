@@ -1,9 +1,9 @@
 # CI plan — GitHub Actions
 
-What "proper" continuous integration for Tensies should look like. This is a
-design doc, not yet wired up (there is no `.github/workflows/` today). It
-captures the test/build surface, the jobs that gate it, and the design choices
-that matter so the implementation is mechanical when we pick it up.
+What "proper" continuous integration for Tensies should look like. The basics
+are wired up (`.github/workflows/ci.yml` and `codeql.yml`), but this doc
+captures the full test/build surface and the design choices that matter for
+expanding coverage.
 
 ## What CI has to cover
 
@@ -15,7 +15,7 @@ runner setup:
 | **Python app** | FastAPI, Python 3.12. Deps pinned in `requirements.txt` + fully-resolved `requirements.lock` (with explicit CVE-closing pins). | Python 3.12 |
 | **Frontend bundle** | Vanilla JS — no runtime build, but a real esbuild step at image-build time: `npm ci` → `node scripts/build_assets.mjs` → `dist/`. Node 22. | Node 22 |
 | **Asset invariants** | `tests/assets_test.py` runs the *real* Node build as a subprocess, then asserts fingerprinting, CSP-safe (no inlined critical CSS), and `.gz` round-trips. | Python **and** Node |
-| **Multi-instance protocol** | `tests/ws_multi_instance_test.py` drives the WS protocol against **two live uvicorn instances** (`:8101`/`:8102`) sharing **one Redis** — exercises cross-instance fan-out, single round-winner, reveal handshake, cross-instance reconnect, host transfer, and the security guards. | Redis + two app processes |
+| **Multi-instance protocol** | `tests/ws_multi_instance_test.py` drives the WS protocol against **two live uvicorn instances** (`:8101`/`:8102`) sharing **one Redis** — exercises cross-instance fan-out, single round-winner, reveal handshake, cross-instance reconnect, host transfer, and the security guards. | Redis + Postgres + two app processes |
 | **Container image** | 3-stage `Dockerfile` (`assets` → `nginx` → `web`). | Docker buildx |
 
 Two things to note about the tests:
@@ -24,9 +24,11 @@ Two things to note about the tests:
   and `sys.exit(1 if failed else 0)`. CI just invokes them and trusts the exit
   code — no framework migration is required. (A pytest wrapper could come later
   purely for nicer reporting/annotations.)
-- **Telemetry is optional.** Setting `TELEMETRY_ENABLED=0` drops the Postgres
-  dependency, so the integration job needs only **one** service container
-  (Redis), not the full Postgres/Grafana stack.
+- **Telemetry is optional, but Postgres is not.** `TELEMETRY_ENABLED=0` drops
+  the Grafana/Prometheus rollup stack, but the app still needs Postgres at
+  startup — the auth/passkey layer's shared pool (`db.init()`) runs even with
+  telemetry off. So the integration job runs **both** a Redis and a Postgres
+  service container, plus a one-time migration step before the app boots.
 
 ## Workflow shape
 
@@ -52,10 +54,10 @@ Cross-cutting hygiene for every job: pin actions to a commit SHA, set a
 
 ### Job 1 — `lint` (Python 3.12)
 
-- `ruff check` + `ruff format --check`. Requires adding a minimal `[tool.ruff]`
-  block to a new `pyproject.toml`.
-- Optionally `python -m compileall server main.py` as a near-free import/syntax
-  gate.
+- `ruff check .` — the `[tool.ruff]` config already lives in `pyproject.toml`.
+- A `ruff format --check` gate and a `python -m compileall server main.py`
+  import/syntax gate remain optional add-ons; the shipped job runs
+  `ruff check` only.
 
 Fast, no infrastructure.
 
@@ -67,7 +69,9 @@ Fast, no infrastructure.
 
 ### Job 3 — `integration` (the load-bearing one)
 
-- A **`redis` service container** (health-checked).
+- **`redis` and `postgres` service containers** (both health-checked), with a
+  one-time "apply migrations" step (`db.init()`) before the app boots — the
+  auth layer needs the schema even with telemetry off.
 - `pip install -r requirements.lock` (cached).
 - Boot **two** uvicorn instances in the background on `:8101` and `:8102`, both
   pointed at the Redis service, with `TELEMETRY_ENABLED=0` and

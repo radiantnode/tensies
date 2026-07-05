@@ -261,6 +261,46 @@
     to { transform: scaleY(1); }
   }
 
+  /* Gradient-border rim — shared mask-composite base. Each consumer adds its
+     own `padding` (rim width) and `background` (gradient). */
+  .round-label::before,
+  .btn-roll::after,
+  .winner-round-pill::before,
+  .profile-avatar-ring::before,
+  .gd-player-avatar-ring::before,
+  .header-username::before,
+  .recent-avatar-winner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Scroll-fade edge mask — shared by scrollable regions that fade at the
+     top/bottom when content overflows. JS toggles .can-scroll-up/.can-scroll-down. */
+  .player-list,
+  .menu-changelog-body {
+    --fade-top: 0px;
+    --fade-bottom: 0px;
+    -webkit-mask-image: linear-gradient(to bottom,
+      transparent 0, #000 var(--fade-top),
+      #000 calc(100% - var(--fade-bottom)), transparent 100%);
+            mask-image: linear-gradient(to bottom,
+      transparent 0, #000 var(--fade-top),
+      #000 calc(100% - var(--fade-bottom)), transparent 100%);
+    transition: --fade-top 0.15s linear, --fade-bottom 0.15s linear;
+  }
+
+  .player-list.can-scroll-up,
+  .menu-changelog-body.can-scroll-up { --fade-top: 24px; }
+  .player-list.can-scroll-down,
+  .menu-changelog-body.can-scroll-down { --fade-bottom: 24px; }
+
   .error-msg {
     min-block-size: 1.4rem;
     font-size: 0.9rem;

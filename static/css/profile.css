@@ -3,11 +3,7 @@
   /* ── Profile screen ────────────────────────────────────────────── */
 
   .profile-screen {
-    display: flex;
-    flex-direction: column;
     position: relative;
-    block-size: 100%;
-    overflow: hidden;
     background: rgba(6, 3, 1, 0.93);
   }
 
@@ -52,20 +48,11 @@
   }
 
   .profile-avatar-ring::before {
-    content: '';
-    position: absolute;
-    inset: 0;
     padding: 1.5px;
-    border-radius: inherit;
     background: linear-gradient(to bottom left,
       rgba(252, 200, 126, 0.8) 0%,
       rgba(216, 148, 80, 0.55) 38%,
       rgba(150, 96, 46, 0.25) 100%);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
-    pointer-events: none;
   }
 
   .profile-avatar {
@@ -225,20 +212,11 @@
   }
 
   .recent-avatar-winner::before {
-    content: '';
-    position: absolute;
-    inset: 0;
     padding: 1.5px;
-    border-radius: inherit;
     background: linear-gradient(to bottom left,
       rgba(252, 200, 126, 1) 0%,
       rgba(216, 148, 80, 0.85) 38%,
       rgba(150, 96, 46, 0.5) 100%);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
-    pointer-events: none;
   }
 
   .recent-avatar {
@@ -253,10 +231,6 @@
     width: 1.5rem;
     height: 1.5rem;
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
-  }
-
-  .recent-avatar-ring:not(.recent-avatar-winner) .recent-avatar {
-    opacity: 1;
   }
 
   .recent-score {
