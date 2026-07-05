@@ -225,3 +225,10 @@ WEBAUTHN_ORIGIN = [
 ]
 JWT_SECRET = os.environ.get("JWT_SECRET", "dev-secret-change-in-prod")
 JWT_EXPIRY_DAYS = _int("JWT_EXPIRY_DAYS", 30)
+
+# ─── Founding member ("Founding Roller") ──────────────────────────────
+# Accounts created strictly before this instant earn the Founding Roller
+# designation on their profile. Fixed UTC cutoff: through end of Jul 19, 2026.
+from datetime import datetime, timezone  # noqa: E402
+
+FOUNDING_CUTOFF = datetime(2026, 7, 20, tzinfo=timezone.utc)

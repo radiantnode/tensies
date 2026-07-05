@@ -105,9 +105,9 @@ Profile pages use `page.route()` to intercept the `/api/profile/*` fetch with de
 
 | # | Screenshot | Checks | Spec |
 |---|-----------|--------|------|
-| 40 | <img src="harness/baselines/profile-with-stats-mobile.png" width="60"> | Profile with stats + recent games; 8 stat cards (Games, Wins, Win Rate, Rounds, Rolls, Best Time, Best Rolls, Time Played), recent multiplayer games with winner/loser avatars, gold/muted scores, per-game stats | [auth.spec.js:206](harness/auth.spec.js#L206) |
-| 41 | <img src="harness/baselines/profile-with-photo-mobile.png" width="60"> | Profile with `profile_photo_url` set + recent games; same layout as above but avatar src swapped to the photo URL | [auth.spec.js:221](harness/auth.spec.js#L221) |
-| 42 | <img src="harness/baselines/profile-empty-mobile.png" width="60"> | Profile with `stats: null`; avatar, username, member-since, "No games played yet" empty state | [auth.spec.js:237](harness/auth.spec.js#L237) |
+| 40 | <img src="harness/baselines/profile-with-stats-mobile.png" width="60"> | Profile with stats + recent games; 8 stat cards (Games, Wins, Win Rate, Rounds, Rolls, Best Time, Best Rolls, Time Played), recent multiplayer games with winner/loser avatars, gold/muted scores, per-game stats. `founding_member: true` → gold-gradient "★★★ Founding · avatar · Roller ★★★" designation flanking the avatar | [auth.spec.js:206](harness/auth.spec.js#L206) |
+| 41 | <img src="harness/baselines/profile-with-photo-mobile.png" width="60"> | Profile with `profile_photo_url` set + recent games; same layout as above (incl. the Founding Roller designation) but avatar src swapped to the photo URL | [auth.spec.js:221](harness/auth.spec.js#L221) |
+| 42 | <img src="harness/baselines/profile-empty-mobile.png" width="60"> | Profile with `stats: null`; avatar, username, member-since, "No games played yet" empty state. `founding_member: false` → the non-founding control (no designation; avatar sits alone) | [auth.spec.js:237](harness/auth.spec.js#L237) |
 
 ### Game detail
 
