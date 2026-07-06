@@ -17,6 +17,7 @@ A full outside-in review of the project: the code, the architecture, the securit
 | [05-history.md](05-history.md) | The story: 643 commits in 42 days, sixteen eras, two full rewrites, the winner-overlay saga, and the 19,136-line soundboard commit. |
 | [06-collaboration.md](06-collaboration.md) | How you work with Claude, from the transcripts: 1,706 messages, 125 "restart"s, the trust arc from co-pilot to dispatcher. |
 | [07-observations-and-advice.md](07-observations-and-advice.md) | Cross-cutting observations, anecdotes, the priority fix list, and honest advice. |
+| [08-post-review-fixes.md](08-post-review-fixes.md) | What was actually fixed (commit links to PR #58), production rollout notes, things to watch, and a reflection on the feedback→fix loop. |
 
 ## The general review
 
