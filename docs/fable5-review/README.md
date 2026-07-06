@@ -18,6 +18,7 @@ A full outside-in review of the project: the code, the architecture, the securit
 | [06-collaboration.md](06-collaboration.md) | How you work with Claude, from the transcripts: 1,706 messages, 125 "restart"s, the trust arc from co-pilot to dispatcher. |
 | [07-observations-and-advice.md](07-observations-and-advice.md) | Cross-cutting observations, anecdotes, the priority fix list, and honest advice. |
 | [08-post-review-fixes.md](08-post-review-fixes.md) | What was actually fixed (commit links to PR #58), production rollout notes, things to watch, and a reflection on the feedback→fix loop. |
+| [09-getting-the-most-from-claude.md](09-getting-the-most-from-claude.md) | A working toolkit — hooks, skills, prompt templates, and niceties (in [examples/](examples/)) to make the collaboration more efficient, less repetitive, and less error-prone. |
 
 ## The general review
 
