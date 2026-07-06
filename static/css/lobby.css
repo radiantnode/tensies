@@ -149,6 +149,14 @@
      (breathing + sonar) returns only while actively chirping (.playing). */
   .lobby-action.btn-audio:not(.playing):not(.listening) { animation: none; }
 
+  /* At rest, tint the equalizer bars the same warm tone as the Share glyph
+     (rather than the brighter amber) so the two icons read alike. The active
+     magenta bars are unchanged. */
+  .lobby-action.btn-audio:not(.playing):not(.listening) .eq i {
+    background: var(--color-text-warm);
+    opacity: 0.9;
+  }
+
   .btn-icon {
     flex-shrink: 0;
     inline-size: 24px;
