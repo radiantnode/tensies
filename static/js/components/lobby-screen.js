@@ -98,6 +98,7 @@ export class LobbyScreen extends HTMLElement {
         <button id="checkin-prompt" type="button" class="checkin-prompt" aria-pressed="false" hidden>
           <svg class="checkin-prompt-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.6" fill="currentColor" stroke="none"/></svg>
           <span id="checkin-prompt-text" class="checkin-prompt-text">Check in to a place</span>
+          <span id="checkin-prompt-more" class="checkin-prompt-more" hidden></span>
           <svg class="checkin-prompt-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
         </button>
         <dialog id="places-sheet" class="places-sheet" aria-label="Check in to a place">
@@ -318,7 +319,7 @@ export class LobbyScreen extends HTMLElement {
     const on = !!placeName;
     prompt.classList.toggle('is-on', on);
     prompt.setAttribute('aria-pressed', on ? 'true' : 'false');
-    byId('checkin-prompt-text').textContent = this.#checkinPromptText(placeName);
+    this.#setCheckinPromptCopy(placeName);
     prompt.setAttribute('aria-label', on
       ? `Checked in at ${placeName} — tap to change or check out`
       : 'Check in to a nearby place');
@@ -328,20 +329,35 @@ export class LobbyScreen extends HTMLElement {
   }
 
   /**
-   * Copy for the check-in prompt pill. Checked in → the place; else the nearest
-   * option and a count of the rest ("Check in to X and 3 other places"); before
-   * we know what's nearby → a generic invite.
+   * Copy for the check-in prompt pill, split across two spans: the main label
+   * (which may fade) and a pinned "and N more" that always stays visible at the
+   * end. Checked in → the place; else the nearest option + a count of the rest;
+   * before we know what's nearby → a generic invite. The trailing-edge fade is
+   * applied only when the main label actually overflows.
    * @param {string | null} placeName
    */
-  #checkinPromptText(placeName) {
-    if (placeName) return `Checked in at ${placeName}`;
-    const list = this.#placesCache;
-    if (list && list.length) {
-      const rest = list.length - 1;
-      if (rest <= 0) return `Check in to ${list[0].name}`;
-      return `Check in to ${list[0].name} and ${rest} other place${rest === 1 ? '' : 's'}`;
+  #setCheckinPromptCopy(placeName) {
+    const textEl = byId('checkin-prompt-text');
+    const moreEl = byId('checkin-prompt-more');
+    if (placeName) {
+      textEl.textContent = `Checked in at ${placeName}`;
+      moreEl.hidden = true;
+    } else {
+      const list = this.#placesCache;
+      if (list && list.length) {
+        textEl.textContent = `Check in to ${list[0].name}`;
+        const rest = list.length - 1;
+        moreEl.hidden = rest <= 0;
+        if (rest > 0) moreEl.textContent = `and ${rest} more`;
+      } else {
+        textEl.textContent = 'Check in to a place';
+        moreEl.hidden = true;
+      }
     }
-    return 'Check in to a place';
+    // Fade the label's trailing edge only when it can't fit — a fit label keeps
+    // its last characters crisp; a long one dissolves into "and N more".
+    requestAnimationFrame(() =>
+      textEl.classList.toggle('is-faded', textEl.scrollWidth > textEl.clientWidth + 1));
   }
 
   /**
@@ -364,7 +380,7 @@ export class LobbyScreen extends HTMLElement {
       // checked in — a snapshot may have arrived meanwhile).
       const prompt = byId('checkin-prompt');
       if (this.#isHost && prompt.getAttribute('aria-pressed') !== 'true') {
-        byId('checkin-prompt-text').textContent = this.#checkinPromptText(null);
+        this.#setCheckinPromptCopy(null);
       }
     } catch {
       // Denied/unavailable — the prompt keeps its generic copy and the tap

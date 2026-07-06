@@ -170,19 +170,39 @@
     opacity: 0.9;
   }
 
+  /* Sizes to its content and shrinks when the row is tight (min-inline-size:0),
+     yielding space so the pinned "and N more" stays whole. */
   .checkin-prompt-text {
-    flex: 1;
+    flex: 0 1 auto;
     min-inline-size: 0;
     font-size: 0.9rem;
     font-weight: 600;
     overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
     text-shadow: var(--shadow-text);
   }
+  /* Only when the label overflows: dissolve its trailing edge (no ellipsis) so
+     it fades into "and N more". Toggled from JS by measuring overflow. */
+  .checkin-prompt-text.is-faded {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+            mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+  }
+
+  /* Pinned count at the end of the label — never truncated. */
+  .checkin-prompt-more {
+    flex-shrink: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+  }
+  .checkin-prompt-more[hidden] { display: none; }
 
   .checkin-prompt-chevron {
     flex-shrink: 0;
+    /* Push the chevron to the far edge; label + count group at the start. */
+    margin-inline-start: auto;
     inline-size: 18px;
     block-size: 18px;
     opacity: 0.55;
