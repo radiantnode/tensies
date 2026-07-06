@@ -129,6 +129,7 @@ PLACES_SEARCH_RADIUS_M = _float("PLACES_SEARCH_RADIUS_M", 5000.0)  # text-search
 PLACES_MAX_RESULTS = _int("PLACES_MAX_RESULTS", 20)
 PLACES_CACHE_TTL = _int("PLACES_CACHE_TTL", 900)                 # place_id→coords cache seconds
 PLACES_PHOTO_CACHE_TTL = _int("PLACES_PHOTO_CACHE_TTL", 86400)   # photo-bytes cache seconds
+PLACES_NEARBY_CACHE_TTL = _int("PLACES_NEARBY_CACHE_TTL", 300)   # nearby-search cache seconds
 PLACES_RATE_MAX = _int("PLACES_RATE_MAX", 30)                    # /api/places polls/window/IP
 PLACES_RATE_WINDOW = _float("PLACES_RATE_WINDOW", 60.0)
 CHECKIN_RATE_MAX = _int("CHECKIN_RATE_MAX", 20)                  # check-ins/window/IP

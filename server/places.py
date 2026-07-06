@@ -30,6 +30,7 @@ from .config import (
     GOOGLE_MAPS_API_KEY,
     PLACES_CACHE_TTL,
     PLACES_MAX_RESULTS,
+    PLACES_NEARBY_CACHE_TTL,
     PLACES_PHOTO_CACHE_TTL,
     PLACES_RADIUS_M,
     PLACES_SEARCH_RADIUS_M,
@@ -172,11 +173,34 @@ async def _cache_get(place_id: str) -> dict | None:
 
 
 # ─── Public API ──────────────────────────────────────────────────────────
+def _nearby_ckey(lat: float, lon: float) -> str:
+    # ~100 m grid (3 decimal places): players in the same venue land in the
+    # same cell and share one Google search. Worst case a cell boundary splits
+    # a room into two cells — two calls, not a correctness problem.
+    return f"placesnearby:{lat:.3f}:{lon:.3f}"
+
+
 async def search_nearby(lat: float, lon: float) -> list[dict]:
     """Places near (lat, lon). Falls back to the dev stub when no key is set.
-    Every result is cached so a subsequent check-in can resolve it cheaply."""
-    results = await _google_nearby(lat, lon) if _has_google() \
-        else _stub_nearby(lat, lon)
+    Every result is cached so a subsequent check-in can resolve it cheaply.
+
+    The whole response is also cached in Redis for PLACES_NEARBY_CACHE_TTL on a
+    ~100 m grid — a roomful of players opening the check-in sheet costs one
+    billed search, and everyone sees identical rows. Cache hits re-warm the
+    per-place resolve entries so a later check-in stays cheap. The stub is
+    free and position-exact, so it skips the cache."""
+    if not _has_google():
+        return _stub_nearby(lat, lon)
+    r = gamestore.client()
+    key = _nearby_ckey(lat, lon)
+    cached = await r.get(key)
+    if cached:
+        results = json.loads(cached)
+    else:
+        results = await _google_nearby(lat, lon)
+        # An empty list can be a transient Google failure — don't pin it.
+        if results:
+            await r.set(key, json.dumps(results), ex=PLACES_NEARBY_CACHE_TTL)
     for p in results:
         await _cache_put(p)
     return results
