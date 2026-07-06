@@ -30,7 +30,7 @@ INDEX = "games:index"
 _r: aioredis.Redis | None = None
 
 # Lua scripts, registered on init().
-_create = _join = _finish = _drop = None
+_create = _join = _finish = _drop = _restamp = None
 
 
 def client() -> aioredis.Redis:
@@ -146,11 +146,12 @@ return {1, new_host}
 
 
 def _register_scripts() -> None:
-    global _create, _join, _finish, _drop
+    global _create, _join, _finish, _drop, _restamp
     _create = _r.register_script(_CREATE_LUA)
     _join = _r.register_script(_JOIN_LUA)
     _finish = _r.register_script(_FINISH_LUA)
     _drop = _r.register_script(_DROP_LUA)
+    _restamp = _r.register_script(_RESTAMP_LUA)
 
 
 # ─── Code generation (audit L1: secrets, not random) ───────────────────────
@@ -401,6 +402,28 @@ async def mark_disconnected(code: str, pid: str) -> None:
     await _r.hset(_gkey(code), mapping={
         p + "disconnected": 1, p + "disconnected_at_ms": now_ms(),
     })
+
+
+_RESTAMP_LUA = """
+local p = 'p:' .. ARGV[1] .. ':'
+if redis.call('HGET', KEYS[1], p .. 'disconnected') == '1' then
+  redis.call('HSET', KEYS[1], p .. 'disconnected_at_ms', ARGV[2])
+  return 1
+end
+return 0
+"""
+
+
+async def restamp_disconnect(code: str, pid: str) -> bool:
+    """Refresh disconnected_at_ms — only if the player is still disconnected.
+
+    Used on pause-resume so the post-resume grace is measured from the resume,
+    not from the original mid-pause disconnect. Conditional inside Redis: a
+    player who reconnected between our snapshot and this call must NOT be
+    flipped back to disconnected (an unconditional mark_disconnected would).
+    """
+    res = await _restamp(keys=[_gkey(code)], args=[pid, now_ms()])
+    return bool(res)
 
 
 async def mark_connected(code: str, pid: str) -> None:

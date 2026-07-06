@@ -49,6 +49,11 @@ async def _sweep() -> None:
     for code in await gamestore.all_codes():
         snap = await gamestore.snapshot(code)
         if snap is None:
+            # The game hash TTL-expired (its instance died with players still
+            # connected) but the index entry survives expiry. Reap it, or the
+            # code inflates the active gauge and counts against MAX_GAMES
+            # forever. delete_game is idempotent: DEL of a gone key + SREM.
+            await gamestore.delete_game(code)
             continue
         if snap.get("paused"):
             deadline = snap.get("pause_deadline_ms")

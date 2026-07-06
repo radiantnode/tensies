@@ -399,6 +399,13 @@ async def handle_pause(session: Session, msg: dict) -> None:
         # that we're live again, give each one the normal grace to return.
         for pid, pl in snap["players"].items():
             if pl.get("disconnected"):
+                # Re-stamp the disconnect time: the stored timestamp is from
+                # mid-pause (possibly far older than the grace window), and
+                # both the reaper and the drop Lua compare against it — a
+                # stale stamp means "past grace" immediately, not in 60s.
+                # Conditional in Redis so a player who reconnected since our
+                # snapshot isn't flipped back to disconnected.
+                await gamestore.restamp_disconnect(code, pid)
                 key = (code, pid)
                 old = state.drop_tasks.pop(key, None)
                 if old:
