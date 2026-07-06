@@ -409,17 +409,7 @@
   }
   .btn-nearby .btn-icon { inline-size: 20px; block-size: 20px; flex-shrink: 0; }
 
-  /* ── Lobby host broadcast toggle ──────────────────────────────────────── */
-  .btn-broadcast {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.6rem;
-    inline-size: 100%;
-    max-inline-size: 320px;
-    margin-block-start: 0.75rem;
-  }
-
+  /* ── Lobby host broadcast toggle (a .lobby-action circular button) ─────── */
   .btn-broadcast.is-on {
     border-color: rgba(255, 160, 178, 0.7);
     color: #fff;

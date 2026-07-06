@@ -107,21 +107,23 @@
 
   .copied { color: var(--color-success) !important; }
 
-  .invite-actions {
+  /* Share / Play / Broadcast: three circular icon buttons on one row. */
+  .lobby-actions {
     display: flex;
-    gap: 0.75rem;
-    inline-size: 100%;
-    max-inline-size: 400px;
-    margin-block-end: 1.5rem;
+    justify-content: center;
+    gap: 1.1rem;
+    margin-block-end: 1.25rem;
   }
 
-  .btn-share {
-    /* Inline icon + label, centred together. */
+  .lobby-action {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.55rem;
-    flex: 1;
+    inline-size: 58px;
+    block-size: 58px;
+    flex-shrink: 0;
+    border-radius: 50%;
     /* Warm leather secondary — same surface language as .btn-secondary and
        the in-game menu items. */
     background: var(--color-raised);
@@ -129,27 +131,26 @@
     box-shadow:
       inset 0 1px 0 rgba(220, 170, 70, 0.12),
       0 4px 14px rgba(0, 0, 0, 0.45);
-    /* Was an <a>; now a <button>. Restore inherited body font. */
     font-family: inherit;
-    text-decoration: none;
     color: var(--color-text-warm);
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, transform 0.1s;
   }
 
-  .btn-share:hover:not(:disabled) {
+  .lobby-action:hover:not(:disabled) {
     background: var(--color-raised-hover);
     border-color: rgba(190, 130, 55, 0.45);
+    transform: translateY(-1px);
   }
-
-  /* Both buttons now sit side-by-side inside .invite-actions; no individual
-     margin needed. */
+  .lobby-action:active { transform: translateY(0); }
 
   .btn-icon {
     flex-shrink: 0;
-    inline-size: 18px;
-    block-size: 18px;
-    /* Match the warm-amber tone of the label rather than full white. */
-    opacity: 0.85;
+    inline-size: 24px;
+    block-size: 24px;
+    /* Warm-amber tone rather than full white. */
+    opacity: 0.9;
   }
 
   /* Distinct "joined players" section — set off from the invite controls
