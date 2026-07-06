@@ -1,6 +1,7 @@
 // @ts-check
 import './app-header.js';
 import { getAuthUser } from '../auth.js';
+import { esc } from '../dom.js';
 import { showLanding, showGameDetail } from '../router.js';
 
 /**
@@ -143,7 +144,7 @@ export class ProfileScreen extends HTMLElement {
         const since = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         pills.push(`<span class="profile-pill"><svg class="profile-pill-icon" viewBox="0 0 24 24" aria-hidden="true"><g transform="translate(7 8) rotate(-12)"><rect x="-6" y="-6" width="12" height="12" rx="2.5" fill="currentColor"/><circle cx="-2.5" cy="-2.5" r="1" fill="var(--color-bg, #1a1a1a)"/><circle cx="2.5" cy="-2.5" r="1" fill="var(--color-bg, #1a1a1a)"/><circle cx="-2.5" cy="2.5" r="1" fill="var(--color-bg, #1a1a1a)"/><circle cx="2.5" cy="2.5" r="1" fill="var(--color-bg, #1a1a1a)"/></g><g transform="translate(16 15) rotate(10)"><rect x="-6" y="-6" width="12" height="12" rx="2.5" fill="currentColor" opacity="0.6"/><circle cx="-2.5" cy="-2.5" r="1" fill="var(--color-bg, #1a1a1a)"/><circle cx="2.5" cy="2.5" r="1" fill="var(--color-bg, #1a1a1a)"/></g></svg>${since}</span>`);
       }
-      if (data.location) pills.push(`<span class="profile-pill"><svg class="profile-pill-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>${data.location}</span>`);
+      if (data.location) pills.push(`<span class="profile-pill"><svg class="profile-pill-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>${esc(data.location)}</span>`);
       if (pills.length) {
         pillsEl.innerHTML = pills.join('');
         pillsEl.hidden = false;
@@ -214,7 +215,7 @@ export class ProfileScreen extends HTMLElement {
             const unknownCount = Math.max(0, (r.player_count || 1) - 1 - opps.length);
             const userPhoto = data.profile_photo_url || '/static/images/avatar-default.svg';
             const mkAvatar = (/** @type {string} */ src, /** @type {string} */ name, /** @type {boolean} */ winner) =>
-              `<span class="recent-avatar-ring${winner ? ' recent-avatar-winner' : ''}"><img class="recent-avatar" src="${src}" alt="${name}"></span>`;
+              `<span class="recent-avatar-ring${winner ? ' recent-avatar-winner' : ''}"><img class="recent-avatar" src="${esc(src)}" alt="${esc(name)}"></span>`;
             // Top opponent is the one with the most wins
             const topOppWins = opps.length > 0 ? (opps[0].wins || 0) : 0;
             const userWins = r.wins || 0;
@@ -243,12 +244,12 @@ export class ProfileScreen extends HTMLElement {
             const speed = r.avg_roll_speed_ms ? (r.avg_roll_speed_ms / 1000).toFixed(1) + 's' : '';
             const details = [fastest ? `best ${fastest}` : '', speed ? `${speed}/roll` : ''].filter(Boolean).join(' · ');
             return `
-            <div class="recent-game" data-game-code="${r.game_code || ''}"
+            <div class="recent-game" data-game-code="${esc(r.game_code || '')}">
               <span class="recent-score ${r.won_game ? '' : 'recent-score-loss'}">${r.wins}/${r.rounds}</span>
               <div class="recent-game-body">
                 <div class="recent-avatars">${allAvatars.join('')}</div>
                 <div class="recent-row">
-                  <span class="recent-vs">${vs}</span>
+                  <span class="recent-vs">${esc(vs)}</span>
                 </div>
                 ${details ? `<div class="recent-details">${details}</div>` : ''}
               </div>

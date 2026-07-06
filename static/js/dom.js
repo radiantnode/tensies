@@ -12,3 +12,17 @@ export function byId(id) {
   if (!el) throw new Error(`Required element #${id} is missing`);
   return el;
 }
+
+/**
+ * HTML-escape a value for interpolation into an innerHTML template string.
+ * Server-sourced strings (names, locations, photo URLs) must pass through
+ * here at the interpolation site — sanitize_name upstream is defense in
+ * depth, not a licence for output-unsafe templates.
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function esc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] ?? c
+  ));
+}
