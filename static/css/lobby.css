@@ -291,6 +291,21 @@
     opacity: 0.9;
   }
 
+  /* Idle glyph motion for Share: a single-path glyph can't ripple or bob like
+     its neighbours, so it gently breathes instead — the same "alive at rest"
+     cue, glyph-only. The button surface stays flat (no container pulse) and the
+     dim warm tone is unchanged (no shimmer). Only the lobby's Share icon is
+     targeted (.eq / .broadcast-wave carry the other two). */
+  .lobby-action .btn-icon {
+    transform-origin: center;
+    animation: share-idle 3s ease-in-out infinite;
+  }
+
+  @keyframes share-idle {
+    0%, 100% { transform: scale(0.9); }
+    50%      { transform: scale(1.08); }
+  }
+
   /* Distinct "joined players" section — set off from the invite controls
      above by a hairline rule, with its own warm uppercase eyebrow label. */
   .lobby-players-section {
