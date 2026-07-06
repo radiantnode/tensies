@@ -184,9 +184,29 @@ export function updateDiceInPlace(snap, onComplete, winForMe = false) {
   state.pendingRollTimeouts.push(revealT);
 }
 
+// Give up waiting for the roll response this long after the shake ends. The
+// server replies to the roller immediately (the private roll frame), so a wait
+// past this means the response was dropped or the roll was rejected — without a
+// cap the button stays disabled forever (the roll-ack hang, client side).
+const REVEAL_WAIT_MS = 2500;
+
 /** Wait for the server's roll response, then animate the reveal. */
 export function tryReveal() {
   if (!state.pendingRollState) {
+    if (Date.now() > state.rollShakeEnd + REVEAL_WAIT_MS) {
+      // Bail: unstick the machine and re-render the last known state so the
+      // roll button re-enables. A rejected roll (e.g. "Slow down") also lands
+      // here — handleError surfaces the reason; this just clears the spinner.
+      state.rolling = false;
+      state.awaitingAck = false;
+      const btn = /** @type {HTMLButtonElement | null} */ (document.getElementById('roll-btn'));
+      if (btn) btn.disabled = false;
+      if (state.currentState) {
+        renderMyArea(state.currentState);
+        renderPlayersBar(state.currentState);
+      }
+      return;
+    }
     const t = setTimeout(tryReveal, 50);
     state.pendingRollTimeouts.push(t);
     return;
