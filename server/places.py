@@ -14,6 +14,7 @@ bundle from the environment (same as server/drand.py and server/discord.py).
 A place dict is: {"place_id", "name", "address"?, "lat", "lon"}.
 """
 import asyncio
+import base64
 import json
 import logging
 import time
@@ -28,6 +29,7 @@ from .config import (
     GOOGLE_MAPS_API_KEY,
     PLACES_CACHE_TTL,
     PLACES_MAX_RESULTS,
+    PLACES_PHOTO_CACHE_TTL,
     PLACES_RADIUS_M,
     PLACES_SEARCH_RADIUS_M,
 )
@@ -280,10 +282,31 @@ def _parse_places(data: dict) -> list[dict]:
     return out
 
 
+_PHOTO_MISS = "MISS"          # negative-cache sentinel
+_PHOTO_MISS_TTL = 300         # don't hammer Google for refs that just failed
+
+
+def _photo_ckey(ref: str, max_w: int) -> str:
+    return f"placephoto:{ref}:{max_w}"
+
+
 async def fetch_photo(ref: str, max_w: int) -> tuple[str, bytes] | None:
     """Image bytes + content-type for a Places photo resource name, fetched with
     the server-side credentials (they never reach the browser). None on failure.
-    The caller must validate `ref` shape before calling."""
+    The caller must validate `ref` shape before calling.
+
+    Cached in Redis for PLACES_PHOTO_CACHE_TTL (base64 — the shared client is
+    decode_responses=True), keyed by ref+width, so a photo costs one billed
+    Google call per day across all instances and viewers; failures are
+    negatively cached briefly."""
+    r = gamestore.client()
+    key = _photo_ckey(ref, max_w)
+    cached = await r.get(key)
+    if cached == _PHOTO_MISS:
+        return None
+    if cached:
+        content_type, b64 = cached.split("\n", 1)
+        return content_type, base64.b64decode(b64)
     if not _has_google():
         return None
     try:
@@ -292,10 +315,14 @@ async def fetch_photo(ref: str, max_w: int) -> tuple[str, bytes] | None:
             resp = await c.get(f"{_NEW_BASE}/{ref}/media",
                                headers=headers, params={"maxWidthPx": max_w})
         resp.raise_for_status()
-        return resp.headers.get("content-type", "image/jpeg"), resp.content
     except Exception:  # noqa: BLE001 — photos are cosmetic; never fatal
         log.exception("places photo failed")
+        await r.set(key, _PHOTO_MISS, ex=_PHOTO_MISS_TTL)
         return None
+    content_type = resp.headers.get("content-type", "image/jpeg")
+    await r.set(key, f"{content_type}\n{base64.b64encode(resp.content).decode()}",
+                ex=PLACES_PHOTO_CACHE_TTL)
+    return content_type, resp.content
 
 
 async def _google_details(place_id: str) -> dict | None:

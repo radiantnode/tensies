@@ -314,8 +314,10 @@ async def api_places_photo(request: Request, ref: str, w: int = 200) -> Response
     if got is None:
         raise HTTPException(status_code=404, detail="no photo")
     content_type, data = got
+    # A photo ref names one immutable image, so the URL's content never
+    # changes — let browsers keep it a week without ever revalidating.
     return Response(content=data, media_type=content_type,
-                    headers={"Cache-Control": "public, max-age=86400"})
+                    headers={"Cache-Control": "public, max-age=604800, immutable"})
 
 
 @router.get("/api/profile/{username}")
