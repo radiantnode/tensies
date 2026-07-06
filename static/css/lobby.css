@@ -638,12 +638,6 @@
     opacity: 0.6;
   }
 
-  .places-checkout {
-    margin-block-start: 1rem;
-    flex-shrink: 0;
-  }
-  .places-checkout[hidden] { display: none; }
-
   /* ── Confirm dialog ("Allow nearby players?") ──
      Minimal centered modal — native <dialog> via showModal() (UA centers it).
      Intentionally simple; design iterates later. */

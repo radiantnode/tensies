@@ -6,7 +6,7 @@ import { BACK_BUTTON_HTML } from '../back-button.js';
 import { byId } from '../dom.js';
 import { EQ_ICON_HTML } from '../eq-icon.js';
 import { GeoError, GEO_ERROR_COPY, getPosition } from '../geo.js';
-import { broadcastNearby, checkIn, checkOut, leaveGame, startGame, stopBroadcast } from '../net.js';
+import { broadcastNearby, checkIn, leaveGame, startGame, stopBroadcast } from '../net.js';
 import { updateScrollFades } from '../scroll-fades.js';
 import { state } from '../state.js';
 
@@ -125,7 +125,6 @@ export class LobbyScreen extends HTMLElement {
           <input id="places-search" class="places-search" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Search for a place" aria-label="Search for a place">
           <p id="places-status" class="places-status">Finding places near you…</p>
           <ul id="places-list" class="places-list" aria-label="Nearby places"></ul>
-          <button id="places-checkout" type="button" class="btn btn-secondary places-checkout" hidden>Check out</button>
         </dialog>
         <dialog id="allow-nearby-confirm" class="confirm-dialog" aria-labelledby="allow-nearby-title">
           <h2 id="allow-nearby-title" class="confirm-title">Allow nearby players?</h2>
@@ -162,7 +161,6 @@ export class LobbyScreen extends HTMLElement {
     byId('checkin-prompt').addEventListener('click', () => this.#openPlaces());
     byId('places-search').addEventListener('input', () => this.#onSearchInput());
     byId('places-close').addEventListener('click', () => this.#closePlaces());
-    byId('places-checkout').addEventListener('click', () => { checkOut(); this.#closePlaces(); });
     byId('places-list').addEventListener('click', (e) => {
       const row = /** @type {HTMLElement} */ (e.target).closest('[data-place]');
       if (row) { checkIn(/** @type {string} */ (row.getAttribute('data-place'))); this.#closePlaces(); }
@@ -434,8 +432,6 @@ export class LobbyScreen extends HTMLElement {
     const sheet = /** @type {HTMLDialogElement} */ (byId('places-sheet'));
     const list = byId('places-list');
     const status = byId('places-status');
-    const checkedIn = byId('checkin-prompt').getAttribute('aria-pressed') === 'true';
-    byId('places-checkout').hidden = !checkedIn;
     list.replaceChildren();
     status.classList.remove('is-error');
     // Reset the search each open — the sheet always starts on the nearby list.
