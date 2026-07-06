@@ -589,7 +589,11 @@
     overscroll-behavior: contain;
     list-style: none;
     margin: 0;
-    padding: 0;
+    /* Trailing space so the last result never sits at the dead bottom of the
+       screen — a short list floats up off the sheet edge, and a long one keeps
+       the same breathing room once scrolled to the end (padding inside the
+       scroll area is revealed at the bottom of the scroll). */
+    padding: 0 0 1.25rem;
   }
   .places-list::-webkit-scrollbar { display: none; }
 
