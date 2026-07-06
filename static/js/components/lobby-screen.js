@@ -460,7 +460,7 @@ export class LobbyScreen extends HTMLElement {
     sheet.showModal();
     // The background prefetch usually has the list already — open straight to it.
     if (this.#placesCache && this.#placesCache.length) {
-      this.#renderPlaces(this.#placesCache);
+      this.#renderPlaces(this.#placesCache, true);
       return;
     }
     status.hidden = false;
@@ -473,7 +473,7 @@ export class LobbyScreen extends HTMLElement {
       const data = await res.json();
       const places = data.places || [];
       this.#placesCache = places;
-      this.#renderPlaces(places);
+      this.#renderPlaces(places, true);
     } catch (err) {
       const reason = err instanceof GeoError ? err.reason : 'unavailable';
       status.textContent = err instanceof GeoError
@@ -492,7 +492,7 @@ export class LobbyScreen extends HTMLElement {
     const q = /** @type {HTMLInputElement} */ (byId('places-search')).value.trim();
     if (q.length < 2) {
       this.#searchSeq++; // cancel any in-flight search
-      this.#renderPlaces(this.#placesCache || []);
+      this.#renderPlaces(this.#placesCache || [], true);
       return;
     }
     this.#searchTimer = setTimeout(() => this.#searchPlaces(q), 300);
@@ -535,10 +535,24 @@ export class LobbyScreen extends HTMLElement {
 
   /**
    * @param {Array<{place_id: string, name: string, address: string, photo_url?: string | null}>} list
+   * @param {boolean} [pinAbsent] prepend the checked-in place even when the
+   *   fetched list doesn't contain it (nearby renders; search leaves it out)
    */
-  #renderPlaces(list) {
+  #renderPlaces(list, pinAbsent = false) {
     const status = byId('places-status');
     const listEl = byId('places-list');
+    // Already checked in: the current place always leads the list, marked with
+    // a gold ring, so the host can re-find their pick at a glance.
+    const currentId = state.currentState?.place_id;
+    if (currentId) {
+      const cur = list.find((p) => p.place_id === currentId);
+      if (cur) {
+        list = [cur, ...list.filter((p) => p !== cur)];
+      } else if (pinAbsent && state.currentState?.place_name) {
+        list = [{ place_id: currentId, name: state.currentState.place_name,
+                  address: '' }, ...list];
+      }
+    }
     // Rebuild the deferred-photo observer from scratch each render (search
     // re-renders replace the whole list), and never leak one on the empty path.
     this.#photoObserver?.disconnect();
@@ -569,6 +583,10 @@ export class LobbyScreen extends HTMLElement {
       btn.type = 'button';
       btn.className = 'places-row';
       btn.dataset.place = p.place_id;
+      if (p.place_id === currentId) {
+        btn.classList.add('is-current');
+        btn.setAttribute('aria-current', 'true');
+      }
       btn.innerHTML =
         '<span class="places-row-body">' +
           '<span class="places-row-name"></span>' +
