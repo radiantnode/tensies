@@ -138,14 +138,16 @@
   .btn-broadcast.is-on + .lobby-action-label { color: var(--color-accent); }
 
   /* ── Check-in prompt ──
-     A full-width tappable pill (not a fourth icon button) that names the
-     nearest place; tapping opens the places sheet. Host-only. */
+     A tappable pill (not a fourth icon button) that names the nearest place;
+     tapping opens the places sheet. Host-only. Sized to line up with the
+     game-code box above it (content-sized ~283px on mobile); centred by the
+     lobby column. */
   .checkin-prompt {
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    inline-size: 100%;
-    max-inline-size: 400px;
+    inline-size: 17.75rem;
+    max-inline-size: 100%;
     margin-block-end: 1.25rem;
     padding: 0.7rem 0.9rem;
     background: var(--color-raised);
