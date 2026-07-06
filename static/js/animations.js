@@ -18,7 +18,12 @@ import { state } from './state.js';
 /** Begin the gather + tumble phase of a roll (skipped under reduced motion). */
 export function startShake() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    state.rollShakeEnd = Date.now();
+    // No motion, same pace. Skipping the wait entirely made reduced motion a
+    // ~40%-faster roll cadence — roughly a 70% round-win rate against a
+    // default-animation opponent. 700ms is the midpoint of the normal
+    // gather+shake window (500–900ms), so the cadence matches; it also keeps
+    // the cycle above the server's MIN_ROLL_INTERVAL floor.
+    state.rollShakeEnd = Date.now() + 700;
     return;
   }
   const gatherMs = 200;
