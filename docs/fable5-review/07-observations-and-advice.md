@@ -10,7 +10,7 @@ Everything actionable from files 01–04, ranked by my judgment of (impact × li
 | 2 | Re-stamp `disconnected_at_ms` on pause resume | `server/ws.py:398-406` | ~3 lines |
 | 3 | Add a `tsc --noEmit` job to CI and fix the 31 errors (declare `gameJustEnded`, add `auth_ok` to `types.js`) | `.github/workflows/ci.yml`, `static/js/` | an afternoon |
 | 4 | Close the recent-game template's missing `>` | `profile-screen.js:246` | 1 char |
-| 5 | Authenticate `legacy_pid` (require the pid's reconnect token) | `server/auth.py:246-252` | small |
+| 5 | Guard `legacy_pid`: reject pids that are an existing `users.id` or already-claimed `users.legacy_pid` (+ unique index); open claiming of unclaimed anonymous pids stays, per decision | `server/auth.py:246-252` | small |
 | 6 | Escape/`textContent` the profile & game-detail interpolations — **before** any profile-edit feature | `profile-screen.js`, `game-detail-screen.js` | small |
 | 7 | Raise `MIN_ROLL_INTERVAL` to ~1.0 s + floor the reduced-motion roll cycle | `config.py`, `animations.js` | small |
 | 8 | Client-side deadline on `tryReveal` polling + surface in-game error frames | `animations.js:183`, `net.js:357` | small |

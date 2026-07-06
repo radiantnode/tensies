@@ -16,7 +16,7 @@ The findings below are refinements and a couple of real-but-low-impact gaps, not
 
 **Exploit:** share a game with a victim, capture their pid from the WS `state` frame, register a new account passing `legacy_pid=<victim pid>`, permanently absorb their lifetime games/wins/rolls (the UPDATE moves the row; the victim can't later claim it).
 
-**Fix:** require proof of possession — the natural credential already exists: the pid's reconnect token. Or drop the feature. Stakes are dice-game bragging rights, but with "Founding Roller" badges now on profiles, bragging rights are the economy.
+**Decision (Michael, 2026-07-05):** open claiming of *anonymous* pids is intentional — whoever played the recent games can lock them in, first come first served. The fix is therefore not proof-of-possession but an **already-assigned check**: before the UPDATE (same transaction), reject any `legacy_pid` that is an existing account's `users.id` or already recorded in `users.legacy_pid`, plus a unique index on `users.legacy_pid` as a race guard. This closes the serious variant — account UUIDs share the pid namespace and are broadcast in `state_msg`, so without the check a registered user's stats can be moved onto a fresh account. The double-claim of a stats row is already a no-op (the UPDATE's WHERE matches nothing once claimed). Residual, accepted: two people racing to claim a shared-device anonymous pid.
 
 *Two independent review passes (security and backend) each found this without knowledge of the other. Treat that convergence as a priority signal.*
 
