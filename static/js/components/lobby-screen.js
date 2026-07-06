@@ -109,7 +109,7 @@ export class LobbyScreen extends HTMLElement {
         <dialog id="places-sheet" class="places-sheet" aria-label="Check in to a place">
           <div class="places-sheet-head">
             <h2 class="places-sheet-title">Check in to a place</h2>
-            <button id="places-close" type="button" class="places-close" aria-label="Close">✕</button>
+            <button id="places-close" type="button" class="places-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
           <p id="places-status" class="places-status">Finding places near you…</p>
           <ul id="places-list" class="places-list" aria-label="Nearby places"></ul>

@@ -491,19 +491,22 @@
     align-items: center;
     justify-content: center;
     padding: 0;
-    background: var(--color-raised);
-    border: 1px solid var(--color-border);
+    background: var(--color-raised-hover);
+    border: 1px solid rgba(220, 170, 70, 0.5);
     border-radius: 50%;
-    font-family: inherit;
-    font-size: 1.35rem;
-    line-height: 1;
-    color: var(--color-text-warm);
+    color: var(--color-text);
     cursor: pointer;
     transition: background 0.12s, border-color 0.12s;
   }
+  /* An SVG X centres perfectly (no glyph-metric drift). */
+  .places-close svg {
+    inline-size: 1.05rem;
+    block-size: 1.05rem;
+    display: block;
+  }
   .places-close:hover {
     background: var(--color-raised-hover);
-    border-color: rgba(190, 130, 55, 0.45);
+    border-color: rgba(235, 190, 90, 0.75);
   }
 
   .places-status {
