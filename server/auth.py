@@ -8,6 +8,7 @@ import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import asyncpg
 import jwt
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
@@ -213,17 +214,46 @@ async def register_verify(body: RegisterVerifyRequest):
 
     async with db.pool().acquire() as con:
         async with con.transaction():
-            # Race guard: UNIQUE index catches concurrent inserts
-            try:
-                await con.execute(
-                    """
-                    INSERT INTO users (id, username, legacy_pid)
-                    VALUES ($1, $2, $3)
-                    """,
-                    uuid.UUID(user_id_str),
-                    username,
-                    body.legacy_pid,
+            # Open claiming with an already-assigned guard: an unclaimed
+            # anonymous pid can be locked in by whoever registers it first,
+            # but a pid that is already an account's id (account UUIDs share
+            # the pid namespace and are visible to every co-player via
+            # state_msg) or already claimed by another account must never
+            # move stats again. Registration still succeeds either way —
+            # just without the transfer.
+            legacy_pid = body.legacy_pid
+            if legacy_pid:
+                taken = await con.fetchval(
+                    "SELECT 1 FROM users WHERE id::text = $1 OR legacy_pid = $1",
+                    legacy_pid,
                 )
+                if taken:
+                    legacy_pid = None
+
+            async def _insert_user(lp: str | None) -> None:
+                # Savepoint: a failed INSERT poisons the outer transaction,
+                # and the legacy_pid-race retry below must survive it.
+                async with con.transaction():
+                    await con.execute(
+                        """
+                        INSERT INTO users (id, username, legacy_pid)
+                        VALUES ($1, $2, $3)
+                        """,
+                        uuid.UUID(user_id_str),
+                        username,
+                        lp,
+                    )
+
+            try:
+                await _insert_user(legacy_pid)
+            except asyncpg.UniqueViolationError as e:
+                if legacy_pid and e.constraint_name == "users_legacy_pid_key":
+                    # Lost the claim race between our SELECT and the INSERT —
+                    # first claimer keeps the stats; register without them.
+                    legacy_pid = None
+                    await _insert_user(None)
+                else:
+                    raise HTTPException(409, "Username already taken") from e
             except Exception as e:
                 if "unique" in str(e).lower():
                     raise HTTPException(409, "Username already taken") from e
@@ -243,12 +273,14 @@ async def register_verify(body: RegisterVerifyRequest):
                 transports or None,
             )
 
-            # Data transfer: link old anonymous stats to the new account
-            if body.legacy_pid:
+            # Data transfer: link old anonymous stats to the new account.
+            # legacy_pid is None here if the pid was already assigned (guard
+            # above) or lost the claim race — the row must not move twice.
+            if legacy_pid:
                 await con.execute(
                     "UPDATE player_stats SET user_id = $1 WHERE user_id = $2",
                     user_id_str,
-                    body.legacy_pid,
+                    legacy_pid,
                 )
 
     # Fetch any transferred stats for the onboarding screen
