@@ -361,14 +361,14 @@ export class LobbyScreen extends HTMLElement {
         textEl.textContent = `Check in to ${list[0].name}`;
         const rest = list.length - 1;
         moreEl.hidden = rest <= 0;
-        if (rest > 0) moreEl.textContent = `and ${rest} more`;
+        if (rest > 0) moreEl.textContent = `+${rest} more`;
       } else {
         textEl.textContent = 'Check in to a place';
         moreEl.hidden = true;
       }
     }
     // Fade the label's trailing edge only when it can't fit — a fit label keeps
-    // its last characters crisp; a long one dissolves into "and N more".
+    // its last characters crisp; a long one dissolves into "+N more".
     requestAnimationFrame(() =>
       textEl.classList.toggle('is-faded', textEl.scrollWidth > textEl.clientWidth + 1));
   }

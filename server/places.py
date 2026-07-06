@@ -190,6 +190,9 @@ async def resolve(place_id: str) -> dict | None:
 async def _google_nearby(lat: float, lon: float) -> list[dict]:
     body = {
         "maxResultCount": min(PLACES_MAX_RESULTS, 20),  # API caps at 20
+        # Nearest first — for a check-in you want the place you're standing in,
+        # not the most famous venue in the radius (the API's POPULARITY default).
+        "rankPreference": "DISTANCE",
         "locationRestriction": {"circle": {
             "center": {"latitude": lat, "longitude": lon},
             "radius": PLACES_RADIUS_M}},
