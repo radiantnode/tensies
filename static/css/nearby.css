@@ -153,17 +153,28 @@
     to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   }
 
-  /* Avatar disc with a pink rim. Counter-rotates the compass heading so the
-     face stays upright as the scope turns. */
+  /* Avatar disc with the app's gold gradient rim (matches the profile /
+     game-detail avatars). Counter-rotates the compass heading so the face
+     stays upright as the scope turns. */
   .blip-avatar-ring {
     position: relative;
     inline-size: 36px;
     block-size: 36px;
-    padding: 2px;
     border-radius: 50%;
-    background: var(--color-accent);
-    box-shadow: 0 0 10px rgba(255, 77, 109, 0.7);
     transform: rotate(calc(-1 * var(--rot, 0deg)));
+    box-shadow:
+      inset -1px 1px 3px rgba(255, 200, 122, 0.3),
+      inset 1px -1px 4px rgba(70, 28, 8, 0.25),
+      0 2px 8px rgba(0, 0, 0, 0.35),
+      0 0 12px rgba(255, 186, 102, 0.18);
+  }
+
+  .blip-avatar-ring::before {
+    padding: 1.5px;
+    background: linear-gradient(to bottom left,
+      rgba(252, 200, 126, 0.8) 0%,
+      rgba(216, 148, 80, 0.55) 38%,
+      rgba(150, 96, 46, 0.25) 100%);
   }
 
   .blip-avatar {
@@ -175,13 +186,13 @@
     background: var(--color-field);
   }
 
-  /* Each blip pings outward — the sonar idiom from the audio buttons. */
+  /* Each blip pings outward — the sonar idiom from the audio buttons, in gold. */
   .blip-avatar-ring::after {
     content: '';
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    border: 2px solid var(--color-accent);
+    border: 1.5px solid rgba(255, 186, 102, 0.55);
     animation: blip-ping 2.4s ease-out infinite;
   }
 
@@ -207,9 +218,15 @@
     text-overflow: ellipsis;
   }
 
+  /* Selected: brighten the gold rim + glow rather than recolour. */
   .radar-blip.is-selected .blip-avatar-ring {
-    background: #fff;
-    box-shadow: 0 0 12px #fff, 0 0 22px rgba(255, 77, 109, 0.9);
+    box-shadow:
+      inset -1px 1px 3px rgba(255, 220, 150, 0.5),
+      0 2px 10px rgba(0, 0, 0, 0.4),
+      0 0 18px rgba(255, 200, 120, 0.6);
+  }
+  .radar-blip.is-selected .blip-avatar-ring::before {
+    background: linear-gradient(to bottom left, #ffe6b0 0%, #e8b878 45%, #c8925a 100%);
   }
   .radar-blip.is-selected .blip-name {
     background: var(--color-accent);
@@ -238,13 +255,24 @@
   }
 
   .nearby-card-avatar-ring {
+    position: relative;
     flex-shrink: 0;
     inline-size: 44px;
     block-size: 44px;
-    padding: 2px;
     border-radius: 50%;
-    background: linear-gradient(180deg, rgba(255, 160, 178, 0.7), var(--color-accent));
-    box-shadow: 0 0 10px rgba(255, 77, 109, 0.4);
+    box-shadow:
+      inset -1.5px 1.5px 4px rgba(255, 200, 122, 0.32),
+      inset 1.5px -1.5px 5px rgba(70, 28, 8, 0.28),
+      0 2px 9px rgba(0, 0, 0, 0.35),
+      0 0 14px rgba(255, 186, 102, 0.18);
+  }
+
+  .nearby-card-avatar-ring::before {
+    padding: 1.5px;
+    background: linear-gradient(to bottom left,
+      rgba(252, 200, 126, 0.8) 0%,
+      rgba(216, 148, 80, 0.55) 38%,
+      rgba(150, 96, 46, 0.25) 100%);
   }
 
   .nearby-card-avatar {
