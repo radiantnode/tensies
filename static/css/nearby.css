@@ -210,7 +210,7 @@
   .blip-name {
     /* Counter the blip layer's compass rotation so names stay upright. */
     transform: rotate(calc(-1 * var(--rot, 0deg)));
-    max-inline-size: 84px;
+    max-inline-size: 62px;
     padding: 1px 6px;
     border-radius: 999px;
     background: rgba(10, 5, 2, 0.72);
@@ -243,7 +243,7 @@
      check-in theme). Counter-rotated so it stays upright with the compass. */
   .blip-place {
     transform: rotate(calc(-1 * var(--rot, 0deg)));
-    max-inline-size: 88px;
+    max-inline-size: 62px;
     margin-block-start: -1px;
     font-size: 0.62rem;
     font-weight: 700;
