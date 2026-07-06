@@ -267,8 +267,9 @@ async def handle_broadcast(session: Session, msg: dict) -> None:
 
 
 async def handle_stop_broadcast(session: Session, msg: dict) -> None:
-    """Host-only: stop the free-range broadcast (a checked-in place, if any,
-    keeps the game discoverable)."""
+    """Host-only: stop sharing location. This is the master discovery switch —
+    turning it off also checks the game out of any place, so the game leaves the
+    radar entirely (check-in is only available while sharing is on)."""
     code = session.code
     if not code:
         return
@@ -276,6 +277,10 @@ async def handle_stop_broadcast(session: Session, msg: dict) -> None:
     if meta is None or meta["host"] != session.pid:
         return
     await gamestore.stop_broadcasting(code)
+    # Master switch: clearing the broadcast also clears any check-in.
+    await gamestore.clear_place(code)
+    if db.available():
+        await db_places.delete(code)
     log.info("broadcast  game=%s  OFF", code)
     snap = await gamestore.snapshot(code)
     if snap:
@@ -285,13 +290,17 @@ async def handle_stop_broadcast(session: Session, msg: dict) -> None:
 async def handle_checkin(session: Session, msg: dict) -> None:
     """Host-only, lobby-only: check the game in to a nearby real place. The
     client sends only a place_id; the server resolves the authoritative name +
-    coordinates so a client can't drop a game at arbitrary coordinates."""
+    coordinates so a client can't drop a game at arbitrary coordinates. Requires
+    Share Location to be on — check-in is a refinement of it, not a separate way
+    onto the radar."""
     code = session.code
     if not code:
         return
     meta = await gamestore.get_meta(code)
     if meta is None or meta["host"] != session.pid or meta["started"]:
         return
+    if not meta.get("broadcasting"):
+        return  # check-in only while Share Location is on
     if not await gamestore.rate_allow("checkin", session.ip,
                                       CHECKIN_RATE_MAX, CHECKIN_RATE_WINDOW):
         await _error(session.ws, "Slow down")

@@ -315,7 +315,8 @@ async def snapshot(code: str) -> dict | None:
 async def get_meta(code: str) -> dict | None:
     """Cheap scalar read for handler guards — avoids loading all players."""
     fields = ["started", "round_over", "paused", "host", "target", "round_num",
-              "pause_deadline_ms", "round_advance_pending", "round_start_ms"]
+              "pause_deadline_ms", "round_advance_pending", "round_start_ms",
+              "broadcasting"]
     vals = await _r.hmget(_gkey(code), fields)
     if all(v is None for v in vals):
         return None

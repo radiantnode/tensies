@@ -236,7 +236,8 @@ export class LobbyScreen extends HTMLElement {
     const startBtn = byId('start-btn');
     startBtn.hidden = !isHost;
     this.#syncBroadcast(!!snap.broadcasting, isHost);
-    this.#syncCheckin(snap.place_name ?? null, isHost);
+    // Check-in is a refinement of Share Location — only offered while it's on.
+    this.#syncCheckin(snap.place_name ?? null, isHost, !!snap.broadcasting);
     // The shared "you're discoverable" line reflects *either* path onto the
     // radar, so being on the radar always reads as on.
     this.#syncDiscoveryStatus(!!snap.broadcasting, snap.place_name ?? null, isHost);
@@ -264,10 +265,10 @@ export class LobbyScreen extends HTMLElement {
   }
 
   /**
-   * The single "you're on the radar" cue. Shown whenever the game is discoverable
-   * by *either* mechanism — a free-range broadcast or a checked-in place — so an
-   * off Broadcast button next to an active check-in doesn't read as "not
-   * discoverable". Host-only. The live variant carries a pulsing accent dot.
+   * The single "you're on the radar" cue. Discoverability is governed by Share
+   * Location; a check-in only refines *where* the blip sits (so place ⇒
+   * broadcasting). Shown while sharing, naming the place when checked in.
+   * Host-only. The live variant carries a pulsing accent dot.
    * @param {boolean} broadcasting
    * @param {string | null} placeName
    * @param {boolean} isHost
@@ -275,7 +276,7 @@ export class LobbyScreen extends HTMLElement {
   #syncDiscoveryStatus(broadcasting, placeName, isHost) {
     const status = byId('discovery-status');
     if (!isHost) { status.hidden = true; return; }
-    const live = broadcasting || !!placeName;
+    const live = broadcasting;
     // A fresh snapshot supersedes any transient "getting location" / error text.
     status.classList.toggle('is-live', live);
     status.classList.remove('is-error');
@@ -334,16 +335,19 @@ export class LobbyScreen extends HTMLElement {
   }
 
   /**
-   * Reflect the checked-in place on the host's Check-in prompt. Host-only; the
-   * prompt is a single tappable pill (no separate icon button) whose copy names
-   * the checked-in place, or the nearest options once we've looked them up.
+   * Reflect the checked-in place on the host's Check-in prompt. Only offered
+   * once Share Location is on — checking in is a refinement of sharing, not a
+   * separate opt-in — so the prompt is hidden until then (and the server
+   * clears any check-in when sharing stops). The pill's copy names the
+   * checked-in place, or the nearest options once we've looked them up.
    * @param {string | null} placeName
    * @param {boolean} isHost
+   * @param {boolean} broadcasting Share Location on — gates the prompt.
    */
-  #syncCheckin(placeName, isHost) {
+  #syncCheckin(placeName, isHost, broadcasting) {
     const prompt = byId('checkin-prompt');
-    prompt.hidden = !isHost;
-    if (!isHost) return;
+    prompt.hidden = !(isHost && broadcasting);
+    if (!isHost || !broadcasting) return;
     const on = !!placeName;
     prompt.classList.toggle('is-on', on);
     prompt.setAttribute('aria-pressed', on ? 'true' : 'false');
@@ -351,8 +355,8 @@ export class LobbyScreen extends HTMLElement {
     prompt.setAttribute('aria-label', on
       ? `Checked in at ${placeName} — tap to change or check out`
       : 'Check in to a nearby place');
-    // Once, in the background, name the nearby places — but only if location is
-    // already granted, so opening the lobby never fires a surprise GPS prompt.
+    // Once, in the background, name the nearby places. Sharing is on, so the
+    // host has already granted geolocation — no surprise prompt.
     if (!on && !this.#placesCache && !this.#prefetchTried) this.#prefetchPlaces();
   }
 
