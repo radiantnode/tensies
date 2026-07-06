@@ -473,6 +473,10 @@
     border-start-end-radius: var(--radius-lg, 20px);
     box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.55);
     color: var(--color-text);
+    /* The UA gives <dialog> overflow:auto, so the sheet itself grows a
+       scrollbar whenever content transiently overflows (e.g. results landing
+       mid slide-up). Scrolling belongs to .places-list alone. */
+    overflow: hidden;
     /* Backdrop-filter here would trap the sheet's own stacking context, but a
        top-layer dialog already escapes the page flow, so it's safe. */
     -webkit-backdrop-filter: blur(10px);
