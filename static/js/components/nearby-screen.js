@@ -12,15 +12,22 @@ import { showLanding } from '../router.js';
 /** How often the radar re-polls the endpoint while the screen is active. */
 const REFRESH_MS = 8000;
 
-/** Placeholder avatar for hosts without an account photo. */
-const PLACEHOLDER_AVATAR = 'https://cdn1.simmons.cloud/tensies/production/profile-photos/mich.webp';
-
-/** Local fallback if the avatar URL fails to load (CSP-safe, always present). */
+/** Fallback avatar for anonymous hosts / a photo that fails to load. */
 const DEFAULT_AVATAR = '/static/images/avatar-default.svg';
 
 /**
- * Build an avatar <img> with a graceful fallback. The error handler can't be
- * an inline attribute (CSP blocks inline handlers), so it's attached here.
+ * Radial spread. Physical gatherings put every game within a small slice of the
+ * 500 m radius, so a linear map clusters them all near the centre. A sqrt curve
+ * pushes near games outward and a minimum inset keeps them clear of "you", so a
+ * roomful of games reads as distinct blips. Bearing stays exact; only the radial
+ * *scale* is perceptual (distance is already bucketed, and shown as text).
+ */
+const MIN_FRAC = 0.18;
+
+/**
+ * Build an avatar <img> for a host: their account photo when signed in, else
+ * the default silhouette. The error handler (a photo URL that won't load) can't
+ * be an inline attribute — CSP blocks inline handlers — so it's attached here.
  * @param {string | null | undefined} photo
  * @param {string} className
  */
@@ -28,7 +35,7 @@ function avatarImg(photo, className) {
   const img = document.createElement('img');
   img.className = className;
   img.alt = '';
-  img.src = photo || PLACEHOLDER_AVATAR;
+  img.src = photo || DEFAULT_AVATAR;
   img.addEventListener('error', () => {
     if (img.src !== location.origin + DEFAULT_AVATAR) img.src = DEFAULT_AVATAR;
   }, { once: true });
@@ -281,8 +288,11 @@ export class NearbyScreen extends HTMLElement {
 
     blips.replaceChildren();
     for (const g of games) {
-      // Clamp to the ring so a rounding overshoot can't escape the scope.
-      const frac = Math.min(1, g.distance_m / radius);
+      // Perceptual radial spread: sqrt curve + a minimum inset so nearby games
+      // fan out instead of piling on the centre (see MIN_FRAC). Clamped so a
+      // rounding overshoot can't escape the scope.
+      const raw = Math.min(1, g.distance_m / radius);
+      const frac = MIN_FRAC + (1 - MIN_FRAC) * Math.sqrt(raw);
       const rad = (g.bearing_deg * Math.PI) / 180;
       const x = 50 + Math.sin(rad) * frac * 50;
       const y = 50 - Math.cos(rad) * frac * 50;
