@@ -378,9 +378,9 @@
     padding: 0;
     border-radius: 50%;
     background: rgba(10, 5, 2, 0.55);
-    border: 1px solid var(--color-border-strong);
+    border: 1.5px solid rgba(240, 200, 130, 0.85);
     color: var(--color-text-warm);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 8px rgba(240, 200, 130, 0.25);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
