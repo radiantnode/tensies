@@ -34,6 +34,10 @@ services:
       DISCORD_PUBLIC_KEY: ${DISCORD_PUBLIC_KEY:-}
       DISCORD_APPLICATION_ID: ${DISCORD_APPLICATION_ID:-}
       DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:-}
+      # Google Places "check in" — key stays server-side. With PLACES_ENABLED on
+      # and no key set, the proxy serves a dev stub (no Google account needed).
+      PLACES_ENABLED: ${PLACES_ENABLED:-1}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy

@@ -28,7 +28,9 @@
  * @property {number} round_num
  * @property {boolean} started
  * @property {boolean} paused
- * @property {boolean} [discoverable] Host opted this lobby into GPS-nearby discovery.
+ * @property {boolean} [broadcasting] Host opted this lobby into free-range GPS discovery.
+ * @property {string | null} [place_id] Google place the game is checked in to (or null).
+ * @property {string | null} [place_name] Name of the checked-in place (or null).
  * @property {string} host Player id of the current host.
  * @property {Record<string, PlayerSnapshot>} players
  * @property {string} [winner_name] Present on `round_won` frames.
@@ -45,6 +47,8 @@
  * @property {number} player_count
  * @property {number} distance_m Bucketed metres from the caller.
  * @property {number} bearing_deg 0–359, clockwise from true north.
+ * @property {string | null} [place_id] Checked-in place id, if any.
+ * @property {string | null} [place_name] Checked-in place name, if any.
  */
 
 /**

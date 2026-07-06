@@ -7,7 +7,7 @@ import uuid
 import jwt as pyjwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from . import db, gamestore, state
+from . import db, db_places, gamestore, places, state
 from .broadcast import (
     advance_round,
     broadcast,
@@ -21,6 +21,8 @@ from .config import (
     ALLOWED_ORIGINS,
     BROADCAST_RATE_MAX,
     BROADCAST_RATE_WINDOW,
+    CHECKIN_RATE_MAX,
+    CHECKIN_RATE_WINDOW,
     CREATE_RATE_MAX,
     CREATE_RATE_WINDOW,
     JOIN_RATE_MAX,
@@ -257,8 +259,7 @@ async def handle_broadcast(session: Session, msg: dict) -> None:
         await _error(session.ws, "Couldn't read your location")
         return
     lat, lon = coords
-    await gamestore.geo_add(code, lon, lat)
-    await gamestore.set_discoverable(code, True)
+    await gamestore.set_broadcasting(code, lon, lat)
     log.info("broadcast  game=%s  ON", code)
     snap = await gamestore.snapshot(code)
     if snap:
@@ -266,16 +267,68 @@ async def handle_broadcast(session: Session, msg: dict) -> None:
 
 
 async def handle_stop_broadcast(session: Session, msg: dict) -> None:
-    """Host-only: remove this game from GPS-nearby discovery."""
+    """Host-only: stop the free-range broadcast (a checked-in place, if any,
+    keeps the game discoverable)."""
     code = session.code
     if not code:
         return
     meta = await gamestore.get_meta(code)
     if meta is None or meta["host"] != session.pid:
         return
-    await gamestore.geo_remove(code)
-    await gamestore.set_discoverable(code, False)
+    await gamestore.stop_broadcasting(code)
     log.info("broadcast  game=%s  OFF", code)
+    snap = await gamestore.snapshot(code)
+    if snap:
+        await broadcast(code, state_msg(snap, code))
+
+
+async def handle_checkin(session: Session, msg: dict) -> None:
+    """Host-only, lobby-only: check the game in to a nearby real place. The
+    client sends only a place_id; the server resolves the authoritative name +
+    coordinates so a client can't drop a game at arbitrary coordinates."""
+    code = session.code
+    if not code:
+        return
+    meta = await gamestore.get_meta(code)
+    if meta is None or meta["host"] != session.pid or meta["started"]:
+        return
+    if not await gamestore.rate_allow("checkin", session.ip,
+                                      CHECKIN_RATE_MAX, CHECKIN_RATE_WINDOW):
+        await _error(session.ws, "Slow down")
+        return
+    place_id = (msg.get("place_id") or "").strip()
+    if not place_id:
+        return
+    place = await places.resolve(place_id)
+    if place is None:
+        await _error(session.ws, "Couldn't check in to that place")
+        return
+    await gamestore.set_place(code, place["place_id"], place["name"],
+                              place["lat"], place["lon"])
+    if db.available():
+        await db_places.upsert(code, place, session.pid)
+    emit("checked_in", game_code=code, user_id=session.pid,
+         place_id=place["place_id"], place_name=place["name"],
+         session_id=session.session_id)
+    log.info("checkin  game=%s  place=%s", code, place["name"])
+    snap = await gamestore.snapshot(code)
+    if snap:
+        await broadcast(code, state_msg(snap, code))
+
+
+async def handle_checkout(session: Session, msg: dict) -> None:
+    """Host-only: clear the checked-in place (a free-range broadcast, if any,
+    keeps the game discoverable)."""
+    code = session.code
+    if not code:
+        return
+    meta = await gamestore.get_meta(code)
+    if meta is None or meta["host"] != session.pid:
+        return
+    await gamestore.clear_place(code)
+    if db.available():
+        await db_places.delete(code)
+    log.info("checkout  game=%s", code)
     snap = await gamestore.snapshot(code)
     if snap:
         await broadcast(code, state_msg(snap, code))
@@ -542,6 +595,8 @@ ACTIONS = {
     "start": handle_start,
     "broadcast": handle_broadcast,
     "stop_broadcast": handle_stop_broadcast,
+    "checkin": handle_checkin,
+    "checkout": handle_checkout,
     "reconnect": handle_reconnect,
     "roll": handle_roll,
     "pause": handle_pause,

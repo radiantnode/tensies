@@ -207,6 +207,20 @@ export function stopBroadcast() {
   send('stop_broadcast');
 }
 
+/**
+ * Any player: check the game in to a nearby place. Only the place_id is sent;
+ * the server resolves the authoritative name + coordinates.
+ * @param {string} placeId
+ */
+export function checkIn(placeId) {
+  send('checkin', { place_id: placeId });
+}
+
+/** Any player: clear the checked-in place. */
+export function checkOut() {
+  send('checkout');
+}
+
 /** Host-only: start the game. */
 export function startGame() {
   send('start');

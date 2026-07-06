@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-from . import gamestore
+from . import gamestore, places
 from .assets import build_index_html, build_page_template, render_page
 from .config import (
     APP_URL,
@@ -20,6 +20,9 @@ from .config import (
     METRICS_TOKEN,
     NEARBY_RATE_MAX,
     NEARBY_RATE_WINDOW,
+    PLACES_ENABLED,
+    PLACES_RATE_MAX,
+    PLACES_RATE_WINDOW,
     STATS_TOKEN,
     TELEMETRY_ENABLED,
     TRUST_PROXY_HEADERS,
@@ -230,8 +233,30 @@ async def api_nearby(request: Request, lat: float, lon: float) -> dict:
             "player_count": card["player_count"],
             "distance_m": round(dist / bucket) * bucket,
             "bearing_deg": _bearing_deg(lat, lon, jlat, jlon),
+            "place_id": card["place_id"],      # set when checked in to a place
+            "place_name": card["place_name"],
         })
     return {"radius_m": int(DISCOVERY_RADIUS_M), "games": games}
+
+
+@router.get("/api/places/nearby")
+async def api_places_nearby(request: Request, lat: float, lon: float) -> dict:
+    """Nearby real places for the lobby check-in picker. Proxies Google Places
+    server-side (key never reaches the browser); serves a dev stub when no key
+    is configured. Returns place_id/name/address only — no client secrets."""
+    if not PLACES_ENABLED:
+        raise HTTPException(status_code=503, detail="places disabled")
+    if not (math.isfinite(lat) and math.isfinite(lon)
+            and -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
+        raise HTTPException(status_code=400, detail="invalid coordinates")
+    ip = _http_client_ip(request)
+    if not await gamestore.rate_allow("places", ip, PLACES_RATE_MAX, PLACES_RATE_WINDOW):
+        raise HTTPException(status_code=429, detail="slow down")
+    results = await places.search_nearby(lat, lon)
+    return {"places": [
+        {"place_id": p["place_id"], "name": p["name"], "address": p.get("address", "")}
+        for p in results
+    ]}
 
 
 @router.get("/api/profile/{username}")

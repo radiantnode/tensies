@@ -6,7 +6,7 @@ import { BACK_BUTTON_HTML } from '../back-button.js';
 import { byId } from '../dom.js';
 import { EQ_ICON_HTML } from '../eq-icon.js';
 import { GeoError, GEO_ERROR_COPY, getPosition } from '../geo.js';
-import { broadcastNearby, leaveGame, startGame, stopBroadcast } from '../net.js';
+import { broadcastNearby, checkIn, checkOut, leaveGame, startGame, stopBroadcast } from '../net.js';
 import { updateScrollFades } from '../scroll-fades.js';
 import { state } from '../state.js';
 
@@ -48,6 +48,14 @@ export class LobbyScreen extends HTMLElement {
   /** @type {ReturnType<typeof setTimeout> | undefined} */
   #copyResetTimer;
 
+  /** @type {Array<{place_id: string, name: string, address: string}> | null}
+   *  Nearby places, fetched once so the check-in prompt can name them and the
+   *  sheet opens instantly. Null until the first successful lookup. */
+  #placesCache = null;
+
+  /** @type {boolean} guard so the background prefetch fires at most once. */
+  #prefetchTried = false;
+
   #onResize = () => this.#updateFades();
 
   connectedCallback() {
@@ -87,6 +95,20 @@ export class LobbyScreen extends HTMLElement {
           </div>
         </div>
         <p id="broadcast-status" class="broadcast-status" role="status" aria-live="polite" hidden></p>
+        <button id="checkin-prompt" type="button" class="checkin-prompt" aria-pressed="false" hidden>
+          <svg class="checkin-prompt-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.6" fill="currentColor" stroke="none"/></svg>
+          <span id="checkin-prompt-text" class="checkin-prompt-text">Check in to a place</span>
+          <svg class="checkin-prompt-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <dialog id="places-sheet" class="places-sheet" aria-label="Check in to a place">
+          <div class="places-sheet-head">
+            <h2 class="places-sheet-title">Check in to a place</h2>
+            <button id="places-close" type="button" class="places-close" aria-label="Close">✕</button>
+          </div>
+          <p id="places-status" class="places-status">Finding places near you…</p>
+          <ul id="places-list" class="places-list" aria-label="Nearby places"></ul>
+          <button id="places-checkout" type="button" class="btn btn-secondary places-checkout" hidden>Check out</button>
+        </dialog>
         <section class="lobby-players-section" aria-labelledby="players-label">
           <h2 id="players-label" class="section-label">Fellow Bar Rats</h2>
           <ul class="player-list" id="lobby-players" aria-label="Players"></ul>
@@ -105,6 +127,13 @@ export class LobbyScreen extends HTMLElement {
     byId('play-code-btn').addEventListener('click', () => this.#playCode());
     byId('start-btn').addEventListener('click', () => startGame());
     byId('broadcast-btn').addEventListener('click', () => this.#toggleBroadcast());
+    byId('checkin-prompt').addEventListener('click', () => this.#openPlaces());
+    byId('places-close').addEventListener('click', () => this.#closePlaces());
+    byId('places-checkout').addEventListener('click', () => { checkOut(); this.#closePlaces(); });
+    byId('places-list').addEventListener('click', (e) => {
+      const row = /** @type {HTMLElement} */ (e.target).closest('[data-place]');
+      if (row) { checkIn(/** @type {string} */ (row.getAttribute('data-place'))); this.#closePlaces(); }
+    });
   }
 
   disconnectedCallback() {
@@ -191,7 +220,8 @@ export class LobbyScreen extends HTMLElement {
       : 'Waiting for host to start…';
     const startBtn = byId('start-btn');
     startBtn.hidden = !isHost;
-    this.#syncBroadcast(!!snap.discoverable, isHost);
+    this.#syncBroadcast(!!snap.broadcasting, isHost);
+    this.#syncCheckin(snap.place_name ?? null, isHost);
     requestAnimationFrame(() => this.#updateFades());
   }
 
@@ -250,6 +280,145 @@ export class LobbyScreen extends HTMLElement {
     status.hidden = false;
     status.textContent = text;
     status.classList.toggle('is-error', isError);
+  }
+
+  /**
+   * Reflect the checked-in place on the host's Check-in prompt. Host-only; the
+   * prompt is a single tappable pill (no separate icon button) whose copy names
+   * the checked-in place, or the nearest options once we've looked them up.
+   * @param {string | null} placeName
+   * @param {boolean} isHost
+   */
+  #syncCheckin(placeName, isHost) {
+    const prompt = byId('checkin-prompt');
+    prompt.hidden = !isHost;
+    if (!isHost) return;
+    const on = !!placeName;
+    prompt.classList.toggle('is-on', on);
+    prompt.setAttribute('aria-pressed', on ? 'true' : 'false');
+    byId('checkin-prompt-text').textContent = this.#checkinPromptText(placeName);
+    prompt.setAttribute('aria-label', on
+      ? `Checked in at ${placeName} — tap to change or check out`
+      : 'Check in to a nearby place');
+    // Once, in the background, name the nearby places — but only if location is
+    // already granted, so opening the lobby never fires a surprise GPS prompt.
+    if (!on && !this.#placesCache && !this.#prefetchTried) this.#prefetchPlaces();
+  }
+
+  /**
+   * Copy for the check-in prompt pill. Checked in → the place; else the nearest
+   * option and a count of the rest ("Check in to X and 3 other places"); before
+   * we know what's nearby → a generic invite.
+   * @param {string | null} placeName
+   */
+  #checkinPromptText(placeName) {
+    if (placeName) return `Checked in at ${placeName}`;
+    const list = this.#placesCache;
+    if (list && list.length) {
+      const rest = list.length - 1;
+      if (rest <= 0) return `Check in to ${list[0].name}`;
+      return `Check in to ${list[0].name} and ${rest} other place${rest === 1 ? '' : 's'}`;
+    }
+    return 'Check in to a place';
+  }
+
+  /**
+   * Best-effort background lookup so the prompt can name nearby places. Gated on
+   * an already-granted geolocation permission — the tap handler (#openPlaces) is
+   * the sanctioned, user-initiated moment to ask when permission isn't granted.
+   */
+  async #prefetchPlaces() {
+    this.#prefetchTried = true;
+    try {
+      const perm = navigator.permissions
+        && await navigator.permissions.query({ name: /** @type {PermissionName} */ ('geolocation') });
+      if (perm && perm.state !== 'granted') return;
+      const { lat, lon } = await getPosition();
+      const res = await fetch(`/api/places/nearby?lat=${lat}&lon=${lon}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      this.#placesCache = data.places || [];
+      // Refresh the prompt now that we know what's nearby (still host + not
+      // checked in — a snapshot may have arrived meanwhile).
+      const prompt = byId('checkin-prompt');
+      if (this.#isHost && prompt.getAttribute('aria-pressed') !== 'true') {
+        byId('checkin-prompt-text').textContent = this.#checkinPromptText(null);
+      }
+    } catch {
+      // Denied/unavailable — the prompt keeps its generic copy and the tap
+      // handler fetches (and prompts for location) on demand.
+    }
+  }
+
+  /** Close the places picker sheet. */
+  #closePlaces() {
+    /** @type {HTMLDialogElement} */ (byId('places-sheet')).close();
+  }
+
+  /**
+   * Host-only: open the places picker. Prompts for GPS, fetches nearby places,
+   * and lists them; tapping one sends a check-in (server resolves the place).
+   * Shows a "Check out" action when already checked in.
+   */
+  async #openPlaces() {
+    const sheet = /** @type {HTMLDialogElement} */ (byId('places-sheet'));
+    const list = byId('places-list');
+    const status = byId('places-status');
+    const checkedIn = byId('checkin-prompt').getAttribute('aria-pressed') === 'true';
+    byId('places-checkout').hidden = !checkedIn;
+    list.replaceChildren();
+    status.classList.remove('is-error');
+    sheet.showModal();
+    // The background prefetch usually has the list already — open straight to it.
+    if (this.#placesCache && this.#placesCache.length) {
+      this.#renderPlaces(this.#placesCache);
+      return;
+    }
+    status.hidden = false;
+    status.textContent = 'Finding places near you…';
+    try {
+      const { lat, lon } = await getPosition();
+      const res = await fetch(`/api/places/nearby?lat=${lat}&lon=${lon}`);
+      if (!res.ok) throw new Error(`places ${res.status}`);
+      const data = await res.json();
+      const places = data.places || [];
+      this.#placesCache = places;
+      this.#renderPlaces(places);
+    } catch (err) {
+      const reason = err instanceof GeoError ? err.reason : 'unavailable';
+      status.textContent = err instanceof GeoError
+        ? (GEO_ERROR_COPY[reason] ?? GEO_ERROR_COPY.unavailable)
+        : 'Couldn’t load nearby places.';
+      status.classList.add('is-error');
+    }
+  }
+
+  /**
+   * @param {Array<{place_id: string, name: string, address: string}>} list
+   */
+  #renderPlaces(list) {
+    const status = byId('places-status');
+    const listEl = byId('places-list');
+    if (!list.length) {
+      status.hidden = false;
+      status.textContent = 'No places found nearby.';
+      return;
+    }
+    status.hidden = true;
+    listEl.replaceChildren();
+    for (const p of list) {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'places-row';
+      btn.dataset.place = p.place_id;
+      btn.innerHTML =
+        `<span class="places-row-name"></span><span class="places-row-addr"></span>`;
+      /** @type {HTMLElement} */ (btn.querySelector('.places-row-name')).textContent = p.name;
+      /** @type {HTMLElement} */ (btn.querySelector('.places-row-addr')).textContent = p.address || '';
+      li.append(btn);
+      listEl.append(li);
+    }
   }
 
   /**

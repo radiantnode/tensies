@@ -311,7 +311,8 @@ export class NearbyScreen extends HTMLElement {
       ring.append(avatarImg(g.photo, 'blip-avatar'));
       const name = document.createElement('span');
       name.className = 'blip-name';
-      name.textContent = g.host_name;
+      // A checked-in game reads by its place; otherwise by the host's name.
+      name.textContent = g.place_name || g.host_name;
       blip.append(ring, name);
       blips.append(blip);
     }
@@ -357,11 +358,12 @@ export class NearbyScreen extends HTMLElement {
         this.#rows.set(g.code, row);
       }
       const plural = g.player_count === 1 ? 'player' : 'players';
+      const place = g.place_name ? `${g.place_name} · ` : '';
       /** @type {HTMLElement} */ (row.querySelector('.nearby-row-host')).textContent = g.host_name;
       /** @type {HTMLElement} */ (row.querySelector('.nearby-row-meta')).textContent =
-        `${g.player_count} ${plural} · ~${g.distance_m} m away`;
+        `${place}${g.player_count} ${plural} · ~${g.distance_m} m away`;
       row.setAttribute('aria-label',
-        `Join ${g.host_name}'s game — ${g.player_count} ${plural}, ${g.distance_m} metres away`);
+        `Join ${g.host_name}'s game${g.place_name ? ` at ${g.place_name}` : ''} — ${g.player_count} ${plural}, ${g.distance_m} metres away`);
       row.classList.toggle('is-selected', g.code === this.#selected);
       list.append(row); // re-append in API (nearest-first) order
     }

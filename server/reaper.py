@@ -51,8 +51,9 @@ async def _sweep() -> None:
         if snap is None:
             continue
         # A started game must not linger in the discovery index (the live path
-        # prunes it on start; this catches a broadcast whose owner crashed).
-        if snap.get("started") and snap.get("discoverable"):
+        # prunes it on start; this catches a broadcast/check-in whose owner
+        # crashed). Idempotent — geo_remove no-ops if it's not indexed.
+        if snap.get("started"):
             await gamestore.geo_remove(code)
         if snap.get("paused"):
             deadline = snap.get("pause_deadline_ms")

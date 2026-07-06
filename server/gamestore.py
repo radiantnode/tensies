@@ -188,7 +188,8 @@ async def create_game(host_id: str, host_name: str, token_hash: str) -> str | No
         "target", 1, "round_num", 1, "started", 0, "round_over", 0, "paused", 0,
         "host", host_id, "round_seq", 0, "total_rolls", 0, "round_count", 0,
         "created_ms", now_ms(), "round_start_ms", 0, "round_advance_pending", 0,
-        "discoverable", 0, "order", json.dumps([host_id]),
+        "broadcasting", 0, "place_id", "", "place_name", "",
+        "order", json.dumps([host_id]),
         p + "name", host_name, p + "token_hash", token_hash,
         p + "dice", "[]", p + "locked", _LOCKED10,
         p + "wins", 0, p + "has_rolled", 0, p + "last_roll_ms", 0,
@@ -270,7 +271,7 @@ async def _order(code: str) -> list[str]:
 _GAME_INT = {"target", "round_num", "round_seq", "total_rolls", "round_count",
              "created_ms", "round_start_ms", "pause_deadline_ms"}
 _GAME_BOOL = {"started", "round_over", "paused", "round_advance_pending",
-              "discoverable"}
+              "broadcasting"}
 _P_INT = {"wins", "roll_count", "last_roll_ms", "disconnected_at_ms"}
 _P_BOOL = {"has_rolled", "disconnected"}
 
@@ -478,10 +479,11 @@ def _jitter(code: str, lon: float, lat: float) -> tuple[float, float]:
     return lon + dlon, lat + dlat
 
 
-async def geo_add(code: str, lon: float, lat: float) -> None:
-    """Index (or refresh) a discoverable lobby at its jittered location."""
-    jlon, jlat = _jitter(code, lon, lat)
-    await _r.geoadd(GEO_INDEX, (jlon, jlat, code))
+async def _geo_set(code: str, lon: float, lat: float) -> None:
+    """Place the game's single radar point at exact (lon, lat) — no jitter.
+    Callers pass already-jittered coords for a free-range broadcast, or the
+    exact public coords for a checked-in place."""
+    await _r.geoadd(GEO_INDEX, (lon, lat, code))
 
 
 async def geo_remove(code: str) -> None:
@@ -513,16 +515,60 @@ async def geo_search(lon: float, lat: float, radius_m: float,
     return out
 
 
-async def set_discoverable(code: str, flag: bool) -> None:
-    await _r.hset(_gkey(code), "discoverable", 1 if flag else 0)
+# A game's single radar point comes from one of two independent sources — a
+# free-range broadcast (host GPS, jittered) and/or a checked-in place (exact,
+# public). Both can be on at once; _recompute_geo picks the point (place wins).
+
+async def _recompute_geo(code: str) -> None:
+    """Set the game's radar point from its current discovery state. Precedence:
+    a checked-in place (exact) over a free-range broadcast (jittered); with
+    neither, the game leaves the index."""
+    place_id, plat, plon, bcast, blat, blon = await _r.hmget(
+        _gkey(code),
+        ["place_id", "place_lat", "place_lng", "broadcasting", "bcast_lat", "bcast_lon"])
+    if place_id and plat is not None and plon is not None:
+        await _geo_set(code, float(plon), float(plat))
+    elif bcast == "1" and blat is not None and blon is not None:
+        await _geo_set(code, float(blon), float(blat))
+    else:
+        await geo_remove(code)
+
+
+async def set_broadcasting(code: str, lon: float, lat: float) -> None:
+    """Turn on free-range broadcast at the host's fix (stored jittered)."""
+    jlon, jlat = _jitter(code, lon, lat)
+    await _r.hset(_gkey(code), mapping={
+        "broadcasting": 1, "bcast_lat": jlat, "bcast_lon": jlon})
+    await _recompute_geo(code)
+
+
+async def stop_broadcasting(code: str) -> None:
+    await _r.hset(_gkey(code), "broadcasting", 0)
+    await _r.hdel(_gkey(code), "bcast_lat", "bcast_lon")
+    await _recompute_geo(code)
+
+
+async def set_place(code: str, place_id: str, name: str,
+                    lat: float, lon: float) -> None:
+    """Check the game in to a public place at its exact coordinates."""
+    await _r.hset(_gkey(code), mapping={
+        "place_id": place_id, "place_name": name,
+        "place_lat": lat, "place_lng": lon})
+    await _recompute_geo(code)
+
+
+async def clear_place(code: str) -> None:
+    await _r.hdel(_gkey(code), "place_id", "place_name", "place_lat", "place_lng")
+    await _recompute_geo(code)
 
 
 async def discovery_card(code: str) -> dict | None:
     """Cheap read for the discovery endpoint — host name + avatar + player count
-    + the started flag, without loading every player via snapshot(). None if the
-    game has vanished. Two steps: the host pid comes from `host`, then its
-    name/photo."""
-    started, host, order = await _r.hmget(_gkey(code), ["started", "host", "order"])
+    + started flag + checked-in place, without loading every player via
+    snapshot(). None if the game has vanished. Two steps: the host pid comes
+    from `host`, then its name/photo."""
+    started, host, order, place_id, place_name = await _r.hmget(
+        _gkey(code), ["started", "host", "order", "place_id", "place_name"])
     if host is None or order is None:
         return None
     host_name, host_photo = await _r.hmget(
@@ -536,6 +582,8 @@ async def discovery_card(code: str) -> dict | None:
         "photo": host_photo,  # None for anonymous hosts; client uses a fallback
         "player_count": player_count,
         "started": started == "1",
+        "place_id": place_id or None,
+        "place_name": place_name or None,
     }
 
 

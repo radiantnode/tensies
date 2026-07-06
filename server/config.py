@@ -103,6 +103,22 @@ NEARBY_RATE_MAX = _int("NEARBY_RATE_MAX", 60)                    # /api/nearby p
 NEARBY_RATE_WINDOW = _float("NEARBY_RATE_WINDOW", 60.0)
 
 
+# ─── Google Places "check in" (server-side proxy) ────────────────────────
+# A player can check a lobby in to a nearby real place. The API key never
+# reaches the browser — all Google calls go through server/places.py. When
+# PLACES_ENABLED is on but the key is unset, the proxy serves a small dev stub
+# so the flow is testable without a Google account.
+PLACES_ENABLED = _flag("PLACES_ENABLED", False)
+GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY") or None  # secret → None when unset
+PLACES_RADIUS_M = _float("PLACES_RADIUS_M", 500.0)               # nearby-search radius
+PLACES_MAX_RESULTS = _int("PLACES_MAX_RESULTS", 20)
+PLACES_CACHE_TTL = _int("PLACES_CACHE_TTL", 900)                 # place_id→coords cache seconds
+PLACES_RATE_MAX = _int("PLACES_RATE_MAX", 30)                    # /api/places polls/window/IP
+PLACES_RATE_WINDOW = _float("PLACES_RATE_WINDOW", 60.0)
+CHECKIN_RATE_MAX = _int("CHECKIN_RATE_MAX", 20)                  # check-ins/window/IP
+CHECKIN_RATE_WINDOW = _float("CHECKIN_RATE_WINDOW", 60.0)
+
+
 # ─── WebSocket origin allowlist (audit M3) ───────────────────────────────
 # Comma-separated allowed Origins. "*" disables the check (dev default).
 ALLOWED_ORIGINS = [

@@ -101,7 +101,9 @@ def state_msg(game: dict, code: str, msg_type: str = "state", **extra) -> dict:
         "round_num": game["round_num"],
         "started": game["started"],
         "paused": game.get("paused", False),
-        "discoverable": game.get("discoverable", False),
+        "broadcasting": game.get("broadcasting", False),
+        "place_id": game.get("place_id") or None,
+        "place_name": game.get("place_name") or None,
         "host": game["host"],
         "players": {
             pid: {
