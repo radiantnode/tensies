@@ -17,7 +17,7 @@ export const state = {
   myId: null,
   /** @type {string | null} */
   gameCode: null,
-  /** @type {'landing' | 'join' | null} Where a failed connect intent returns to. */
+  /** @type {'landing' | 'join' | 'nearby' | null} Where a failed connect intent returns to. */
   pendingOrigin: null,
   /** @type {GameSnapshot | null} Last server snapshot. */
   currentState: null,

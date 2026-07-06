@@ -50,6 +50,10 @@ async def _sweep() -> None:
         snap = await gamestore.snapshot(code)
         if snap is None:
             continue
+        # A started game must not linger in the discovery index (the live path
+        # prunes it on start; this catches a broadcast whose owner crashed).
+        if snap.get("started") and snap.get("discoverable"):
+            await gamestore.geo_remove(code)
         if snap.get("paused"):
             deadline = snap.get("pause_deadline_ms")
             if deadline is not None and gamestore.now_ms() >= deadline:
@@ -59,3 +63,8 @@ async def _sweep() -> None:
             if p.get("disconnected"):
                 # Idempotent: do_drop only removes players actually past grace.
                 await do_drop(code, pid)
+    # Reconcile orphaned discovery blips whose game has vanished (hard-crashed
+    # instance, TTL expiry) — a GEO set has no per-member TTL of its own.
+    for code in await gamestore.geo_members():
+        if not await gamestore.exists(code):
+            await gamestore.geo_remove(code)

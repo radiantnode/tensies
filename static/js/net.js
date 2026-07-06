@@ -140,6 +140,11 @@ function joinScreen() {
   return /** @type {import('./components/join-screen.js').JoinScreen} */ (byId('join'));
 }
 
+/** The nearby screen component (typed accessor for its error surface). */
+function nearbyScreen() {
+  return /** @type {import('./components/nearby-screen.js').NearbyScreen} */ (byId('nearby'));
+}
+
 /**
  * Player name for an intent: the active screen's field, falling back to the
  * seeded placeholder. Captured before showLoading swaps the active screen.
@@ -163,6 +168,19 @@ export function createGame() {
   connectWs(() => send('create', { name }));
 }
 
+/**
+ * Join a game by code as `currentName()`. Shared by the join form and the
+ * nearby radar; `origin` records where a failed attempt returns to.
+ * @param {string} code
+ * @param {'join' | 'nearby'} [origin]
+ */
+export function joinWithCode(code, origin = 'join') {
+  const name = currentName();
+  state.pendingOrigin = origin;
+  showLoading('Joining game…');
+  connectWs(() => send('join', { name, code }));
+}
+
 /** Join the game whose code is in the join form. */
 export function joinGame() {
   const code = /** @type {HTMLInputElement} */ (byId('code-input')).value.trim();
@@ -170,10 +188,23 @@ export function joinGame() {
     joinScreen().showError('Enter a game code');
     return;
   }
-  const name = currentName();
-  state.pendingOrigin = 'join';
-  showLoading('Joining game…');
-  connectWs(() => send('join', { name, code }));
+  joinWithCode(code, 'join');
+}
+
+/**
+ * Host-only lobby intent: opt this game into GPS-nearby discovery at the
+ * given fix. The lobby toggle reflects the resulting `discoverable` snapshot,
+ * not an optimistic flip.
+ * @param {number} lat
+ * @param {number} lon
+ */
+export function broadcastNearby(lat, lon) {
+  send('broadcast', { lat, lon });
+}
+
+/** Host-only: stop advertising this game to nearby players. */
+export function stopBroadcast() {
+  send('stop_broadcast');
 }
 
 /** Host-only: start the game. */
@@ -341,7 +372,13 @@ function handleError(msg) {
     });
     return;
   }
-  if (state.pendingOrigin === 'join') {
+  if (state.pendingOrigin === 'nearby') {
+    state.pendingOrigin = null;
+    leaveLoading(() => {
+      showScreen('nearby');
+      nearbyScreen().showError(msg.msg);
+    });
+  } else if (state.pendingOrigin === 'join') {
     state.pendingOrigin = null;
     leaveLoading(() => {
       showScreen('join');

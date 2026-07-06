@@ -16,16 +16,26 @@ Live asyncio objects (ack events, grace-drop / pause-cap tasks) are NOT stored
 here — they live in process-local registries in `server.state`, because each is
 only ever touched by the instance that owns the relevant connection.
 """
+import hashlib
 import json
+import math
 import secrets
 import string
 import time
 
 import redis.asyncio as aioredis
 
-from server.config import GAME_TTL, MAX_GAMES, MAX_PLAYERS_PER_GAME, REDIS_URL, log
+from server.config import (
+    DISCOVERY_JITTER_M,
+    GAME_TTL,
+    MAX_GAMES,
+    MAX_PLAYERS_PER_GAME,
+    REDIS_URL,
+    log,
+)
 
 INDEX = "games:index"
+GEO_INDEX = "games:geo"  # GEO sorted set of discoverable lobbies (jittered coords)
 
 _r: aioredis.Redis | None = None
 
@@ -111,12 +121,13 @@ return 0
 """
 
 _DROP_LUA = """
--- KEYS[1]=game key  KEYS[2]=index ; ARGV: code, pid, grace_ms, now_ms, ttl
+-- KEYS[1]=game key  KEYS[2]=index  KEYS[3]=geo index
+-- ARGV: code, pid, grace_ms, now_ms, ttl
 -- Removes a disconnected player past the grace window. Idempotent: a second
 -- caller (local task vs reaper) finds the player gone and no-ops.
 -- Returns {0}=noop, {1,new_host}=removed (new_host '' if unchanged),
 -- {2}=removed and game deleted (was last player).
-local key, idx, code, pid = KEYS[1], KEYS[2], ARGV[1], ARGV[2]
+local key, idx, geo, code, pid = KEYS[1], KEYS[2], KEYS[3], ARGV[1], ARGV[2]
 if redis.call('EXISTS', key) == 0 then return {0} end
 if redis.call('HGET', key, 'paused') == '1' then return {0} end   -- never drop while paused
 local p = 'p:' .. pid .. ':'
@@ -132,6 +143,7 @@ end
 if #kept == 0 then
   redis.call('DEL', key)
   redis.call('SREM', idx, code)
+  redis.call('ZREM', geo, code)   -- prune the discovery blip with the game
   return {2}
 end
 redis.call('HSET', key, 'order', cjson.encode(kept))
@@ -176,7 +188,7 @@ async def create_game(host_id: str, host_name: str, token_hash: str) -> str | No
         "target", 1, "round_num", 1, "started", 0, "round_over", 0, "paused", 0,
         "host", host_id, "round_seq", 0, "total_rolls", 0, "round_count", 0,
         "created_ms", now_ms(), "round_start_ms", 0, "round_advance_pending", 0,
-        "order", json.dumps([host_id]),
+        "discoverable", 0, "order", json.dumps([host_id]),
         p + "name", host_name, p + "token_hash", token_hash,
         p + "dice", "[]", p + "locked", _LOCKED10,
         p + "wins", 0, p + "has_rolled", 0, p + "last_roll_ms", 0,
@@ -257,7 +269,8 @@ async def _order(code: str) -> list[str]:
 
 _GAME_INT = {"target", "round_num", "round_seq", "total_rolls", "round_count",
              "created_ms", "round_start_ms", "pause_deadline_ms"}
-_GAME_BOOL = {"started", "round_over", "paused", "round_advance_pending"}
+_GAME_BOOL = {"started", "round_over", "paused", "round_advance_pending",
+              "discoverable"}
 _P_INT = {"wins", "roll_count", "last_roll_ms", "disconnected_at_ms"}
 _P_BOOL = {"has_rolled", "disconnected"}
 
@@ -420,7 +433,7 @@ async def drop_player(code: str, pid: str, grace_ms: int) -> dict:
 
     Returns {"action": "noop"|"removed"|"deleted", "new_host": str|None}.
     """
-    res = await _drop(keys=[_gkey(code), INDEX],
+    res = await _drop(keys=[_gkey(code), INDEX, GEO_INDEX],
                       args=[code, pid, grace_ms, now_ms(), GAME_TTL])
     status = int(res[0])
     if status == 2:
@@ -435,7 +448,92 @@ async def delete_game(code: str) -> None:
     pipe = _r.pipeline()
     pipe.delete(_gkey(code))
     pipe.srem(INDEX, code)
+    pipe.zrem(GEO_INDEX, code)  # prune the discovery blip with the game
     await pipe.execute()
+
+
+# ─── Nearby discovery (GPS) ──────────────────────────────────────────────────
+# GEO_INDEX is a Redis GEO sorted set (member = game code) of lobbies whose host
+# opted into "broadcast to nearby." The stored point is deliberately NOT the
+# host's true fix: _jitter() offsets it by DISCOVERY_JITTER_M along a bearing
+# derived from the game code, so the offset is stable across re-broadcasts (it
+# can't be averaged out by polling) yet uncorrelated between games. Distance and
+# bearing surface to clients; the raw fix never does.
+
+_M_PER_DEG_LAT = 111_320.0  # metres per degree of latitude (near enough anywhere)
+
+
+def _jitter(code: str, lon: float, lat: float) -> tuple[float, float]:
+    """Deterministic per-code offset of magnitude DISCOVERY_JITTER_M."""
+    if DISCOVERY_JITTER_M <= 0:
+        return lon, lat
+    h = hashlib.sha1(code.encode()).digest()
+    # Two independent [0,1) draws from the digest: bearing and radial fraction.
+    ang = (int.from_bytes(h[:4], "big") / 0xFFFFFFFF) * 2 * math.pi
+    frac = int.from_bytes(h[4:8], "big") / 0xFFFFFFFF
+    dist = DISCOVERY_JITTER_M * math.sqrt(frac)  # sqrt → uniform over the disc
+    dlat = (dist * math.cos(ang)) / _M_PER_DEG_LAT
+    coslat = math.cos(math.radians(lat)) or 1e-9
+    dlon = (dist * math.sin(ang)) / (_M_PER_DEG_LAT * coslat)
+    return lon + dlon, lat + dlat
+
+
+async def geo_add(code: str, lon: float, lat: float) -> None:
+    """Index (or refresh) a discoverable lobby at its jittered location."""
+    jlon, jlat = _jitter(code, lon, lat)
+    await _r.geoadd(GEO_INDEX, (jlon, jlat, code))
+
+
+async def geo_remove(code: str) -> None:
+    await _r.zrem(GEO_INDEX, code)
+
+
+async def geo_members() -> list[str]:
+    """All indexed codes — used by the reaper to reconcile orphaned blips."""
+    return list(await _r.zrange(GEO_INDEX, 0, -1))
+
+
+async def geo_search(lon: float, lat: float, radius_m: float,
+                     limit: int) -> list[tuple[str, float, float, float]]:
+    """Codes within radius_m of (lon, lat), nearest first.
+
+    Returns [(code, distance_m, jlon, jlat), ...]. The coordinates are the
+    stored (jittered) point, so the caller can compute a bearing without the
+    raw fix ever being persisted.
+    """
+    rows = await _r.geosearch(
+        GEO_INDEX, longitude=lon, latitude=lat,
+        radius=radius_m, unit="m", sort="ASC", count=limit,
+        withdist=True, withcoord=True,
+    )
+    out: list[tuple[str, float, float, float]] = []
+    for row in rows:
+        code, dist, (jlon, jlat) = row[0], float(row[1]), row[2]
+        out.append((code, dist, float(jlon), float(jlat)))
+    return out
+
+
+async def set_discoverable(code: str, flag: bool) -> None:
+    await _r.hset(_gkey(code), "discoverable", 1 if flag else 0)
+
+
+async def discovery_card(code: str) -> dict | None:
+    """Cheap read for the discovery endpoint — host name + player count + the
+    started flag, without loading every player via snapshot(). None if the game
+    has vanished. Two steps: the host pid comes from `host`, then its name."""
+    started, host, order = await _r.hmget(_gkey(code), ["started", "host", "order"])
+    if host is None or order is None:
+        return None
+    host_name = await _r.hget(_gkey(code), f"p:{host}:name")
+    try:
+        player_count = len(json.loads(order))
+    except (TypeError, ValueError):
+        player_count = 0
+    return {
+        "host_name": host_name or "Someone",
+        "player_count": player_count,
+        "started": started == "1",
+    }
 
 
 # ─── Abuse limits (audit H1) — enforced in Redis so they hold across instances ─

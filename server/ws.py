@@ -1,5 +1,6 @@
 import asyncio
 import json
+import math
 import time
 import uuid
 
@@ -18,6 +19,8 @@ from .broadcast import (
 )
 from .config import (
     ALLOWED_ORIGINS,
+    BROADCAST_RATE_MAX,
+    BROADCAST_RATE_WINDOW,
     CREATE_RATE_MAX,
     CREATE_RATE_WINDOW,
     JOIN_RATE_MAX,
@@ -206,6 +209,7 @@ async def handle_start(session: Session, msg: dict) -> None:
     if meta is None or meta["host"] != session.pid or meta["started"]:
         return
     await gamestore.start_game(code)
+    await gamestore.geo_remove(code)  # a started game is no longer discoverable
     snap = await gamestore.snapshot(code)
     if snap is None:
         return
@@ -218,6 +222,63 @@ async def handle_start(session: Session, msg: dict) -> None:
     emit("round_started", game_code=code, round_num=snap["round_num"],
          target=snap["target"])
     await broadcast(code, state_msg(snap, code))
+
+
+def _parse_coords(msg: dict) -> tuple[float, float] | None:
+    """Validate a client-supplied fix. Returns (lat, lon) or None if malformed
+    or out of range — never trust the wire for something we feed to Redis GEO."""
+    try:
+        lat = float(msg["lat"])
+        lon = float(msg["lon"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if not (math.isfinite(lat) and math.isfinite(lon)):
+        return None
+    if not (-90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
+        return None
+    return lat, lon
+
+
+async def handle_broadcast(session: Session, msg: dict) -> None:
+    """Host-only, lobby-only: opt this game into GPS-nearby discovery at the
+    host's (jittered) location."""
+    code = session.code
+    if not code:
+        return
+    meta = await gamestore.get_meta(code)
+    if meta is None or meta["host"] != session.pid or meta["started"]:
+        return
+    if not await gamestore.rate_allow("broadcast", session.ip,
+                                      BROADCAST_RATE_MAX, BROADCAST_RATE_WINDOW):
+        await _error(session.ws, "Slow down")
+        return
+    coords = _parse_coords(msg)
+    if coords is None:
+        await _error(session.ws, "Couldn't read your location")
+        return
+    lat, lon = coords
+    await gamestore.geo_add(code, lon, lat)
+    await gamestore.set_discoverable(code, True)
+    log.info("broadcast  game=%s  ON", code)
+    snap = await gamestore.snapshot(code)
+    if snap:
+        await broadcast(code, state_msg(snap, code))
+
+
+async def handle_stop_broadcast(session: Session, msg: dict) -> None:
+    """Host-only: remove this game from GPS-nearby discovery."""
+    code = session.code
+    if not code:
+        return
+    meta = await gamestore.get_meta(code)
+    if meta is None or meta["host"] != session.pid:
+        return
+    await gamestore.geo_remove(code)
+    await gamestore.set_discoverable(code, False)
+    log.info("broadcast  game=%s  OFF", code)
+    snap = await gamestore.snapshot(code)
+    if snap:
+        await broadcast(code, state_msg(snap, code))
 
 
 async def handle_reconnect(session: Session, msg: dict) -> None:
@@ -479,6 +540,8 @@ ACTIONS = {
     "create": handle_create,
     "join": handle_join,
     "start": handle_start,
+    "broadcast": handle_broadcast,
+    "stop_broadcast": handle_stop_broadcast,
     "reconnect": handle_reconnect,
     "roll": handle_roll,
     "pause": handle_pause,

@@ -21,7 +21,7 @@ import { playIntro } from './video-intro.js';
  */
 
 /** @type {Record<string, string>} */
-const ROUTES = { '/': 'landing', '/join': 'join', '/signin': 'signin', '/welcome': 'onboarding', '/profile': 'profile', '/games': 'game-detail' };
+const ROUTES = { '/': 'landing', '/join': 'join', '/nearby': 'nearby', '/signin': 'signin', '/welcome': 'onboarding', '/profile': 'profile', '/games': 'game-detail' };
 
 // Monotonic navigation counter. enterFetched() defers its swap behind a fetch +
 // the loading-gate, so a later navigation can start before an earlier one
@@ -71,6 +71,19 @@ export function showLanding() {
 /** Navigate to the sign-in screen. */
 export function showSignin() {
   return navigate('/signin');
+}
+
+/**
+ * Navigate to the nearby-games radar and (re)start location acquisition. The
+ * screen prompts for GPS + fetches on `enter()` — a plain snapshot-less swap,
+ * since discovery is permission-gated and can't be prefetched behind loading.
+ */
+export function showNearby() {
+  const transition = navigate('/nearby');
+  transition.updateCallbackDone.then(() => {
+    /** @type {any} */ (byId('nearby'))?.enter?.();
+  });
+  return transition;
 }
 
 /**
@@ -126,6 +139,20 @@ function enterFetched(id, arg) {
 }
 
 /**
+ * Show a named (non-fetched) screen and run any per-screen activation. The
+ * nearby radar re-acquires GPS on `enter()` so a direct URL / Back-Forward
+ * lands the same as a tap on "Find Nearby Games".
+ * @param {string} id
+ */
+function activateNamed(id) {
+  const transition = showScreen(id);
+  if (id === 'nearby') {
+    transition.updateCallbackDone.then(() => /** @type {any} */ (byId('nearby'))?.enter?.());
+  }
+  return transition;
+}
+
+/**
  * Navigate to the onboarding screen and display the confirmed username.
  * @param {string} username
  * @param {object | null} [stats]
@@ -176,7 +203,7 @@ export function bootstrap({ resumeSession }) {
       enterFetched('profile', decodeURIComponent(profileMatch[1]));
       return;
     }
-    showScreen(ROUTES[location.pathname] ?? 'landing');
+    activateNamed(ROUTES[location.pathname] ?? 'landing');
   });
   // Game detail URLs: /games/<code> → game-detail screen.
   const gameMatch = location.pathname.match(/^\/games\/(.+)$/);
@@ -195,7 +222,7 @@ export function bootstrap({ resumeSession }) {
   // stale reconnect attempt.
   const namedRoute = ROUTES[location.pathname];
   if (namedRoute && namedRoute !== 'landing') {
-    leaveLoading(() => showScreen(namedRoute));
+    leaveLoading(() => activateNamed(namedRoute));
     return;
   }
   if (hasSession()) {

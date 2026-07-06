@@ -1,19 +1,29 @@
+import math
 import re
 from pathlib import Path
 
 import httpx
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+from . import gamestore
 from .assets import build_index_html, build_page_template, render_page
 from .config import (
     APP_URL,
+    DISCOVERY_DISTANCE_BUCKET_M,
+    DISCOVERY_ENABLED,
+    DISCOVERY_MAX_RESULTS,
+    DISCOVERY_RADIUS_M,
     FOUNDING_CUTOFF,
     FRONTEND_DIST,
     METRICS_TOKEN,
+    NEARBY_RATE_MAX,
+    NEARBY_RATE_WINDOW,
     STATS_TOKEN,
     TELEMETRY_ENABLED,
+    TRUST_PROXY_HEADERS,
+    TRUSTED_PROXY_HOPS,
     log,
 )
 
@@ -160,6 +170,67 @@ async def signin_page() -> HTMLResponse:
 @router.get("/welcome")
 async def welcome_page() -> HTMLResponse:
     return HTMLResponse(_index_html)
+
+
+@router.get("/nearby")
+async def nearby_page() -> HTMLResponse:
+    return HTMLResponse(_index_html)
+
+
+def _http_client_ip(request: Request) -> str:
+    """Real client IP for the discovery rate limit — mirrors ws._client_ip:
+    trust X-Forwarded-For only behind a configured proxy, taking the entry
+    TRUSTED_PROXY_HOPS from the right."""
+    if TRUST_PROXY_HEADERS:
+        xff = request.headers.get("x-forwarded-for")
+        if xff:
+            parts = [p.strip() for p in xff.split(",") if p.strip()]
+            if parts:
+                idx = max(0, len(parts) - TRUSTED_PROXY_HOPS)
+                return parts[idx]
+    return request.client.host if request.client else "unknown"
+
+
+def _bearing_deg(lat1: float, lon1: float, lat2: float, lon2: float) -> int:
+    """Initial great-circle bearing from point 1 to point 2, degrees clockwise
+    from true north (0–359)."""
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dlon = math.radians(lon2 - lon1)
+    y = math.sin(dlon) * math.cos(p2)
+    x = math.cos(p1) * math.sin(p2) - math.sin(p1) * math.cos(p2) * math.cos(dlon)
+    return round((math.degrees(math.atan2(y, x)) + 360) % 360) % 360
+
+
+@router.get("/api/nearby")
+async def api_nearby(request: Request, lat: float, lon: float) -> dict:
+    """Discoverable lobbies within DISCOVERY_RADIUS_M of the caller, nearest
+    first. Privacy: returns bucketed distance + bearing only — never raw
+    coordinates. The radius is server-owned; the client cannot widen it."""
+    if not DISCOVERY_ENABLED:
+        raise HTTPException(status_code=503, detail="discovery disabled")
+    if not (math.isfinite(lat) and math.isfinite(lon)
+            and -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
+        raise HTTPException(status_code=400, detail="invalid coordinates")
+    ip = _http_client_ip(request)
+    if not await gamestore.rate_allow("nearby", ip, NEARBY_RATE_MAX, NEARBY_RATE_WINDOW):
+        raise HTTPException(status_code=429, detail="slow down")
+
+    hits = await gamestore.geo_search(lon, lat, DISCOVERY_RADIUS_M, DISCOVERY_MAX_RESULTS)
+    bucket = max(1, DISCOVERY_DISTANCE_BUCKET_M)
+    games = []
+    for code, dist, jlon, jlat in hits:
+        card = await gamestore.discovery_card(code)
+        # Skip a game that started or vanished between GEOADD and this read.
+        if card is None or card["started"]:
+            continue
+        games.append({
+            "code": code,
+            "host_name": card["host_name"],
+            "player_count": card["player_count"],
+            "distance_m": round(dist / bucket) * bucket,
+            "bearing_deg": _bearing_deg(lat, lon, jlat, jlon),
+        })
+    return {"radius_m": int(DISCOVERY_RADIUS_M), "games": games}
 
 
 @router.get("/api/profile/{username}")

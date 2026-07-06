@@ -28,10 +28,28 @@
  * @property {number} round_num
  * @property {boolean} started
  * @property {boolean} paused
+ * @property {boolean} [discoverable] Host opted this lobby into GPS-nearby discovery.
  * @property {string} host Player id of the current host.
  * @property {Record<string, PlayerSnapshot>} players
  * @property {string} [winner_name] Present on `round_won` frames.
  * @property {number} [pause_remaining_ms] Present on paused frames sent to the host.
+ */
+
+/**
+ * One discoverable game from `GET /api/nearby`. Privacy: distance is bucketed
+ * and bearing is the only directional datum — raw coordinates never cross.
+ * @typedef {object} NearbyGame
+ * @property {string} code
+ * @property {string} host_name
+ * @property {number} player_count
+ * @property {number} distance_m Bucketed metres from the caller.
+ * @property {number} bearing_deg 0–359, clockwise from true north.
+ */
+
+/**
+ * @typedef {object} NearbyResponse
+ * @property {number} radius_m Server-owned discovery radius.
+ * @property {NearbyGame[]} games Nearest first.
  */
 
 /**

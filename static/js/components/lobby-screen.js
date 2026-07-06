@@ -5,7 +5,8 @@ import { playCode } from '../audio-share.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
 import { byId } from '../dom.js';
 import { EQ_ICON_HTML } from '../eq-icon.js';
-import { leaveGame, startGame } from '../net.js';
+import { GeoError, GEO_ERROR_COPY, getPosition } from '../geo.js';
+import { broadcastNearby, leaveGame, startGame, stopBroadcast } from '../net.js';
 import { updateScrollFades } from '../scroll-fades.js';
 import { state } from '../state.js';
 
@@ -72,6 +73,11 @@ export class LobbyScreen extends HTMLElement {
             <span>Play</span>
           </button>
         </div>
+        <button id="broadcast-btn" type="button" class="btn btn-secondary btn-broadcast" aria-pressed="false" hidden>
+          <span class="broadcast-wave" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="broadcast-label">Broadcast to Nearby</span>
+        </button>
+        <p id="broadcast-status" class="broadcast-status" role="status" aria-live="polite" hidden></p>
         <section class="lobby-players-section" aria-labelledby="players-label">
           <h2 id="players-label" class="section-label">Fellow Bar Rats</h2>
           <ul class="player-list" id="lobby-players" aria-label="Players"></ul>
@@ -89,6 +95,7 @@ export class LobbyScreen extends HTMLElement {
     byId('share-btn').addEventListener('click', () => this.#share());
     byId('play-code-btn').addEventListener('click', () => this.#playCode());
     byId('start-btn').addEventListener('click', () => startGame());
+    byId('broadcast-btn').addEventListener('click', () => this.#toggleBroadcast());
   }
 
   disconnectedCallback() {
@@ -172,7 +179,65 @@ export class LobbyScreen extends HTMLElement {
       : 'Waiting for host to start…';
     const startBtn = byId('start-btn');
     startBtn.hidden = !isHost;
+    this.#syncBroadcast(!!snap.discoverable, isHost);
     requestAnimationFrame(() => this.#updateFades());
+  }
+
+  /**
+   * Reflect the game's discoverable state on the host's Broadcast control. The
+   * button is host-only and its on/off state is driven purely by the snapshot
+   * (never optimistically) so a rejected broadcast can't leave it stuck on.
+   * @param {boolean} discoverable
+   * @param {boolean} isHost
+   */
+  #syncBroadcast(discoverable, isHost) {
+    const btn = /** @type {HTMLButtonElement} */ (byId('broadcast-btn'));
+    const status = byId('broadcast-status');
+    btn.hidden = !isHost;
+    if (!isHost) {
+      status.hidden = true;
+      return;
+    }
+    btn.classList.toggle('is-on', discoverable);
+    btn.setAttribute('aria-pressed', discoverable ? 'true' : 'false');
+    /** @type {HTMLElement} */ (btn.querySelector('.broadcast-label')).textContent =
+      discoverable ? 'Broadcasting to Nearby' : 'Broadcast to Nearby';
+    // A fresh snapshot supersedes any transient "getting location" / error text.
+    status.hidden = !discoverable;
+    status.classList.remove('is-error');
+    if (discoverable) status.textContent = 'Nearby players can find this game.';
+  }
+
+  /**
+   * Host-only Broadcast toggle. Turning on needs a GPS fix (prompted here);
+   * turning off is a bare intent. Either way the visible on/off state follows
+   * the next snapshot via #syncBroadcast, not this handler.
+   */
+  async #toggleBroadcast() {
+    const btn = byId('broadcast-btn');
+    if (btn.getAttribute('aria-pressed') === 'true') {
+      stopBroadcast();
+      return;
+    }
+    this.#setBroadcastStatus('Getting your location…', false);
+    try {
+      const { lat, lon } = await getPosition();
+      broadcastNearby(lat, lon);
+    } catch (err) {
+      const reason = err instanceof GeoError ? err.reason : 'unavailable';
+      this.#setBroadcastStatus(GEO_ERROR_COPY[reason] ?? GEO_ERROR_COPY.unavailable, true);
+    }
+  }
+
+  /**
+   * @param {string} text
+   * @param {boolean} isError
+   */
+  #setBroadcastStatus(text, isError) {
+    const status = byId('broadcast-status');
+    status.hidden = false;
+    status.textContent = text;
+    status.classList.toggle('is-error', isError);
   }
 
   /**

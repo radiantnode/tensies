@@ -87,6 +87,22 @@ JOIN_RATE_MAX = _int("JOIN_RATE_MAX", 60)                 # joins per window per
 JOIN_RATE_WINDOW = _float("JOIN_RATE_WINDOW", 60.0)
 
 
+# ─── Nearby-games discovery (GPS) ────────────────────────────────────────
+# A host can opt a lobby into being discoverable by GPS-nearby players. The
+# host's fix is jittered before it touches Redis and only distance (bucketed)
+# + bearing are ever returned — raw coordinates never leave the server, and the
+# geo entry is pruned the moment the game starts / stops broadcasting / empties.
+DISCOVERY_ENABLED = _flag("DISCOVERY_ENABLED", True)              # master switch
+DISCOVERY_RADIUS_M = _float("DISCOVERY_RADIUS_M", 500.0)          # "same block" cap
+DISCOVERY_JITTER_M = _float("DISCOVERY_JITTER_M", 50.0)           # anti-triangulation offset
+DISCOVERY_DISTANCE_BUCKET_M = _int("DISCOVERY_DISTANCE_BUCKET_M", 25)
+DISCOVERY_MAX_RESULTS = _int("DISCOVERY_MAX_RESULTS", 20)
+BROADCAST_RATE_MAX = _int("BROADCAST_RATE_MAX", 20)              # broadcast toggles/window/IP
+BROADCAST_RATE_WINDOW = _float("BROADCAST_RATE_WINDOW", 60.0)
+NEARBY_RATE_MAX = _int("NEARBY_RATE_MAX", 60)                    # /api/nearby polls/window/IP
+NEARBY_RATE_WINDOW = _float("NEARBY_RATE_WINDOW", 60.0)
+
+
 # ─── WebSocket origin allowlist (audit M3) ───────────────────────────────
 # Comma-separated allowed Origins. "*" disables the check (dev default).
 ALLOWED_ORIGINS = [

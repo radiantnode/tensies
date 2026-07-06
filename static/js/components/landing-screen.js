@@ -4,8 +4,10 @@ import { byId } from '../dom.js';
 import { getAuthUser } from '../auth.js';
 import { shouldOfferInstall, dismissBanner, requestInstall } from '../a2hs.js';
 import { createGame } from '../net.js';
-import { showJoin } from '../router.js';
+import { showJoin, showNearby } from '../router.js';
 import { state } from '../state.js';
+
+const RADAR_SVG = `<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12 19 7"/></svg>`;
 
 const CLOSE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>`;
 
@@ -29,6 +31,7 @@ export class LandingScreen extends HTMLElement {
           <button type="submit" class="btn btn-primary">Create Game</button>
           <div class="or-divider" aria-hidden="true"><span>or</span></div>
           <button id="show-join-btn" type="button" class="btn btn-secondary">Join Game with Code</button>
+          <button id="show-nearby-btn" type="button" class="btn btn-secondary btn-nearby">${RADAR_SVG}<span>Find Nearby Games</span></button>
           <p class="error-msg" id="landing-error" role="alert" aria-live="polite"></p>
         </form>
       </div>`;
@@ -39,6 +42,7 @@ export class LandingScreen extends HTMLElement {
     this.refreshAuth();
 
     byId('show-join-btn').addEventListener('click', () => showJoin());
+    byId('show-nearby-btn').addEventListener('click', () => showNearby());
     byId('landing-form').addEventListener('submit', (event) => {
       event.preventDefault();
       createGame();
