@@ -367,8 +367,8 @@
   /* ── Compass toggle: icon button in the radar's top-right corner ──────── */
   .compass-btn {
     position: absolute;
-    inset-block-start: 2px;
-    inset-inline-end: 2px;
+    inset-block-start: -8px;
+    inset-inline-end: -8px;
     z-index: 2;
     display: flex;
     align-items: center;
