@@ -450,7 +450,13 @@
     100% { transform: scale(3.4); opacity: 0; }
   }
 
-  .broadcast-status {
+  /* Shared "you're on the radar" status — shown whenever the game is
+     discoverable by broadcast OR check-in (see #syncDiscoveryStatus). */
+  .discovery-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
     max-inline-size: 320px;
     margin-block-start: 0.4rem;
     font-size: 0.82rem;
@@ -458,11 +464,28 @@
     color: var(--color-text-muted);
     text-shadow: var(--shadow-text);
   }
-  .broadcast-status.is-error { color: var(--color-accent); }
+  /* display:flex would otherwise override the hidden attribute. */
+  .discovery-status[hidden] { display: none; }
+  .discovery-status.is-error { color: var(--color-accent); }
+  /* Live (actually discoverable): warmer text + a pulsing accent dot so being
+     on the radar reads as "on" regardless of which mechanism put it there. */
+  .discovery-status.is-live { color: var(--color-text-warm); }
+  .discovery-status.is-live::before {
+    content: '';
+    flex-shrink: 0;
+    inline-size: 7px;
+    block-size: 7px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    box-shadow: 0 0 8px rgba(255, 77, 109, 0.7);
+    animation: discovery-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes discovery-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
   @media (prefers-reduced-motion: reduce) {
     .radar-sweep { animation: none; }
     .blip-dot::after { animation: none; opacity: 0; }
     .btn-broadcast.is-on .broadcast-wave span { animation: none; }
+    .discovery-status.is-live::before { animation: none; }
   }
 }

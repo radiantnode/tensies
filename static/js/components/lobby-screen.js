@@ -94,7 +94,7 @@ export class LobbyScreen extends HTMLElement {
             <span class="lobby-action-label">Broadcast</span>
           </div>
         </div>
-        <p id="broadcast-status" class="broadcast-status" role="status" aria-live="polite" hidden></p>
+        <p id="discovery-status" class="discovery-status" role="status" aria-live="polite" hidden></p>
         <button id="checkin-prompt" type="button" class="checkin-prompt" aria-pressed="false" hidden>
           <svg class="checkin-prompt-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.6" fill="currentColor" stroke="none"/></svg>
           <span id="checkin-prompt-text" class="checkin-prompt-text">Check in to a place</span>
@@ -222,32 +222,53 @@ export class LobbyScreen extends HTMLElement {
     startBtn.hidden = !isHost;
     this.#syncBroadcast(!!snap.broadcasting, isHost);
     this.#syncCheckin(snap.place_name ?? null, isHost);
+    // The shared "you're discoverable" line reflects *either* path onto the
+    // radar, so being on the radar always reads as on.
+    this.#syncDiscoveryStatus(!!snap.broadcasting, snap.place_name ?? null, isHost);
     requestAnimationFrame(() => this.#updateFades());
   }
 
   /**
-   * Reflect the game's discoverable state on the host's Broadcast control. The
+   * Reflect the free-range broadcast flag on the host's Broadcast button. The
    * button is host-only and its on/off state is driven purely by the snapshot
-   * (never optimistically) so a rejected broadcast can't leave it stuck on.
-   * @param {boolean} discoverable
+   * (never optimistically) so a rejected broadcast can't leave it stuck on. The
+   * shared "discoverable" status line is owned by #syncDiscoveryStatus, not here
+   * — this button reflects only its own toggle (broadcasting), so tapping it
+   * always means the same thing.
+   * @param {boolean} broadcasting
    * @param {boolean} isHost
    */
-  #syncBroadcast(discoverable, isHost) {
+  #syncBroadcast(broadcasting, isHost) {
     const btn = /** @type {HTMLButtonElement} */ (byId('broadcast-btn'));
-    const status = byId('broadcast-status');
     byId('broadcast-item').hidden = !isHost; // hide the button + its label together
-    if (!isHost) {
-      status.hidden = true;
-      return;
-    }
-    btn.classList.toggle('is-on', discoverable);
-    btn.setAttribute('aria-pressed', discoverable ? 'true' : 'false');
+    if (!isHost) return;
+    btn.classList.toggle('is-on', broadcasting);
+    btn.setAttribute('aria-pressed', broadcasting ? 'true' : 'false');
     btn.setAttribute('aria-label',
-      discoverable ? 'Stop broadcasting to nearby players' : 'Broadcast to nearby players');
+      broadcasting ? 'Stop broadcasting to nearby players' : 'Broadcast to nearby players');
+  }
+
+  /**
+   * The single "you're on the radar" cue. Shown whenever the game is discoverable
+   * by *either* mechanism — a free-range broadcast or a checked-in place — so an
+   * off Broadcast button next to an active check-in doesn't read as "not
+   * discoverable". Host-only. The live variant carries a pulsing accent dot.
+   * @param {boolean} broadcasting
+   * @param {string | null} placeName
+   * @param {boolean} isHost
+   */
+  #syncDiscoveryStatus(broadcasting, placeName, isHost) {
+    const status = byId('discovery-status');
+    if (!isHost) { status.hidden = true; return; }
+    const live = broadcasting || !!placeName;
     // A fresh snapshot supersedes any transient "getting location" / error text.
-    status.hidden = !discoverable;
+    status.classList.toggle('is-live', live);
     status.classList.remove('is-error');
-    if (discoverable) status.textContent = 'Nearby players can find this game.';
+    status.hidden = !live;
+    if (!live) return;
+    status.textContent = placeName
+      ? `Nearby players can find this game at ${placeName}.`
+      : 'Nearby players can find this game.';
   }
 
   /**
@@ -276,8 +297,9 @@ export class LobbyScreen extends HTMLElement {
    * @param {boolean} isError
    */
   #setBroadcastStatus(text, isError) {
-    const status = byId('broadcast-status');
+    const status = byId('discovery-status');
     status.hidden = false;
+    status.classList.remove('is-live'); // transient broadcast feedback, not the live cue
     status.textContent = text;
     status.classList.toggle('is-error', isError);
   }
