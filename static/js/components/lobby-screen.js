@@ -26,6 +26,13 @@ const PLACES_CHEVRON = '<svg class="places-row-chevron" viewBox="0 0 24 24" fill
 /** Map-pin used as the thumbnail placeholder when a place has no photo. */
 const PLACES_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.6" fill="currentColor" stroke="none"/></svg>';
 
+/** How many place rows fetch their Google photo eagerly. Beyond this the photo
+ *  loads only as the row scrolls into view (IntersectionObserver below). Native
+ *  `loading="lazy"` is too weak here — the whole ~20-row list sits inside the
+ *  browser's preload distance, so it would fetch every photo on open. This caps
+ *  a sheet/search open to ~N billed Place Photo calls instead of up to 20. */
+const PLACES_PHOTO_EAGER_N = 6;
+
 const joinLink = () => `${location.origin}/${state.gameCode}`;
 
 /**
@@ -71,6 +78,10 @@ export class LobbyScreen extends HTMLElement {
   /** Monotonic id so a slow response for an old query can't overwrite a newer
    *  render (out-of-order search results). */
   #searchSeq = 0;
+
+  /** @type {IntersectionObserver | null} Loads place photos past the eager cap
+   *  as their rows scroll into view. Rebuilt each render, torn down on unmount. */
+  #photoObserver = null;
 
   #onResize = () => this.#updateFades();
 
@@ -169,6 +180,7 @@ export class LobbyScreen extends HTMLElement {
 
   disconnectedCallback() {
     window.removeEventListener('resize', this.#onResize);
+    this.#photoObserver?.disconnect();
   }
 
   /**
@@ -206,19 +218,22 @@ export class LobbyScreen extends HTMLElement {
     for (const [pid, player] of others) {
       let row = this.#rows.get(pid);
       if (!row) {
-        row = document.createElement('li');
-        row.className = 'player-list-item';
+        // A const the closure below can capture without losing its non-null
+        // narrowing (the outer `let row` widens back to | undefined in a closure).
+        const el = document.createElement('li');
+        el.className = 'player-list-item';
         // Built once; name/avatar/badge are patched in place below so a
         // roster change doesn't reload avatars or reset the row.
-        row.innerHTML =
+        el.innerHTML =
           '<span class="lobby-avatar-ring"><img class="lobby-avatar" alt=""></span>' +
           '<span class="lobby-player-name"></span>';
         // Fade+slide the row in as the player joins. One-shot: added only on
         // creation (keyed rows are built once) and cleared when it finishes, so
         // re-renders never replay it.
-        row.classList.add('player-enter');
-        row.addEventListener('animationend', () => row.classList.remove('player-enter'), { once: true });
-        this.#rows.set(pid, row);
+        el.classList.add('player-enter');
+        el.addEventListener('animationend', () => el.classList.remove('player-enter'), { once: true });
+        this.#rows.set(pid, el);
+        row = el;
       }
       list.appendChild(row);
       const img = /** @type {HTMLImageElement} */ (row.querySelector('.lobby-avatar'));
@@ -520,6 +535,10 @@ export class LobbyScreen extends HTMLElement {
   #renderPlaces(list) {
     const status = byId('places-status');
     const listEl = byId('places-list');
+    // Rebuild the deferred-photo observer from scratch each render (search
+    // re-renders replace the whole list), and never leak one on the empty path.
+    this.#photoObserver?.disconnect();
+    this.#photoObserver = null;
     if (!list.length) {
       status.hidden = false;
       status.classList.remove('is-error');
@@ -528,7 +547,19 @@ export class LobbyScreen extends HTMLElement {
     }
     status.hidden = true;
     listEl.replaceChildren();
-    for (const p of list) {
+    // Photos past the eager cap load only when their row nears the viewport, so
+    // opening the sheet costs ~PLACES_PHOTO_EAGER_N billed Place Photo calls
+    // rather than one per result. rootMargin pre-loads a touch before visible.
+    const observer = new IntersectionObserver((entries, obs) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        const img = /** @type {HTMLImageElement} */ (e.target);
+        if (img.dataset.src) { img.src = img.dataset.src; delete img.dataset.src; }
+        obs.unobserve(img);
+      }
+    }, { root: listEl, rootMargin: '200px 0px' });
+    this.#photoObserver = observer;
+    for (const [i, p] of list.entries()) {
       const li = document.createElement('li');
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -545,9 +576,14 @@ export class LobbyScreen extends HTMLElement {
       thumb.className = p.photo_url ? 'places-row-photo' : 'places-row-photo is-empty';
       if (p.photo_url) {
         const img = /** @type {HTMLImageElement} */ (thumb);
-        img.loading = 'lazy';
         img.alt = '';
-        img.src = p.photo_url;
+        if (i < PLACES_PHOTO_EAGER_N) {
+          img.src = p.photo_url;          // eager: the first N always load
+        } else {
+          img.loading = 'lazy';
+          img.dataset.src = p.photo_url;  // deferred: loads when scrolled near view
+          observer.observe(img);
+        }
       } else {
         thumb.innerHTML = PLACES_PIN;
       }
