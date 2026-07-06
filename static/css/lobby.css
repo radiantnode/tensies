@@ -49,19 +49,12 @@
   }
 
   .lobby-title {
-    margin-block-end: 0.5rem;
+    margin-block-end: 1.75rem;
     font-size: 1.5rem;
     font-weight: 800;
     letter-spacing: 0.01em;
     color: var(--color-text);
     text-shadow: var(--shadow-text-lg);
-  }
-
-  .lobby-hint {
-    margin-block-end: 2rem;
-    font-size: 0.9rem;
-    color: var(--color-text-muted);
-    text-shadow: var(--shadow-text);
   }
 
   .code-display {

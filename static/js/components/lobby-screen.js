@@ -61,7 +61,6 @@ export class LobbyScreen extends HTMLElement {
       <div class="screen-body lobby-body">
         <button id="lobby-back-btn" type="button" class="btn-back">${BACK_BUTTON_HTML}</button>
         <h1 id="lobby-title" class="lobby-title">Waiting for players…</h1>
-        <p class="lobby-hint">Share this link to invite friends</p>
         <button id="lobby-code" type="button" class="code-display" aria-label="Copy invite link">——</button>
         <p class="copy-hint" id="copy-hint">Click to copy</p>
         <div class="or-divider" aria-hidden="true"><span>or</span></div>
