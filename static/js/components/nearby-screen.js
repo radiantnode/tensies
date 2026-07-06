@@ -15,6 +15,9 @@ const REFRESH_MS = 8000;
 /** Fallback avatar for anonymous hosts / a photo that fails to load. */
 const DEFAULT_AVATAR = '/static/images/avatar-default.svg';
 
+/** Right-chevron disclosure affordance on each list row (tap the row to join). */
+const CHEVRON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+
 /**
  * Radial spread. Physical gatherings put every game within a small slice of the
  * 500 m radius, so a linear map clusters them all near the centre. A sqrt curve
@@ -64,8 +67,8 @@ export class NearbyScreen extends HTMLElement {
   /** @type {NearbyGame[]} last painted list, for lookups on blip/row tap */
   #lastGames = [];
 
-  /** @type {Map<string, HTMLLIElement>} code → list row, patched in place so
-   *  avatars don't reload on every poll. */
+  /** @type {Map<string, HTMLButtonElement>} code → list row, patched in place
+   *  so avatars don't reload on every poll. */
   #rows = new Map();
 
   /** @type {number} bumped each acquisition so a stale fetch can't paint. */
@@ -105,7 +108,7 @@ export class NearbyScreen extends HTMLElement {
             <svg class="compass-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polygon points="12,7 14.5,14.5 12,13 9.5,14.5" fill="currentColor" stroke="none"/></svg>
           </button>
         </div>
-        <ul class="nearby-list" id="nearby-list" aria-label="Nearby games"></ul>
+        <div class="nearby-list" id="nearby-list" role="list" aria-label="Nearby games"></div>
         <p class="nearby-empty" id="nearby-empty" hidden>No games nearby yet — ask a host to broadcast.</p>
         <p class="error-msg nearby-error" id="nearby-error" role="alert" aria-live="polite"></p>
         <button id="nearby-retry" type="button" class="btn btn-secondary nearby-retry" hidden>Try again</button>
@@ -124,11 +127,8 @@ export class NearbyScreen extends HTMLElement {
       if (blip) this.#select(blip.getAttribute('data-code'), true);
     });
     byId('nearby-list').addEventListener('click', (e) => {
-      const target = /** @type {HTMLElement} */ (e.target);
-      const join = target.closest('[data-join]');
-      if (join) { joinWithCode(/** @type {string} */ (join.getAttribute('data-join')), 'nearby'); return; }
-      const row = target.closest('[data-code]');
-      if (row) this.#select(row.getAttribute('data-code'), false);
+      const row = /** @type {HTMLElement} */ (e.target).closest('[data-code]');
+      if (row) joinWithCode(/** @type {string} */ (row.getAttribute('data-code')), 'nearby');
     });
   }
 
@@ -321,8 +321,8 @@ export class NearbyScreen extends HTMLElement {
 
   /**
    * Build/patch the games list below the radar — one row per game, keyed by
-   * code so avatars aren't reloaded every poll. Each row carries the host's
-   * profile photo, name, player count, distance and a Join button.
+   * code so avatars aren't reloaded every poll. Each row is a join button
+   * carrying the host's profile photo, name, player count and distance.
    * @param {NearbyGame[]} games
    */
   #renderList(games) {
@@ -337,7 +337,10 @@ export class NearbyScreen extends HTMLElement {
     for (const g of games) {
       let row = this.#rows.get(g.code);
       if (!row) {
-        row = document.createElement('li');
+        // The whole row is the join control (a button), with a chevron
+        // affordance — tapping anywhere on it joins the game.
+        row = document.createElement('button');
+        row.type = 'button';
         row.className = 'nearby-row';
         row.dataset.code = g.code;
         const ring = document.createElement('span');
@@ -347,18 +350,18 @@ export class NearbyScreen extends HTMLElement {
         info.className = 'nearby-row-info';
         info.innerHTML =
           '<span class="nearby-row-host"></span><span class="nearby-row-meta"></span>';
-        const join = document.createElement('button');
-        join.type = 'button';
-        join.className = 'btn btn-primary nearby-row-join';
-        join.dataset.join = g.code;
-        join.textContent = 'Join';
-        row.append(ring, info, join);
+        const chevron = document.createElement('span');
+        chevron.className = 'nearby-row-chevron';
+        chevron.innerHTML = CHEVRON_SVG;
+        row.append(ring, info, chevron);
         this.#rows.set(g.code, row);
       }
       const plural = g.player_count === 1 ? 'player' : 'players';
       /** @type {HTMLElement} */ (row.querySelector('.nearby-row-host')).textContent = g.host_name;
       /** @type {HTMLElement} */ (row.querySelector('.nearby-row-meta')).textContent =
         `${g.player_count} ${plural} · ~${g.distance_m} m away`;
+      row.setAttribute('aria-label',
+        `Join ${g.host_name}'s game — ${g.player_count} ${plural}, ${g.distance_m} metres away`);
       row.classList.toggle('is-selected', g.code === this.#selected);
       list.append(row); // re-append in API (nearest-first) order
     }
