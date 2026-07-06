@@ -90,8 +90,7 @@ export class NearbyScreen extends HTMLElement {
       <app-header></app-header>
       <div class="screen-body nearby-body">
         <button id="nearby-back-btn" type="button" class="btn-back">${BACK_BUTTON_HTML}</button>
-        <h1 id="nearby-title" class="screen-title">Games Nearby</h1>
-        <p class="tagline nearby-status">Finding games around you…</p>
+        <h1 id="nearby-title" class="screen-title">Nearby Games</h1>
         <div class="radar" id="radar" role="group" aria-label="Nearby games radar">
           <div class="radar-face" aria-hidden="true">
             <span class="radar-ring radar-ring-1"></span>
@@ -223,7 +222,6 @@ export class NearbyScreen extends HTMLElement {
     this.#rows.clear();
     this.showError('');
     byId('nearby-retry').hidden = true;
-    this.#setStatus('Finding games around you…');
     this.#setLocating(true);
 
     const token = ++this.#token;
@@ -234,7 +232,6 @@ export class NearbyScreen extends HTMLElement {
       this.#setLocating(false);
       const reason = err instanceof GeoError ? err.reason : 'unavailable';
       this.showError(GEO_ERROR_COPY[reason] ?? GEO_ERROR_COPY.unavailable);
-      this.#setStatus('Couldn’t locate you');
       byId('nearby-retry').hidden = false;
       return;
     }
@@ -284,10 +281,6 @@ export class NearbyScreen extends HTMLElement {
     const radius = data.radius_m || 1;
     const games = data.games || [];
     this.#lastGames = games;
-
-    this.#setStatus(games.length
-      ? `${games.length} game${games.length === 1 ? '' : 's'} nearby`
-      : 'No games nearby yet');
 
     // Drop a selection whose game is gone.
     if (this.#selected && !games.some((g) => g.code === this.#selected)) {
@@ -388,11 +381,6 @@ export class NearbyScreen extends HTMLElement {
     if (fromRadar && code) {
       this.#rows.get(code)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
-  }
-
-  /** @param {string} text */
-  #setStatus(text) {
-    /** @type {HTMLElement} */ (this.querySelector('.nearby-status')).textContent = text;
   }
 
   /** @param {boolean} on */
