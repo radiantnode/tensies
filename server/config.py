@@ -117,6 +117,7 @@ GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY") or None  # secret â†
 GOOGLE_APPLICATION_CREDENTIALS = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") or None
 GOOGLE_CLOUD_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT") or None
 PLACES_RADIUS_M = _float("PLACES_RADIUS_M", 500.0)               # nearby-search radius
+PLACES_SEARCH_RADIUS_M = _float("PLACES_SEARCH_RADIUS_M", 5000.0)  # text-search location bias
 PLACES_MAX_RESULTS = _int("PLACES_MAX_RESULTS", 20)
 PLACES_CACHE_TTL = _int("PLACES_CACHE_TTL", 900)                 # place_idâ†’coords cache seconds
 PLACES_RATE_MAX = _int("PLACES_RATE_MAX", 30)                    # /api/places polls/window/IP

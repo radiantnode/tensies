@@ -240,11 +240,21 @@ async def api_nearby(request: Request, lat: float, lon: float) -> dict:
     return {"radius_m": int(DISCOVERY_RADIUS_M), "games": games}
 
 
+def _place_json(p: dict) -> dict:
+    """Client-facing place row: id/name/address + a same-origin photo proxy URL
+    (never a raw Google URL / credential)."""
+    return {
+        "place_id": p["place_id"], "name": p["name"], "address": p.get("address", ""),
+        "photo_url": (f"/api/places/photo?ref={quote(p['photo_ref'], safe='')}"
+                      if p.get("photo_ref") else None),
+    }
+
+
 @router.get("/api/places/nearby")
 async def api_places_nearby(request: Request, lat: float, lon: float) -> dict:
     """Nearby real places for the lobby check-in picker. Proxies Google Places
     server-side (key never reaches the browser); serves a dev stub when no key
-    is configured. Returns place_id/name/address only — no client secrets."""
+    is configured. Returns place_id/name/address/photo only — no client secrets."""
     if not PLACES_ENABLED:
         raise HTTPException(status_code=503, detail="places disabled")
     if not (math.isfinite(lat) and math.isfinite(lon)
@@ -254,12 +264,26 @@ async def api_places_nearby(request: Request, lat: float, lon: float) -> dict:
     if not await gamestore.rate_allow("places", ip, PLACES_RATE_MAX, PLACES_RATE_WINDOW):
         raise HTTPException(status_code=429, detail="slow down")
     results = await places.search_nearby(lat, lon)
-    return {"places": [
-        {"place_id": p["place_id"], "name": p["name"], "address": p.get("address", ""),
-         "photo_url": (f"/api/places/photo?ref={quote(p['photo_ref'], safe='')}"
-                       if p.get("photo_ref") else None)}
-        for p in results
-    ]}
+    return {"places": [_place_json(p) for p in results]}
+
+
+@router.get("/api/places/search")
+async def api_places_search(request: Request, q: str, lat: float, lon: float) -> dict:
+    """Free-text place search for the check-in picker, biased to the caller."""
+    if not PLACES_ENABLED:
+        raise HTTPException(status_code=503, detail="places disabled")
+    q = q.strip()
+    if not q:
+        return {"places": []}
+    if not (math.isfinite(lat) and math.isfinite(lon)
+            and -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
+        raise HTTPException(status_code=400, detail="invalid coordinates")
+    ip = _http_client_ip(request)
+    if not await gamestore.rate_allow("placesearch", ip,
+                                      PLACES_RATE_MAX, PLACES_RATE_WINDOW):
+        raise HTTPException(status_code=429, detail="slow down")
+    results = await places.search_text(q[:120], lat, lon)
+    return {"places": [_place_json(p) for p in results]}
 
 
 # Only the exact Places photo path is proxyable — no arbitrary URLs (SSRF guard).

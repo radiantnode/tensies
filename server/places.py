@@ -29,6 +29,7 @@ from .config import (
     PLACES_CACHE_TTL,
     PLACES_MAX_RESULTS,
     PLACES_RADIUS_M,
+    PLACES_SEARCH_RADIUS_M,
 )
 
 log = logging.getLogger("tensies.places")
@@ -138,6 +139,12 @@ def _stub_nearby(lat: float, lon: float) -> list[dict]:
     ]
 
 
+def _stub_text(query: str, lat: float, lon: float) -> list[dict]:
+    q = query.casefold()
+    return [p for p in _stub_nearby(lat, lon)
+            if q in p["name"].casefold() or q in p["address"].casefold()]
+
+
 # ─── Redis cache: place_id → {name, lat, lon} ────────────────────────────
 def _ckey(place_id: str) -> str:
     return f"place:{place_id}"
@@ -165,6 +172,17 @@ async def search_nearby(lat: float, lon: float) -> list[dict]:
     Every result is cached so a subsequent check-in can resolve it cheaply."""
     results = await _google_nearby(lat, lon) if _has_google() \
         else _stub_nearby(lat, lon)
+    for p in results:
+        await _cache_put(p)
+    return results
+
+
+async def search_text(query: str, lat: float, lon: float) -> list[dict]:
+    """Places matching a free-text query, biased toward (lat, lon). Falls back to
+    a substring filter over the dev stub when no key is set. Results are cached
+    so a subsequent check-in resolves cheaply."""
+    results = await _google_text(query, lat, lon) if _has_google() \
+        else _stub_text(query, lat, lon)
     for p in results:
         await _cache_put(p)
     return results
@@ -209,6 +227,39 @@ async def _google_nearby(lat: float, lon: float) -> list[dict]:
     except Exception:  # noqa: BLE001 — places are cosmetic; never fatal
         log.exception("places searchNearby failed")
         return []
+    return _parse_places(data)
+
+
+_TEXT_FIELD_MASK = (
+    "places.id,places.displayName,places.formattedAddress,places.location,"
+    "places.photos")
+
+
+async def _google_text(query: str, lat: float, lon: float) -> list[dict]:
+    body = {
+        "textQuery": query,
+        "maxResultCount": min(PLACES_MAX_RESULTS, 20),
+        # Bias toward the caller (soft) so a name like "Starbucks" resolves to the
+        # nearby one, without hard-limiting to the check-in radius.
+        "locationBias": {"circle": {
+            "center": {"latitude": lat, "longitude": lon},
+            "radius": PLACES_SEARCH_RADIUS_M}},
+    }
+    try:
+        headers = {**await _auth_headers(), "X-Goog-FieldMask": _TEXT_FIELD_MASK}
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
+            resp = await c.post(f"{_NEW_BASE}/places:searchText",
+                                headers=headers, json=body)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception:  # noqa: BLE001 — search is cosmetic; never fatal
+        log.exception("places searchText failed")
+        return []
+    return _parse_places(data)
+
+
+def _parse_places(data: dict) -> list[dict]:
+    """Map a Google places[] payload to our place dicts (shared by nearby/text)."""
     out = []
     for pl in data.get("places", []):
         loc = pl.get("location") or {}

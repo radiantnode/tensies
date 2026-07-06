@@ -61,6 +61,17 @@ export class LobbyScreen extends HTMLElement {
   /** @type {boolean} guard so the background prefetch fires at most once. */
   #prefetchTried = false;
 
+  /** @type {{lat: number, lon: number} | null} last GPS fix — reused to bias the
+   *  places search without re-prompting. */
+  #lastPos = null;
+
+  /** @type {ReturnType<typeof setTimeout> | undefined} search debounce timer. */
+  #searchTimer;
+
+  /** Monotonic id so a slow response for an old query can't overwrite a newer
+   *  render (out-of-order search results). */
+  #searchSeq = 0;
+
   #onResize = () => this.#updateFades();
 
   connectedCallback() {
@@ -111,6 +122,7 @@ export class LobbyScreen extends HTMLElement {
             <h2 class="places-sheet-title">Check in to a place</h2>
             <button id="places-close" type="button" class="places-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
+          <input id="places-search" class="places-search" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Search for a place" aria-label="Search for a place">
           <p id="places-status" class="places-status">Finding places near you…</p>
           <ul id="places-list" class="places-list" aria-label="Nearby places"></ul>
           <button id="places-checkout" type="button" class="btn btn-secondary places-checkout" hidden>Check out</button>
@@ -148,6 +160,7 @@ export class LobbyScreen extends HTMLElement {
       this.#startBroadcast(); // now run the browser geolocation permission flow
     });
     byId('checkin-prompt').addEventListener('click', () => this.#openPlaces());
+    byId('places-search').addEventListener('input', () => this.#onSearchInput());
     byId('places-close').addEventListener('click', () => this.#closePlaces());
     byId('places-checkout').addEventListener('click', () => { checkOut(); this.#closePlaces(); });
     byId('places-list').addEventListener('click', (e) => {
@@ -390,6 +403,7 @@ export class LobbyScreen extends HTMLElement {
         && await navigator.permissions.query({ name: /** @type {PermissionName} */ ('geolocation') });
       if (perm && perm.state !== 'granted') return;
       const { lat, lon } = await getPosition();
+      this.#lastPos = { lat, lon };
       const res = await fetch(`/api/places/nearby?lat=${lat}&lon=${lon}`);
       if (!res.ok) return;
       const data = await res.json();
@@ -424,6 +438,10 @@ export class LobbyScreen extends HTMLElement {
     byId('places-checkout').hidden = !checkedIn;
     list.replaceChildren();
     status.classList.remove('is-error');
+    // Reset the search each open — the sheet always starts on the nearby list.
+    clearTimeout(this.#searchTimer);
+    this.#searchSeq++;
+    /** @type {HTMLInputElement} */ (byId('places-search')).value = '';
     sheet.showModal();
     // The background prefetch usually has the list already — open straight to it.
     if (this.#placesCache && this.#placesCache.length) {
@@ -434,6 +452,7 @@ export class LobbyScreen extends HTMLElement {
     status.textContent = 'Finding places near you…';
     try {
       const { lat, lon } = await getPosition();
+      this.#lastPos = { lat, lon };
       const res = await fetch(`/api/places/nearby?lat=${lat}&lon=${lon}`);
       if (!res.ok) throw new Error(`places ${res.status}`);
       const data = await res.json();
@@ -450,6 +469,56 @@ export class LobbyScreen extends HTMLElement {
   }
 
   /**
+   * Debounced search-box handler. Empty (or a single char) restores the nearby
+   * list; otherwise a text search fires ~300 ms after the last keystroke.
+   */
+  #onSearchInput() {
+    clearTimeout(this.#searchTimer);
+    const q = /** @type {HTMLInputElement} */ (byId('places-search')).value.trim();
+    if (q.length < 2) {
+      this.#searchSeq++; // cancel any in-flight search
+      this.#renderPlaces(this.#placesCache || []);
+      return;
+    }
+    this.#searchTimer = setTimeout(() => this.#searchPlaces(q), 300);
+  }
+
+  /**
+   * Free-text place search, biased to the last known fix. A per-call sequence id
+   * drops stale (out-of-order) responses so the list always matches the newest
+   * query.
+   * @param {string} q
+   */
+  async #searchPlaces(q) {
+    const seq = ++this.#searchSeq;
+    const status = byId('places-status');
+    if (!this.#lastPos) {
+      status.hidden = false;
+      status.textContent = 'Turn on location to search.';
+      status.classList.add('is-error');
+      return;
+    }
+    byId('places-list').replaceChildren();
+    status.hidden = false;
+    status.classList.remove('is-error');
+    status.textContent = 'Searching…';
+    try {
+      const { lat, lon } = this.#lastPos;
+      const params = new URLSearchParams({ q, lat: String(lat), lon: String(lon) });
+      const res = await fetch(`/api/places/search?${params}`);
+      if (!res.ok) throw new Error(`search ${res.status}`);
+      const data = await res.json();
+      if (seq !== this.#searchSeq) return; // superseded by a newer query
+      this.#renderPlaces(data.places || []);
+    } catch {
+      if (seq !== this.#searchSeq) return;
+      status.hidden = false;
+      status.textContent = 'Couldn’t search places.';
+      status.classList.add('is-error');
+    }
+  }
+
+  /**
    * @param {Array<{place_id: string, name: string, address: string, photo_url?: string | null}>} list
    */
   #renderPlaces(list) {
@@ -457,7 +526,8 @@ export class LobbyScreen extends HTMLElement {
     const listEl = byId('places-list');
     if (!list.length) {
       status.hidden = false;
-      status.textContent = 'No places found nearby.';
+      status.classList.remove('is-error');
+      status.textContent = 'No places found.';
       return;
     }
     status.hidden = true;
