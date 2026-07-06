@@ -593,16 +593,19 @@ async def stop_broadcasting(code: str) -> None:
 
 
 async def set_place(code: str, place_id: str, name: str,
-                    lat: float, lon: float) -> None:
+                    lat: float, lon: float,
+                    photo_ref: str | None = None) -> None:
     """Check the game in to a public place at its exact coordinates."""
     await _r.hset(_gkey(code), mapping={
         "place_id": place_id, "place_name": name,
-        "place_lat": lat, "place_lng": lon})
+        "place_lat": lat, "place_lng": lon,
+        "place_photo": photo_ref or ""})
     await _recompute_geo(code)
 
 
 async def clear_place(code: str) -> None:
-    await _r.hdel(_gkey(code), "place_id", "place_name", "place_lat", "place_lng")
+    await _r.hdel(_gkey(code), "place_id", "place_name", "place_lat", "place_lng",
+                  "place_photo")
     await _recompute_geo(code)
 
 
@@ -611,8 +614,9 @@ async def discovery_card(code: str) -> dict | None:
     + started flag + checked-in place, without loading every player via
     snapshot(). None if the game has vanished. Two steps: the host pid comes
     from `host`, then its name/photo."""
-    started, host, order, place_id, place_name = await _r.hmget(
-        _gkey(code), ["started", "host", "order", "place_id", "place_name"])
+    started, host, order, place_id, place_name, place_photo = await _r.hmget(
+        _gkey(code), ["started", "host", "order", "place_id", "place_name",
+                      "place_photo"])
     if host is None or order is None:
         return None
     host_name, host_photo = await _r.hmget(
@@ -628,6 +632,7 @@ async def discovery_card(code: str) -> dict | None:
         "started": started == "1",
         "place_id": place_id or None,
         "place_name": place_name or None,
+        "place_photo": place_photo or None,
     }
 
 

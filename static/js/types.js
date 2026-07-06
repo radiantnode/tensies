@@ -49,6 +49,7 @@
  * @property {number} bearing_deg 0–359, clockwise from true north.
  * @property {string | null} [place_id] Checked-in place id, if any.
  * @property {string | null} [place_name] Checked-in place name, if any.
+ * @property {string | null} [place_photo_url] Proxied photo of the checked-in place.
  */
 
 /**

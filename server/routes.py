@@ -239,6 +239,11 @@ async def api_nearby(request: Request, lat: float, lon: float) -> dict:
             "bearing_deg": _bearing_deg(lat, lon, jlat, jlon),
             "place_id": card["place_id"],      # set when checked in to a place
             "place_name": card["place_name"],
+            # Same-origin proxy URL like the check-in sheet rows — never a raw
+            # Google URL. w=512 is the proxy's cap; the radar bg wants the big one.
+            "place_photo_url": (
+                f"/api/places/photo?ref={quote(card['place_photo'], safe='')}&w=512"
+                if card["place_photo"] else None),
         })
     return {"radius_m": int(DISCOVERY_RADIUS_M), "games": games}
 

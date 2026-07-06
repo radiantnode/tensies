@@ -27,8 +27,12 @@
     position: relative;
     justify-content: flex-start;
     overflow-y: auto;
+    /* Hide the scrollbar like every other screen-level scroller — macOS
+       overlay scrollbars flash on entry and on every poll's content reflow. */
+    scrollbar-width: none;
     padding-block-start: 3.75rem;
   }
+  .nearby-body::-webkit-scrollbar { display: none; }
 
   /* ── Radar scope ──────────────────────────────────────────────────────── */
   .radar {
@@ -271,8 +275,10 @@
     gap: 0.5rem;
     max-block-size: 32vh;
     overflow-y: auto;
+    scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
+  .nearby-list::-webkit-scrollbar { display: none; }
 
   .nearby-empty {
     margin-block: 0.5rem;
@@ -283,6 +289,8 @@
 
   /* Flat card matching the profile screen's recent-games rows. */
   .nearby-row {
+    position: relative;   /* stacking context for the place-photo background */
+    overflow: hidden;     /* clip the photo to the card radius */
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -297,6 +305,40 @@
     animation: card-appear 0.2s ease-out both;
     transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
   }
+
+  /* Keep the row's real content above the photo layer. */
+  .nearby-row > * { position: relative; z-index: 1; }
+
+  /* ── Checked-in place photo as the card background ──
+     The photo sits under a leather scrim that stays near-opaque behind the
+     avatar + text and thins toward the chevron, so the place peeks through
+     on the right without costing readability. */
+  .nearby-row-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  .nearby-row-bg-img {
+    display: block;   /* inline images leave a baseline gap at the bottom */
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    filter: saturate(0.7) brightness(0.6);
+    /* Fade the photo itself, not a scrim over it — --color-raised is 50%
+       alpha, so no overlay built from it can get darker than half. Left of
+       45% the card renders exactly like a photo-less row; the photo ramps
+       in toward the chevron. */
+    -webkit-mask-image: linear-gradient(to right,
+      transparent 45%, rgba(0, 0, 0, 0.55) 80%, rgba(0, 0, 0, 0.95) 100%);
+    mask-image: linear-gradient(to right,
+      transparent 45%, rgba(0, 0, 0, 0.55) 80%, rgba(0, 0, 0, 0.95) 100%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .nearby-row-bg-img.is-loaded { opacity: 1; }
 
   .nearby-row:active { transform: scale(0.99); }
 

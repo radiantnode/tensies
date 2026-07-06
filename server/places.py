@@ -153,7 +153,8 @@ def _ckey(place_id: str) -> str:
 async def _cache_put(p: dict) -> None:
     await gamestore.client().set(
         _ckey(p["place_id"]),
-        json.dumps({"name": p["name"], "lat": p["lat"], "lon": p["lon"]}),
+        json.dumps({"name": p["name"], "lat": p["lat"], "lon": p["lon"],
+                    "photo_ref": p.get("photo_ref")}),
         ex=PLACES_CACHE_TTL,
     )
 
@@ -163,7 +164,8 @@ async def _cache_get(place_id: str) -> dict | None:
     if not raw:
         return None
     d = json.loads(raw)
-    return {"place_id": place_id, "name": d["name"], "lat": d["lat"], "lon": d["lon"]}
+    return {"place_id": place_id, "name": d["name"], "lat": d["lat"], "lon": d["lon"],
+            "photo_ref": d.get("photo_ref")}
 
 
 # ─── Public API ──────────────────────────────────────────────────────────
@@ -299,7 +301,7 @@ async def fetch_photo(ref: str, max_w: int) -> tuple[str, bytes] | None:
 async def _google_details(place_id: str) -> dict | None:
     try:
         headers = {**await _auth_headers(),
-                   "X-Goog-FieldMask": "id,displayName,location"}
+                   "X-Goog-FieldMask": "id,displayName,location,photos"}
         async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
             resp = await c.get(f"{_NEW_BASE}/places/{place_id}", headers=headers)
         resp.raise_for_status()
@@ -310,8 +312,10 @@ async def _google_details(place_id: str) -> dict | None:
     loc = pl.get("location") or {}
     if "latitude" not in loc or "longitude" not in loc:
         return None
+    photos = pl.get("photos") or []
     return {
         "place_id": pl.get("id", place_id),
         "name": (pl.get("displayName") or {}).get("text") or "Unnamed place",
         "lat": loc["latitude"], "lon": loc["longitude"],
+        "photo_ref": (photos[0].get("name") if photos else None),
     }

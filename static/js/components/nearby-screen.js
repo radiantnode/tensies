@@ -71,6 +71,10 @@ export class NearbyScreen extends HTMLElement {
    *  so avatars don't reload on every poll. */
   #rows = new Map();
 
+  /** @type {Map<string, HTMLButtonElement>} code → radar blip, patched in place
+   *  for the same reason — a full rebuild every poll flickers. */
+  #blips = new Map();
+
   /** @type {number} bumped each acquisition so a stale fetch can't paint. */
   #token = 0;
 
@@ -220,6 +224,8 @@ export class NearbyScreen extends HTMLElement {
     this.#selected = null;
     for (const row of this.#rows.values()) row.remove();
     this.#rows.clear();
+    for (const blip of this.#blips.values()) blip.remove();
+    this.#blips.clear();
     this.showError('');
     byId('nearby-retry').hidden = true;
     this.#setLocating(true);
@@ -287,7 +293,11 @@ export class NearbyScreen extends HTMLElement {
       this.#selected = null;
     }
 
-    blips.replaceChildren();
+    const present = new Set(games.map((g) => g.code));
+    for (const [code, blip] of this.#blips) {
+      if (!present.has(code)) { blip.remove(); this.#blips.delete(code); }
+    }
+
     for (const g of games) {
       // Perceptual radial spread: sqrt curve + a minimum inset so nearby games
       // fan out instead of piling on the centre (see MIN_FRAC). Clamped so a
@@ -297,35 +307,46 @@ export class NearbyScreen extends HTMLElement {
       const rad = (g.bearing_deg * Math.PI) / 180;
       const x = 50 + Math.sin(rad) * frac * 50;
       const y = 50 - Math.cos(rad) * frac * 50;
-      const blip = document.createElement('button');
-      blip.type = 'button';
-      blip.className = 'radar-blip';
-      if (g.code === this.#selected) blip.classList.add('is-selected');
-      blip.dataset.code = g.code;
+
+      let blip = this.#blips.get(g.code);
+      if (!blip) {
+        blip = document.createElement('button');
+        blip.type = 'button';
+        blip.className = 'radar-blip';
+        blip.dataset.code = g.code;
+        // Avatar + labels live in one inner box that counter-rotates as a unit,
+        // so the stack stays upright *and* keeps its alignment as the scope turns.
+        const inner = document.createElement('span');
+        inner.className = 'blip-inner';
+        const ring = document.createElement('span');
+        ring.className = 'blip-avatar-ring';
+        ring.append(avatarImg(g.photo, 'blip-avatar'));
+        const name = document.createElement('span');
+        name.className = 'blip-name';
+        inner.append(ring, name);
+        blip.append(inner);
+        blips.append(blip);
+        this.#blips.set(g.code, blip);
+      }
       blip.style.left = `${x}%`;
       blip.style.top = `${y}%`;
+      blip.classList.toggle('is-selected', g.code === this.#selected);
       blip.setAttribute('aria-label',
         `${g.host_name}${g.place_name ? ` at ${g.place_name}` : ''}, ${g.player_count} player${g.player_count === 1 ? '' : 's'}, ${g.distance_m} metres away`);
-      // Avatar + labels live in one inner box that counter-rotates as a unit,
-      // so the stack stays upright *and* keeps its alignment as the scope turns.
-      const inner = document.createElement('span');
-      inner.className = 'blip-inner';
-      const ring = document.createElement('span');
-      ring.className = 'blip-avatar-ring';
-      ring.append(avatarImg(g.photo, 'blip-avatar'));
-      const name = document.createElement('span');
-      name.className = 'blip-name';
-      name.textContent = g.host_name;
-      inner.append(ring, name);
+      /** @type {HTMLElement} */ (blip.querySelector('.blip-name')).textContent = g.host_name;
       // Checked-in games also show the place, on a second line under the name.
+      const inner = /** @type {HTMLElement} */ (blip.querySelector('.blip-inner'));
+      let place = blip.querySelector('.blip-place');
       if (g.place_name) {
-        const place = document.createElement('span');
-        place.className = 'blip-place';
-        place.textContent = g.place_name;
-        inner.append(place);
+        if (!place) {
+          place = document.createElement('span');
+          place.className = 'blip-place';
+          inner.append(place);
+        }
+        if (place.textContent !== g.place_name) place.textContent = g.place_name;
+      } else {
+        place?.remove();
       }
-      blip.append(inner);
-      blips.append(blip);
     }
 
     this.#renderList(games);
@@ -346,6 +367,12 @@ export class NearbyScreen extends HTMLElement {
       if (!present.has(code)) { row.remove(); this.#rows.delete(code); }
     }
 
+    // Re-appending an unchanged row still moves it (killing hover/active state
+    // and forcing a repaint), so only reorder when the order actually changed.
+    const currentOrder = Array.from(list.children, (c) => /** @type {HTMLElement} */ (c).dataset.code);
+    const orderChanged = games.length !== currentOrder.length
+      || games.some((g, i) => g.code !== currentOrder[i]);
+
     for (const g of games) {
       let row = this.#rows.get(g.code);
       if (!row) {
@@ -355,6 +382,9 @@ export class NearbyScreen extends HTMLElement {
         row.type = 'button';
         row.className = 'nearby-row';
         row.dataset.code = g.code;
+        const bg = document.createElement('span');
+        bg.className = 'nearby-row-bg';
+        row.append(bg);
         const ring = document.createElement('span');
         ring.className = 'nearby-row-avatar-ring';
         ring.append(avatarImg(g.photo, 'nearby-row-avatar'));
@@ -376,7 +406,23 @@ export class NearbyScreen extends HTMLElement {
       row.setAttribute('aria-label',
         `Join ${g.host_name}'s game${g.place_name ? ` at ${g.place_name}` : ''} — ${g.player_count} ${plural}, ${g.distance_m} metres away`);
       row.classList.toggle('is-selected', g.code === this.#selected);
-      list.append(row); // re-append in API (nearest-first) order
+      // Checked-in rows carry the place's photo as a faded card background.
+      // Keyed on the URL so the poll loop never restarts the fade-in.
+      const bg = /** @type {HTMLElement} */ (row.querySelector('.nearby-row-bg'));
+      const photoUrl = g.place_photo_url || '';
+      if (row.dataset.bgUrl !== photoUrl) {
+        row.dataset.bgUrl = photoUrl;
+        bg.replaceChildren();
+        if (photoUrl) {
+          const img = document.createElement('img');
+          img.className = 'nearby-row-bg-img';
+          img.alt = '';
+          img.addEventListener('load', () => img.classList.add('is-loaded'), { once: true });
+          bg.append(img);
+          img.src = photoUrl;
+        }
+      }
+      if (orderChanged) list.append(row); // re-append in API (nearest-first) order
     }
   }
 
