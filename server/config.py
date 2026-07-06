@@ -47,7 +47,13 @@ def _list(name: str) -> list[str]:
 
 
 # ─── Gameplay ────────────────────────────────────────────────────────────
-MIN_ROLL_INTERVAL = 0.25     # min seconds between a player's rolls (rate limit)
+# Min seconds between a player's rolls. Bounded by the honest client's fastest
+# legitimate cycle — 500ms minimum shake + 320ms scatter + an instant re-tap
+# ≈ 820ms click-to-click — so 0.75 never rejects a real player (or the test
+# driver, which re-taps the moment the button re-enables) while capping a
+# stripped client at ~1.3 rolls/s instead of the old 4/s. The reduced-motion
+# client path enforces a matching 700ms pacing floor (animations.js).
+MIN_ROLL_INTERVAL = _float("MIN_ROLL_INTERVAL", 0.75)
 ROLL_ACK_TIMEOUT = 2.0       # wait for the roller's reveal ack before broadcasting
 DISCONNECT_GRACE = 60.0      # seconds a dropped player's slot is held for reconnect
 ROUND_WIN_DELAY = 3.0        # winner overlay hold before advancing the round
@@ -85,6 +91,8 @@ CREATE_RATE_MAX = _int("CREATE_RATE_MAX", 10)             # creates per window p
 CREATE_RATE_WINDOW = _float("CREATE_RATE_WINDOW", 60.0)
 JOIN_RATE_MAX = _int("JOIN_RATE_MAX", 60)                 # joins per window per IP
 JOIN_RATE_WINDOW = _float("JOIN_RATE_WINDOW", 60.0)
+AUTH_RATE_MAX = _int("AUTH_RATE_MAX", 20)                 # auth ops per window per IP
+AUTH_RATE_WINDOW = _float("AUTH_RATE_WINDOW", 60.0)       # (a passkey ceremony is 2 ops)
 
 
 # ─── WebSocket origin allowlist (audit M3) ───────────────────────────────

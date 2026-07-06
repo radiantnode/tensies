@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import HTMLResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-from .assets import build_index_html, build_page_template, render_page
+from .assets import build_page_template, render_page
 from .config import (
     APP_URL,
     FOUNDING_CUTOFF,
@@ -24,11 +24,29 @@ router = APIRouter()
 # cache-busting hashes. Either way, render_page() substitutes the $meta_vars
 # per-request (defaults for most routes, overrides for profiles etc.).
 if FRONTEND_DIST:
+    # Prod: bake once from the prebuilt, fingerprinted dist/ index.html.
     _html_source = (Path(FRONTEND_DIST) / "index.html").read_text()
+    _tmpl, _defaults = build_page_template(_html_source, APP_URL)
+    _index_html = render_page(_tmpl, _defaults)
+
+    def _page_template():
+        return _tmpl, _defaults
+
+    def _render_index() -> str:
+        return _index_html
 else:
-    _html_source = build_index_html()
-_tmpl, _defaults = build_page_template(_html_source, APP_URL)
-_index_html = render_page(_tmpl, _defaults)
+    # Dev: recompute lazily so edits to any CSS/JS/index.html show up without a
+    # server restart (DevAssets rebuilds only when a static file's mtime moves).
+    from .assets import dev_assets
+
+    _dev = dev_assets(APP_URL)
+
+    def _page_template():
+        return _dev.template()
+
+    def _render_index() -> str:
+        tmpl, defaults = _dev.template()
+        return render_page(tmpl, defaults)
 
 # Fail loud, not closed: a bare `uvicorn` run stays usable, but warn so an
 # operator never unknowingly exposes these on a public port. Both compose files
@@ -58,7 +76,7 @@ def _require_telemetry() -> None:
 
 @router.get("/")
 async def root() -> HTMLResponse:
-    return HTMLResponse(_index_html)
+    return HTMLResponse(_render_index())
 
 
 @router.get("/metrics", dependencies=[Depends(_bearer_guard(METRICS_TOKEN))])
@@ -149,17 +167,17 @@ async def stats_game(game_code: str) -> dict:
 # Declared last so the explicit routes above (/, /metrics, /stats/*) win.
 @router.get("/join")
 async def join_page() -> HTMLResponse:
-    return HTMLResponse(_index_html)
+    return HTMLResponse(_render_index())
 
 
 @router.get("/signin")
 async def signin_page() -> HTMLResponse:
-    return HTMLResponse(_index_html)
+    return HTMLResponse(_render_index())
 
 
 @router.get("/welcome")
 async def welcome_page() -> HTMLResponse:
-    return HTMLResponse(_index_html)
+    return HTMLResponse(_render_index())
 
 
 @router.get("/api/profile/{username}")
@@ -387,7 +405,7 @@ async def verify_roll(code: str, pid: str, roll_count: int) -> dict:
 
 @router.get("/games/{code}")
 async def game_detail_page(code: str) -> HTMLResponse:
-    return HTMLResponse(_index_html)
+    return HTMLResponse(_render_index())
 
 
 # Vanity profile URLs: tensies.app/@username. The @ prefix guarantees no
@@ -395,7 +413,7 @@ async def game_detail_page(code: str) -> HTMLResponse:
 @router.get("/@{username}")
 async def profile_vanity(username: str) -> HTMLResponse:
     if not TELEMETRY_ENABLED:
-        return HTMLResponse(_index_html)
+        return HTMLResponse(_render_index())
     try:
         from server.telemetry import store
         async with store.pool().acquire() as con:
@@ -404,7 +422,7 @@ async def profile_vanity(username: str) -> HTMLResponse:
                 username.lower(),
             )
             if user is None:
-                return HTMLResponse(_index_html)
+                return HTMLResponse(_render_index())
             stats = await con.fetchrow(
                 "SELECT total_wins, total_games FROM player_stats WHERE user_id = ("
                 "SELECT id::text FROM users WHERE LOWER(username) = $1)",
@@ -418,8 +436,9 @@ async def profile_vanity(username: str) -> HTMLResponse:
             desc_parts.append(user["bio"])
         desc_parts.append("Challenge them to a game — no download required.")
         base = APP_URL.rstrip("/") if APP_URL else ""
+        tmpl, defaults = _page_template()
         html = render_page(
-            _tmpl, _defaults,
+            tmpl, defaults,
             page_title=f"@{display} — Tensies Player Profile",
             share_title=f"Play Tensies with @{display}!",
             share_description=" ".join(desc_parts),
@@ -428,7 +447,7 @@ async def profile_vanity(username: str) -> HTMLResponse:
         return HTMLResponse(html)
     except Exception:
         log.exception("profile meta injection failed for @%s", username)
-        return HTMLResponse(_index_html)
+        return HTMLResponse(_render_index())
 
 
 # Clean join URLs: GET /<code> serves the SPA, which reads the code from the
@@ -443,4 +462,4 @@ _GAME_CODE_RE = re.compile(r"[A-Za-z]{5}")
 async def join_deeplink(code: str) -> HTMLResponse:
     if not _GAME_CODE_RE.fullmatch(code):
         raise HTTPException(status_code=404)
-    return HTMLResponse(_index_html)
+    return HTMLResponse(_render_index())

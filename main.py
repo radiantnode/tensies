@@ -57,16 +57,19 @@ app.add_middleware(SecurityHeadersMiddleware)
 #         './foo.js'` URL with a ?v=<hash> cache-buster (build_js_cache) so
 #         edits are picked up immediately. StaticFiles serves css/images/fonts.
 if not FRONTEND_DIST:
-    from server.assets import build_js_cache
+    from server.assets import dev_assets
 
-    _js_cache = build_js_cache()
+    # Shared singleton with routes.py (which sets APP_URL at its import). The
+    # per-request lookup rebuilds the JS cache only when a static file's mtime
+    # moves, so edits to a module show up on the next reload — no restart.
+    _dev = dev_assets()
 
     @app.get("/static/js/{path:path}")
     async def static_js(path: str):
-        key = f"js/{path}"
-        if key in _js_cache:
+        body = _dev.js(f"js/{path}")
+        if body is not None:
             return Response(
-                content=_js_cache[key],
+                content=body,
                 media_type="text/javascript; charset=utf-8",
                 headers={"Cache-Control": "no-cache"},
             )

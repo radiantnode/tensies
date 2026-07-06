@@ -58,7 +58,7 @@ export class OnboardingScreen extends HTMLElement {
   /**
    * Populate the screen with the confirmed username and any transferred stats.
    * @param {string} username
-   * @param {object | null} stats
+   * @param {import('../types.js').PlayerStats | null} stats
    */
   show(username, stats) {
     // Stash for refresh survival
@@ -70,7 +70,7 @@ export class OnboardingScreen extends HTMLElement {
 
   /**
    * @param {string} username
-   * @param {object | null} stats
+   * @param {import('../types.js').PlayerStats | null} stats
    */
   #render(username, stats) {
     const nameEl = document.getElementById('onboarding-username');

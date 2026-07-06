@@ -18,7 +18,12 @@ import { state } from './state.js';
 /** Begin the gather + tumble phase of a roll (skipped under reduced motion). */
 export function startShake() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    state.rollShakeEnd = Date.now();
+    // No motion, same pace. Skipping the wait entirely made reduced motion a
+    // ~40%-faster roll cadence — roughly a 70% round-win rate against a
+    // default-animation opponent. 700ms is the midpoint of the normal
+    // gather+shake window (500–900ms), so the cadence matches; it also keeps
+    // the cycle above the server's MIN_ROLL_INTERVAL floor.
+    state.rollShakeEnd = Date.now() + 700;
     return;
   }
   const gatherMs = 200;
@@ -179,9 +184,29 @@ export function updateDiceInPlace(snap, onComplete, winForMe = false) {
   state.pendingRollTimeouts.push(revealT);
 }
 
+// Give up waiting for the roll response this long after the shake ends. The
+// server replies to the roller immediately (the private roll frame), so a wait
+// past this means the response was dropped or the roll was rejected — without a
+// cap the button stays disabled forever (the roll-ack hang, client side).
+const REVEAL_WAIT_MS = 2500;
+
 /** Wait for the server's roll response, then animate the reveal. */
 export function tryReveal() {
   if (!state.pendingRollState) {
+    if (Date.now() > state.rollShakeEnd + REVEAL_WAIT_MS) {
+      // Bail: unstick the machine and re-render the last known state so the
+      // roll button re-enables. A rejected roll (e.g. "Slow down") also lands
+      // here — handleError surfaces the reason; this just clears the spinner.
+      state.rolling = false;
+      state.awaitingAck = false;
+      const btn = /** @type {HTMLButtonElement | null} */ (document.getElementById('roll-btn'));
+      if (btn) btn.disabled = false;
+      if (state.currentState) {
+        renderMyArea(state.currentState);
+        renderPlayersBar(state.currentState);
+      }
+      return;
+    }
     const t = setTimeout(tryReveal, 50);
     state.pendingRollTimeouts.push(t);
     return;

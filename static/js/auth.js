@@ -101,7 +101,7 @@ export function isWebAuthnAvailable() {
 /**
  * Full passkey registration flow.
  * @param {string} username
- * @returns {Promise<{ token: string, user: { id: string, username: string } }>}
+ * @returns {Promise<{ token: string, user: { id: string, username: string }, stats: import('./types.js').PlayerStats | null }>}
  */
 export async function registerPasskey(username) {
   // 1. Get options from server

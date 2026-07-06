@@ -138,10 +138,15 @@ export class LobbyScreen extends HTMLElement {
         // creation (keyed rows are built once) and cleared when it finishes, so
         // re-renders never replay it.
         row.classList.add('player-enter');
-        row.addEventListener('animationend', () => row.classList.remove('player-enter'), { once: true });
+        const created = row;
+        created.addEventListener('animationend', () => created.classList.remove('player-enter'), { once: true });
         this.#rows.set(pid, row);
       }
-      list.appendChild(row);
+      // Only (re)insert when the row isn't already in its slot. Re-appending a
+      // node restarts its player-enter animation, so a second snapshot arriving
+      // mid-entrance (every join triggers a render) would kill the fade-in.
+      const slot = others.findIndex(([p]) => p === pid);
+      if (list.children[slot] !== row) list.insertBefore(row, list.children[slot] ?? null);
       const img = /** @type {HTMLImageElement} */ (row.querySelector('.lobby-avatar'));
       const src = player.photo || DEFAULT_AVATAR;
       if (img.getAttribute('src') !== src) img.setAttribute('src', src);
