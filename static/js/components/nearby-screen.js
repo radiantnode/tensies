@@ -12,6 +12,29 @@ import { showLanding } from '../router.js';
 /** How often the radar re-polls the endpoint while the screen is active. */
 const REFRESH_MS = 8000;
 
+/** Placeholder avatar for hosts without an account photo. */
+const PLACEHOLDER_AVATAR = 'https://cdn1.simmons.cloud/tensies/production/profile-photos/mich.webp';
+
+/** Local fallback if the avatar URL fails to load (CSP-safe, always present). */
+const DEFAULT_AVATAR = '/static/images/avatar-default.svg';
+
+/**
+ * Build an avatar <img> with a graceful fallback. The error handler can't be
+ * an inline attribute (CSP blocks inline handlers), so it's attached here.
+ * @param {string | null | undefined} photo
+ * @param {string} className
+ */
+function avatarImg(photo, className) {
+  const img = document.createElement('img');
+  img.className = className;
+  img.alt = '';
+  img.src = photo || PLACEHOLDER_AVATAR;
+  img.addEventListener('error', () => {
+    if (img.src !== location.origin + DEFAULT_AVATAR) img.src = DEFAULT_AVATAR;
+  }, { once: true });
+  return img;
+}
+
 /**
  * <nearby-screen> — the GPS discovery radar (#nearby.screen, light DOM).
  *
@@ -272,7 +295,13 @@ export class NearbyScreen extends HTMLElement {
       blip.style.top = `${y}%`;
       blip.setAttribute('aria-label',
         `${g.host_name}, ${g.player_count} player${g.player_count === 1 ? '' : 's'}, ${g.distance_m} metres away`);
-      blip.innerHTML = `<span class="blip-dot"></span><span class="blip-name">${escapeHtml(g.host_name)}</span>`;
+      const ring = document.createElement('span');
+      ring.className = 'blip-avatar-ring';
+      ring.append(avatarImg(g.photo, 'blip-avatar'));
+      const name = document.createElement('span');
+      name.className = 'blip-name';
+      name.textContent = g.host_name;
+      blip.append(ring, name);
       blips.append(blip);
     }
     if (this.#selected) {
@@ -304,12 +333,21 @@ export class NearbyScreen extends HTMLElement {
       return;
     }
     const plural = g.player_count === 1 ? 'player' : 'players';
-    card.innerHTML = `
-      <div class="nearby-card-info">
-        <span class="nearby-card-host">${escapeHtml(g.host_name)}</span>
-        <span class="nearby-card-meta">${g.player_count} ${plural} · ~${g.distance_m} m away</span>
-      </div>
-      <button type="button" class="btn btn-primary nearby-card-join" data-join="${g.code}">Join</button>`;
+    card.replaceChildren();
+    const ring = document.createElement('span');
+    ring.className = 'nearby-card-avatar-ring';
+    ring.append(avatarImg(g.photo, 'nearby-card-avatar'));
+    const info = document.createElement('div');
+    info.className = 'nearby-card-info';
+    info.innerHTML =
+      `<span class="nearby-card-host">${escapeHtml(g.host_name)}</span>` +
+      `<span class="nearby-card-meta">${g.player_count} ${plural} · ~${g.distance_m} m away</span>`;
+    const join = document.createElement('button');
+    join.type = 'button';
+    join.className = 'btn btn-primary nearby-card-join';
+    join.dataset.join = g.code;
+    join.textContent = 'Join';
+    card.append(ring, info, join);
     card.hidden = false;
   }
 

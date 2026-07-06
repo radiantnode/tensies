@@ -226,6 +226,7 @@ async def api_nearby(request: Request, lat: float, lon: float) -> dict:
         games.append({
             "code": code,
             "host_name": card["host_name"],
+            "photo": card["photo"],
             "player_count": card["player_count"],
             "distance_m": round(dist / bucket) * bucket,
             "bearing_deg": _bearing_deg(lat, lon, jlat, jlon),

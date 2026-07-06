@@ -153,17 +153,30 @@
     to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   }
 
-  .blip-dot {
-    inline-size: 14px;
-    block-size: 14px;
+  /* Avatar disc with a pink rim. Counter-rotates the compass heading so the
+     face stays upright as the scope turns. */
+  .blip-avatar-ring {
+    position: relative;
+    inline-size: 36px;
+    block-size: 36px;
+    padding: 2px;
     border-radius: 50%;
     background: var(--color-accent);
-    box-shadow: 0 0 10px rgba(255, 77, 109, 0.85);
-    position: relative;
+    box-shadow: 0 0 10px rgba(255, 77, 109, 0.7);
+    transform: rotate(calc(-1 * var(--rot, 0deg)));
+  }
+
+  .blip-avatar {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--color-field);
   }
 
   /* Each blip pings outward — the sonar idiom from the audio buttons. */
-  .blip-dot::after {
+  .blip-avatar-ring::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -174,7 +187,7 @@
 
   @keyframes blip-ping {
     0% { transform: scale(1); opacity: 0.7; }
-    100% { transform: scale(3); opacity: 0; }
+    100% { transform: scale(2.6); opacity: 0; }
   }
 
   .blip-name {
@@ -194,7 +207,7 @@
     text-overflow: ellipsis;
   }
 
-  .radar-blip.is-selected .blip-dot {
+  .radar-blip.is-selected .blip-avatar-ring {
     background: #fff;
     box-shadow: 0 0 12px #fff, 0 0 22px rgba(255, 77, 109, 0.9);
   }
@@ -216,7 +229,31 @@
     border: 1px solid var(--color-border-strong);
     border-radius: var(--radius-md);
     box-shadow: inset 0 1px 0 rgba(220, 170, 70, 0.12), 0 4px 14px rgba(0, 0, 0, 0.45);
-    animation: blip-appear 0.2s ease-out both;
+    animation: card-appear 0.2s ease-out both;
+  }
+
+  @keyframes card-appear {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .nearby-card-avatar-ring {
+    flex-shrink: 0;
+    inline-size: 44px;
+    block-size: 44px;
+    padding: 2px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, rgba(255, 160, 178, 0.7), var(--color-accent));
+    box-shadow: 0 0 10px rgba(255, 77, 109, 0.4);
+  }
+
+  .nearby-card-avatar {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--color-field);
   }
 
   .nearby-card-info {

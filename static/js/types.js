@@ -41,6 +41,7 @@
  * @typedef {object} NearbyGame
  * @property {string} code
  * @property {string} host_name
+ * @property {string | null} [photo] Host avatar URL; null for anonymous hosts.
  * @property {number} player_count
  * @property {number} distance_m Bucketed metres from the caller.
  * @property {number} bearing_deg 0–359, clockwise from true north.

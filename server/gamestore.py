@@ -518,19 +518,22 @@ async def set_discoverable(code: str, flag: bool) -> None:
 
 
 async def discovery_card(code: str) -> dict | None:
-    """Cheap read for the discovery endpoint — host name + player count + the
-    started flag, without loading every player via snapshot(). None if the game
-    has vanished. Two steps: the host pid comes from `host`, then its name."""
+    """Cheap read for the discovery endpoint — host name + avatar + player count
+    + the started flag, without loading every player via snapshot(). None if the
+    game has vanished. Two steps: the host pid comes from `host`, then its
+    name/photo."""
     started, host, order = await _r.hmget(_gkey(code), ["started", "host", "order"])
     if host is None or order is None:
         return None
-    host_name = await _r.hget(_gkey(code), f"p:{host}:name")
+    host_name, host_photo = await _r.hmget(
+        _gkey(code), [f"p:{host}:name", f"p:{host}:photo"])
     try:
         player_count = len(json.loads(order))
     except (TypeError, ValueError):
         player_count = 0
     return {
         "host_name": host_name or "Someone",
+        "photo": host_photo,  # None for anonymous hosts; client uses a fallback
         "player_count": player_count,
         "started": started == "1",
     }
