@@ -604,10 +604,20 @@
   }
 
   .confirm-body {
-    margin: 0 0 1.25rem;
+    margin: 0 0 0.6rem;
     font-size: 0.9rem;
     line-height: 1.45;
     color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+  }
+
+  /* Fine print under the body copy. */
+  .confirm-note {
+    margin: 0 0 1.25rem;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    color: var(--color-text-muted);
+    opacity: 0.75;
     text-shadow: var(--shadow-text);
   }
 

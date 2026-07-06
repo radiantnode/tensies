@@ -113,6 +113,7 @@ export class LobbyScreen extends HTMLElement {
         <dialog id="allow-nearby-confirm" class="confirm-dialog" aria-labelledby="allow-nearby-title">
           <h2 id="allow-nearby-title" class="confirm-title">Allow nearby players?</h2>
           <p class="confirm-body">Nearby players will be able to see and join this game using your location.</p>
+          <p class="confirm-note">Your location information will not be stored. Your device may ask for additional permissions.</p>
           <div class="confirm-actions">
             <button id="allow-nearby-cancel" type="button" class="btn btn-secondary">Cancel</button>
             <button id="allow-nearby-ok" type="button" class="btn btn-primary">Allow</button>
