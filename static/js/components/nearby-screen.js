@@ -37,6 +37,15 @@ export class NearbyScreen extends HTMLElement {
   /** @type {number} bumped each acquisition so a stale fetch can't paint. */
   #token = 0;
 
+  /** @type {boolean} compass alignment active (scope rotates with heading). */
+  #compassOn = false;
+
+  /** @type {number} latest heading in degrees clockwise from true north. */
+  #heading = 0;
+
+  /** @type {boolean} an orientation → rAF paint is already queued. */
+  #rafPending = false;
+
   connectedCallback() {
     if (this.dataset.rendered) return;
     this.dataset.rendered = 'true';
@@ -60,6 +69,10 @@ export class NearbyScreen extends HTMLElement {
           </div>
           <div class="radar-blips" id="radar-blips"></div>
         </div>
+        <button id="compass-btn" type="button" class="btn btn-secondary compass-btn" aria-pressed="false" hidden>
+          <svg class="compass-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polygon points="12,7 14.5,14.5 12,13 9.5,14.5" fill="currentColor" stroke="none"/></svg>
+          <span class="compass-label">Use compass</span>
+        </button>
         <div class="nearby-card" id="nearby-card" hidden></div>
         <p class="error-msg nearby-error" id="nearby-error" role="alert" aria-live="polite"></p>
         <button id="nearby-retry" type="button" class="btn btn-secondary nearby-retry" hidden>Try again</button>
@@ -67,6 +80,10 @@ export class NearbyScreen extends HTMLElement {
 
     byId('nearby-back-btn').addEventListener('click', () => showLanding());
     byId('nearby-retry').addEventListener('click', () => this.enter());
+    // Compass alignment is offered only where device orientation could exist;
+    // the tap is also the user gesture iOS requires for its permission prompt.
+    if ('DeviceOrientationEvent' in window) byId('compass-btn').hidden = false;
+    byId('compass-btn').addEventListener('click', () => this.#toggleCompass());
     // Blip taps + card Join, via delegation (blips/card are rebuilt each poll).
     byId('radar-blips').addEventListener('click', (e) => {
       const blip = /** @type {HTMLElement} */ (e.target).closest('[data-code]');
@@ -80,7 +97,82 @@ export class NearbyScreen extends HTMLElement {
 
   disconnectedCallback() {
     this.#stopPolling();
+    this.#stopCompass();
   }
+
+  /**
+   * Toggle compass alignment. On first enable this triggers the iOS
+   * DeviceOrientationEvent.requestPermission() prompt (allowed because we're in
+   * the tap handler); other engines start listening directly. When on, the
+   * scope + blips rotate so the direction you're facing is at the top.
+   */
+  async #toggleCompass() {
+    if (this.#compassOn) {
+      this.#stopCompass();
+      return;
+    }
+    const DOE = /** @type {any} */ (window.DeviceOrientationEvent);
+    if (DOE && typeof DOE.requestPermission === 'function') {
+      let res;
+      try {
+        res = await DOE.requestPermission();
+      } catch {
+        res = 'denied';
+      }
+      if (res !== 'granted') {
+        this.showError('Compass access denied — check your browser settings.');
+        return;
+      }
+    }
+    this.showError('');
+    this.#compassOn = true;
+    // deviceorientationabsolute (Chromium) is true-north; iOS Safari fires
+    // plain deviceorientation carrying webkitCompassHeading instead.
+    const evt = 'ondeviceorientationabsolute' in window
+      ? 'deviceorientationabsolute' : 'deviceorientation';
+    window.addEventListener(evt, this.#onOrient);
+    const btn = byId('compass-btn');
+    btn.classList.add('is-on');
+    btn.setAttribute('aria-pressed', 'true');
+    /** @type {HTMLElement} */ (btn.querySelector('.compass-label')).textContent = 'Compass on';
+  }
+
+  #stopCompass() {
+    if (!this.#compassOn) return;
+    this.#compassOn = false;
+    window.removeEventListener('deviceorientationabsolute', this.#onOrient);
+    window.removeEventListener('deviceorientation', this.#onOrient);
+    byId('radar').style.removeProperty('--rot');
+    const btn = byId('compass-btn');
+    btn.classList.remove('is-on');
+    btn.setAttribute('aria-pressed', 'false');
+    /** @type {HTMLElement} */ (btn.querySelector('.compass-label')).textContent = 'Use compass';
+  }
+
+  /**
+   * Device-orientation handler. Derives a compass heading (clockwise from true
+   * north) and rotates the scope by -heading via a CSS var, throttled to a
+   * frame. Bound field so add/removeEventListener match.
+   * @param {DeviceOrientationEvent & {webkitCompassHeading?: number}} e
+   */
+  #onOrient = (e) => {
+    if (!this.#compassOn || !this.classList.contains('active')) return;
+    let heading;
+    if (typeof e.webkitCompassHeading === 'number') {
+      heading = e.webkitCompassHeading;               // iOS: already 0=N, CW
+    } else if (typeof e.alpha === 'number') {
+      heading = 360 - e.alpha;                         // alpha is CCW from N
+    } else {
+      return;
+    }
+    this.#heading = heading;
+    if (this.#rafPending) return;
+    this.#rafPending = true;
+    requestAnimationFrame(() => {
+      this.#rafPending = false;
+      byId('radar').style.setProperty('--rot', `${-this.#heading}deg`);
+    });
+  };
 
   /**
    * Acquire location and start the poll loop. Called on every entry to the
