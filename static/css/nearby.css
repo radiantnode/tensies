@@ -470,6 +470,19 @@
     100% { transform: scale(3.4); opacity: 0; }
   }
 
+  /* Idle (not broadcasting): the dots keep rippling so the icon reads as alive,
+     but faint and short — a dim echo of the active sonar, never reaching its
+     brightness. Same three-step stagger, slower. The button surface is left
+     untouched (no idle glow); only the glyph moves. */
+  .btn-broadcast:not(.is-on) .broadcast-wave span:nth-child(1) { animation: bwave-idle 2.6s ease-out infinite; }
+  .btn-broadcast:not(.is-on) .broadcast-wave span:nth-child(2) { animation: bwave-idle 2.6s ease-out 0.85s infinite; }
+  .btn-broadcast:not(.is-on) .broadcast-wave span:nth-child(3) { animation: bwave-idle 2.6s ease-out 1.7s infinite; }
+
+  @keyframes bwave-idle {
+    0% { transform: scale(0.6); opacity: 0.32; }
+    100% { transform: scale(2.2); opacity: 0; }
+  }
+
   /* Transient location-sharing feedback ("Getting your location…" / errors)
      shown above the check-in prompt; hidden otherwise. */
   .discovery-status {
@@ -486,6 +499,7 @@
   @media (prefers-reduced-motion: reduce) {
     .radar-sweep { animation: none; }
     .blip-dot::after { animation: none; opacity: 0; }
-    .btn-broadcast.is-on .broadcast-wave span { animation: none; }
+    .btn-broadcast.is-on .broadcast-wave span,
+    .btn-broadcast:not(.is-on) .broadcast-wave span { animation: none; }
   }
 }
