@@ -569,4 +569,51 @@
     flex-shrink: 0;
   }
   .places-checkout[hidden] { display: none; }
+
+  /* ── Confirm dialog ("Allow nearby players?") ──
+     Minimal centered modal — native <dialog> via showModal() (UA centers it).
+     Intentionally simple; design iterates later. */
+  .confirm-dialog {
+    inline-size: min(88vw, 340px);
+    max-inline-size: none;
+    /* The @layer reset zeroes margins, which kills the UA's margin:auto that
+       centers a modal <dialog>; restore it so showModal() centres on screen. */
+    margin: auto;
+    padding: 1.5rem 1.4rem 1.25rem;
+    background: var(--color-panel-screen);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-lg, 20px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    color: var(--color-text);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+  .confirm-dialog::backdrop {
+    background: rgba(6, 3, 1, 0.62);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
+
+  .confirm-title {
+    margin: 0 0 0.6rem;
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    color: var(--color-text);
+    text-shadow: var(--shadow-text);
+  }
+
+  .confirm-body {
+    margin: 0 0 1.25rem;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+  }
+
+  .confirm-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+  .confirm-actions .btn { flex: 1; }
 }

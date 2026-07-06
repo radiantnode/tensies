@@ -88,10 +88,10 @@ export class LobbyScreen extends HTMLElement {
             <span class="lobby-action-label">Play</span>
           </div>
           <div id="broadcast-item" class="lobby-action-item" hidden>
-            <button id="broadcast-btn" type="button" class="lobby-action btn-broadcast" aria-pressed="false" aria-label="Share your location with nearby players">
+            <button id="broadcast-btn" type="button" class="lobby-action btn-broadcast" aria-pressed="false" aria-label="Allow nearby players to see and join your game">
               <span class="broadcast-wave" aria-hidden="true"><span></span><span></span><span></span></span>
             </button>
-            <span class="lobby-action-label">Share Location</span>
+            <span class="lobby-action-label">Allow Nearby</span>
           </div>
         </div>
         <p id="discovery-status" class="discovery-status" role="status" aria-live="polite" hidden></p>
@@ -109,6 +109,14 @@ export class LobbyScreen extends HTMLElement {
           <p id="places-status" class="places-status">Finding places near you…</p>
           <ul id="places-list" class="places-list" aria-label="Nearby places"></ul>
           <button id="places-checkout" type="button" class="btn btn-secondary places-checkout" hidden>Check out</button>
+        </dialog>
+        <dialog id="allow-nearby-confirm" class="confirm-dialog" aria-labelledby="allow-nearby-title">
+          <h2 id="allow-nearby-title" class="confirm-title">Allow nearby players?</h2>
+          <p class="confirm-body">Nearby players will be able to see and join this game using your location.</p>
+          <div class="confirm-actions">
+            <button id="allow-nearby-cancel" type="button" class="btn btn-secondary">Cancel</button>
+            <button id="allow-nearby-ok" type="button" class="btn btn-primary">Allow</button>
+          </div>
         </dialog>
         <section class="lobby-players-section" aria-labelledby="players-label">
           <h2 id="players-label" class="section-label">Fellow Bar Rats</h2>
@@ -128,6 +136,11 @@ export class LobbyScreen extends HTMLElement {
     byId('play-code-btn').addEventListener('click', () => this.#playCode());
     byId('start-btn').addEventListener('click', () => startGame());
     byId('broadcast-btn').addEventListener('click', () => this.#toggleBroadcast());
+    byId('allow-nearby-cancel').addEventListener('click', () => this.#closeAllowConfirm());
+    byId('allow-nearby-ok').addEventListener('click', () => {
+      this.#closeAllowConfirm();
+      this.#startBroadcast(); // now run the browser geolocation permission flow
+    });
     byId('checkin-prompt').addEventListener('click', () => this.#openPlaces());
     byId('places-close').addEventListener('click', () => this.#closePlaces());
     byId('places-checkout').addEventListener('click', () => { checkOut(); this.#closePlaces(); });
@@ -246,7 +259,7 @@ export class LobbyScreen extends HTMLElement {
     btn.classList.toggle('is-on', broadcasting);
     btn.setAttribute('aria-pressed', broadcasting ? 'true' : 'false');
     btn.setAttribute('aria-label',
-      broadcasting ? 'Stop sharing your location' : 'Share your location with nearby players');
+      broadcasting ? 'Stop allowing nearby players' : 'Allow nearby players to see and join your game');
   }
 
   /**
@@ -273,16 +286,30 @@ export class LobbyScreen extends HTMLElement {
   }
 
   /**
-   * Host-only Broadcast toggle. Turning on needs a GPS fix (prompted here);
-   * turning off is a bare intent. Either way the visible on/off state follows
-   * the next snapshot via #syncBroadcast, not this handler.
+   * Host-only "Allow Nearby" toggle. Turning off is a bare intent. Turning on
+   * first asks for confirmation (letting strangers find the game is worth an
+   * explicit yes); only on confirm does the browser geolocation flow run. The
+   * visible on/off state follows the next snapshot via #syncBroadcast.
    */
-  async #toggleBroadcast() {
+  #toggleBroadcast() {
     const btn = byId('broadcast-btn');
     if (btn.getAttribute('aria-pressed') === 'true') {
       stopBroadcast();
       return;
     }
+    /** @type {HTMLDialogElement} */ (byId('allow-nearby-confirm')).showModal();
+  }
+
+  /** Close the "Allow nearby players?" confirmation. */
+  #closeAllowConfirm() {
+    /** @type {HTMLDialogElement} */ (byId('allow-nearby-confirm')).close();
+  }
+
+  /**
+   * Run the geolocation permission flow and start broadcasting. Called only
+   * after the host confirms. The GPS prompt fires inside getPosition().
+   */
+  async #startBroadcast() {
     this.#setBroadcastStatus('Getting your location…', false);
     try {
       const { lat, lon } = await getPosition();
