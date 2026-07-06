@@ -239,6 +239,22 @@
     color: #2a1608;
   }
 
+  /* Checked-in place, a second line under the host name (gold, matching the
+     check-in theme). Counter-rotated so it stays upright with the compass. */
+  .blip-place {
+    transform: rotate(calc(-1 * var(--rot, 0deg)));
+    max-inline-size: 88px;
+    margin-block-start: -1px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--color-amber);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   /* ── Games list (below the radar) ─────────────────────────────────────── */
   .nearby-list {
     list-style: none;

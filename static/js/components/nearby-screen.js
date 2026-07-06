@@ -305,15 +305,21 @@ export class NearbyScreen extends HTMLElement {
       blip.style.left = `${x}%`;
       blip.style.top = `${y}%`;
       blip.setAttribute('aria-label',
-        `${g.host_name}, ${g.player_count} player${g.player_count === 1 ? '' : 's'}, ${g.distance_m} metres away`);
+        `${g.host_name}${g.place_name ? ` at ${g.place_name}` : ''}, ${g.player_count} player${g.player_count === 1 ? '' : 's'}, ${g.distance_m} metres away`);
       const ring = document.createElement('span');
       ring.className = 'blip-avatar-ring';
       ring.append(avatarImg(g.photo, 'blip-avatar'));
       const name = document.createElement('span');
       name.className = 'blip-name';
-      // A checked-in game reads by its place; otherwise by the host's name.
-      name.textContent = g.place_name || g.host_name;
+      name.textContent = g.host_name;
       blip.append(ring, name);
+      // Checked-in games also show the place, on a second line under the name.
+      if (g.place_name) {
+        const place = document.createElement('span');
+        place.className = 'blip-place';
+        place.textContent = g.place_name;
+        blip.append(place);
+      }
       blips.append(blip);
     }
 
