@@ -240,9 +240,11 @@ async def api_nearby(request: Request, lat: float, lon: float) -> dict:
             "place_id": card["place_id"],      # set when checked in to a place
             "place_name": card["place_name"],
             # Same-origin proxy URL like the check-in sheet rows — never a raw
-            # Google URL. w=512 is the proxy's cap; the radar bg wants the big one.
+            # Google URL. w=512 is the proxy's cap; the card bg wants the big
+            # one. place_photo (the stored ref) just marks "this place has a
+            # photo"; the URL itself is keyed by place id.
             "place_photo_url": (
-                f"/api/places/photo?ref={quote(card['place_photo'], safe='')}&w=512"
+                f"/api/places/photo?place={quote(card['place_id'], safe='')}&w=512"
                 if card["place_photo"] else None),
         })
     return {"radius_m": int(DISCOVERY_RADIUS_M), "games": games}
@@ -253,7 +255,9 @@ def _place_json(p: dict) -> dict:
     (never a raw Google URL / credential)."""
     return {
         "place_id": p["place_id"], "name": p["name"], "address": p.get("address", ""),
-        "photo_url": (f"/api/places/photo?ref={quote(p['photo_ref'], safe='')}"
+        # Keyed by place id, not photo ref: refs are re-minted per search, so
+        # a ref-based URL would defeat both browser and Redis caching.
+        "photo_url": (f"/api/places/photo?place={quote(p['place_id'], safe='')}"
                       if p.get("photo_ref") else None),
     }
 
@@ -294,23 +298,26 @@ async def api_places_search(request: Request, q: str, lat: float, lon: float) ->
     return {"places": [_place_json(p) for p in results]}
 
 
-# Only the exact Places photo path is proxyable — no arbitrary URLs (SSRF guard).
-_PHOTO_REF_RE = re.compile(r"^places/[\w-]+/photos/[\w-]+$")
+# Place ids only — the Google photo ref is resolved server-side and never
+# appears in a client URL (the ref-shape SSRF guard lives in places.fetch_photo).
+_PLACE_ID_RE = re.compile(r"^[\w-]+$")
 
 
 @router.get("/api/places/photo")
-async def api_places_photo(request: Request, ref: str, w: int = 200) -> Response:
-    """Proxy a Google Places photo so the API credentials stay server-side."""
+async def api_places_photo(request: Request, place: str, w: int = 200) -> Response:
+    """Proxy a place's primary Google photo so the API credentials stay
+    server-side. Keyed by place id so the URL — and both cache layers — stay
+    stable across searches (Google re-mints photo refs per search response)."""
     if not PLACES_ENABLED:
         raise HTTPException(status_code=503, detail="places disabled")
-    if not _PHOTO_REF_RE.match(ref):
-        raise HTTPException(status_code=400, detail="bad ref")
+    if not _PLACE_ID_RE.match(place):
+        raise HTTPException(status_code=400, detail="bad place id")
     ip = client_ip(request)
     # A sheet shows up to 20 photos at once, so allow well above the search rate.
     if not await gamestore.rate_allow("placephoto", ip,
                                       PLACES_RATE_MAX * 5, PLACES_RATE_WINDOW):
         raise HTTPException(status_code=429, detail="slow down")
-    got = await places.fetch_photo(ref, max(48, min(w, 512)))
+    got = await places.fetch_photo(place, max(48, min(w, 512)))
     if got is None:
         raise HTTPException(status_code=404, detail="no photo")
     content_type, data = got

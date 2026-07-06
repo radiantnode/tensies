@@ -17,6 +17,7 @@ import asyncio
 import base64
 import json
 import logging
+import re
 import time
 
 import httpx
@@ -283,24 +284,31 @@ def _parse_places(data: dict) -> list[dict]:
 
 
 _PHOTO_MISS = "MISS"          # negative-cache sentinel
-_PHOTO_MISS_TTL = 300         # don't hammer Google for refs that just failed
+_PHOTO_MISS_TTL = 300         # don't hammer Google for places that just failed
+
+# The only Google URL shape we'll ever fetch media from (SSRF guard on the
+# server-side ref — refs never come from, or go to, the browser).
+_PHOTO_REF_RE = re.compile(r"^places/[\w-]+/photos/[\w-]+$")
 
 
-def _photo_ckey(ref: str, max_w: int) -> str:
-    return f"placephoto:{ref}:{max_w}"
+def _photo_ckey(place_id: str, max_w: int) -> str:
+    return f"placephoto:{place_id}:{max_w}"
 
 
-async def fetch_photo(ref: str, max_w: int) -> tuple[str, bytes] | None:
-    """Image bytes + content-type for a Places photo resource name, fetched with
-    the server-side credentials (they never reach the browser). None on failure.
-    The caller must validate `ref` shape before calling.
+async def fetch_photo(place_id: str, max_w: int) -> tuple[str, bytes] | None:
+    """Image bytes + content-type for a place's primary photo, fetched with the
+    server-side credentials (they never reach the browser). None on failure or
+    when the place has no photo. The caller must validate `place_id` shape.
 
-    Cached in Redis for PLACES_PHOTO_CACHE_TTL (base64 — the shared client is
-    decode_responses=True), keyed by ref+width, so a photo costs one billed
-    Google call per day across all instances and viewers; failures are
-    negatively cached briefly."""
+    Keyed by place id, NOT photo ref: Google mints a fresh photos[0] ref per
+    search response, so ref-keyed entries for the same image never collide
+    across clients. The ref is re-derived here via resolve() (place cache →
+    details call) only on a cache miss. Bytes live in Redis for
+    PLACES_PHOTO_CACHE_TTL (base64 — the shared client is decode_responses=True)
+    so a photo costs one billed Google call per day across all instances and
+    viewers; failures are negatively cached briefly."""
     r = gamestore.client()
-    key = _photo_ckey(ref, max_w)
+    key = _photo_ckey(place_id, max_w)
     cached = await r.get(key)
     if cached == _PHOTO_MISS:
         return None
@@ -308,6 +316,11 @@ async def fetch_photo(ref: str, max_w: int) -> tuple[str, bytes] | None:
         content_type, b64 = cached.split("\n", 1)
         return content_type, base64.b64decode(b64)
     if not _has_google():
+        return None
+    place = await resolve(place_id)
+    ref = (place or {}).get("photo_ref")
+    if not ref or not _PHOTO_REF_RE.match(ref):
+        await r.set(key, _PHOTO_MISS, ex=_PHOTO_MISS_TTL)
         return None
     try:
         headers = await _auth_headers()
