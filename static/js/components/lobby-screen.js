@@ -238,9 +238,6 @@ export class LobbyScreen extends HTMLElement {
     this.#syncBroadcast(!!snap.broadcasting, isHost);
     // Check-in is a refinement of Share Location — only offered while it's on.
     this.#syncCheckin(snap.place_name ?? null, isHost, !!snap.broadcasting);
-    // The shared "you're discoverable" line reflects *either* path onto the
-    // radar, so being on the radar always reads as on.
-    this.#syncDiscoveryStatus(!!snap.broadcasting, snap.place_name ?? null, isHost);
     requestAnimationFrame(() => this.#updateFades());
   }
 
@@ -262,29 +259,14 @@ export class LobbyScreen extends HTMLElement {
     btn.setAttribute('aria-pressed', broadcasting ? 'true' : 'false');
     btn.setAttribute('aria-label',
       broadcasting ? 'Stop allowing nearby players' : 'Allow nearby players to see and join your game');
-  }
-
-  /**
-   * The single "you're on the radar" cue. Discoverability is governed by Share
-   * Location; a check-in only refines *where* the blip sits (so place ⇒
-   * broadcasting). Shown while sharing, naming the place when checked in.
-   * Host-only. The live variant carries a pulsing accent dot.
-   * @param {boolean} broadcasting
-   * @param {string | null} placeName
-   * @param {boolean} isHost
-   */
-  #syncDiscoveryStatus(broadcasting, placeName, isHost) {
-    const status = byId('discovery-status');
-    if (!isHost) { status.hidden = true; return; }
-    const live = broadcasting;
-    // A fresh snapshot supersedes any transient "getting location" / error text.
-    status.classList.toggle('is-live', live);
-    status.classList.remove('is-error');
-    status.hidden = !live;
-    if (!live) return;
-    status.textContent = placeName
-      ? `Nearby players can find this game at ${placeName}.`
-      : 'Nearby players can find this game.';
+    if (broadcasting) {
+      // Sharing is on — the lit button is the cue, so clear the transient
+      // "Getting your location…" once it succeeds. (An error keeps broadcasting
+      // off, so no snapshot arrives to wipe it.)
+      const status = byId('discovery-status');
+      status.hidden = true;
+      status.classList.remove('is-error');
+    }
   }
 
   /**
@@ -329,7 +311,6 @@ export class LobbyScreen extends HTMLElement {
   #setBroadcastStatus(text, isError) {
     const status = byId('discovery-status');
     status.hidden = false;
-    status.classList.remove('is-live'); // transient broadcast feedback, not the live cue
     status.textContent = text;
     status.classList.toggle('is-error', isError);
   }
