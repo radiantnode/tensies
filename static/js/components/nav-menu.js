@@ -13,7 +13,7 @@ const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
 <h2>1.23.0 ("Five Stars")</h2>
 <p>Sunday, July 5, 2026</p>
 <ul>
-<li>We had Claude's new Fable 5 model walk the whole bar with a clipboard, and fixed everything it wrote up. The review came back: "I would drink at this bar." ⭐</li>
+<li>We had Claude's new Fable 5 model walk the whole bar with a clipboard, and fixed everything it wrote up. The review came back: "I would drink at this bar." <a href="https://github.com/radiantnode/tensies/blob/main/docs/fable5-review/README.md" target="_blank" rel="noopener noreferrer">Read the review yourself</a>. ⭐</li>
 <li>One button now handles both sign in and sign up, and usernames stopped caring about capital letters. Type it however you like, you're in.</li>
 <li>Early adopters get a "Founding Roller" designation on their profile. You were here before it was cool. 🏅</li>
 <li>We tightened roll fairness so nobody can squeeze in a sneaky extra roll, and your seat comes back cleanly after the host resumes from a pause.</li>

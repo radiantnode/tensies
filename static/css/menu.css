@@ -237,6 +237,17 @@
     color: rgba(210, 195, 175, 0.65);
   }
 
+  .menu-changelog-body li a {
+    color: rgba(245, 228, 210, 0.95);
+    text-decoration: underline;
+    text-decoration-color: rgba(235, 215, 195, 0.4);
+    text-underline-offset: 2px;
+  }
+
+  .menu-changelog-body li a:hover {
+    text-decoration-color: rgba(245, 228, 210, 0.7);
+  }
+
   .menu-changelog-footer {
     margin-block-start: 1.8rem;
     padding: 1.05rem 1.15rem 1.2rem;
