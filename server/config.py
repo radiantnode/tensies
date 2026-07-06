@@ -85,6 +85,8 @@ CREATE_RATE_MAX = _int("CREATE_RATE_MAX", 10)             # creates per window p
 CREATE_RATE_WINDOW = _float("CREATE_RATE_WINDOW", 60.0)
 JOIN_RATE_MAX = _int("JOIN_RATE_MAX", 60)                 # joins per window per IP
 JOIN_RATE_WINDOW = _float("JOIN_RATE_WINDOW", 60.0)
+AUTH_RATE_MAX = _int("AUTH_RATE_MAX", 20)                 # auth ops per window per IP
+AUTH_RATE_WINDOW = _float("AUTH_RATE_WINDOW", 60.0)       # (a passkey ceremony is 2 ops)
 
 
 # ─── WebSocket origin allowlist (audit M3) ───────────────────────────────

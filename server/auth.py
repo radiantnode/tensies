@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 
 import asyncpg
 import jwt
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel
 from webauthn import (
     generate_authentication_options,
@@ -28,16 +28,31 @@ from webauthn.helpers.structs import (
 
 from server import db, gamestore
 from server.config import (
+    AUTH_RATE_MAX,
+    AUTH_RATE_WINDOW,
     JWT_EXPIRY_DAYS,
     JWT_SECRET,
     WEBAUTHN_ORIGIN,
     WEBAUTHN_RP_ID,
     WEBAUTHN_RP_NAME,
 )
+from server.security import client_ip
 
 log = logging.getLogger("tensies.auth")
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+async def _rate_limit(request: Request) -> None:
+    """Per-IP limiter for the auth endpoints. They are unauthenticated and do
+    Redis + Postgres work per call, and registration/login options responses
+    distinguish taken/unknown usernames (an enumeration oracle the double-duty
+    sign-in button legitimately depends on) — so cap how fast one IP can ask.
+    Reuses the same Redis window limiter as the WS create/join guards."""
+    if not await gamestore.rate_allow("auth", client_ip(request),
+                                      AUTH_RATE_MAX, AUTH_RATE_WINDOW):
+        log.warning("auth     ip=%s  RATE LIMIT", client_ip(request))
+        raise HTTPException(429, "Too many attempts — try again shortly")
 
 # ─── Username validation ──────────────────────────────────────────────
 import re
@@ -130,7 +145,8 @@ class LoginVerifyRequest(BaseModel):
 # ─── Registration ─────────────────────────────────────────────────────
 
 @router.post("/register/options")
-async def register_options(body: RegisterOptionsRequest):
+async def register_options(body: RegisterOptionsRequest, request: Request):
+    await _rate_limit(request)
     username = _validate_username(body.username)
 
     # Check uniqueness (case-insensitive)
@@ -191,7 +207,8 @@ async def register_options(body: RegisterOptionsRequest):
 
 
 @router.post("/register/verify")
-async def register_verify(body: RegisterVerifyRequest):
+async def register_verify(body: RegisterVerifyRequest, request: Request):
+    await _rate_limit(request)
     username = _validate_username(body.username)
     challenge = await _pop_challenge(body.nonce)
 
@@ -309,7 +326,8 @@ async def register_verify(body: RegisterVerifyRequest):
 # ─── Authentication ───────────────────────────────────────────────────
 
 @router.post("/login/options")
-async def login_options(body: LoginOptionsRequest):
+async def login_options(body: LoginOptionsRequest, request: Request):
+    await _rate_limit(request)
     username = _validate_username(body.username)
 
     async with db.pool().acquire() as con:
@@ -361,7 +379,8 @@ async def login_options(body: LoginOptionsRequest):
 
 
 @router.post("/login/verify")
-async def login_verify(body: LoginVerifyRequest):
+async def login_verify(body: LoginVerifyRequest, request: Request):
+    await _rate_limit(request)
     username = body.username.strip()
     challenge = await _pop_challenge(body.nonce)
 
