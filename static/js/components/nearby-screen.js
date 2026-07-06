@@ -98,11 +98,10 @@ export class NearbyScreen extends HTMLElement {
             <span class="radar-you"></span>
           </div>
           <div class="radar-blips" id="radar-blips"></div>
+          <button id="compass-btn" type="button" class="compass-btn" aria-pressed="false" aria-label="Align radar to compass" title="Align to compass" hidden>
+            <svg class="compass-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polygon points="12,7 14.5,14.5 12,13 9.5,14.5" fill="currentColor" stroke="none"/></svg>
+          </button>
         </div>
-        <button id="compass-btn" type="button" class="btn btn-secondary compass-btn" aria-pressed="false" hidden>
-          <svg class="compass-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polygon points="12,7 14.5,14.5 12,13 9.5,14.5" fill="currentColor" stroke="none"/></svg>
-          <span class="compass-label">Use compass</span>
-        </button>
         <div class="nearby-card" id="nearby-card" hidden></div>
         <p class="error-msg nearby-error" id="nearby-error" role="alert" aria-live="polite"></p>
         <button id="nearby-retry" type="button" class="btn btn-secondary nearby-retry" hidden>Try again</button>
@@ -164,7 +163,7 @@ export class NearbyScreen extends HTMLElement {
     const btn = byId('compass-btn');
     btn.classList.add('is-on');
     btn.setAttribute('aria-pressed', 'true');
-    /** @type {HTMLElement} */ (btn.querySelector('.compass-label')).textContent = 'Compass on';
+    btn.setAttribute('aria-label', 'Turn off compass alignment');
   }
 
   #stopCompass() {
@@ -176,7 +175,7 @@ export class NearbyScreen extends HTMLElement {
     const btn = byId('compass-btn');
     btn.classList.remove('is-on');
     btn.setAttribute('aria-pressed', 'false');
-    /** @type {HTMLElement} */ (btn.querySelector('.compass-label')).textContent = 'Use compass';
+    btn.setAttribute('aria-label', 'Align radar to compass');
   }
 
   /**

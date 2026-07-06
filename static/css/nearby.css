@@ -313,27 +313,41 @@
 
   .nearby-retry { align-self: center; max-inline-size: 320px; inline-size: 100%; }
 
-  /* ── Compass toggle ───────────────────────────────────────────────────── */
+  /* ── Compass toggle: icon button in the radar's top-right corner ──────── */
   .compass-btn {
+    position: absolute;
+    inset-block-start: 2px;
+    inset-inline-end: 2px;
+    z-index: 2;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding-block: 0.6rem;
-    max-inline-size: 220px;
-    align-self: center;
+    inline-size: 34px;
+    block-size: 34px;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(10, 5, 2, 0.55);
+    border: 1px solid var(--color-border-strong);
+    color: var(--color-text-warm);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
   }
-  .compass-icon { inline-size: 18px; block-size: 18px; flex-shrink: 0; transition: transform 0.2s; }
+  .compass-btn:hover {
+    background: rgba(22, 11, 4, 0.7);
+    border-color: rgba(190, 130, 55, 0.45);
+    color: #fff;
+  }
+  .compass-icon { inline-size: 19px; block-size: 19px; }
 
   .compass-btn.is-on {
     border-color: rgba(255, 160, 178, 0.7);
-    color: #fff;
+    color: var(--color-accent);
     box-shadow:
-      inset 0 1px 0 rgba(255, 220, 226, 0.4),
-      0 4px 14px rgba(0, 0, 0, 0.45),
-      0 0 20px rgba(255, 77, 109, 0.35);
+      0 2px 8px rgba(0, 0, 0, 0.4),
+      0 0 14px rgba(255, 77, 109, 0.45);
   }
-  .compass-btn.is-on .compass-icon { color: var(--color-accent); }
 
   /* ── Landing entry button ─────────────────────────────────────────────── */
   .btn-nearby {
