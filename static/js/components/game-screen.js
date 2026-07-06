@@ -161,7 +161,7 @@ export class GameScreen extends HTMLElement {
       const tag = document.createElement('span');
       tag.className = 'header-username';
       tag.textContent = `@${user.username}`;
-      this.#menuBtn.parentElement?.insertBefore(tag, this.#menuBtn);
+      this.#menuBtn?.parentElement?.insertBefore(tag, this.#menuBtn);
     } else if (!user && existing) {
       existing.remove();
     }

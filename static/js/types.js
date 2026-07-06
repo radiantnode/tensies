@@ -41,6 +41,26 @@
  */
 
 /**
+ * @typedef {object} AuthOkMessage
+ * @property {'auth_ok'} type
+ * @property {string} username
+ * @property {string} user_id
+ * @property {string} player_id The account UUID the server rebound the session to.
+ */
+
+/**
+ * Player lifetime stats, as returned by /auth/register/verify and
+ * /api/profile. All fields absent when the player has no games.
+ * @typedef {object} PlayerStats
+ * @property {number} [total_games]
+ * @property {number} [total_wins]
+ * @property {number} [total_rounds]
+ * @property {number} [total_rolls]
+ * @property {number} [fastest_win_ms]
+ * @property {number} [total_time_played_ms]
+ */
+
+/**
  * @typedef {object} ReconnectTokenMessage
  * @property {'reconnect_token'} type
  * @property {string} token
@@ -74,7 +94,7 @@
  */
 
 /**
- * @typedef {WelcomeMessage | ReconnectTokenMessage | PingMessage | ErrorMessage | GameEndedMessage | GameSnapshot} ServerMessage
+ * @typedef {WelcomeMessage | AuthOkMessage | ReconnectTokenMessage | PingMessage | ErrorMessage | GameEndedMessage | GameSnapshot} ServerMessage
  */
 
 export {};

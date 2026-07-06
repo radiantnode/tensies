@@ -48,7 +48,7 @@ export class ProfileScreen extends HTMLElement {
         <p class="error-msg" id="profile-error" role="alert" aria-live="polite"></p>
       </div>`;
 
-    const title = this.querySelector('.game-title');
+    const title = /** @type {HTMLElement | null} */ (this.querySelector('.game-title'));
     if (title) {
       title.style.cursor = 'pointer';
       title.addEventListener('click', () => showLanding());
@@ -259,7 +259,7 @@ export class ProfileScreen extends HTMLElement {
         </div>`;
       recentEl.hidden = false;
       recentEl.addEventListener('click', (e) => {
-        const row = /** @type {HTMLElement} */ (e.target).closest('.recent-game[data-game-code]');
+        const row = /** @type {HTMLElement | null} */ (/** @type {HTMLElement} */ (e.target).closest('.recent-game[data-game-code]'));
         if (row?.dataset.gameCode) showGameDetail(row.dataset.gameCode);
       });
     }

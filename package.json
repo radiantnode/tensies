@@ -5,9 +5,11 @@
   "description": "Build-time frontend asset pipeline (bundle + minify + fingerprint). Not a runtime dependency — only used to produce dist/ in the Docker build.",
   "type": "module",
   "scripts": {
-    "build": "node scripts/build_assets.mjs"
+    "build": "node scripts/build_assets.mjs",
+    "typecheck": "tsc -p jsconfig.json --noEmit"
   },
   "devDependencies": {
-    "esbuild": "0.28.1"
+    "esbuild": "0.28.1",
+    "typescript": "5.6.3"
   }
 }

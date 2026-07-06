@@ -138,7 +138,8 @@ export class LobbyScreen extends HTMLElement {
         // creation (keyed rows are built once) and cleared when it finishes, so
         // re-renders never replay it.
         row.classList.add('player-enter');
-        row.addEventListener('animationend', () => row.classList.remove('player-enter'), { once: true });
+        const created = row;
+        created.addEventListener('animationend', () => created.classList.remove('player-enter'), { once: true });
         this.#rows.set(pid, row);
       }
       // Only (re)insert when the row isn't already in its slot. Re-appending a

@@ -22,6 +22,9 @@ export const state = {
   /** @type {GameSnapshot | null} Last server snapshot. */
   currentState: null,
   reconnecting: false,
+  /** True for one game-detail render right after a game_ended, so the detail
+   *  screen can show its "Game ended" banner. Set in net.js, cleared on read. */
+  gameJustEnded: false,
   /** @type {string | null} Authenticated account username (from JWT). */
   authUsername: null,
   /** @type {string | null} Authenticated account user ID (from JWT). */

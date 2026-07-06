@@ -9,7 +9,6 @@ import { state } from '../state.js';
 /**
  * <game-detail-screen> — post-game detail view at /games/<code>.
  * Light DOM: the host element *is* `#game-detail.screen`.
- * @typedef {{ load(code: string): Promise<any>, render(code: string, result: any): void }} GameDetailScreen
  */
 export class GameDetailScreen extends HTMLElement {
   connectedCallback() {

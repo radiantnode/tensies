@@ -47,6 +47,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: npm ci
+      # Strict type-check of the // @ts-check'd frontend. The modules advertise
+      # strictness (jsconfig strict:true); without this gate the annotations
+      # silently decay (they had drifted to 31 errors before this job existed).
+      - run: npm run typecheck
       - run: python tests/assets_test.py
 
   integration:
