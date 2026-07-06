@@ -318,7 +318,10 @@ async def handle_checkin(session: Session, msg: dict) -> None:
     emit("checked_in", game_code=code, user_id=session.pid,
          place_id=place["place_id"], place_name=place["name"],
          session_id=session.session_id)
-    log.info("checkin  game=%s  place=%s", code, place["name"])
+    # Log only the game code — the resolved place bundles the host's lat/lon
+    # (private location data), so keep it out of the app log. The place name is
+    # still captured in telemetry above (emit → Postgres), not the log stream.
+    log.info("checkin  game=%s", code)
     snap = await gamestore.snapshot(code)
     if snap:
         await broadcast(code, state_msg(snap, code))
