@@ -626,6 +626,20 @@
       inset 0 0 12px rgba(255, 186, 102, 0.2);
   }
 
+  /* "Check out" pill in place of the chevron on the current row. */
+  .places-row-checkout {
+    flex-shrink: 0;
+    padding: 0.22rem 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 400;
+    white-space: nowrap;
+    /* Text a notch brighter than the dim brown border. */
+    color: rgba(214, 172, 122, 0.95);
+    background: transparent;
+    border: 1px solid rgba(160, 110, 60, 0.55);
+    border-radius: 999px;
+  }
+
   .places-row:hover {
     background: var(--color-raised-hover);
     border-color: var(--color-border);

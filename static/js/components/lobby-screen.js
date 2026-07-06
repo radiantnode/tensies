@@ -6,7 +6,7 @@ import { BACK_BUTTON_HTML } from '../back-button.js';
 import { byId } from '../dom.js';
 import { EQ_ICON_HTML } from '../eq-icon.js';
 import { GeoError, GEO_ERROR_COPY, getPosition } from '../geo.js';
-import { broadcastNearby, checkIn, leaveGame, startGame, stopBroadcast } from '../net.js';
+import { broadcastNearby, checkIn, checkOut, leaveGame, startGame, stopBroadcast } from '../net.js';
 import { updateScrollFades } from '../scroll-fades.js';
 import { state } from '../state.js';
 
@@ -118,7 +118,7 @@ export class LobbyScreen extends HTMLElement {
             <button id="broadcast-btn" type="button" class="lobby-action btn-broadcast" aria-pressed="false" aria-label="Allow nearby players to see and join your game">
               <span class="broadcast-wave" aria-hidden="true"><span></span><span></span><span></span></span>
             </button>
-            <span class="lobby-action-label">Allow Nearby</span>
+            <span class="lobby-action-label">Nearby</span>
           </div>
         </div>
         <p id="discovery-status" class="discovery-status" role="status" aria-live="polite" hidden></p>
@@ -144,6 +144,14 @@ export class LobbyScreen extends HTMLElement {
           <div class="confirm-actions">
             <button id="allow-nearby-cancel" type="button" class="btn btn-secondary">Cancel</button>
             <button id="allow-nearby-ok" type="button" class="btn btn-primary">Allow</button>
+          </div>
+        </dialog>
+        <dialog id="checkout-confirm" class="confirm-dialog" aria-labelledby="checkout-title">
+          <h2 id="checkout-title" class="confirm-title">Check out?</h2>
+          <p class="confirm-body">Your game will no longer show as being at <span id="checkout-place-name"></span>.</p>
+          <div class="confirm-actions">
+            <button id="checkout-cancel" type="button" class="btn btn-secondary">Cancel</button>
+            <button id="checkout-ok" type="button" class="btn btn-primary">Check out</button>
           </div>
         </dialog>
         <section class="lobby-players-section" aria-labelledby="players-label">
@@ -174,8 +182,34 @@ export class LobbyScreen extends HTMLElement {
     byId('places-close').addEventListener('click', () => this.#closePlaces());
     byId('places-list').addEventListener('click', (e) => {
       const row = /** @type {HTMLElement} */ (e.target).closest('[data-place]');
-      if (row) { checkIn(/** @type {string} */ (row.getAttribute('data-place'))); this.#closePlaces(); }
+      if (!row) return;
+      // The current place's row checks OUT (after a confirm) — every other
+      // row checks in.
+      if (row.classList.contains('is-current')) {
+        this.#openCheckoutConfirm();
+        return;
+      }
+      checkIn(/** @type {string} */ (row.getAttribute('data-place')));
+      this.#closePlaces();
     });
+    byId('checkout-cancel').addEventListener('click', () => this.#closeCheckoutConfirm());
+    byId('checkout-ok').addEventListener('click', () => {
+      this.#closeCheckoutConfirm();
+      this.#closePlaces();
+      checkOut();
+    });
+  }
+
+  /** Ask before checking out — a stray tap on the pinned row shouldn't
+   *  silently drop the game's place. */
+  #openCheckoutConfirm() {
+    byId('checkout-place-name').textContent =
+      state.currentState?.place_name || 'this place';
+    /** @type {HTMLDialogElement} */ (byId('checkout-confirm')).showModal();
+  }
+
+  #closeCheckoutConfirm() {
+    /** @type {HTMLDialogElement} */ (byId('checkout-confirm')).close();
   }
 
   disconnectedCallback() {
@@ -583,15 +617,20 @@ export class LobbyScreen extends HTMLElement {
       btn.type = 'button';
       btn.className = 'places-row';
       btn.dataset.place = p.place_id;
-      if (p.place_id === currentId) {
+      const isCurrent = p.place_id === currentId;
+      if (isCurrent) {
         btn.classList.add('is-current');
         btn.setAttribute('aria-current', 'true');
       }
+      // The current row's trailing affordance is a "Check out" pill (tapping
+      // the row checks out, after a confirm); every other row keeps the
+      // join-chevron and checks in.
       btn.innerHTML =
         '<span class="places-row-body">' +
           '<span class="places-row-name"></span>' +
           '<span class="places-row-addr"></span>' +
-        '</span>' + PLACES_CHEVRON;
+        '</span>' +
+        (isCurrent ? '<span class="places-row-checkout">Check out</span>' : PLACES_CHEVRON);
       // Photo thumbnail (Google Places image proxied through our server), or a
       // pin placeholder. src is set as a property, never interpolated into HTML.
       const thumb = document.createElement(p.photo_url ? 'img' : 'span');
