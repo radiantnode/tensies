@@ -1,22 +1,30 @@
 """Google Places proxy (server-side) for the lobby "check in" feature.
 
-The API key never reaches the browser — the client asks the server for nearby
-places, and the server holds the Google credentials. When PLACES_ENABLED is on
-but GOOGLE_MAPS_API_KEY is unset, a small dev stub stands in so the whole
-check-in flow is testable without a Google account.
+Credentials never reach the browser — the client asks the server for nearby
+places, and the server holds them. Two backends, in order of preference:
+  1. a **service account** (GOOGLE_APPLICATION_CREDENTIALS) → OAuth bearer token,
+     so the key never has to be an unrestricted browser API key;
+  2. a plain **API key** (GOOGLE_MAPS_API_KEY).
+When PLACES_ENABLED is on but neither is set, a small dev stub stands in so the
+whole check-in flow is testable without a Google account.
 
 httpx uses trust_env by default, so these calls inherit any HTTPS_PROXY / CA
 bundle from the environment (same as server/drand.py and server/discord.py).
 
 A place dict is: {"place_id", "name", "address"?, "lat", "lon"}.
 """
+import asyncio
 import json
 import logging
+import time
 
 import httpx
+import jwt
 
 from . import gamestore
 from .config import (
+    GOOGLE_APPLICATION_CREDENTIALS,
+    GOOGLE_CLOUD_PROJECT,
     GOOGLE_MAPS_API_KEY,
     PLACES_CACHE_TTL,
     PLACES_MAX_RESULTS,
@@ -27,6 +35,86 @@ log = logging.getLogger("tensies.places")
 
 _NEW_BASE = "https://places.googleapis.com/v1"
 _TIMEOUT = 8.0
+_OAUTH_SCOPE = "https://www.googleapis.com/auth/cloud-platform"
+
+
+# ─── Auth: service-account OAuth (preferred) or API key ───────────────────
+# Places API (New) accepts an OAuth bearer token (scope cloud-platform) plus an
+# X-Goog-User-Project billing header. We mint the token from the service account
+# with PyJWT (already a dep — no google-auth needed) and cache it until ~expiry.
+_sa: dict | None = None
+_sa_loaded = False
+_token: str | None = None
+_token_exp = 0.0
+_token_lock = asyncio.Lock()
+
+
+def _load_sa() -> dict | None:
+    """The service-account credentials dict, loaded once, or None if unconfigured."""
+    global _sa, _sa_loaded
+    if not _sa_loaded:
+        _sa_loaded = True
+        if GOOGLE_APPLICATION_CREDENTIALS:
+            try:
+                with open(GOOGLE_APPLICATION_CREDENTIALS) as f:
+                    _sa = json.load(f)
+            except Exception:  # noqa: BLE001 — fall back to key/stub, never fatal
+                log.exception("failed to load service account credentials")
+                _sa = None
+    return _sa
+
+
+def _billing_project() -> str | None:
+    sa = _load_sa()
+    return GOOGLE_CLOUD_PROJECT or (sa.get("project_id") if sa else None)
+
+
+def _has_google() -> bool:
+    """True when a real Google backend (service account or API key) is set."""
+    return _load_sa() is not None or GOOGLE_MAPS_API_KEY is not None
+
+
+async def _access_token() -> str | None:
+    """A cached OAuth access token minted from the service account, refreshed
+    ~60 s before expiry. None when no service account is configured."""
+    sa = _load_sa()
+    if sa is None:
+        return None
+    global _token, _token_exp
+    if _token and time.monotonic() < _token_exp - 60:
+        return _token
+    async with _token_lock:
+        if _token and time.monotonic() < _token_exp - 60:
+            return _token
+        now = int(time.time())
+        token_uri = sa.get("token_uri", "https://oauth2.googleapis.com/token")
+        assertion = jwt.encode(
+            {"iss": sa["client_email"], "scope": _OAUTH_SCOPE, "aud": token_uri,
+             "iat": now, "exp": now + 3600},
+            sa["private_key"], algorithm="RS256",
+        )
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
+            resp = await c.post(token_uri, data={
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": assertion})
+        resp.raise_for_status()
+        data = resp.json()
+        _token = data["access_token"]
+        _token_exp = time.monotonic() + float(data.get("expires_in", 3600))
+        return _token
+
+
+async def _auth_headers() -> dict:
+    """Auth headers for a Places call — service-account bearer preferred, else
+    the API key. May raise if the token mint fails; callers wrap in try/except."""
+    token = await _access_token()
+    if token is not None:
+        h = {"Authorization": f"Bearer {token}"}
+        proj = _billing_project()
+        if proj:
+            h["X-Goog-User-Project"] = proj
+        return h
+    return {"X-Goog-Api-Key": GOOGLE_MAPS_API_KEY}
 
 
 # ─── Dev stub (no API key) ───────────────────────────────────────────────
@@ -75,8 +163,8 @@ async def _cache_get(place_id: str) -> dict | None:
 async def search_nearby(lat: float, lon: float) -> list[dict]:
     """Places near (lat, lon). Falls back to the dev stub when no key is set.
     Every result is cached so a subsequent check-in can resolve it cheaply."""
-    results = _stub_nearby(lat, lon) if GOOGLE_MAPS_API_KEY is None \
-        else await _google_nearby(lat, lon)
+    results = await _google_nearby(lat, lon) if _has_google() \
+        else _stub_nearby(lat, lon)
     for p in results:
         await _cache_put(p)
     return results
@@ -90,7 +178,7 @@ async def resolve(place_id: str) -> dict | None:
     cached = await _cache_get(place_id)
     if cached is not None:
         return cached
-    if GOOGLE_MAPS_API_KEY is None:
+    if not _has_google():
         return None  # stub relies on the warm cache from search_nearby()
     p = await _google_details(place_id)
     if p is not None:
@@ -100,11 +188,6 @@ async def resolve(place_id: str) -> dict | None:
 
 # ─── Google Places API (New) ─────────────────────────────────────────────
 async def _google_nearby(lat: float, lon: float) -> list[dict]:
-    headers = {
-        "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
-        "X-Goog-FieldMask":
-            "places.id,places.displayName,places.formattedAddress,places.location",
-    }
     body = {
         "maxResultCount": min(PLACES_MAX_RESULTS, 20),  # API caps at 20
         "locationRestriction": {"circle": {
@@ -112,6 +195,8 @@ async def _google_nearby(lat: float, lon: float) -> list[dict]:
             "radius": PLACES_RADIUS_M}},
     }
     try:
+        headers = {**await _auth_headers(), "X-Goog-FieldMask":
+            "places.id,places.displayName,places.formattedAddress,places.location"}
         async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
             resp = await c.post(f"{_NEW_BASE}/places:searchNearby",
                                 headers=headers, json=body)
@@ -135,11 +220,9 @@ async def _google_nearby(lat: float, lon: float) -> list[dict]:
 
 
 async def _google_details(place_id: str) -> dict | None:
-    headers = {
-        "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
-        "X-Goog-FieldMask": "id,displayName,location",
-    }
     try:
+        headers = {**await _auth_headers(),
+                   "X-Goog-FieldMask": "id,displayName,location"}
         async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
             resp = await c.get(f"{_NEW_BASE}/places/{place_id}", headers=headers)
         resp.raise_for_status()

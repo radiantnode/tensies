@@ -83,10 +83,14 @@ services:
       DISCORD_PUBLIC_KEY: "${DISCORD_PUBLIC_KEY:-}"
       DISCORD_APPLICATION_ID: "${DISCORD_APPLICATION_ID:-}"
       DISCORD_GUILD_ID: "${DISCORD_GUILD_ID:-}"
-      # Google Places "check in" (optional). Off unless PLACES_ENABLED is set;
-      # the API key is a secret — pass it via .env.prod, never inline.
+      # Google Places "check in" (optional). Off unless PLACES_ENABLED is set.
+      # Credentials are secrets — pass via .env.prod, never inline. A service
+      # account (OAuth) is preferred; mount the JSON and point
+      # GOOGLE_APPLICATION_CREDENTIALS at the in-container path.
       PLACES_ENABLED: "${PLACES_ENABLED:-0}"
       GOOGLE_MAPS_API_KEY: "${GOOGLE_MAPS_API_KEY:-}"
+      GOOGLE_APPLICATION_CREDENTIALS: "${GOOGLE_APPLICATION_CREDENTIALS:-}"
+      GOOGLE_CLOUD_PROJECT: "${GOOGLE_CLOUD_PROJECT:-}"
       # Prod static-asset mode: serve the prebuilt, fingerprinted index.html that
       # the build baked into the image (nginx serves everything under /static).
       # The app does zero asset work — no in-process JS cache, no StaticFiles.

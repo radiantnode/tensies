@@ -110,6 +110,12 @@ NEARBY_RATE_WINDOW = _float("NEARBY_RATE_WINDOW", 60.0)
 # so the flow is testable without a Google account.
 PLACES_ENABLED = _flag("PLACES_ENABLED", False)
 GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY") or None  # secret → None when unset
+# Alternative to the API key: a service account (OAuth). Preferred when set —
+# the key never has to be an unrestricted browser key. Points at the SA JSON;
+# GOOGLE_CLOUD_PROJECT sets the X-Goog-User-Project billing project (falls back
+# to the JSON's own project_id).
+GOOGLE_APPLICATION_CREDENTIALS = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") or None
+GOOGLE_CLOUD_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT") or None
 PLACES_RADIUS_M = _float("PLACES_RADIUS_M", 500.0)               # nearby-search radius
 PLACES_MAX_RESULTS = _int("PLACES_MAX_RESULTS", 20)
 PLACES_CACHE_TTL = _int("PLACES_CACHE_TTL", 900)                 # place_id→coords cache seconds
