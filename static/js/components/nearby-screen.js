@@ -105,7 +105,7 @@ export class NearbyScreen extends HTMLElement {
           </div>
           <div class="radar-blips" id="radar-blips"></div>
           <button id="compass-btn" type="button" class="compass-btn" aria-pressed="false" aria-label="Align radar to compass" title="Align to compass" hidden>
-            <svg class="compass-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polygon points="12,7 14.5,14.5 12,13 9.5,14.5" fill="currentColor" stroke="none"/></svg>
+            <svg class="compass-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><polygon points="12,2.5 15.5,17 12,14 8.5,17" fill="currentColor"/></svg>
           </button>
         </div>
         <div class="nearby-list" id="nearby-list" role="list" aria-label="Nearby games"></div>

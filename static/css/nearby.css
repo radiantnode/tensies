@@ -390,7 +390,7 @@
     border-color: rgba(190, 130, 55, 0.45);
     color: #fff;
   }
-  .compass-icon { inline-size: 19px; block-size: 19px; }
+  .compass-icon { inline-size: 24px; block-size: 24px; }
 
   .compass-btn.is-on {
     border-color: rgba(255, 160, 178, 0.7);
