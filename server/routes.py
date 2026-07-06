@@ -1,6 +1,7 @@
 import math
 import re
 from pathlib import Path
+from urllib.parse import quote
 
 import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -254,9 +255,35 @@ async def api_places_nearby(request: Request, lat: float, lon: float) -> dict:
         raise HTTPException(status_code=429, detail="slow down")
     results = await places.search_nearby(lat, lon)
     return {"places": [
-        {"place_id": p["place_id"], "name": p["name"], "address": p.get("address", "")}
+        {"place_id": p["place_id"], "name": p["name"], "address": p.get("address", ""),
+         "photo_url": (f"/api/places/photo?ref={quote(p['photo_ref'], safe='')}"
+                       if p.get("photo_ref") else None)}
         for p in results
     ]}
+
+
+# Only the exact Places photo path is proxyable — no arbitrary URLs (SSRF guard).
+_PHOTO_REF_RE = re.compile(r"^places/[\w-]+/photos/[\w-]+$")
+
+
+@router.get("/api/places/photo")
+async def api_places_photo(request: Request, ref: str, w: int = 200) -> Response:
+    """Proxy a Google Places photo so the API credentials stay server-side."""
+    if not PLACES_ENABLED:
+        raise HTTPException(status_code=503, detail="places disabled")
+    if not _PHOTO_REF_RE.match(ref):
+        raise HTTPException(status_code=400, detail="bad ref")
+    ip = _http_client_ip(request)
+    # A sheet shows up to 20 photos at once, so allow well above the search rate.
+    if not await gamestore.rate_allow("placephoto", ip,
+                                      PLACES_RATE_MAX * 5, PLACES_RATE_WINDOW):
+        raise HTTPException(status_code=429, detail="slow down")
+    got = await places.fetch_photo(ref, max(48, min(w, 512)))
+    if got is None:
+        raise HTTPException(status_code=404, detail="no photo")
+    content_type, data = got
+    return Response(content=data, media_type=content_type,
+                    headers={"Cache-Control": "public, max-age=86400"})
 
 
 @router.get("/api/profile/{username}")

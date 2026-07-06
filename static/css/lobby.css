@@ -534,11 +534,10 @@
   /* Flat leather row button — same surface as .player-list-item, tappable. */
   .places-row {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.15rem;
+    align-items: center;
+    gap: 0.75rem;
     inline-size: 100%;
-    padding: 0.7rem 0.85rem;
+    padding: 0.5rem 0.6rem;
     background: var(--color-raised);
     border: 1px solid transparent;
     border-radius: var(--radius-md);
@@ -552,19 +551,60 @@
     border-color: var(--color-border);
   }
 
+  /* Google Places thumbnail (or a pin placeholder when a place has no photo). */
+  .places-row-photo {
+    flex-shrink: 0;
+    inline-size: 46px;
+    block-size: 46px;
+    border-radius: 10px;
+    object-fit: cover;
+    background: var(--color-field);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+  .places-row-photo.is-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+  }
+  .places-row-photo.is-empty svg { inline-size: 22px; block-size: 22px; }
+
+  /* Name over address, taking the middle and truncating so the chevron stays. */
+  .places-row-body {
+    flex: 1;
+    min-inline-size: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
   .places-row-name {
     font-size: 0.95rem;
     font-weight: 700;
     color: var(--color-text);
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .places-row-addr {
     font-size: 0.78rem;
     font-weight: 500;
     color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .places-row-addr:empty { display: none; }
+
+  .places-row-chevron {
+    flex-shrink: 0;
+    inline-size: 18px;
+    block-size: 18px;
+    color: var(--color-text-muted);
+    opacity: 0.6;
+  }
 
   .places-checkout {
     margin-block-start: 1rem;

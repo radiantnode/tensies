@@ -21,6 +21,11 @@ const copyHint = (code) => `Click to copy — <span class="copy-hint-url">${loca
 /** Fallback avatar for anonymous players (no account photo). */
 const DEFAULT_AVATAR = '/static/images/avatar-default.svg';
 
+/** Right-pointing chevron for a places-sheet row. */
+const PLACES_CHEVRON = '<svg class="places-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+/** Map-pin used as the thumbnail placeholder when a place has no photo. */
+const PLACES_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.6" fill="currentColor" stroke="none"/></svg>';
+
 const joinLink = () => `${location.origin}/${state.gameCode}`;
 
 /**
@@ -445,7 +450,7 @@ export class LobbyScreen extends HTMLElement {
   }
 
   /**
-   * @param {Array<{place_id: string, name: string, address: string}>} list
+   * @param {Array<{place_id: string, name: string, address: string, photo_url?: string | null}>} list
    */
   #renderPlaces(list) {
     const status = byId('places-status');
@@ -464,7 +469,23 @@ export class LobbyScreen extends HTMLElement {
       btn.className = 'places-row';
       btn.dataset.place = p.place_id;
       btn.innerHTML =
-        `<span class="places-row-name"></span><span class="places-row-addr"></span>`;
+        '<span class="places-row-body">' +
+          '<span class="places-row-name"></span>' +
+          '<span class="places-row-addr"></span>' +
+        '</span>' + PLACES_CHEVRON;
+      // Photo thumbnail (Google Places image proxied through our server), or a
+      // pin placeholder. src is set as a property, never interpolated into HTML.
+      const thumb = document.createElement(p.photo_url ? 'img' : 'span');
+      thumb.className = p.photo_url ? 'places-row-photo' : 'places-row-photo is-empty';
+      if (p.photo_url) {
+        const img = /** @type {HTMLImageElement} */ (thumb);
+        img.loading = 'lazy';
+        img.alt = '';
+        img.src = p.photo_url;
+      } else {
+        thumb.innerHTML = PLACES_PIN;
+      }
+      btn.prepend(thumb);
       /** @type {HTMLElement} */ (btn.querySelector('.places-row-name')).textContent = p.name;
       /** @type {HTMLElement} */ (btn.querySelector('.places-row-addr')).textContent = p.address || '';
       li.append(btn);

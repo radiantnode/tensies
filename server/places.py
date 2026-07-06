@@ -199,7 +199,8 @@ async def _google_nearby(lat: float, lon: float) -> list[dict]:
     }
     try:
         headers = {**await _auth_headers(), "X-Goog-FieldMask":
-            "places.id,places.displayName,places.formattedAddress,places.location"}
+            "places.id,places.displayName,places.formattedAddress,places.location,"
+            "places.photos"}
         async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
             resp = await c.post(f"{_NEW_BASE}/places:searchNearby",
                                 headers=headers, json=body)
@@ -213,13 +214,35 @@ async def _google_nearby(lat: float, lon: float) -> list[dict]:
         loc = pl.get("location") or {}
         if "latitude" not in loc or "longitude" not in loc:
             continue
+        photos = pl.get("photos") or []
         out.append({
             "place_id": pl["id"],
             "name": (pl.get("displayName") or {}).get("text") or "Unnamed place",
             "address": pl.get("formattedAddress") or "",
             "lat": loc["latitude"], "lon": loc["longitude"],
+            # First photo's resource name (places/<id>/photos/<ref>), if any —
+            # the client fetches the bytes back through /api/places/photo.
+            "photo_ref": (photos[0].get("name") if photos else None),
         })
     return out
+
+
+async def fetch_photo(ref: str, max_w: int) -> tuple[str, bytes] | None:
+    """Image bytes + content-type for a Places photo resource name, fetched with
+    the server-side credentials (they never reach the browser). None on failure.
+    The caller must validate `ref` shape before calling."""
+    if not _has_google():
+        return None
+    try:
+        headers = await _auth_headers()
+        async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as c:
+            resp = await c.get(f"{_NEW_BASE}/{ref}/media",
+                               headers=headers, params={"maxWidthPx": max_w})
+        resp.raise_for_status()
+        return resp.headers.get("content-type", "image/jpeg"), resp.content
+    except Exception:  # noqa: BLE001 — photos are cosmetic; never fatal
+        log.exception("places photo failed")
+        return None
 
 
 async def _google_details(place_id: str) -> dict | None:
