@@ -10,7 +10,7 @@ import { showLanding } from '../router.js';
 /** @typedef {import('../types.js').NearbyResponse} NearbyResponse */
 
 /** How often the radar re-polls the endpoint while the screen is active. */
-const REFRESH_MS = 8000;
+const REFRESH_MS = 1500;
 
 /** Fallback avatar for anonymous hosts / a photo that fails to load. */
 const DEFAULT_AVATAR = '/static/images/avatar-default.svg';

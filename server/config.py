@@ -107,7 +107,7 @@ DISCOVERY_DISTANCE_BUCKET_M = _int("DISCOVERY_DISTANCE_BUCKET_M", 25)
 DISCOVERY_MAX_RESULTS = _int("DISCOVERY_MAX_RESULTS", 20)
 BROADCAST_RATE_MAX = _int("BROADCAST_RATE_MAX", 20)              # broadcast toggles/window/IP
 BROADCAST_RATE_WINDOW = _float("BROADCAST_RATE_WINDOW", 60.0)
-NEARBY_RATE_MAX = _int("NEARBY_RATE_MAX", 60)                    # /api/nearby polls/window/IP
+NEARBY_RATE_MAX = _int("NEARBY_RATE_MAX", 240)                   # /api/nearby polls/window/IP
 NEARBY_RATE_WINDOW = _float("NEARBY_RATE_WINDOW", 60.0)
 
 
