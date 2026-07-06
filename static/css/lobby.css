@@ -145,6 +145,10 @@
   }
   .lobby-action:active { transform: translateY(0); }
 
+  /* No idle glow on the Play button — sit flat like Share. The audio glow
+     (breathing + sonar) returns only while actively chirping (.playing). */
+  .lobby-action.btn-audio:not(.playing):not(.listening) { animation: none; }
+
   .btn-icon {
     flex-shrink: 0;
     inline-size: 24px;
