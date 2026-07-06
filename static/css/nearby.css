@@ -90,8 +90,8 @@
     border-radius: 50%;
     background: conic-gradient(
       from 0deg,
-      rgba(255, 77, 109, 0.35) 0deg,
-      rgba(255, 77, 109, 0.12) 24deg,
+      rgba(255, 186, 102, 0.32) 0deg,
+      rgba(255, 186, 102, 0.11) 24deg,
       transparent 60deg,
       transparent 360deg);
     animation: radar-spin 4s linear infinite;
@@ -235,8 +235,8 @@
     background: linear-gradient(to bottom left, #ffe6b0 0%, #e8b878 45%, #c8925a 100%);
   }
   .radar-blip.is-selected .blip-name {
-    background: var(--color-accent);
-    color: #fff;
+    background: rgba(232, 184, 100, 0.96);
+    color: #2a1608;
   }
 
   /* ── Games list (below the radar) ─────────────────────────────────────── */
@@ -289,8 +289,8 @@
 
   .nearby-row.is-selected {
     box-shadow:
-      0 0 0 1px rgba(255, 160, 178, 0.5),
-      0 0 14px rgba(255, 77, 109, 0.25);
+      0 0 0 1px rgba(255, 190, 110, 0.5),
+      0 0 14px rgba(255, 186, 102, 0.3);
   }
 
   .nearby-row-avatar-ring {
@@ -358,7 +358,7 @@
   .nearby-row-chevron svg { inline-size: 20px; block-size: 20px; }
   .nearby-row:hover .nearby-row-chevron,
   .nearby-row.is-selected .nearby-row-chevron {
-    color: var(--color-accent);
+    color: var(--color-amber);
     transform: translateX(2px);
   }
 
@@ -393,11 +393,11 @@
   .compass-icon { inline-size: 24px; block-size: 24px; }
 
   .compass-btn.is-on {
-    border-color: rgba(255, 160, 178, 0.7);
-    color: var(--color-accent);
+    border-color: rgba(255, 190, 110, 0.7);
+    color: var(--color-amber);
     box-shadow:
       0 2px 8px rgba(0, 0, 0, 0.4),
-      0 0 14px rgba(255, 77, 109, 0.45);
+      0 0 14px rgba(255, 186, 102, 0.5);
   }
 
   /* ── Landing entry button ─────────────────────────────────────────────── */
@@ -411,13 +411,13 @@
 
   /* ── Lobby host broadcast toggle (a .lobby-action circular button) ─────── */
   .btn-broadcast.is-on {
-    border-color: rgba(255, 160, 178, 0.7);
+    border-color: rgba(255, 190, 110, 0.7);
     color: #fff;
     box-shadow:
-      inset 0 1px 0 rgba(255, 220, 226, 0.4),
-      inset 0 0 18px rgba(255, 77, 109, 0.12),
+      inset 0 1px 0 rgba(255, 235, 205, 0.4),
+      inset 0 0 18px rgba(255, 186, 102, 0.14),
       0 4px 14px rgba(0, 0, 0, 0.45),
-      0 0 26px rgba(255, 77, 109, 0.4);
+      0 0 26px rgba(255, 186, 102, 0.45);
   }
 
   /* Broadcast wave: three expanding arcs, animate only when broadcasting. */
@@ -438,8 +438,8 @@
     background: var(--color-amber);
   }
   .btn-broadcast.is-on .broadcast-wave span {
-    background: var(--color-accent);
-    box-shadow: 0 0 6px var(--color-accent);
+    background: rgba(255, 210, 140, 1);
+    box-shadow: 0 0 6px rgba(255, 186, 102, 0.9);
   }
   .btn-broadcast.is-on .broadcast-wave span:nth-child(1) { animation: bwave 1.6s ease-out infinite; }
   .btn-broadcast.is-on .broadcast-wave span:nth-child(2) { animation: bwave 1.6s ease-out 0.5s infinite; }
