@@ -30,7 +30,7 @@ INDEX = "games:index"
 _r: aioredis.Redis | None = None
 
 # Lua scripts, registered on init().
-_create = _join = _finish = _drop = _restamp = None
+_create = _join = _finish = _drop = _restamp = _end_paused = None
 
 
 def client() -> aioredis.Redis:
@@ -146,12 +146,13 @@ return {1, new_host}
 
 
 def _register_scripts() -> None:
-    global _create, _join, _finish, _drop, _restamp
+    global _create, _join, _finish, _drop, _restamp, _end_paused
     _create = _r.register_script(_CREATE_LUA)
     _join = _r.register_script(_JOIN_LUA)
     _finish = _r.register_script(_FINISH_LUA)
     _drop = _r.register_script(_DROP_LUA)
     _restamp = _r.register_script(_RESTAMP_LUA)
+    _end_paused = _r.register_script(_END_PAUSED_LUA)
 
 
 # ─── Code generation (audit L1: secrets, not random) ───────────────────────
@@ -412,6 +413,25 @@ if redis.call('HGET', KEYS[1], p .. 'disconnected') == '1' then
 end
 return 0
 """
+
+# Atomic claim of a pause-cap ending: paused + past deadline -> delete, else
+# no-op. Only the caller that wins the delete may emit/broadcast, so with N
+# instances the ending stays exactly-once (same gate-on-Lua-result pattern
+# as the drop path).
+_END_PAUSED_LUA = """
+if redis.call('HGET', KEYS[1], 'paused') ~= '1' then return 0 end
+local dl = tonumber(redis.call('HGET', KEYS[1], 'pause_deadline_ms') or '0')
+if dl == 0 or tonumber(ARGV[2]) < dl then return 0 end
+redis.call('DEL', KEYS[1])
+redis.call('SREM', KEYS[2], ARGV[1])
+return 1
+"""
+
+
+async def try_end_paused(code: str) -> bool:
+    """CAS-end a paused game past its deadline. True iff this caller won."""
+    res = await _end_paused(keys=[_gkey(code), INDEX], args=[code, now_ms()])
+    return bool(res)
 
 
 async def restamp_disconnect(code: str, pid: str) -> bool:
