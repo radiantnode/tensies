@@ -88,10 +88,10 @@ export class LobbyScreen extends HTMLElement {
             <span class="lobby-action-label">Play</span>
           </div>
           <div id="broadcast-item" class="lobby-action-item" hidden>
-            <button id="broadcast-btn" type="button" class="lobby-action btn-broadcast" aria-pressed="false" aria-label="Broadcast to nearby players">
+            <button id="broadcast-btn" type="button" class="lobby-action btn-broadcast" aria-pressed="false" aria-label="Share your location with nearby players">
               <span class="broadcast-wave" aria-hidden="true"><span></span><span></span><span></span></span>
             </button>
-            <span class="lobby-action-label">Broadcast</span>
+            <span class="lobby-action-label">Share Location</span>
           </div>
         </div>
         <p id="discovery-status" class="discovery-status" role="status" aria-live="polite" hidden></p>
@@ -246,7 +246,7 @@ export class LobbyScreen extends HTMLElement {
     btn.classList.toggle('is-on', broadcasting);
     btn.setAttribute('aria-pressed', broadcasting ? 'true' : 'false');
     btn.setAttribute('aria-label',
-      broadcasting ? 'Stop broadcasting to nearby players' : 'Broadcast to nearby players');
+      broadcasting ? 'Stop sharing your location' : 'Share your location with nearby players');
   }
 
   /**
