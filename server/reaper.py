@@ -16,7 +16,7 @@ import asyncio
 
 from . import gamestore
 from .broadcast import do_drop, end_if_paused_over
-from .config import REAP_INTERVAL, log
+from .config import DISCONNECT_GRACE, REAP_INTERVAL, log
 from .telemetry import metrics
 
 _task: asyncio.Task | None = None
@@ -49,6 +49,11 @@ async def _sweep() -> None:
     for code in await gamestore.all_codes():
         snap = await gamestore.snapshot(code)
         if snap is None:
+            # The game hash TTL-expired (its instance died with players still
+            # connected) but the index entry survives expiry. Reap it, or the
+            # code inflates the active gauge and counts against MAX_GAMES
+            # forever. delete_game is idempotent: DEL of a gone key + SREM.
+            await gamestore.delete_game(code)
             continue
         # A started game must not linger in the discovery index (the live path
         # prunes it on start; this catches a broadcast/check-in whose owner
@@ -59,6 +64,18 @@ async def _sweep() -> None:
             deadline = snap.get("pause_deadline_ms")
             if deadline is not None and gamestore.now_ms() >= deadline:
                 await end_if_paused_over(code)
+                continue
+            # Paused-host handover backstop: nobody is dropped while paused,
+            # but an absent host must still lose the resume control (do_drop's
+            # paused branch transfers the role without dropping anyone). The
+            # local grace task enforces the grace by sleeping first; here we
+            # check it explicitly, since do_drop's paused path does not.
+            host_pid = snap.get("host")
+            host = snap["players"].get(host_pid) if host_pid else None
+            if host and host.get("disconnected"):
+                dat = host.get("disconnected_at_ms") or 0
+                if gamestore.now_ms() - dat >= DISCONNECT_GRACE * 1000:
+                    await do_drop(code, host_pid)
             continue
         for pid, p in snap["players"].items():
             if p.get("disconnected"):

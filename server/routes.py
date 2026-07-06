@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from . import gamestore, places
-from .assets import build_index_html, build_page_template, render_page
+from .assets import build_page_template, render_page
 from .config import (
     APP_URL,
     DISCOVERY_DISTANCE_BUCKET_M,
@@ -26,10 +26,9 @@ from .config import (
     PLACES_RATE_WINDOW,
     STATS_TOKEN,
     TELEMETRY_ENABLED,
-    TRUST_PROXY_HEADERS,
-    TRUSTED_PROXY_HOPS,
     log,
 )
+from .security import client_ip
 
 router = APIRouter()
 
@@ -38,11 +37,29 @@ router = APIRouter()
 # cache-busting hashes. Either way, render_page() substitutes the $meta_vars
 # per-request (defaults for most routes, overrides for profiles etc.).
 if FRONTEND_DIST:
+    # Prod: bake once from the prebuilt, fingerprinted dist/ index.html.
     _html_source = (Path(FRONTEND_DIST) / "index.html").read_text()
+    _tmpl, _defaults = build_page_template(_html_source, APP_URL)
+    _index_html = render_page(_tmpl, _defaults)
+
+    def _page_template():
+        return _tmpl, _defaults
+
+    def _render_index() -> str:
+        return _index_html
 else:
-    _html_source = build_index_html()
-_tmpl, _defaults = build_page_template(_html_source, APP_URL)
-_index_html = render_page(_tmpl, _defaults)
+    # Dev: recompute lazily so edits to any CSS/JS/index.html show up without a
+    # server restart (DevAssets rebuilds only when a static file's mtime moves).
+    from .assets import dev_assets
+
+    _dev = dev_assets(APP_URL)
+
+    def _page_template():
+        return _dev.template()
+
+    def _render_index() -> str:
+        tmpl, defaults = _dev.template()
+        return render_page(tmpl, defaults)
 
 # Fail loud, not closed: a bare `uvicorn` run stays usable, but warn so an
 # operator never unknowingly exposes these on a public port. Both compose files
@@ -72,7 +89,7 @@ def _require_telemetry() -> None:
 
 @router.get("/")
 async def root() -> HTMLResponse:
-    return HTMLResponse(_index_html)
+    return HTMLResponse(_render_index())
 
 
 @router.get("/metrics", dependencies=[Depends(_bearer_guard(METRICS_TOKEN))])
@@ -163,36 +180,22 @@ async def stats_game(game_code: str) -> dict:
 # Declared last so the explicit routes above (/, /metrics, /stats/*) win.
 @router.get("/join")
 async def join_page() -> HTMLResponse:
-    return HTMLResponse(_index_html)
+    return HTMLResponse(_render_index())
 
 
 @router.get("/signin")
 async def signin_page() -> HTMLResponse:
-    return HTMLResponse(_index_html)
+    return HTMLResponse(_render_index())
 
 
 @router.get("/welcome")
 async def welcome_page() -> HTMLResponse:
-    return HTMLResponse(_index_html)
+    return HTMLResponse(_render_index())
 
 
 @router.get("/nearby")
 async def nearby_page() -> HTMLResponse:
-    return HTMLResponse(_index_html)
-
-
-def _http_client_ip(request: Request) -> str:
-    """Real client IP for the discovery rate limit — mirrors ws._client_ip:
-    trust X-Forwarded-For only behind a configured proxy, taking the entry
-    TRUSTED_PROXY_HOPS from the right."""
-    if TRUST_PROXY_HEADERS:
-        xff = request.headers.get("x-forwarded-for")
-        if xff:
-            parts = [p.strip() for p in xff.split(",") if p.strip()]
-            if parts:
-                idx = max(0, len(parts) - TRUSTED_PROXY_HOPS)
-                return parts[idx]
-    return request.client.host if request.client else "unknown"
+    return HTMLResponse(_render_index())
 
 
 def _bearing_deg(lat1: float, lon1: float, lat2: float, lon2: float) -> int:
@@ -215,7 +218,7 @@ async def api_nearby(request: Request, lat: float, lon: float) -> dict:
     if not (math.isfinite(lat) and math.isfinite(lon)
             and -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
         raise HTTPException(status_code=400, detail="invalid coordinates")
-    ip = _http_client_ip(request)
+    ip = client_ip(request)
     if not await gamestore.rate_allow("nearby", ip, NEARBY_RATE_MAX, NEARBY_RATE_WINDOW):
         raise HTTPException(status_code=429, detail="slow down")
 
@@ -260,7 +263,7 @@ async def api_places_nearby(request: Request, lat: float, lon: float) -> dict:
     if not (math.isfinite(lat) and math.isfinite(lon)
             and -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
         raise HTTPException(status_code=400, detail="invalid coordinates")
-    ip = _http_client_ip(request)
+    ip = client_ip(request)
     if not await gamestore.rate_allow("places", ip, PLACES_RATE_MAX, PLACES_RATE_WINDOW):
         raise HTTPException(status_code=429, detail="slow down")
     results = await places.search_nearby(lat, lon)
@@ -278,7 +281,7 @@ async def api_places_search(request: Request, q: str, lat: float, lon: float) ->
     if not (math.isfinite(lat) and math.isfinite(lon)
             and -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
         raise HTTPException(status_code=400, detail="invalid coordinates")
-    ip = _http_client_ip(request)
+    ip = client_ip(request)
     if not await gamestore.rate_allow("placesearch", ip,
                                       PLACES_RATE_MAX, PLACES_RATE_WINDOW):
         raise HTTPException(status_code=429, detail="slow down")
@@ -297,7 +300,7 @@ async def api_places_photo(request: Request, ref: str, w: int = 200) -> Response
         raise HTTPException(status_code=503, detail="places disabled")
     if not _PHOTO_REF_RE.match(ref):
         raise HTTPException(status_code=400, detail="bad ref")
-    ip = _http_client_ip(request)
+    ip = client_ip(request)
     # A sheet shows up to 20 photos at once, so allow well above the search rate.
     if not await gamestore.rate_allow("placephoto", ip,
                                       PLACES_RATE_MAX * 5, PLACES_RATE_WINDOW):
@@ -535,7 +538,7 @@ async def verify_roll(code: str, pid: str, roll_count: int) -> dict:
 
 @router.get("/games/{code}")
 async def game_detail_page(code: str) -> HTMLResponse:
-    return HTMLResponse(_index_html)
+    return HTMLResponse(_render_index())
 
 
 # Vanity profile URLs: tensies.app/@username. The @ prefix guarantees no
@@ -543,7 +546,7 @@ async def game_detail_page(code: str) -> HTMLResponse:
 @router.get("/@{username}")
 async def profile_vanity(username: str) -> HTMLResponse:
     if not TELEMETRY_ENABLED:
-        return HTMLResponse(_index_html)
+        return HTMLResponse(_render_index())
     try:
         from server.telemetry import store
         async with store.pool().acquire() as con:
@@ -552,7 +555,7 @@ async def profile_vanity(username: str) -> HTMLResponse:
                 username.lower(),
             )
             if user is None:
-                return HTMLResponse(_index_html)
+                return HTMLResponse(_render_index())
             stats = await con.fetchrow(
                 "SELECT total_wins, total_games FROM player_stats WHERE user_id = ("
                 "SELECT id::text FROM users WHERE LOWER(username) = $1)",
@@ -566,8 +569,9 @@ async def profile_vanity(username: str) -> HTMLResponse:
             desc_parts.append(user["bio"])
         desc_parts.append("Challenge them to a game — no download required.")
         base = APP_URL.rstrip("/") if APP_URL else ""
+        tmpl, defaults = _page_template()
         html = render_page(
-            _tmpl, _defaults,
+            tmpl, defaults,
             page_title=f"@{display} — Tensies Player Profile",
             share_title=f"Play Tensies with @{display}!",
             share_description=" ".join(desc_parts),
@@ -576,7 +580,7 @@ async def profile_vanity(username: str) -> HTMLResponse:
         return HTMLResponse(html)
     except Exception:
         log.exception("profile meta injection failed for @%s", username)
-        return HTMLResponse(_index_html)
+        return HTMLResponse(_render_index())
 
 
 # Clean join URLs: GET /<code> serves the SPA, which reads the code from the
@@ -591,4 +595,4 @@ _GAME_CODE_RE = re.compile(r"[A-Za-z]{5}")
 async def join_deeplink(code: str) -> HTMLResponse:
     if not _GAME_CODE_RE.fullmatch(code):
         raise HTTPException(status_code=404)
-    return HTMLResponse(_index_html)
+    return HTMLResponse(_render_index())

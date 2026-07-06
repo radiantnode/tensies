@@ -104,10 +104,68 @@ def build_js_cache() -> dict[str, str]:
 
     Keyed by the path as it appears in URLs (e.g. "js/main.js", "js/components/player-card.js").
     """
-    _, js_files, _ = _collect_assets()
-    version = asset_hash(_collect_assets()[0] + js_files + _collect_assets()[2])
+    css, js_files, legacy = _collect_assets()
+    version = asset_hash(css + js_files + legacy)
     cache: dict[str, str] = {}
     for path in js_files:
         rel = path.relative_to(STATIC_DIR).as_posix()
         cache[rel] = _rewrite_js(path.read_text(), version)
     return cache
+
+
+class DevAssets:
+    """Dev-only cache-busted asset serving that survives file edits without a
+    server restart.
+
+    In dev the app serves the raw modules itself, and the version hash + the
+    rewritten module bodies used to be computed once at startup — so any edit to
+    a CSS/JS file needed a `docker compose restart web` to show up (the single
+    biggest source of dev friction). This recomputes them lazily, but only when
+    something actually changed: each call stats the static tree (cheap, no file
+    reads) and rebuilds the index template + JS cache only when the max mtime
+    moves. Prod (FRONTEND_DIST set) never constructs this — nginx serves the
+    prebuilt, fingerprinted dist/.
+    """
+
+    def __init__(self, app_url: str = "") -> None:
+        self._app_url = app_url
+        self._sig: tuple[int, int] | None = None
+        self._tmpl: Template | None = None
+        self._defaults: dict[str, str] = {}
+        self._js: dict[str, str] = {}
+
+    def _signature(self) -> tuple[int, int]:
+        css, js, legacy = _collect_assets()
+        paths = [*css, *js, *legacy, STATIC_DIR / "index.html"]
+        newest = max((p.stat().st_mtime_ns for p in paths if p.exists()), default=0)
+        return newest, len(paths)
+
+    def _refresh_if_stale(self) -> None:
+        sig = self._signature()
+        if sig == self._sig:
+            return
+        self._sig = sig
+        self._tmpl, self._defaults = build_page_template(build_index_html(), self._app_url)
+        self._js = build_js_cache()
+
+    def template(self) -> tuple[Template, dict[str, str]]:
+        self._refresh_if_stale()
+        assert self._tmpl is not None
+        return self._tmpl, self._defaults
+
+    def js(self, key: str) -> str | None:
+        self._refresh_if_stale()
+        return self._js.get(key)
+
+
+_dev_assets: DevAssets | None = None
+
+
+def dev_assets(app_url: str = "") -> DevAssets:
+    """Process-wide DevAssets singleton, so routes.py and main.py share one
+    mtime sweep and one set of caches. First caller (routes.py, at import) sets
+    app_url; later callers reuse the same instance."""
+    global _dev_assets
+    if _dev_assets is None:
+        _dev_assets = DevAssets(app_url)
+    return _dev_assets

@@ -1,6 +1,7 @@
 // @ts-check
 import './app-header.js';
 import { getAuthUser } from '../auth.js';
+import { esc } from '../dom.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
 import { showLanding } from '../router.js';
 import { state } from '../state.js';
@@ -8,7 +9,6 @@ import { state } from '../state.js';
 /**
  * <game-detail-screen> — post-game detail view at /games/<code>.
  * Light DOM: the host element *is* `#game-detail.screen`.
- * @typedef {{ load(code: string): Promise<any>, render(code: string, result: any): void }} GameDetailScreen
  */
 export class GameDetailScreen extends HTMLElement {
   connectedCallback() {
@@ -104,8 +104,8 @@ export class GameDetailScreen extends HTMLElement {
       const photo = p.photo || '/static/images/avatar-default.svg';
       return `
         <div class="gd-player">
-          <span class="gd-player-avatar-ring"><img class="gd-player-avatar" src="${photo}" alt=""></span>
-          <span class="gd-player-name">${p.name}</span>
+          <span class="gd-player-avatar-ring"><img class="gd-player-avatar" src="${esc(photo)}" alt=""></span>
+          <span class="gd-player-name">${esc(p.name)}</span>
           <span class="gd-player-wins">${p.wins} win${p.wins !== 1 ? 's' : ''}</span>
         </div>`;
     }).join('');
@@ -209,7 +209,7 @@ export class GameDetailScreen extends HTMLElement {
         resultsHtml += `
           <div class="gd-trust-player-row">
             ${ok ? checkSvg : failSvg}
-            <span class="gd-trust-player-name">${pr.name}</span>
+            <span class="gd-trust-player-name">${esc(pr.name)}</span>
             <span class="gd-trust-player-count">${pr.verified}/${pr.total}</span>
           </div>`;
       }

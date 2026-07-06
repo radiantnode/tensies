@@ -129,6 +129,12 @@ async def end_if_paused_over(code: str) -> None:
     deadline = snap.get("pause_deadline_ms")
     if deadline is not None and gamestore.now_ms() < deadline:
         return  # not actually over yet (reaper called early)
+    # Atomic claim: with N instances, several reapers (plus the local watchdog)
+    # can reach this point in the same sweep window. Only the caller whose CAS
+    # deletes the game emits/broadcasts, so the fatal frame and the game_ended
+    # metrics stay exactly-once — same gate-on-Lua-result pattern as do_drop.
+    if not await gamestore.try_end_paused(code):
+        return
     log.info("pause_timeout  game=%s  (paused > %ds)", code, int(PAUSE_MAX))
     duration_ms = gamestore.now_ms() - snap["created_ms"]
     emit("game_ended", game_code=code, reason="pause_timeout",
@@ -138,7 +144,6 @@ async def end_if_paused_over(code: str) -> None:
     metrics.game_duration_seconds.observe(duration_ms / 1000.0)
     await broadcast(code, {"type": "error", "fatal": True,
                            "msg": "Game ended — it was paused too long."})
-    await gamestore.delete_game(code)
     state.connections.pop(code, None)
     state.pause_tasks.pop(code, None)
 

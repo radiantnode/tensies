@@ -40,7 +40,7 @@ GEO_INDEX = "games:geo"  # GEO sorted set of discoverable lobbies (jittered coor
 _r: aioredis.Redis | None = None
 
 # Lua scripts, registered on init().
-_create = _join = _finish = _drop = None
+_create = _join = _finish = _drop = _restamp = _end_paused = None
 
 
 def client() -> aioredis.Redis:
@@ -158,11 +158,13 @@ return {1, new_host}
 
 
 def _register_scripts() -> None:
-    global _create, _join, _finish, _drop
+    global _create, _join, _finish, _drop, _restamp, _end_paused
     _create = _r.register_script(_CREATE_LUA)
     _join = _r.register_script(_JOIN_LUA)
     _finish = _r.register_script(_FINISH_LUA)
     _drop = _r.register_script(_DROP_LUA)
+    _restamp = _r.register_script(_RESTAMP_LUA)
+    _end_paused = _r.register_script(_END_PAUSED_LUA)
 
 
 # ─── Code generation (audit L1: secrets, not random) ───────────────────────
@@ -416,6 +418,47 @@ async def mark_disconnected(code: str, pid: str) -> None:
     await _r.hset(_gkey(code), mapping={
         p + "disconnected": 1, p + "disconnected_at_ms": now_ms(),
     })
+
+
+_RESTAMP_LUA = """
+local p = 'p:' .. ARGV[1] .. ':'
+if redis.call('HGET', KEYS[1], p .. 'disconnected') == '1' then
+  redis.call('HSET', KEYS[1], p .. 'disconnected_at_ms', ARGV[2])
+  return 1
+end
+return 0
+"""
+
+# Atomic claim of a pause-cap ending: paused + past deadline -> delete, else
+# no-op. Only the caller that wins the delete may emit/broadcast, so with N
+# instances the ending stays exactly-once (same gate-on-Lua-result pattern
+# as the drop path).
+_END_PAUSED_LUA = """
+if redis.call('HGET', KEYS[1], 'paused') ~= '1' then return 0 end
+local dl = tonumber(redis.call('HGET', KEYS[1], 'pause_deadline_ms') or '0')
+if dl == 0 or tonumber(ARGV[2]) < dl then return 0 end
+redis.call('DEL', KEYS[1])
+redis.call('SREM', KEYS[2], ARGV[1])
+return 1
+"""
+
+
+async def try_end_paused(code: str) -> bool:
+    """CAS-end a paused game past its deadline. True iff this caller won."""
+    res = await _end_paused(keys=[_gkey(code), INDEX], args=[code, now_ms()])
+    return bool(res)
+
+
+async def restamp_disconnect(code: str, pid: str) -> bool:
+    """Refresh disconnected_at_ms — only if the player is still disconnected.
+
+    Used on pause-resume so the post-resume grace is measured from the resume,
+    not from the original mid-pause disconnect. Conditional inside Redis: a
+    player who reconnected between our snapshot and this call must NOT be
+    flipped back to disconnected (an unconditional mark_disconnected would).
+    """
+    res = await _restamp(keys=[_gkey(code)], args=[pid, now_ms()])
+    return bool(res)
 
 
 async def mark_connected(code: str, pid: str) -> None:

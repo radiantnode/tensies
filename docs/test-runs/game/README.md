@@ -7,6 +7,7 @@ loop across two isolated Playwright instances.
 
 | Date | Scope | Result | Passed | Total | Highlight |
 |------|-------|--------|--------|-------|-----------|
+| [2026-07-05T22:29:15](2026-07-05T22-29-15.md) | Game | ✅ PASS | 21 | 21 | `fix/fable5-review-fixes` pre-merge pass (targeted to changed surfaces + prod bundle). **Restamp fix proven live**: pause→resume→drop at 61s not ~15s. Roll floor 0.75s doesn't reject honest play (min gap 1086ms). Prod asset refactor intact (CSP still stamped). Per-fix live checks all green (reaper CAS/SREM, legacy_pid guard, auth 429, tsc 0, dev no-restart hash) |
 | [2026-07-03T20:49:21](2026-07-03T20-49-21.md) | Game | ✅ PASS | 34 | 34 | `feature/video-intro` pre-merge pass; **real WebAuthn** (RP_ID override, not degraded); overlay consistency 2997–3089ms across 6 rounds, no flash; prod bundle validated incl. **fingerprinted `/static/video`** (the CI frontend fix); only env-setup friction (`.env.prod` dummy secrets + `down -v`) |
 | [2026-06-17T20:30:00](2026-06-17T20-30-00.md) | Game | ✅ PASS | 31 | 31 | End Game feature (tap-to-confirm, overlay scoreboard, dismiss); overlay consistency 2995–3037ms across 6 rounds; prod bundle `app-be6e5702.js`; auth degraded to JWT (RP_ID mismatch) |
 | [2026-06-15T17:49:00](2026-06-15T17-49-00.md) | Game | ✅ PASS | 34 | 34 | First 34-step run with auth (WebAuthn CDP Virtual Authenticator); celebration-echo guard held (0 flashes across 20 overlays); all overlay durations 3002–3045ms |

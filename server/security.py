@@ -11,6 +11,7 @@ WebSocket. `upgrade-insecure-requests` is added only when HSTS is on (i.e. a
 real HTTPS deploy), so plain-http dev isn't forced to upgrade to https.
 """
 from starlette.datastructures import MutableHeaders
+from starlette.requests import HTTPConnection
 
 from .config import (
     CSP_EXTRA_CONNECT_SRC,
@@ -22,7 +23,28 @@ from .config import (
     HSTS_MAX_AGE,
     HSTS_PRELOAD,
     SECURITY_HEADERS,
+    TRUST_PROXY_HEADERS,
+    TRUSTED_PROXY_HOPS,
 )
+
+
+def client_ip(conn: HTTPConnection) -> str:
+    """Real client IP for abuse limits (audit H1). Works for HTTP requests and
+    WebSockets alike — both are starlette HTTPConnections. Behind a trusted
+    proxy the transport peer is the proxy, so read X-Forwarded-For; otherwise
+    use the peer. Taking the entry TRUSTED_PROXY_HOPS from the right ignores
+    any client-spoofed values prepended on the left."""
+    peer = conn.client.host if conn.client else "?"
+    if not TRUST_PROXY_HEADERS:
+        return peer
+    xff = conn.headers.get("x-forwarded-for")
+    if not xff:
+        return peer
+    parts = [p.strip() for p in xff.split(",") if p.strip()]
+    if not parts:
+        return peer
+    idx = min(max(TRUSTED_PROXY_HOPS, 1), len(parts))
+    return parts[-idx]
 
 
 def _directive(name: str, *sources: str) -> str:

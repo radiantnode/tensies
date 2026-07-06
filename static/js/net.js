@@ -404,6 +404,13 @@ function handleError(msg) {
       showScreen('landing');
       landingScreen().showError(msg.msg);
     });
+  } else if (state.currentState) {
+    // In-game, non-fatal error (e.g. a rejected roll: "Slow down", "Game is
+    // paused"). Previously dropped silently, which — paired with the reveal
+    // wait in tryReveal — left the roll button spinning. Unstick the roll
+    // machine and re-render so the button re-enables.
+    resetRollState();
+    renderMyArea(state.currentState);
+    renderPlayersBar(state.currentState);
   }
-  // (In-game errors are handled once the game view exists.)
 }

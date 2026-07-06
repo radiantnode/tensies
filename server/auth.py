@@ -8,8 +8,9 @@ import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import asyncpg
 import jwt
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel
 from webauthn import (
     generate_authentication_options,
@@ -27,16 +28,31 @@ from webauthn.helpers.structs import (
 
 from server import db, gamestore
 from server.config import (
+    AUTH_RATE_MAX,
+    AUTH_RATE_WINDOW,
     JWT_EXPIRY_DAYS,
     JWT_SECRET,
     WEBAUTHN_ORIGIN,
     WEBAUTHN_RP_ID,
     WEBAUTHN_RP_NAME,
 )
+from server.security import client_ip
 
 log = logging.getLogger("tensies.auth")
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+async def _rate_limit(request: Request) -> None:
+    """Per-IP limiter for the auth endpoints. They are unauthenticated and do
+    Redis + Postgres work per call, and registration/login options responses
+    distinguish taken/unknown usernames (an enumeration oracle the double-duty
+    sign-in button legitimately depends on) — so cap how fast one IP can ask.
+    Reuses the same Redis window limiter as the WS create/join guards."""
+    if not await gamestore.rate_allow("auth", client_ip(request),
+                                      AUTH_RATE_MAX, AUTH_RATE_WINDOW):
+        log.warning("auth     ip=%s  RATE LIMIT", client_ip(request))
+        raise HTTPException(429, "Too many attempts — try again shortly")
 
 # ─── Username validation ──────────────────────────────────────────────
 import re
@@ -129,7 +145,8 @@ class LoginVerifyRequest(BaseModel):
 # ─── Registration ─────────────────────────────────────────────────────
 
 @router.post("/register/options")
-async def register_options(body: RegisterOptionsRequest):
+async def register_options(body: RegisterOptionsRequest, request: Request):
+    await _rate_limit(request)
     username = _validate_username(body.username)
 
     # Check uniqueness (case-insensitive)
@@ -190,7 +207,8 @@ async def register_options(body: RegisterOptionsRequest):
 
 
 @router.post("/register/verify")
-async def register_verify(body: RegisterVerifyRequest):
+async def register_verify(body: RegisterVerifyRequest, request: Request):
+    await _rate_limit(request)
     username = _validate_username(body.username)
     challenge = await _pop_challenge(body.nonce)
 
@@ -213,17 +231,46 @@ async def register_verify(body: RegisterVerifyRequest):
 
     async with db.pool().acquire() as con:
         async with con.transaction():
-            # Race guard: UNIQUE index catches concurrent inserts
-            try:
-                await con.execute(
-                    """
-                    INSERT INTO users (id, username, legacy_pid)
-                    VALUES ($1, $2, $3)
-                    """,
-                    uuid.UUID(user_id_str),
-                    username,
-                    body.legacy_pid,
+            # Open claiming with an already-assigned guard: an unclaimed
+            # anonymous pid can be locked in by whoever registers it first,
+            # but a pid that is already an account's id (account UUIDs share
+            # the pid namespace and are visible to every co-player via
+            # state_msg) or already claimed by another account must never
+            # move stats again. Registration still succeeds either way —
+            # just without the transfer.
+            legacy_pid = body.legacy_pid
+            if legacy_pid:
+                taken = await con.fetchval(
+                    "SELECT 1 FROM users WHERE id::text = $1 OR legacy_pid = $1",
+                    legacy_pid,
                 )
+                if taken:
+                    legacy_pid = None
+
+            async def _insert_user(lp: str | None) -> None:
+                # Savepoint: a failed INSERT poisons the outer transaction,
+                # and the legacy_pid-race retry below must survive it.
+                async with con.transaction():
+                    await con.execute(
+                        """
+                        INSERT INTO users (id, username, legacy_pid)
+                        VALUES ($1, $2, $3)
+                        """,
+                        uuid.UUID(user_id_str),
+                        username,
+                        lp,
+                    )
+
+            try:
+                await _insert_user(legacy_pid)
+            except asyncpg.UniqueViolationError as e:
+                if legacy_pid and e.constraint_name == "users_legacy_pid_key":
+                    # Lost the claim race between our SELECT and the INSERT —
+                    # first claimer keeps the stats; register without them.
+                    legacy_pid = None
+                    await _insert_user(None)
+                else:
+                    raise HTTPException(409, "Username already taken") from e
             except Exception as e:
                 if "unique" in str(e).lower():
                     raise HTTPException(409, "Username already taken") from e
@@ -243,12 +290,14 @@ async def register_verify(body: RegisterVerifyRequest):
                 transports or None,
             )
 
-            # Data transfer: link old anonymous stats to the new account
-            if body.legacy_pid:
+            # Data transfer: link old anonymous stats to the new account.
+            # legacy_pid is None here if the pid was already assigned (guard
+            # above) or lost the claim race — the row must not move twice.
+            if legacy_pid:
                 await con.execute(
                     "UPDATE player_stats SET user_id = $1 WHERE user_id = $2",
                     user_id_str,
-                    body.legacy_pid,
+                    legacy_pid,
                 )
 
     # Fetch any transferred stats for the onboarding screen
@@ -277,7 +326,8 @@ async def register_verify(body: RegisterVerifyRequest):
 # ─── Authentication ───────────────────────────────────────────────────
 
 @router.post("/login/options")
-async def login_options(body: LoginOptionsRequest):
+async def login_options(body: LoginOptionsRequest, request: Request):
+    await _rate_limit(request)
     username = _validate_username(body.username)
 
     async with db.pool().acquire() as con:
@@ -329,7 +379,8 @@ async def login_options(body: LoginOptionsRequest):
 
 
 @router.post("/login/verify")
-async def login_verify(body: LoginVerifyRequest):
+async def login_verify(body: LoginVerifyRequest, request: Request):
+    await _rate_limit(request)
     username = body.username.strip()
     challenge = await _pop_challenge(body.nonce)
 
