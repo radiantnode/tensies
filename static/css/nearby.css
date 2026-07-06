@@ -145,13 +145,21 @@
     position: absolute;
     transform: translate(-50%, -50%);
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
     padding: 0;
     background: none;
     border: none;
     animation: blip-appear 0.3s ease-out both;
+  }
+
+  /* Avatar + name + place, stacked. Counter-rotates the scope's compass turn as
+     one piece so the whole label stays upright and keeps its internal
+     alignment (rotating each child separately spread them apart). */
+  .blip-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    transform: rotate(calc(-1 * var(--rot, 0deg)));
   }
 
   @keyframes blip-appear {
@@ -167,7 +175,6 @@
     inline-size: 36px;
     block-size: 36px;
     border-radius: 50%;
-    transform: rotate(calc(-1 * var(--rot, 0deg)));
     box-shadow:
       inset -1px 1px 3px rgba(255, 200, 122, 0.3),
       inset 1px -1px 4px rgba(70, 28, 8, 0.25),
@@ -208,8 +215,6 @@
   }
 
   .blip-name {
-    /* Counter the blip layer's compass rotation so names stay upright. */
-    transform: rotate(calc(-1 * var(--rot, 0deg)));
     max-inline-size: 62px;
     padding: 1px 6px;
     border-radius: 999px;
@@ -242,7 +247,6 @@
   /* Checked-in place, a second line under the host name (gold, matching the
      check-in theme). Counter-rotated so it stays upright with the compass. */
   .blip-place {
-    transform: rotate(calc(-1 * var(--rot, 0deg)));
     max-inline-size: 62px;
     margin-block-start: -1px;
     font-size: 0.62rem;
