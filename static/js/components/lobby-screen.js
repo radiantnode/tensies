@@ -12,10 +12,11 @@ import { state } from '../state.js';
 
 /** @typedef {import('../types.js').GameSnapshot} GameSnapshot */
 
-/** Copy hint under the code, showing the shareable link, e.g.
- *  "Click to copy — tensies.app/ABCDE" (host reflects the current origin).
+/** Copy hint HTML under the code, showing the shareable link (URL bold), e.g.
+ *  "Click to copy — <b>tensies.app/ABCDE</b>" (host reflects the current origin).
+ *  Safe to inject: host is the browser origin, code is a sanitised 5-letter code.
  *  @param {string} code */
-const copyHint = (code) => `Click to copy — ${location.host}/${code}`;
+const copyHint = (code) => `Click to copy — <span class="copy-hint-url">${location.host}/${code}</span>`;
 
 /** Fallback avatar for anonymous players (no account photo). */
 const DEFAULT_AVATAR = '/static/images/avatar-default.svg';
@@ -128,7 +129,7 @@ export class LobbyScreen extends HTMLElement {
     byId('lobby-code').textContent = snap.code;
     // Show the shareable link; don't clobber the transient "link copied!".
     const copyHintEl = byId('copy-hint');
-    if (!copyHintEl.classList.contains('copied')) copyHintEl.textContent = copyHint(snap.code);
+    if (!copyHintEl.classList.contains('copied')) copyHintEl.innerHTML = copyHint(snap.code);
 
     const list = this.#list;
     if (!list) return;
@@ -343,7 +344,7 @@ export class LobbyScreen extends HTMLElement {
       hint.classList.add('copied');
       clearTimeout(this.#copyResetTimer);
       this.#copyResetTimer = setTimeout(() => {
-        hint.textContent = copyHint(code);
+        hint.innerHTML = copyHint(code);
         hint.classList.remove('copied');
       }, 2000);
     });

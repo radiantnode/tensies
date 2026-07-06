@@ -105,6 +105,11 @@
     text-shadow: var(--shadow-text);
   }
 
+  .copy-hint-url {
+    font-weight: 700;
+    color: var(--color-text-warm);
+  }
+
   .copied { color: var(--color-success) !important; }
 
   /* Share / Play / Broadcast: three circular icon buttons on one row. */
