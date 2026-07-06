@@ -61,8 +61,12 @@ export class NearbyScreen extends HTMLElement {
   /** @type {string | null} code of the currently selected blip */
   #selected = null;
 
-  /** @type {NearbyGame[]} last painted list, for card lookups on blip tap */
+  /** @type {NearbyGame[]} last painted list, for lookups on blip/row tap */
   #lastGames = [];
+
+  /** @type {Map<string, HTMLLIElement>} code → list row, patched in place so
+   *  avatars don't reload on every poll. */
+  #rows = new Map();
 
   /** @type {number} bumped each acquisition so a stale fetch can't paint. */
   #token = 0;
@@ -102,7 +106,8 @@ export class NearbyScreen extends HTMLElement {
             <svg class="compass-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polygon points="12,7 14.5,14.5 12,13 9.5,14.5" fill="currentColor" stroke="none"/></svg>
           </button>
         </div>
-        <div class="nearby-card" id="nearby-card" hidden></div>
+        <ul class="nearby-list" id="nearby-list" aria-label="Nearby games"></ul>
+        <p class="nearby-empty" id="nearby-empty" hidden>No games nearby yet — ask a host to broadcast.</p>
         <p class="error-msg nearby-error" id="nearby-error" role="alert" aria-live="polite"></p>
         <button id="nearby-retry" type="button" class="btn btn-secondary nearby-retry" hidden>Try again</button>
       </div>`;
@@ -113,14 +118,18 @@ export class NearbyScreen extends HTMLElement {
     // the tap is also the user gesture iOS requires for its permission prompt.
     if ('DeviceOrientationEvent' in window) byId('compass-btn').hidden = false;
     byId('compass-btn').addEventListener('click', () => this.#toggleCompass());
-    // Blip taps + card Join, via delegation (blips/card are rebuilt each poll).
+    // Blip taps highlight the matching list row; a row tap highlights its blip;
+    // the row's Join button joins. Delegated (rows/blips rebuild across polls).
     byId('radar-blips').addEventListener('click', (e) => {
       const blip = /** @type {HTMLElement} */ (e.target).closest('[data-code]');
-      if (blip) this.#select(blip.getAttribute('data-code'));
+      if (blip) this.#select(blip.getAttribute('data-code'), true);
     });
-    byId('nearby-card').addEventListener('click', (e) => {
-      const join = /** @type {HTMLElement} */ (e.target).closest('[data-join]');
-      if (join) joinWithCode(/** @type {string} */ (join.getAttribute('data-join')), 'nearby');
+    byId('nearby-list').addEventListener('click', (e) => {
+      const target = /** @type {HTMLElement} */ (e.target);
+      const join = target.closest('[data-join]');
+      if (join) { joinWithCode(/** @type {string} */ (join.getAttribute('data-join')), 'nearby'); return; }
+      const row = target.closest('[data-code]');
+      if (row) this.#select(row.getAttribute('data-code'), false);
     });
   }
 
@@ -210,7 +219,8 @@ export class NearbyScreen extends HTMLElement {
   async enter() {
     this.#stopPolling();
     this.#selected = null;
-    this.#renderCard(null);
+    for (const row of this.#rows.values()) row.remove();
+    this.#rows.clear();
     this.showError('');
     byId('nearby-retry').hidden = true;
     this.#setStatus('Finding games around you…');
@@ -279,10 +289,9 @@ export class NearbyScreen extends HTMLElement {
       ? `${games.length} game${games.length === 1 ? '' : 's'} nearby`
       : 'No games nearby yet');
 
-    // Keep a still-present selection; otherwise clear the card.
+    // Drop a selection whose game is gone.
     if (this.#selected && !games.some((g) => g.code === this.#selected)) {
       this.#selected = null;
-      this.#renderCard(null);
     }
 
     blips.replaceChildren();
@@ -313,51 +322,72 @@ export class NearbyScreen extends HTMLElement {
       blip.append(ring, name);
       blips.append(blip);
     }
-    if (this.#selected) {
-      this.#renderCard(games.find((g) => g.code === this.#selected) ?? null);
+
+    this.#renderList(games);
+  }
+
+  /**
+   * Build/patch the games list below the radar — one row per game, keyed by
+   * code so avatars aren't reloaded every poll. Each row carries the host's
+   * profile photo, name, player count, distance and a Join button.
+   * @param {NearbyGame[]} games
+   */
+  #renderList(games) {
+    const list = byId('nearby-list');
+    byId('nearby-empty').hidden = games.length > 0;
+
+    const present = new Set(games.map((g) => g.code));
+    for (const [code, row] of this.#rows) {
+      if (!present.has(code)) { row.remove(); this.#rows.delete(code); }
+    }
+
+    for (const g of games) {
+      let row = this.#rows.get(g.code);
+      if (!row) {
+        row = document.createElement('li');
+        row.className = 'nearby-row';
+        row.dataset.code = g.code;
+        const ring = document.createElement('span');
+        ring.className = 'nearby-row-avatar-ring';
+        ring.append(avatarImg(g.photo, 'nearby-row-avatar'));
+        const info = document.createElement('div');
+        info.className = 'nearby-row-info';
+        info.innerHTML =
+          '<span class="nearby-row-host"></span><span class="nearby-row-meta"></span>';
+        const join = document.createElement('button');
+        join.type = 'button';
+        join.className = 'btn btn-primary nearby-row-join';
+        join.dataset.join = g.code;
+        join.textContent = 'Join';
+        row.append(ring, info, join);
+        this.#rows.set(g.code, row);
+      }
+      const plural = g.player_count === 1 ? 'player' : 'players';
+      /** @type {HTMLElement} */ (row.querySelector('.nearby-row-host')).textContent = g.host_name;
+      /** @type {HTMLElement} */ (row.querySelector('.nearby-row-meta')).textContent =
+        `${g.player_count} ${plural} · ~${g.distance_m} m away`;
+      row.classList.toggle('is-selected', g.code === this.#selected);
+      list.append(row); // re-append in API (nearest-first) order
     }
   }
 
   /**
-   * Select a blip and surface its join card.
+   * Cross-highlight a game across the radar + list. When triggered from the
+   * radar, scroll its row into view so the two stay connected.
    * @param {string | null} code
+   * @param {boolean} fromRadar
    */
-  #select(code) {
+  #select(code, fromRadar) {
     this.#selected = code;
     for (const b of this.querySelectorAll('.radar-blip')) {
       b.classList.toggle('is-selected', b.getAttribute('data-code') === code);
     }
-    const data = this.#lastGames.find((g) => g.code === code) ?? null;
-    this.#renderCard(data);
-  }
-
-  /**
-   * @param {NearbyGame | null} g
-   */
-  #renderCard(g) {
-    const card = byId('nearby-card');
-    if (!g) {
-      card.hidden = true;
-      card.replaceChildren();
-      return;
+    for (const [c, row] of this.#rows) {
+      row.classList.toggle('is-selected', c === code);
     }
-    const plural = g.player_count === 1 ? 'player' : 'players';
-    card.replaceChildren();
-    const ring = document.createElement('span');
-    ring.className = 'nearby-card-avatar-ring';
-    ring.append(avatarImg(g.photo, 'nearby-card-avatar'));
-    const info = document.createElement('div');
-    info.className = 'nearby-card-info';
-    info.innerHTML =
-      `<span class="nearby-card-host">${escapeHtml(g.host_name)}</span>` +
-      `<span class="nearby-card-meta">${g.player_count} ${plural} · ~${g.distance_m} m away</span>`;
-    const join = document.createElement('button');
-    join.type = 'button';
-    join.className = 'btn btn-primary nearby-card-join';
-    join.dataset.join = g.code;
-    join.textContent = 'Join';
-    card.append(ring, info, join);
-    card.hidden = false;
+    if (fromRadar && code) {
+      this.#rows.get(code)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
   }
 
   /** @param {string} text */

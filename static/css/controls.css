@@ -269,7 +269,7 @@
   .profile-avatar-ring::before,
   .gd-player-avatar-ring::before,
   .blip-avatar-ring::before,
-  .nearby-card-avatar-ring::before,
+  .nearby-row-avatar-ring::before,
   .header-username::before,
   .recent-avatar-winner::before {
     content: '';
