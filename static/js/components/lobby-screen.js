@@ -66,17 +66,26 @@ export class LobbyScreen extends HTMLElement {
         <p class="copy-hint" id="copy-hint">Click to copy</p>
         <div class="or-divider" aria-hidden="true"><span>or</span></div>
         <div class="lobby-actions">
-          <button id="share-btn" type="button" class="lobby-action" aria-label="Share invite link">
-            <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-              <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/>
-            </svg>
-          </button>
-          <button id="play-code-btn" type="button" class="lobby-action btn-play-code btn-audio" aria-label="Play the code as a sound">
-            ${EQ_ICON_HTML}
-          </button>
-          <button id="broadcast-btn" type="button" class="lobby-action btn-broadcast" aria-pressed="false" aria-label="Broadcast to nearby players" hidden>
-            <span class="broadcast-wave" aria-hidden="true"><span></span><span></span><span></span></span>
-          </button>
+          <div class="lobby-action-item">
+            <button id="share-btn" type="button" class="lobby-action" aria-label="Share invite link">
+              <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+                <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/>
+              </svg>
+            </button>
+            <span class="lobby-action-label">Share</span>
+          </div>
+          <div class="lobby-action-item">
+            <button id="play-code-btn" type="button" class="lobby-action btn-play-code btn-audio" aria-label="Play the code as a sound">
+              ${EQ_ICON_HTML}
+            </button>
+            <span class="lobby-action-label">Play</span>
+          </div>
+          <div id="broadcast-item" class="lobby-action-item" hidden>
+            <button id="broadcast-btn" type="button" class="lobby-action btn-broadcast" aria-pressed="false" aria-label="Broadcast to nearby players">
+              <span class="broadcast-wave" aria-hidden="true"><span></span><span></span><span></span></span>
+            </button>
+            <span class="lobby-action-label">Broadcast</span>
+          </div>
         </div>
         <p id="broadcast-status" class="broadcast-status" role="status" aria-live="polite" hidden></p>
         <section class="lobby-players-section" aria-labelledby="players-label">
@@ -197,7 +206,7 @@ export class LobbyScreen extends HTMLElement {
   #syncBroadcast(discoverable, isHost) {
     const btn = /** @type {HTMLButtonElement} */ (byId('broadcast-btn'));
     const status = byId('broadcast-status');
-    btn.hidden = !isHost;
+    byId('broadcast-item').hidden = !isHost; // hide the button + its label together
     if (!isHost) {
       status.hidden = true;
       return;

@@ -112,13 +112,32 @@
 
   .copied { color: var(--color-success) !important; }
 
-  /* Share / Play / Broadcast: three circular icon buttons on one row. */
+  /* Share / Play / Broadcast: three circular icon buttons on one row, each with
+     a caption underneath. */
   .lobby-actions {
     display: flex;
     justify-content: center;
-    gap: 1.1rem;
+    align-items: flex-start;
+    gap: 1.5rem;
     margin-block-end: 1.25rem;
   }
+
+  .lobby-action-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .lobby-action-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+  }
+  /* Active broadcast: tint its caption to match the on-glow. */
+  .btn-broadcast.is-on + .lobby-action-label { color: var(--color-accent); }
 
   .lobby-action {
     position: relative;
