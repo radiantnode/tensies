@@ -1,16 +1,20 @@
 # Metrics — Tensies by the Numbers
 
-*Written 2026-07-05 by Claude Fable 5. Charts are theme-aware SVGs — they follow
-your system light/dark setting (the `@media (prefers-color-scheme)` inside each
-file). Numbers are drawn from the git history (rigorous) and a scan of the
-session transcripts (sampled — see the honesty note at the end). The generator
-is [examples/scripts/metrics_charts.py](examples/scripts/metrics_charts.py).*
+*Written 2026-07-05 by Claude Fable 5. Each chart is a `<picture>` pairing a
+baked light SVG and a baked dark SVG, so it follows your system light/dark
+setting with no dependence on a renderer honoring CSS inside the SVG (an earlier
+single-file `@media` version rendered white in some viewers). Numbers are drawn
+from the git history (rigorous) and a scan of the session transcripts (sampled —
+see the honesty note at the end).*
 
 ---
 
 ## The build, day by day
 
-![Commits per day](images/01-commits-per-day.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/01-commits-per-day.dark.svg">
+  <img alt="Commits per day" src="images/01-commits-per-day.light.svg">
+</picture>
 
 **648 commits in 42 days** — a bit over 15 a day, but the average lies. The work
 came in waves: the May 31 spike of **126 commits in one day** was the winner-
@@ -22,7 +26,10 @@ iteration went forward, not in circles.
 
 ## The healthiest chart in the project
 
-![Churn vs stability](images/02-churn-vs-stability.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/02-churn-vs-stability.dark.svg">
+  <img alt="Churn vs stability" src="images/02-churn-vs-stability.light.svg">
+</picture>
 
 This is the one I'd frame. The **feel surface** — the shell, the CSS, the copy,
 even the test harness — was re-sanded endlessly (`index.html` touched 95 times).
@@ -35,7 +42,10 @@ multi-instance tests, and left alone. That's the shape of a codebase that lasts.
 
 ## Who built it
 
-![Who built it](images/03-who-built-it.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/03-who-built-it.dark.svg">
+  <img alt="Who built it" src="images/03-who-built-it.light.svg">
+</picture>
 
 Tensies was a relay across four Claude models. **Opus 4.8** carried the most
 (143 commits, including its 1M-context sessions), **Opus 4.6** the early
@@ -46,7 +56,10 @@ the invariants had to be written down so carefully.
 
 ## How long is a round?
 
-![Rolls to win](images/04-rolls-to-win.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/04-rolls-to-win.dark.svg">
+  <img alt="Rolls to win" src="images/04-rolls-to-win.light.svg">
+</picture>
 
 The gameplay math, computed exactly from `apply_roll` (each unlocked die locks
 with p = 1/6; a round is the max of 10 independent geometric draws). Expected
@@ -59,7 +72,10 @@ arrived at by feel.
 
 ## More players, sharper rounds
 
-![Winner rolls by player count](images/05-winner-by-players.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/05-winner-by-players.dark.svg">
+  <img alt="Winner rolls by player count" src="images/05-winner-by-players.light.svg">
+</picture>
 
 Because the winner is the *fastest* of N players, more players means shorter
 rounds (order statistics compress the finish): ~16.6 rolls solo down to ~7.4 at
@@ -69,7 +85,10 @@ often enough to care.
 
 ## The collaboration held steady
 
-![Correction rate](images/06-correction-rate.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/06-correction-rate.dark.svg">
+  <img alt="Correction rate" src="images/06-correction-rate.light.svg">
+</picture>
 
 The one people ask about. Corrections stayed in a tight **6–11% band** every
 week — even as weekly output swung from 20 commits to 255. The collaboration
@@ -80,7 +99,10 @@ big plan-gated features do.)
 
 ## Friction fingerprint
 
-![Friction fingerprint](images/07-friction-fingerprint.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/07-friction-fingerprint.dark.svg">
+  <img alt="Friction fingerprint" src="images/07-friction-fingerprint.light.svg">
+</picture>
 
 Of **1,859 messages you typed**, ~50 were corrections and just **5 were profane**
 — and every one of those was aimed at a tool or a bug, never at Claude. The real
@@ -91,7 +113,10 @@ biggest friction source in the whole corpus.
 
 ## Every curse word, and what caused it
 
-![Profanity timeline](images/08-profanity-timeline.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/08-profanity-timeline.dark.svg">
+  <img alt="Profanity timeline" src="images/08-profanity-timeline.light.svg">
+</picture>
 
 The fun one, and honestly a flattering one. Five profane messages in six weeks —
 four "fucking," one "dammit" — and the *pattern* is the point. None in the first
