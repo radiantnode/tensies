@@ -193,12 +193,23 @@ export class LobbyScreen extends HTMLElement {
     });
     byId('checkin-prompt').addEventListener('click', () => this.#openPlaces());
     byId('places-search').addEventListener('input', () => this.#onSearchInput());
+    byId('places-list').addEventListener('scroll',
+      () => updateScrollFades(byId('places-list')), { passive: true });
     byId('places-close').addEventListener('click', () => this.#closePlaces());
     // Escape on a modal <dialog> instant-closes by default — intercept it so the
     // sheet slides down like every other close path.
     byId('places-sheet').addEventListener('cancel', (e) => {
       e.preventDefault();
       this.#closePlaces();
+    });
+    // Tap the backdrop (anywhere outside the sheet's box) to dismiss. A modal
+    // dialog reports backdrop clicks as a click on the dialog itself, so compare
+    // the point against its rect rather than trusting the target.
+    byId('places-sheet').addEventListener('click', (e) => {
+      const r = /** @type {HTMLElement} */ (e.currentTarget).getBoundingClientRect();
+      const outside = e.clientX < r.left || e.clientX > r.right ||
+                      e.clientY < r.top || e.clientY > r.bottom;
+      if (outside) this.#closePlaces();
     });
     byId('places-list').addEventListener('click', (e) => {
       const row = /** @type {HTMLElement} */ (e.target).closest('[data-place]');
@@ -580,7 +591,7 @@ export class LobbyScreen extends HTMLElement {
   #resetPlacesScroll() {
     const el = byId('places-list');
     el.scrollTop = 0;
-    requestAnimationFrame(() => { el.scrollTop = 0; });
+    requestAnimationFrame(() => { el.scrollTop = 0; updateScrollFades(el); });
   }
 
   /** Close the places picker sheet, sliding it back down before it goes (the
@@ -776,6 +787,9 @@ export class LobbyScreen extends HTMLElement {
       li.append(btn);
       listEl.append(li);
     }
+    // Seed the edge fades for the freshly-built list (bottom fade on if it
+    // overflows); the scroll listener keeps them in sync thereafter.
+    updateScrollFades(listEl);
   }
 
   /**

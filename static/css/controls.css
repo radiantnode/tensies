@@ -287,7 +287,8 @@
   /* Scroll-fade edge mask — shared by scrollable regions that fade at the
      top/bottom when content overflows. JS toggles .can-scroll-up/.can-scroll-down. */
   .player-list,
-  .menu-changelog-body {
+  .menu-changelog-body,
+  .places-list {
     --fade-top: 0px;
     --fade-bottom: 0px;
     -webkit-mask-image: linear-gradient(to bottom,
@@ -300,9 +301,11 @@
   }
 
   .player-list.can-scroll-up,
-  .menu-changelog-body.can-scroll-up { --fade-top: 24px; }
+  .menu-changelog-body.can-scroll-up,
+  .places-list.can-scroll-up { --fade-top: 24px; }
   .player-list.can-scroll-down,
-  .menu-changelog-body.can-scroll-down { --fade-bottom: 24px; }
+  .menu-changelog-body.can-scroll-down,
+  .places-list.can-scroll-down { --fade-bottom: 24px; }
 
   .error-msg {
     min-block-size: 1.4rem;

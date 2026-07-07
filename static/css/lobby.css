@@ -623,6 +623,10 @@
      background SVG so the input stays a plain <input>. */
   .places-search {
     inline-size: 100%;
+    /* Raised above the list (which has an opaque fill) so rows tuck behind it
+       on scroll rather than butting against it. */
+    position: relative;
+    z-index: 1;
     margin-block-end: 1.1rem;
     padding: 0.6rem 0.8rem 0.6rem 2.35rem;
     background-color: var(--color-field);
@@ -668,8 +672,12 @@
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     list-style: none;
-    margin: 0;
-    padding: 0;
+    /* Slide the list's top up behind the search field so rows scroll under it.
+       The -2rem margin overlaps 0.9rem behind the field; the top padding cancels
+       that 0.9rem and adds ~0.6rem more so the first row rests clear of the
+       field at scroll-0 while later rows still scroll up under it. */
+    margin: -2rem 0 0;
+    padding-block-start: 1.5rem;
   }
   .places-list::-webkit-scrollbar { display: none; }
 
