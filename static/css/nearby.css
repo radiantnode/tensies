@@ -482,6 +482,15 @@
       0 0 26px rgba(255, 186, 102, 0.45);
   }
 
+  /* No hover treatment while live — the gold on-state IS the affordance, and
+     the generic .lobby-action hover would dim its border and lift it. The
+     extra .lobby-action class outweighs that rule regardless of file order. */
+  .lobby-action.btn-broadcast.is-on:hover {
+    background: var(--color-raised);
+    border-color: rgba(255, 190, 110, 0.7);
+    transform: none;
+  }
+
   /* Broadcast wave: a fixed centre dot with three expanding sonar RINGS
      (bordered circles, not scaled solid dots — a filled dot scaled up reads
      as a pulse, and drowned in the active button's gold glow). The rings
@@ -501,7 +510,9 @@
     block-size: 5px;
     margin: -2.5px 0 0 -2.5px;
     border-radius: 50%;
-    background: var(--color-amber);
+    /* Idle: same warm tone as the Share glyph / resting Play bars, so the
+       three icons read alike; .is-on below brightens it to the live gold. */
+    background: var(--color-text-warm);
   }
   .btn-broadcast.is-on .broadcast-wave::before {
     background: rgba(255, 210, 140, 1);
@@ -525,7 +536,6 @@
   }
   .btn-broadcast.is-on .broadcast-wave span {
     border-color: rgba(255, 215, 150, 1);
-    box-shadow: 0 0 5px rgba(255, 186, 102, 0.8);
   }
   .btn-broadcast.is-on .broadcast-wave span:nth-child(1) { animation: bwave 1.6s ease-out infinite; }
   .btn-broadcast.is-on .broadcast-wave span:nth-child(2) { animation: bwave 1.6s ease-out 0.5s infinite; }
@@ -538,17 +548,17 @@
     100% { inline-size: 48px; block-size: 48px; opacity: 0; }
   }
 
-  /* Idle (not broadcasting): the dots keep rippling so the icon reads as alive,
-     but faint and short — a dim echo of the active sonar, never reaching its
-     brightness. Same three-step stagger, slower. The button surface is left
-     untouched (no idle glow); only the glyph moves. */
-  .btn-broadcast:not(.is-on) .broadcast-wave span:nth-child(1) { animation: bwave-idle 2.6s ease-out infinite; }
-  .btn-broadcast:not(.is-on) .broadcast-wave span:nth-child(2) { animation: bwave-idle 2.6s ease-out 0.85s infinite; }
-  .btn-broadcast:not(.is-on) .broadcast-wave span:nth-child(3) { animation: bwave-idle 2.6s ease-out 1.7s infinite; }
+  /* Idle (not broadcasting): the same sonar sweep as the active state — same
+     size, timing, and stagger — just dim (the base amber border at a fraction
+     of the active opacity). The button surface is left untouched (no idle
+     glow); only the glyph moves. */
+  .btn-broadcast:not(.is-on) .broadcast-wave span:nth-child(1) { animation: bwave-idle 1.6s ease-out infinite; }
+  .btn-broadcast:not(.is-on) .broadcast-wave span:nth-child(2) { animation: bwave-idle 1.6s ease-out 0.5s infinite; }
+  .btn-broadcast:not(.is-on) .broadcast-wave span:nth-child(3) { animation: bwave-idle 1.6s ease-out 1s infinite; }
 
   @keyframes bwave-idle {
     0% { inline-size: 7px; block-size: 7px; opacity: 0.32; }
-    100% { inline-size: 26px; block-size: 26px; opacity: 0; }
+    100% { inline-size: 48px; block-size: 48px; opacity: 0; }
   }
 
   /* Transient location-sharing feedback ("Getting your location…" / errors)
