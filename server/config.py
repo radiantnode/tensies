@@ -113,9 +113,9 @@ NEARBY_RATE_WINDOW = _float("NEARBY_RATE_WINDOW", 60.0)
 
 # ─── Google Places "check in" (server-side proxy) ────────────────────────
 # A player can check a lobby in to a nearby real place. The API key never
-# reaches the browser — all Google calls go through server/places.py. When
-# PLACES_ENABLED is on but the key is unset, the proxy serves a small dev stub
-# so the flow is testable without a Google account.
+# reaches the browser — all Google calls go through server/places.py. Places are
+# Google-only: with PLACES_ENABLED on but no key configured, the picker simply
+# shows no places (the proxy returns nothing rather than any canned data).
 PLACES_ENABLED = _flag("PLACES_ENABLED", False)
 GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY") or None  # secret → None when unset
 # Alternative to the API key: a service account (OAuth). Preferred when set —

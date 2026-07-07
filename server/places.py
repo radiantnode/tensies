@@ -5,8 +5,8 @@ places, and the server holds them. Two backends, in order of preference:
   1. a **service account** (GOOGLE_APPLICATION_CREDENTIALS) → OAuth bearer token,
      so the key never has to be an unrestricted browser API key;
   2. a plain **API key** (GOOGLE_MAPS_API_KEY).
-When PLACES_ENABLED is on but neither is set, a small dev stub stands in so the
-whole check-in flow is testable without a Google account.
+Places are Google-only: with no backend configured, the search endpoints return
+nothing (the check-in picker simply shows no places) rather than any canned data.
 
 httpx uses trust_env by default, so these calls inherit any HTTPS_PROXY / CA
 bundle from the environment (same as server/drand.py and server/discord.py).
@@ -63,7 +63,7 @@ def _load_sa() -> dict | None:
             try:
                 with open(GOOGLE_APPLICATION_CREDENTIALS) as f:
                     _sa = json.load(f)
-            except Exception:  # noqa: BLE001 — fall back to key/stub, never fatal
+            except Exception:  # noqa: BLE001 — fall back to the API key, never fatal
                 log.exception("failed to load service account credentials")
                 _sa = None
     return _sa
@@ -122,33 +122,6 @@ async def _auth_headers() -> dict:
     return {"X-Goog-Api-Key": GOOGLE_MAPS_API_KEY}
 
 
-# ─── Dev stub (no API key) ───────────────────────────────────────────────
-# Fixed venues laid out as small offsets from the caller, so they appear as
-# believable "nearby" places. Their coords are cached on search, and check-in
-# resolves against that cache — so a stub check-in works end-to-end.
-_STUB = [
-    ("stub-rusty-anchor", "The Rusty Anchor", "12 Dock St", 0.00045, 0.00060),
-    ("stub-corner-cafe", "Corner Café", "88 Main St", -0.00055, 0.00030),
-    ("stub-old-oak", "The Old Oak Pub", "5 Elm Row", 0.00030, -0.00070),
-    ("stub-taco-loco", "Taco Loco", "200 Market Ave", -0.00040, -0.00050),
-    ("stub-book-nook", "The Book Nook", "17 Library Ln", 0.00080, 0.00010),
-]
-
-
-def _stub_nearby(lat: float, lon: float) -> list[dict]:
-    return [
-        {"place_id": pid, "name": name, "address": addr,
-         "lat": lat + dlat, "lon": lon + dlon}
-        for pid, name, addr, dlat, dlon in _STUB
-    ]
-
-
-def _stub_text(query: str, lat: float, lon: float) -> list[dict]:
-    q = query.casefold()
-    return [p for p in _stub_nearby(lat, lon)
-            if q in p["name"].casefold() or q in p["address"].casefold()]
-
-
 # ─── Redis cache: place_id → {name, lat, lon} ────────────────────────────
 def _ckey(place_id: str) -> str:
     return f"place:{place_id}"
@@ -181,16 +154,15 @@ def _nearby_ckey(lat: float, lon: float) -> str:
 
 
 async def search_nearby(lat: float, lon: float) -> list[dict]:
-    """Places near (lat, lon). Falls back to the dev stub when no key is set.
+    """Places near (lat, lon), or [] when no Google backend is configured.
     Every result is cached so a subsequent check-in can resolve it cheaply.
 
     The whole response is also cached in Redis for PLACES_NEARBY_CACHE_TTL on a
     ~100 m grid — a roomful of players opening the check-in sheet costs one
     billed search, and everyone sees identical rows. Cache hits re-warm the
-    per-place resolve entries so a later check-in stays cheap. The stub is
-    free and position-exact, so it skips the cache."""
+    per-place resolve entries so a later check-in stays cheap."""
     if not _has_google():
-        return _stub_nearby(lat, lon)
+        return []
     r = gamestore.client()
     key = _nearby_ckey(lat, lon)
     cached = await r.get(key)
@@ -207,11 +179,12 @@ async def search_nearby(lat: float, lon: float) -> list[dict]:
 
 
 async def search_text(query: str, lat: float, lon: float) -> list[dict]:
-    """Places matching a free-text query, biased toward (lat, lon). Falls back to
-    a substring filter over the dev stub when no key is set. Results are cached
-    so a subsequent check-in resolves cheaply."""
-    results = await _google_text(query, lat, lon) if _has_google() \
-        else _stub_text(query, lat, lon)
+    """Places matching a free-text query, biased toward (lat, lon), or [] when no
+    Google backend is configured. Results are cached so a subsequent check-in
+    resolves cheaply."""
+    if not _has_google():
+        return []
+    results = await _google_text(query, lat, lon)
     for p in results:
         await _cache_put(p)
     return results
@@ -226,7 +199,7 @@ async def resolve(place_id: str) -> dict | None:
     if cached is not None:
         return cached
     if not _has_google():
-        return None  # stub relies on the warm cache from search_nearby()
+        return None  # no Google backend → nothing to resolve
     p = await _google_details(place_id)
     if p is not None:
         await _cache_put(p)

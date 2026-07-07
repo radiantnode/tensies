@@ -265,8 +265,8 @@ def _place_json(p: dict) -> dict:
 @router.get("/api/places/nearby")
 async def api_places_nearby(request: Request, lat: float, lon: float) -> dict:
     """Nearby real places for the lobby check-in picker. Proxies Google Places
-    server-side (key never reaches the browser); serves a dev stub when no key
-    is configured. Returns place_id/name/address/photo only — no client secrets."""
+    server-side (key never reaches the browser); returns nothing when no Google
+    backend is configured. Returns place_id/name/address/photo only — no client secrets."""
     if not PLACES_ENABLED:
         raise HTTPException(status_code=503, detail="places disabled")
     if not (math.isfinite(lat) and math.isfinite(lon)
