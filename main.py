@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
 from server import db, discord, drand, fanout, gamestore, reaper, telemetry
+from server.assets import current_build_id
 from server.auth import router as auth_router
 from server.config import FRONTEND_DIST
 from server.discord_interactions import router as discord_router
@@ -43,6 +45,24 @@ app = FastAPI(lifespan=lifespan)
 
 # Stamp CSP + HSTS onto every HTTP response (index page, /static, /metrics, …).
 app.add_middleware(SecurityHeadersMiddleware)
+
+# Service worker, served from root so its scope is the whole origin (a SW under
+# /static/ could only control /static/). Same in dev and prod: in prod /sw.js
+# isn't under /static/, so nginx proxies it here to the app. The build id is
+# substituted at request time so a deploy changes the file's bytes -> the
+# browser installs the new worker. `no-cache` keeps the SW script itself from
+# ever going stale (the deepest staleness trap of all).
+_SW_SOURCE = Path("static/sw.js")
+
+
+@app.get("/sw.js")
+async def service_worker() -> Response:
+    body = _SW_SOURCE.read_text().replace("__BUILD_ID__", current_build_id())
+    return Response(
+        content=body,
+        media_type="text/javascript; charset=utf-8",
+        headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"},
+    )
 
 # Static-asset serving is split by deployment mode:
 #

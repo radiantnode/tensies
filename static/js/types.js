@@ -38,6 +38,8 @@
  * @typedef {object} WelcomeMessage
  * @property {'welcome'} type
  * @property {string} player_id
+ * @property {string} [build] Server's frontend build id — update.js compares it
+ *   against this page's <meta app-build> to detect a stale client.
  */
 
 /**

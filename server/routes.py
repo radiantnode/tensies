@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import HTMLResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-from .assets import build_page_template, render_page
+from .assets import build_page_template, current_build_id, render_page
 from .config import (
     APP_URL,
     FOUNDING_CUTOFF,
@@ -26,7 +26,7 @@ router = APIRouter()
 if FRONTEND_DIST:
     # Prod: bake once from the prebuilt, fingerprinted dist/ index.html.
     _html_source = (Path(FRONTEND_DIST) / "index.html").read_text()
-    _tmpl, _defaults = build_page_template(_html_source, APP_URL)
+    _tmpl, _defaults = build_page_template(_html_source, APP_URL, current_build_id())
     _index_html = render_page(_tmpl, _defaults)
 
     def _page_template():
