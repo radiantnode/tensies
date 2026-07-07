@@ -539,10 +539,41 @@
     to   { transform: translateY(0); }
   }
 
+  /* Closing: reverse the slide so the sheet drops back off the bottom edge.
+     More specific than [open] alone, so it overrides the in-animation while the
+     dialog is still open (JS calls .close() on animationend). */
+  .places-sheet[open].is-closing {
+    animation: places-sheet-out 0.2s cubic-bezier(0.4, 0, 1, 1) both;
+  }
+
+  @keyframes places-sheet-out {
+    from { transform: translateY(0); }
+    to   { transform: translateY(100%); }
+  }
+
   .places-sheet::backdrop {
     background: rgba(6, 3, 1, 0.62);
     -webkit-backdrop-filter: blur(2px);
     backdrop-filter: blur(2px);
+  }
+
+  /* Fade the tint + blur in lockstep with the sheet slide — same durations and
+     easings — so the backdrop doesn't snap on at open or linger through the
+     slide-down at close. Opacity fades the tint and the blur together. */
+  .places-sheet[open]::backdrop {
+    animation: places-backdrop-in 0.24s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .places-sheet[open].is-closing::backdrop {
+    animation: places-backdrop-out 0.2s cubic-bezier(0.4, 0, 1, 1) both;
+  }
+
+  @keyframes places-backdrop-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes places-backdrop-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
   }
 
   .places-sheet-head {

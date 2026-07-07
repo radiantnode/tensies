@@ -194,6 +194,12 @@ export class LobbyScreen extends HTMLElement {
     byId('checkin-prompt').addEventListener('click', () => this.#openPlaces());
     byId('places-search').addEventListener('input', () => this.#onSearchInput());
     byId('places-close').addEventListener('click', () => this.#closePlaces());
+    // Escape on a modal <dialog> instant-closes by default — intercept it so the
+    // sheet slides down like every other close path.
+    byId('places-sheet').addEventListener('cancel', (e) => {
+      e.preventDefault();
+      this.#closePlaces();
+    });
     byId('places-list').addEventListener('click', (e) => {
       const row = /** @type {HTMLElement} */ (e.target).closest('[data-place]');
       if (!row) return;
@@ -568,9 +574,17 @@ export class LobbyScreen extends HTMLElement {
     }
   }
 
-  /** Close the places picker sheet. */
+  /** Close the places picker sheet, sliding it back down before it goes (the
+   *  mirror of the open slide-up). Re-entrant calls while already closing — a
+   *  double-tap, or Escape mid-animation — are ignored. */
   #closePlaces() {
-    /** @type {HTMLDialogElement} */ (byId('places-sheet')).close();
+    const sheet = /** @type {HTMLDialogElement} */ (byId('places-sheet'));
+    if (!sheet.open || sheet.classList.contains('is-closing')) return;
+    sheet.classList.add('is-closing');
+    sheet.addEventListener('animationend', () => {
+      sheet.classList.remove('is-closing');
+      sheet.close();
+    }, { once: true });
   }
 
   /**
