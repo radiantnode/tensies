@@ -681,9 +681,10 @@
     appearance: none;
   }
   .places-search::placeholder { color: var(--color-text-muted); }
+  /* No focus restyle — the field keeps its resting amber border. outline:none
+     still suppresses the UA focus ring (which can read as a red/orange hue). */
   .places-search:focus {
     outline: none;
-    border-color: rgba(235, 190, 90, 0.75);
   }
   /* Drop the native clear/decoration so the field reads consistently. */
   .places-search::-webkit-search-cancel-button { -webkit-appearance: none; }
