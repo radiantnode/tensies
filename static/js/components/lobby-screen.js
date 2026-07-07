@@ -124,9 +124,14 @@ export class LobbyScreen extends HTMLElement {
         </div>
         <p id="discovery-status" class="discovery-status" role="status" aria-live="polite" hidden></p>
         <button id="checkin-prompt" type="button" class="checkin-prompt" aria-pressed="false" hidden>
-          <svg class="checkin-prompt-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.6" fill="currentColor" stroke="none"/></svg>
+          <svg id="checkin-prompt-pin" class="checkin-prompt-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.6" fill="currentColor" stroke="none"/></svg>
           <span id="checkin-prompt-text" class="checkin-prompt-text">Check in to a place</span>
           <span id="checkin-prompt-more" class="checkin-prompt-more" hidden></span>
+          <span id="checkin-prompt-photo" class="checkin-prompt-photo" hidden></span>
+          <span id="checkin-prompt-body" class="checkin-prompt-body" hidden>
+            <span id="checkin-prompt-name" class="checkin-prompt-name"></span>
+            <span class="checkin-prompt-sub">Checked in</span>
+          </span>
           <svg class="checkin-prompt-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
         </button>
         <dialog id="places-sheet" class="places-sheet" aria-label="Check in to a place">
@@ -458,7 +463,22 @@ export class LobbyScreen extends HTMLElement {
     const on = !!placeName;
     prompt.classList.toggle('is-on', on);
     prompt.setAttribute('aria-pressed', on ? 'true' : 'false');
-    this.#setCheckinPromptCopy(placeName);
+
+    // One button, two layouts: the invite pill (pin + text + "+N more") when not
+    // checked in, and a rich card (venue photo + name) when checked in. The pin
+    // is an <svg>, so .hidden doesn't reflect to the attribute — CSS (.is-on)
+    // hides it instead.
+    byId('checkin-prompt-text').hidden = on;
+    byId('checkin-prompt-photo').hidden = !on;
+    byId('checkin-prompt-body').hidden = !on;
+    if (on) {
+      byId('checkin-prompt-more').hidden = true;
+      byId('checkin-prompt-name').textContent = placeName;
+      this.#setCheckinPhoto(state.currentState?.place_id ?? null);
+    } else {
+      this.#setCheckinPromptCopy();
+    }
+
     prompt.setAttribute('aria-label', on
       ? `Checked in at ${placeName} — tap to change or check out`
       : 'Check in to a nearby place');
@@ -469,34 +489,54 @@ export class LobbyScreen extends HTMLElement {
 
   /**
    * Copy for the check-in prompt pill, split across two spans: the main label
-   * (which may fade) and a pinned "and N more" that always stays visible at the
-   * end. Checked in → the place; else the nearest option + a count of the rest;
-   * before we know what's nearby → a generic invite. The trailing-edge fade is
-   * applied only when the main label actually overflows.
-   * @param {string | null} placeName
+   * (which may fade) and a pinned "+N more" that always stays visible at the end.
+   * Handles the *invite* state only — the checked-in state is a photo card built
+   * in #syncCheckin. Shows the nearest option + a count of the rest once we know
+   * what's nearby, else a generic invite. Fade applied only when it overflows.
    */
-  #setCheckinPromptCopy(placeName) {
+  #setCheckinPromptCopy() {
     const textEl = byId('checkin-prompt-text');
     const moreEl = byId('checkin-prompt-more');
-    if (placeName) {
-      textEl.textContent = `Checked in at ${placeName}`;
-      moreEl.hidden = true;
+    const list = this.#placesCache;
+    if (list && list.length) {
+      textEl.textContent = `Check in to ${list[0].name}`;
+      const rest = list.length - 1;
+      moreEl.hidden = rest <= 0;
+      if (rest > 0) moreEl.textContent = `+${rest} more`;
     } else {
-      const list = this.#placesCache;
-      if (list && list.length) {
-        textEl.textContent = `Check in to ${list[0].name}`;
-        const rest = list.length - 1;
-        moreEl.hidden = rest <= 0;
-        if (rest > 0) moreEl.textContent = `+${rest} more`;
-      } else {
-        textEl.textContent = 'Check in to a place';
-        moreEl.hidden = true;
-      }
+      textEl.textContent = 'Check in to a place';
+      moreEl.hidden = true;
     }
     // Fade the label's trailing edge only when it can't fit — a fit label keeps
     // its last characters crisp; a long one dissolves into "+N more".
     requestAnimationFrame(() =>
       textEl.classList.toggle('is-faded', textEl.scrollWidth > textEl.clientWidth + 1));
+  }
+
+  /**
+   * Fill the checked-in card's thumbnail from the place's Google photo (proxied
+   * through our server). Falls back to a pin placeholder when the venue has no
+   * photo or it fails to load. Keyed on place id so a re-render doesn't refetch.
+   * @param {string | null} placeId
+   */
+  #setCheckinPhoto(placeId) {
+    const photo = byId('checkin-prompt-photo');
+    if (!placeId) {
+      photo.classList.add('is-empty');
+      photo.innerHTML = PLACES_PIN;
+      return;
+    }
+    if (photo.dataset.place === placeId) return; // already built for this place
+    photo.dataset.place = placeId;
+    photo.classList.remove('is-empty');
+    const img = document.createElement('img');
+    img.alt = '';
+    img.addEventListener('error', () => {
+      photo.classList.add('is-empty');
+      photo.innerHTML = PLACES_PIN;
+    }, { once: true });
+    img.src = `/api/places/photo?place=${encodeURIComponent(placeId)}`;
+    photo.replaceChildren(img);
   }
 
   /**
@@ -520,7 +560,7 @@ export class LobbyScreen extends HTMLElement {
       // checked in — a snapshot may have arrived meanwhile).
       const prompt = byId('checkin-prompt');
       if (this.#isHost && prompt.getAttribute('aria-pressed') !== 'true') {
-        this.#setCheckinPromptCopy(null);
+        this.#setCheckinPromptCopy();
       }
     } catch {
       // Denied/unavailable — the prompt keeps its generic copy and the tap

@@ -215,15 +215,57 @@
     opacity: 0.55;
   }
 
-  /* Checked-in: flat gold text — drop the pill surface entirely (no border,
-     background, or shadow) so it reads as a label, not a button. */
+  /* Checked-in: a rich card (venue photo + name) matching the places/nearby list
+     rows, ringed gold like the pinned current-place row. */
   .checkin-prompt.is-on {
-    background: transparent;
     border-color: transparent;
-    box-shadow: none;
-    color: var(--color-amber);
+    box-shadow:
+      inset 0 0 0 1.5px rgba(255, 190, 110, 0.65),
+      inset 0 0 12px rgba(255, 186, 102, 0.2);
   }
-  .checkin-prompt.is-on .checkin-prompt-pin { opacity: 1; }
+  /* The pin is an <svg>, so JS .hidden won't reflect — hide it here instead. */
+  .checkin-prompt.is-on .checkin-prompt-pin { display: none; }
+
+  /* Google Places thumbnail (or a pin placeholder when the venue has no photo) —
+     mirrors .places-row-photo so the checked-in card matches the sheet rows. */
+  .checkin-prompt-photo {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 46px;
+    block-size: 46px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--color-field);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+  .checkin-prompt-photo img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+  .checkin-prompt-photo.is-empty { color: var(--color-text-muted); }
+  .checkin-prompt-photo.is-empty svg { inline-size: 22px; block-size: 22px; }
+
+  /* Venue name over a "Checked in" status line. */
+  .checkin-prompt-body {
+    flex: 1;
+    min-inline-size: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  .checkin-prompt-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-text);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .checkin-prompt-sub {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+  }
 
   .lobby-action {
     position: relative;
@@ -460,12 +502,15 @@
      language as the lobby actions. Mobile-only, so it fills the width. */
   .places-sheet {
     position: fixed;
-    inset: auto 0 0 0;         /* pin to the bottom edge, full width */
+    /* Pull the sheet's bottom edge down past the safe-area line to the true
+       screen bottom so its background fills under the home indicator; the
+       matching padding-bottom below keeps content up off the indicator. */
+    inset: auto 0 calc(env(safe-area-inset-bottom) * -1) 0;
     inline-size: 100%;
     max-inline-size: none;
     max-block-size: 78dvh;
     margin: 0;
-    padding: 1.25rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
+    padding: 1.25rem 1.25rem env(safe-area-inset-bottom);
     background: var(--color-panel-screen);
     border: 0;
     border-block-start: 1px solid var(--color-border-strong);
@@ -593,11 +638,7 @@
     overscroll-behavior: contain;
     list-style: none;
     margin: 0;
-    /* Trailing space so the last result never sits at the dead bottom of the
-       screen — a short list floats up off the sheet edge, and a long one keeps
-       the same breathing room once scrolled to the end (padding inside the
-       scroll area is revealed at the bottom of the scroll). */
-    padding: 0 0 1.25rem;
+    padding: 0;
   }
   .places-list::-webkit-scrollbar { display: none; }
 
