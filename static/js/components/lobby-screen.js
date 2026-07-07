@@ -8,6 +8,7 @@ import { EQ_ICON_HTML } from '../eq-icon.js';
 import { GeoError, GEO_ERROR_COPY, getPosition } from '../geo.js';
 import { broadcastNearby, checkIn, checkOut, leaveGame, startGame, stopBroadcast } from '../net.js';
 import { updateScrollFades } from '../scroll-fades.js';
+import { clearNearbyConsent, hasNearbyConsent, saveNearbyConsent } from '../session.js';
 import { state } from '../state.js';
 
 /** @typedef {import('../types.js').GameSnapshot} GameSnapshot */
@@ -350,6 +351,13 @@ export class LobbyScreen extends HTMLElement {
       stopBroadcast();
       return;
     }
+    // Already consented once? Skip our explainer and go straight to the
+    // geolocation flow — the phone won't re-prompt for a granted permission,
+    // so re-toggling is one tap. A revoke resets consent in #startBroadcast.
+    if (hasNearbyConsent()) {
+      this.#startBroadcast();
+      return;
+    }
     /** @type {HTMLDialogElement} */ (byId('allow-nearby-confirm')).showModal();
   }
 
@@ -366,9 +374,13 @@ export class LobbyScreen extends HTMLElement {
     this.#setBroadcastStatus('Getting your location…', false);
     try {
       const { lat, lon } = await getPosition();
+      saveNearbyConsent(); // confirmed + granted → skip the dialog next time
       broadcastNearby(lat, lon);
     } catch (err) {
       const reason = err instanceof GeoError ? err.reason : 'unavailable';
+      // OS permission denied/revoked → forget consent so the explainer (with
+      // its privacy context) returns next time they try.
+      if (reason === 'permission') clearNearbyConsent();
       this.#setBroadcastStatus(GEO_ERROR_COPY[reason] ?? GEO_ERROR_COPY.unavailable, true);
     }
   }
