@@ -547,7 +547,8 @@
   /* 48px end size: the button face is 56px inside its border — the ring
      (plus its soft glow) dies just before reaching the rim. */
   @keyframes bwave {
-    0% { inline-size: 7px; block-size: 7px; opacity: 1; }
+    0% { inline-size: 7px; block-size: 7px; opacity: 0; }
+    18% { opacity: 1; }
     100% { inline-size: 48px; block-size: 48px; opacity: 0; }
   }
 
@@ -560,7 +561,8 @@
   .btn-broadcast:not(.is-on) .broadcast-wave span:nth-child(3) { animation: bwave-idle 1.6s ease-out 1s infinite; }
 
   @keyframes bwave-idle {
-    0% { inline-size: 7px; block-size: 7px; opacity: 0.32; }
+    0% { inline-size: 7px; block-size: 7px; opacity: 0; }
+    18% { opacity: 0.32; }
     100% { inline-size: 48px; block-size: 48px; opacity: 0; }
   }
 
