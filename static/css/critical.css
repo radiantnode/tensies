@@ -52,6 +52,14 @@
   :focus:not(:focus-visible) {
     outline: none;
   }
+
+  /* A dialog gets initial focus on open (tabindex=-1, so no action button is
+     auto-focused and rings — WebKit paints a focus-visible ring on showModal's
+     auto-focus). The container itself is never a keyboard tab stop, so it never
+     needs a ring; kill it unconditionally so the whole-dialog outline can't show. */
+  dialog:focus {
+    outline: none;
+  }
 }
 
 @layer tokens {

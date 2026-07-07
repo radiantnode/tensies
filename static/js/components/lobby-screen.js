@@ -206,7 +206,13 @@ export class LobbyScreen extends HTMLElement {
   #openCheckoutConfirm() {
     byId('checkout-place-name').textContent =
       state.currentState?.place_name || 'this place';
-    /** @type {HTMLDialogElement} */ (byId('checkout-confirm')).showModal();
+    const dlg = /** @type {HTMLDialogElement} */ (byId('checkout-confirm'));
+    dlg.showModal();
+    // Focus the dialog itself (not the first button) so no action control shows
+    // an auto-focus ring on open — WebKit paints :focus-visible on showModal's
+    // auto-focus. Keyboard users still Tab into the buttons and get a ring there.
+    dlg.tabIndex = -1;
+    dlg.focus();
   }
 
   #closeCheckoutConfirm() {
@@ -358,7 +364,11 @@ export class LobbyScreen extends HTMLElement {
       this.#startBroadcast();
       return;
     }
-    /** @type {HTMLDialogElement} */ (byId('allow-nearby-confirm')).showModal();
+    const dlg = /** @type {HTMLDialogElement} */ (byId('allow-nearby-confirm'));
+    dlg.showModal();
+    // Focus the dialog, not the first button — see #openCheckoutConfirm.
+    dlg.tabIndex = -1;
+    dlg.focus();
   }
 
   /** Close the "Allow nearby players?" confirmation. */
