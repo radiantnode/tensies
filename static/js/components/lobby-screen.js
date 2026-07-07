@@ -574,6 +574,15 @@ export class LobbyScreen extends HTMLElement {
     }
   }
 
+  /** Force the results list back to the top after a render. Set now and again
+   *  next frame — an iOS momentum-scrolled list can otherwise keep the prior
+   *  offset until layout settles, so a single synchronous reset doesn't stick. */
+  #resetPlacesScroll() {
+    const el = byId('places-list');
+    el.scrollTop = 0;
+    requestAnimationFrame(() => { el.scrollTop = 0; });
+  }
+
   /** Close the places picker sheet, sliding it back down before it goes (the
    *  mirror of the open slide-up). Re-entrant calls while already closing — a
    *  double-tap, or Escape mid-animation — are ignored. */
@@ -606,6 +615,7 @@ export class LobbyScreen extends HTMLElement {
     // The background prefetch usually has the list already — open straight to it.
     if (this.#placesCache && this.#placesCache.length) {
       this.#renderPlaces(this.#placesCache, true);
+      this.#resetPlacesScroll();
       return;
     }
     status.hidden = false;
@@ -619,6 +629,7 @@ export class LobbyScreen extends HTMLElement {
       const places = data.places || [];
       this.#placesCache = places;
       this.#renderPlaces(places, true);
+      this.#resetPlacesScroll();
     } catch (err) {
       const reason = err instanceof GeoError ? err.reason : 'unavailable';
       status.textContent = err instanceof GeoError
