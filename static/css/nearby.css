@@ -537,6 +537,9 @@
   .btn-broadcast.is-on .broadcast-wave span {
     border-color: rgba(255, 215, 150, 1);
   }
+  /* No animation-fill-mode needed: the spans rest at opacity:0 (above), so
+     during their stagger delay they're invisible, not flashing a bright base —
+     the ring rewrite supersedes the old `both`-fill flash fix (8d42585). */
   .btn-broadcast.is-on .broadcast-wave span:nth-child(1) { animation: bwave 1.6s ease-out infinite; }
   .btn-broadcast.is-on .broadcast-wave span:nth-child(2) { animation: bwave 1.6s ease-out 0.5s infinite; }
   .btn-broadcast.is-on .broadcast-wave span:nth-child(3) { animation: bwave 1.6s ease-out 1s infinite; }
