@@ -45,6 +45,13 @@
     block-size: 100%;
     overflow: hidden;
   }
+
+  /* Focus ring for keyboard nav only. Suppress the UA outline for pointer/touch
+     and programmatic focus (e.g. a <dialog>'s auto-focus landing on Cancel),
+     where the blue ring is just noise. Keyboard users still get :focus-visible. */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
 }
 
 @layer tokens {
