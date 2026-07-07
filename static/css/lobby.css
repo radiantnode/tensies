@@ -33,10 +33,11 @@
 
   /* Lobby content sits top-aligned beneath the header (it's a tall screen
      with the scrollable player list), rather than vertically centred. The
-     extra top padding clears the floating Back chip above the title. */
+     title shares the round Back button's row (top padding aligns them), which
+     reclaims the vertical space the old stacked chip + heading used. */
   .lobby-body {
     justify-content: flex-start;
-    padding: 5.25rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
+    padding: 1.6rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
   }
 
   /* The shared .or-divider stretches to its container on landing (the form
@@ -49,6 +50,9 @@
   }
 
   .lobby-title {
+    /* Clear the round Back button on the left; symmetric on the right keeps the
+       centred text visually centred on the shared row. */
+    padding-inline: 2.75rem;
     margin-block-end: 1.75rem;
     font-size: 1.5rem;
     font-weight: 800;

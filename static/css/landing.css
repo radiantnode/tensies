@@ -129,26 +129,25 @@
     text-shadow: var(--shadow-text);
   }
 
-  /* Back chip (join screen + changelog panel) */
+  /* Round, chevron-only back button — one canonical top-left position shared by
+     every screen that has one (per-screen overrides only reposition it). */
   .join-screen .screen-body { position: relative; }
 
   .btn-back {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
+    justify-content: center;
     position: absolute;
     inset-block-start: 1.25rem;
     inset-inline-start: calc(2rem - 5px);
-    padding: 0.45rem 0.9rem 0.45rem 0.7rem;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    padding: 0;
     background: var(--color-raised);
     border: 1px solid var(--color-border-strong);
-    border-radius: 999px;
+    border-radius: 50%;
     box-shadow: inset 0 1px 0 rgba(220, 170, 70, 0.12), 0 2px 8px rgba(0, 0, 0, 0.45);
-    font-size: 0.9rem;
-    font-weight: 700;
-    letter-spacing: 0.03em;
     color: var(--color-text-warm);
-    text-shadow: var(--shadow-text);
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
   }
@@ -161,9 +160,10 @@
 
   .back-chevron {
     flex-shrink: 0;
-    inline-size: 17px;
-    block-size: 17px;
-    margin-inline-start: -0.15rem;
+    inline-size: 18px;
+    block-size: 18px;
+    /* optical nudge — the chevron's mass sits right of centre */
+    margin-inline-start: -1px;
   }
 
   @media (max-height: 700px) {
