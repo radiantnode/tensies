@@ -41,7 +41,28 @@ function send(action, extra = {}) {
   state.ws?.send(JSON.stringify({ action, ...extra }));
 }
 
-/** The saved session is unusable — forget it and land on landing with the reason. */
+/**
+ * The saved session can't be resumed but the connection itself was fine: the
+ * server told us the game is gone (you were the last player and it was
+ * destroyed on disconnect, or it ended while you were away). This is a normal
+ * outcome, not a failure — forget the session and land cleanly, with no
+ * alarming error banner.
+ */
+function dropSession() {
+  state.reconnecting = false;
+  clearSession();
+  state.currentState = null;
+  leaveLoading(() => {
+    showScreen('landing');
+    landingScreen().showError('');
+  });
+}
+
+/**
+ * The saved session is unusable because we never reached the server across the
+ * whole reconnect window — a genuine connection failure. Forget it and land on
+ * landing with the reason.
+ */
 function expireSession() {
   state.reconnecting = false;
   clearSession();
@@ -95,8 +116,10 @@ function attemptReconnect(playerId, gameCode, deadline) {
     const msg = /** @type {ServerMessage} */ (JSON.parse(event.data));
     if (msg.type === 'welcome') return;
     if (msg.type === 'error') {
+      // The server reached us and said the game is gone — not a connection
+      // failure. Land quietly instead of flashing "Connection failed".
       ws.close();
-      expireSession();
+      dropSession();
       return;
     }
     // First real frame: the session is live again — hand over to normal dispatch.
