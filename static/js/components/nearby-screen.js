@@ -87,6 +87,9 @@ export class NearbyScreen extends HTMLElement {
   /** @type {boolean} an orientation → rAF paint is already queued. */
   #rafPending = false;
 
+  /** @type {number} setTimeout id for the compass-off settle-to-north cleanup. */
+  #settleTimer = 0;
+
   connectedCallback() {
     if (this.dataset.rendered) return;
     this.dataset.rendered = 'true';
@@ -139,6 +142,7 @@ export class NearbyScreen extends HTMLElement {
   disconnectedCallback() {
     this.#stopPolling();
     this.#stopCompass();
+    this.#cancelSettle(); // in case a settle was mid-flight when we left
   }
 
   /**
@@ -149,9 +153,10 @@ export class NearbyScreen extends HTMLElement {
    */
   async #toggleCompass() {
     if (this.#compassOn) {
-      this.#stopCompass();
+      this.#stopCompass(true); // animate the scope back to north
       return;
     }
+    this.#cancelSettle(); // a quick re-enable interrupts any in-flight settle
     const DOE = /** @type {any} */ (window.DeviceOrientationEvent);
     if (DOE && typeof DOE.requestPermission === 'function') {
       let res;
@@ -178,16 +183,60 @@ export class NearbyScreen extends HTMLElement {
     btn.setAttribute('aria-label', 'Turn off compass alignment');
   }
 
-  #stopCompass() {
+  /**
+   * @param {boolean} [animate] Ease the scope back to north (user toggle) vs.
+   *   snap instantly (screen teardown — no point animating a leaving view).
+   */
+  #stopCompass(animate = false) {
     if (!this.#compassOn) return;
     this.#compassOn = false;
     window.removeEventListener('deviceorientationabsolute', this.#onOrient);
     window.removeEventListener('deviceorientation', this.#onOrient);
-    byId('radar').style.removeProperty('--rot');
     const btn = byId('compass-btn');
     btn.classList.remove('is-on');
     btn.setAttribute('aria-pressed', 'false');
     btn.setAttribute('aria-label', 'Align radar to compass');
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (animate && !reduced) {
+      this.#settleToNorth();
+    } else {
+      this.#cancelSettle();
+      byId('radar').style.removeProperty('--rot');
+    }
+  }
+
+  /**
+   * Ease the scope back to north (--rot → 0) instead of snapping. Normalizes the
+   * live angle to the shortest path first so it never spins the long way round,
+   * then transitions via the .is-settling class (see nearby.css).
+   */
+  #settleToNorth() {
+    const radar = byId('radar');
+    let start = ((-this.#heading % 360) + 360) % 360; // 0..360, visually == -heading
+    if (start > 180) start -= 360;                    // -180..180 ⇒ shortest path
+    radar.style.setProperty('--rot', `${start}deg`);
+    void radar.offsetWidth;                           // commit the start angle first
+    radar.classList.add('is-settling');               // enables the transform transition
+    radar.style.setProperty('--rot', '0deg');         // …which now animates to north
+    // Clear the transition class + var once done (keep in sync with the 0.45s
+    // transition in nearby.css). Guarded so a queued cleanup can't touch a
+    // torn-down screen.
+    this.#settleTimer = window.setTimeout(() => {
+      this.#settleTimer = 0;
+      if (!this.isConnected) return;
+      const r = byId('radar');
+      r.classList.remove('is-settling');
+      r.style.removeProperty('--rot');
+    }, 520);
+  }
+
+  /** Abort an in-flight settle (re-enable mid-animation, or teardown). */
+  #cancelSettle() {
+    if (this.#settleTimer) {
+      clearTimeout(this.#settleTimer);
+      this.#settleTimer = 0;
+    }
+    if (this.isConnected) byId('radar').classList.remove('is-settling');
   }
 
   /**

@@ -166,6 +166,18 @@
     transform: rotate(calc(-1 * var(--rot, 0deg)));
   }
 
+  /* Compass turned off → ease the scope back to north instead of snapping.
+     Applied only during the settle (via .is-settling on the radar) so live
+     heading tracking stays instantaneous. Duration must match the settle
+     timeout in nearby-screen.js (#settleToNorth). */
+  .radar.is-settling .radar-face,
+  .radar.is-settling .blip-inner {
+    transition: transform 0.45s ease;
+  }
+  .radar.is-settling .radar-blips {
+    transition: transform 0.45s ease, opacity 0.25s;
+  }
+
   @keyframes blip-appear {
     from { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
     to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
