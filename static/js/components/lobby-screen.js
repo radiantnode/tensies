@@ -155,6 +155,14 @@ export class LobbyScreen extends HTMLElement {
             <button id="checkout-ok" type="button" class="btn btn-primary">Check out</button>
           </div>
         </dialog>
+        <dialog id="stop-nearby-confirm" class="confirm-dialog" aria-labelledby="stop-nearby-title">
+          <h2 id="stop-nearby-title" class="confirm-title">Turn off Nearby?</h2>
+          <p class="confirm-body">Nearby players will no longer see or join this game, and your check-in at <span id="stop-nearby-place-name"></span> will end.</p>
+          <div class="confirm-actions">
+            <button id="stop-nearby-cancel" type="button" class="btn btn-secondary">Cancel</button>
+            <button id="stop-nearby-ok" type="button" class="btn btn-primary">Turn off</button>
+          </div>
+        </dialog>
         <section class="lobby-players-section" aria-labelledby="players-label">
           <h2 id="players-label" class="section-label">Fellow Bar Rats</h2>
           <ul class="player-list" id="lobby-players" aria-label="Players"></ul>
@@ -199,6 +207,11 @@ export class LobbyScreen extends HTMLElement {
       this.#closePlaces();
       checkOut();
     });
+    byId('stop-nearby-cancel').addEventListener('click', () => this.#closeStopNearbyConfirm());
+    byId('stop-nearby-ok').addEventListener('click', () => {
+      this.#closeStopNearbyConfirm();
+      stopBroadcast();
+    });
   }
 
   /** Ask before checking out — a stray tap on the pinned row shouldn't
@@ -217,6 +230,22 @@ export class LobbyScreen extends HTMLElement {
 
   #closeCheckoutConfirm() {
     /** @type {HTMLDialogElement} */ (byId('checkout-confirm')).close();
+  }
+
+  /** Ask before turning Nearby off while checked in — stopping the broadcast
+   *  also ends the check-in, so it's worth an explicit yes (mirrors checkout). */
+  #openStopNearbyConfirm() {
+    byId('stop-nearby-place-name').textContent =
+      state.currentState?.place_name || 'this place';
+    const dlg = /** @type {HTMLDialogElement} */ (byId('stop-nearby-confirm'));
+    dlg.showModal();
+    // Focus the dialog, not the first button — see #openCheckoutConfirm.
+    dlg.tabIndex = -1;
+    dlg.focus();
+  }
+
+  #closeStopNearbyConfirm() {
+    /** @type {HTMLDialogElement} */ (byId('stop-nearby-confirm')).close();
   }
 
   disconnectedCallback() {
@@ -354,7 +383,13 @@ export class LobbyScreen extends HTMLElement {
   #toggleBroadcast() {
     const btn = byId('broadcast-btn');
     if (btn.getAttribute('aria-pressed') === 'true') {
-      stopBroadcast();
+      // Turning off. If checked in to a place, confirm first — stopping also
+      // ends the check-in. Otherwise it's a bare intent, no dialog.
+      if (state.currentState?.place_name) {
+        this.#openStopNearbyConfirm();
+      } else {
+        stopBroadcast();
+      }
       return;
     }
     // Already consented once? Skip our explainer and go straight to the
