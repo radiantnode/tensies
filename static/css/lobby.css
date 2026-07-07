@@ -513,7 +513,7 @@
     padding: 1.25rem 1.25rem env(safe-area-inset-bottom);
     background: var(--color-panel-screen);
     border: 0;
-    border-block-start: 1px solid var(--color-border-strong);
+    /* Top edge is a gradient "glow" line — see .places-sheet::before. */
     border-start-start-radius: var(--radius-lg, 20px);
     border-start-end-radius: var(--radius-lg, 20px);
     box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.55);
@@ -526,6 +526,29 @@
        top-layer dialog already escapes the page flow, so it's safe. */
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
+  }
+
+  /* Gradient top border that follows the rounded top corners: a full-box ring
+     inheriting the sheet's radius, masked down to just the 1px top edge (padding
+     on the top only, xor/exclude punches out the interior). The gradient glows
+     amber toward the centre and dims to the edges. A gradient border — not a
+     shadow or halo. */
+  .places-sheet::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding-block-start: 1px;
+    background: linear-gradient(to right,
+      rgba(220, 170, 70, 0.2),
+      rgba(255, 216, 150, 0.8) 50%,
+      rgba(220, 170, 70, 0.2));
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
   }
 
   .places-sheet[open] {
