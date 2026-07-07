@@ -528,6 +528,19 @@
     backdrop-filter: blur(10px);
   }
 
+  /* Docked above the iOS soft keyboard (JS sets --kb-lift + this class). The raw
+     lift is measured against the full-screen innerHeight, so subtract the top
+     safe-area — otherwise the sheet overshoots by the status-bar height (top
+     slides under the status bar, an equal gap opens above the keyboard). */
+  .places-sheet.is-kb-docked {
+    bottom: calc(var(--kb-lift, 0px) - env(safe-area-inset-top));
+  }
+  /* The sheet is pinned to a fixed height while docked; let the list fill it so
+     a short/empty result set doesn't shrink the sheet (no jump on scroll). */
+  .places-sheet.is-kb-docked .places-list {
+    flex: 1 1 auto;
+  }
+
   /* Gradient top border that follows the rounded top corners: a full-box ring
      inheriting the sheet's radius, masked down to just the 1px top edge (padding
      on the top only, xor/exclude punches out the interior). The gradient glows
