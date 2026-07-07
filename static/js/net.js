@@ -10,6 +10,7 @@ import {
 } from './session.js';
 import { state, resetRollState } from './state.js';
 import { showScreen, showLoading, leaveLoading } from './transitions.js';
+import { checkServerBuild } from './update.js';
 
 /** @typedef {import('./types.js').ServerMessage} ServerMessage */
 /** @typedef {import('./types.js').ErrorMessage} ErrorMessage */
@@ -93,7 +94,7 @@ function attemptReconnect(playerId, gameCode, deadline) {
   ws.onerror = () => {};
   ws.onmessage = (event) => {
     const msg = /** @type {ServerMessage} */ (JSON.parse(event.data));
-    if (msg.type === 'welcome') return;
+    if (msg.type === 'welcome') { checkServerBuild(msg.build); return; }
     if (msg.type === 'error') {
       ws.close();
       expireSession();
@@ -236,6 +237,7 @@ function handleMessage(msg) {
     case 'welcome':
       state.myId = msg.player_id;
       savePlayerId(msg.player_id);
+      checkServerBuild(msg.build);
       return;
     case 'auth_ok':
       state.authUsername = msg.username;

@@ -17,8 +17,10 @@ import { setupInstall } from './a2hs.js';
 import { maybeReconnect } from './net.js';
 import { bootstrap } from './router.js';
 import { installTouchGuard } from './touch.js';
+import { setupUpdates } from './update.js';
 
 installTouchGuard();
 setupInstall();
+setupUpdates();
 
 bootstrap({ resumeSession: maybeReconnect });

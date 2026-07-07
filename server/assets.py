@@ -1,4 +1,5 @@
 import hashlib
+import os
 import re
 from pathlib import Path
 from string import Template
@@ -66,14 +67,18 @@ PAGE_DEFAULTS = {
 }
 
 
-def build_page_template(html_source: str, app_url: str = "") -> tuple[Template, dict[str, str]]:
+def build_page_template(
+    html_source: str, app_url: str = "", build_id: str = ""
+) -> tuple[Template, dict[str, str]]:
     """Wrap the cache-busted index.html in a Template and resolve defaults.
 
     Called once at startup. The returned (Template, defaults) pair is passed to
     render_page() per-request — defaults for most routes, with overrides for
-    pages like profiles."""
+    pages like profiles. `build_id` fills the <meta name="app-build"> the client
+    compares against the server's build id (see current_build_id)."""
     base = app_url.rstrip("/")
     defaults = PAGE_DEFAULTS.copy()
+    defaults["build_id"] = build_id
     if base:
         defaults["share_image"] = f"{base}{_SHARE_IMAGE_PATH}"
         defaults["canonical_url"] = base + "/"
@@ -113,6 +118,38 @@ def build_js_cache() -> dict[str, str]:
     return cache
 
 
+_prod_build_id: str | None = None
+
+
+def current_build_id() -> str:
+    """Build id for the frontend the server is serving right now.
+
+    Used to (a) name the service-worker cache so a deploy busts it, and (b) let
+    a running client notice it's older than the server — sent in the WS `welcome`
+    frame and compared against the <meta name="app-build"> baked into the page.
+
+    Prod (FRONTEND_DIST set): the content hash of the prebuilt dist/index.html,
+    which references every fingerprinted asset by hashed name, so it changes iff
+    the build does. Immutable at runtime, so it's computed once and memoised. An
+    explicit BUILD_ID env var overrides it. Dev: the live static-tree hash, which
+    matches the ?v= cache-buster and the page the app just served."""
+    global _prod_build_id
+    if _prod_build_id is not None:
+        return _prod_build_id
+    override = os.environ.get("BUILD_ID")
+    if override:
+        _prod_build_id = override.strip()
+        return _prod_build_id
+    dist = os.environ.get("FRONTEND_DIST", "").strip()
+    if dist:
+        try:
+            _prod_build_id = asset_hash([Path(dist) / "index.html"])
+        except OSError:
+            _prod_build_id = "unknown"
+        return _prod_build_id
+    return dev_assets().build_id()
+
+
 class DevAssets:
     """Dev-only cache-busted asset serving that survives file edits without a
     server restart.
@@ -133,6 +170,7 @@ class DevAssets:
         self._tmpl: Template | None = None
         self._defaults: dict[str, str] = {}
         self._js: dict[str, str] = {}
+        self._version = "dev"
 
     def _signature(self) -> tuple[int, int]:
         css, js, legacy = _collect_assets()
@@ -145,7 +183,11 @@ class DevAssets:
         if sig == self._sig:
             return
         self._sig = sig
-        self._tmpl, self._defaults = build_page_template(build_index_html(), self._app_url)
+        css, js, legacy = _collect_assets()
+        self._version = asset_hash(css + js + legacy)
+        self._tmpl, self._defaults = build_page_template(
+            build_index_html(), self._app_url, self._version
+        )
         self._js = build_js_cache()
 
     def template(self) -> tuple[Template, dict[str, str]]:
@@ -156,6 +198,10 @@ class DevAssets:
     def js(self, key: str) -> str | None:
         self._refresh_if_stale()
         return self._js.get(key)
+
+    def build_id(self) -> str:
+        self._refresh_if_stale()
+        return self._version
 
 
 _dev_assets: DevAssets | None = None

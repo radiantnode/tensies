@@ -1,0 +1,49 @@
+/* Update-available banner.
+ *
+ * Shown by static/js/update.js only when a newer build is detected and it isn't
+ * safe to auto-reload (i.e. the player is mid-game). Hidden by default so it
+ * never affects first paint or the pixel baselines. */
+@layer components {
+  .update-banner {
+    position: fixed;
+    left: 50%;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+    transform: translateX(-50%);
+    z-index: 1000;
+
+    max-inline-size: calc(100vw - 32px);
+    padding: 12px 22px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 999px;
+
+    font-family: var(--font-family-base);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text);
+    text-shadow: var(--shadow-text);
+    white-space: nowrap;
+
+    background: var(--color-panel-screen);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+
+    opacity: 0;
+    translate: 0 12px;
+    transition: opacity 220ms ease, translate 220ms ease;
+  }
+
+  .update-banner.is-visible {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  .update-banner:active {
+    transform: translateX(-50%) scale(0.97);
+  }
+
+  .update-banner[hidden] {
+    display: none;
+  }
+}

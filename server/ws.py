@@ -29,6 +29,7 @@ from .config import (
     PAUSE_MAX,
     log,
 )
+from .assets import current_build_id
 from .game import apply_roll, make_reconnect_token, sanitize_name, state_msg, verify_token
 from .security import client_ip
 from .state import connections, sessions
@@ -541,7 +542,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
     session.pinger = Pinger(session.session_id, lambda m: send(ws, m))
     session.pinger.start()
 
-    await send(ws, {"type": "welcome", "player_id": session.pid})
+    await send(ws, {"type": "welcome", "player_id": session.pid, "build": current_build_id()})
     log.info("connect  pid=%s  session=%s", session.pid[:8], session.session_id[:8])
 
     disconnect_reason = "client"

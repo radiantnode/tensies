@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a0e08">
+  <!-- Build id of the frontend this page was served with. update.js compares it
+       against the server's build id (sent in the WS welcome frame) to notice
+       when the running PWA has gone stale and needs a reload. -->
+  <meta name="app-build" content="$build_id">
   <title>$page_title</title>
 
   <link rel="icon" type="image/png" sizes="32x32" href="/static/images/icon-32.png">
@@ -66,6 +70,7 @@
   <link rel="stylesheet" href="/static/css/profile.css">
   <link rel="stylesheet" href="/static/css/game-detail.css">
   <link rel="stylesheet" href="/static/css/a2hs.css">
+  <link rel="stylesheet" href="/static/css/update.css">
 
   <!-- Preload the whole module graph so it fetches in parallel instead of
        waterfalling app -> router/net -> components. -->
