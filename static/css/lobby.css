@@ -689,14 +689,23 @@
   /* Drop the native clear/decoration so the field reads consistently. */
   .places-search::-webkit-search-cancel-button { -webkit-appearance: none; }
 
+  /* While a status shows (searching / no results / error) it fills the space
+     below the search and centres its message; the empty list is hidden so it
+     doesn't compete for that space. */
   .places-status {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 0.75rem 0.25rem;
     font-size: 0.85rem;
-    font-weight: 600;
+    font-weight: 700;
+    text-align: center;
     color: var(--color-text-muted);
     text-shadow: var(--shadow-text);
   }
   .places-status[hidden] { display: none; }
+  .places-status:not([hidden]) ~ .places-list { display: none; }
   .places-status.is-error { color: var(--color-error, #ff8a8a); }
 
   .places-list {
