@@ -211,6 +211,10 @@ export class NearbyScreen extends HTMLElement {
     this.#rafPending = true;
     requestAnimationFrame(() => {
       this.#rafPending = false;
+      // A frame can still be queued when the compass is switched off; without
+      // this guard it re-applies the last heading right after #stopCompass
+      // cleared --rot, snapping the scope back off north instead of resetting.
+      if (!this.#compassOn) return;
       byId('radar').style.setProperty('--rot', `${-this.#heading}deg`);
     });
   };
