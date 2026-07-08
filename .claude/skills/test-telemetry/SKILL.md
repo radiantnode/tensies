@@ -91,13 +91,20 @@ Check the server:
 curl -sf http://localhost:8888/ | grep -q "TENSIES" && echo "SERVER OK" || echo "FAIL: server not up"
 ```
 
-Check the `/metrics` endpoint — it must respond and contain the key metric names:
+**`/metrics` is bearer-gated in dev.** The dev stack now sets `METRICS_TOKEN` (in `.env`), so an unauthenticated `curl` gets `401 {"detail":"unauthorized"}`. Grab the token once and send it on **every** `/metrics` curl in this skill (Steps 1, 4, 8, 16, 17) via `-H "Authorization: Bearer $METRICS_TOKEN"`:
+
 ```bash
-curl -sf http://localhost:8888/metrics | grep -cE "^tensies_" | awk '{print "Tensies metrics found:", $1}'
-curl -sf http://localhost:8888/metrics | grep -q "tensies_rolls_total" && echo "rolls_total OK"
-curl -sf http://localhost:8888/metrics | grep -q "tensies_games_active" && echo "games_active OK"
-curl -sf http://localhost:8888/metrics | grep -q "tensies_telemetry_dropped_total" && echo "dropped_total OK"
+export METRICS_TOKEN=$(docker compose exec -T web printenv METRICS_TOKEN | tr -d '\r')
 ```
+
+Check the `/metrics` endpoint — it must respond and contain the key metric names. Add `-H "Authorization: Bearer $METRICS_TOKEN"` to each `/metrics` curl (here and in Steps 4/8/16/17):
+```bash
+curl -sf -H "Authorization: Bearer $METRICS_TOKEN" http://localhost:8888/metrics | grep -cE "^tensies_" | awk '{print "Tensies metrics found:", $1}'
+curl -sf -H "Authorization: Bearer $METRICS_TOKEN" http://localhost:8888/metrics | grep -q "tensies_rolls_total" && echo "rolls_total OK"
+curl -sf -H "Authorization: Bearer $METRICS_TOKEN" http://localhost:8888/metrics | grep -q "tensies_games_active" && echo "games_active OK"
+curl -sf -H "Authorization: Bearer $METRICS_TOKEN" http://localhost:8888/metrics | grep -q "tensies_telemetry_dropped_total" && echo "dropped_total OK"
+```
+(If a future dev stack leaves `/metrics` open, the header is simply ignored — harmless either way.)
 
 Check Prometheus:
 ```bash
@@ -108,7 +115,8 @@ curl -sf 'http://localhost:9090/api/v1/targets' | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
 targets = data.get('data', {}).get('activeTargets', [])
-tensies = [t for t in targets if '8888' in t.get('scrapeUrl','') or 'tensies' in str(t.get('labels',''))]
+# The web app is scraped on its INTERNAL port (web:8000), not the published 8888.
+tensies = [t for t in targets if '/web:' in t.get('scrapeUrl','') or t.get('scrapeUrl','').startswith('http://web:') or 'tensies' in str(t.get('labels',''))]
 if not tensies:
     print('FAIL: no tensies scrape target found')
 else:
@@ -244,7 +252,7 @@ Then navigate both to `http://localhost:8888/`.
 **Alpha creates the game:**
 1. Type `Telemetry` into `#name-input` on instance #1
 2. Submit `#landing-form` → wait for `#lobby.active`
-3. Capture the game code from `#lobby-code` — store as `GAME_CODE`
+3. Capture the game code via `evaluate` (`() => _state.gameCode`) — store as `GAME_CODE`. (The old `#lobby-code` box was replaced by the `<lobby-stamp>` graphic on the discovery branch; the code now lives in `_state.gameCode` / `lobby-stamp .serial`.)
 
 **Beta joins:**
 4. In instance #2 (guest), navigate to `http://localhost:8888/<GAME_CODE>`
@@ -604,19 +612,18 @@ Run the panel health check:
 
 These four panels are only populated for *active* games. All other panels query `events`/`rounds` directly and must have data. Report WARN only if a panel outside this list shows No data.
 
-**Per-panel assertions** — verify each of these panels has data by checking page text:
+**Per-panel assertions** — verify each panel has data by checking page text. **Take the fullPage screenshot (below) FIRST**: Grafana lazy-renders panels below the fold, so a text check before scrolling reads `false` for lower panels (they aren't in the DOM yet). The current per-game dashboard has 12 panels: `Status`, `Round / Target`, `Players`, `Total rolls`, `Rounds completed`, `Game age`, `Current round progress`, `Match progression (current round)`, `Luck balance (dice ahead of expectation)`, `Game event log`, `Rounds in this game`, `Rolls per round`.
 
 ```js
 () => {
   const text = document.body.innerText;
   return {
-    stat_rounds_completed: /Rounds completed/.test(text) && !/Rounds completed\s*[-–]\s*$/.test(text),
-    event_log_has_entries: (text.match(/rolled \d+\/10/g) || []).length > 0,
-    rounds_table_has_rows: (text.match(/Alpha|Beta|Telemetry|Monitor/g) || []).length > 0,
+    stat_rounds_completed: /Rounds completed/.test(text),
+    stat_total_rolls: /Total rolls/.test(text),
+    event_log_has_entries: (text.match(/rolled \d+\/10/g) || []).length > 0,   // "Game event log"
+    rounds_table_has_rows: (text.match(/Alpha|Beta|Telemetry|Monitor/g) || []).length > 0,  // "Rounds in this game"
     rolls_per_round_visible: /Rolls per round/.test(text),
-    match_progression_all_rounds: /Match progression \(all rounds\)/.test(text),
-    dice_distribution_visible: /Dice distribution/.test(text),
-    player_wins_visible: /Player wins/.test(text),
+    luck_balance_visible: /Luck balance/.test(text),   // replaced the old "Dice distribution"/"Match progression (all rounds)"/"Player wins" panels
   };
 }
 ```
@@ -627,9 +634,10 @@ Cross-check stat panels against Postgres:
 
 **Pass criteria:**
 - `total` panels >= 8
-- Only `"Match progression (current round)"` may show No data — anything else is a FAIL
+- No-data panels only among the four `live_games`-backed ones (`Status`, `Round / Target`, `Current round progress`, `Match progression (current round)`) — any other No-data panel is a FAIL
 - `event_log_has_entries = true` (rolled N/10 entries visible)
 - `rounds_table_has_rows = true`
+- `luck_balance_visible = true`
 - Stat panel values match Postgres (within 1 roll — timing window)
 
 ---
