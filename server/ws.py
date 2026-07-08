@@ -245,7 +245,14 @@ async def handle_stop_broadcast(session: Session, msg: dict) -> None:
         return
     await gamestore.stop_broadcasting(code)
     # Master switch: clearing the broadcast also clears any check-in.
-    await gamestore.clear_place(code)
+    cleared = await gamestore.clear_place(code)
+    if cleared:
+        dwell_ms = (int(time.time() * 1000) - cleared["place_ts"]
+                    if cleared["place_ts"] else None)
+        metrics.checkouts_total.inc()
+        emit("checked_out", game_code=code, user_id=session.pid,
+             place_id=cleared["place_id"], place_name=cleared["place_name"],
+             dwell_ms=dwell_ms, session_id=session.session_id)
     if db.available():
         await db_places.delete(code)
     log.info("broadcast  game=%s  OFF", code)

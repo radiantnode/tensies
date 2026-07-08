@@ -599,14 +599,23 @@ async def set_place(code: str, place_id: str, name: str,
     await _r.hset(_gkey(code), mapping={
         "place_id": place_id, "place_name": name,
         "place_lat": lat, "place_lng": lon,
-        "place_photo": photo_ref or ""})
+        "place_photo": photo_ref or "", "place_ts": int(time.time() * 1000)})
     await _recompute_geo(code)
 
 
-async def clear_place(code: str) -> None:
+async def clear_place(code: str) -> dict | None:
+    """Check the game out of its place. Returns what was cleared
+    ({place_id, place_name, place_ts}) so the caller can emit a checked_out
+    event, or None if the game wasn't checked in."""
+    place_id, place_name, place_ts = await _r.hmget(
+        _gkey(code), ["place_id", "place_name", "place_ts"])
     await _r.hdel(_gkey(code), "place_id", "place_name", "place_lat", "place_lng",
-                  "place_photo")
+                  "place_photo", "place_ts")
     await _recompute_geo(code)
+    if not place_id:
+        return None
+    return {"place_id": place_id, "place_name": place_name or "",
+            "place_ts": int(place_ts) if place_ts else None}
 
 
 async def discovery_card(code: str) -> dict | None:

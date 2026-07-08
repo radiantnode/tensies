@@ -138,6 +138,7 @@ places_cache_total = Counter(
     ["cache", "result"],  # cache: nearby|place|photo  result: hit|miss
 )
 checkins_total = Counter("tensies_checkins_total", "Host check-ins to a place")
+checkouts_total = Counter("tensies_checkouts_total", "Host check-outs from a place")
 nearby_queries_total = Counter(
     "tensies_nearby_queries_total", "GET /api/nearby discovery polls"
 )
