@@ -169,4 +169,22 @@
   @media (max-height: 700px) {
     .tagline { margin-block-end: 1.5rem; }
   }
+
+  /* Short viewports (Safari chrome eats height, small phones): the landing's
+     centred form has a fixed vertical budget (3 buttons + input + gaps) in an
+     overflow:hidden body, so it crowds/clips. Tighten the buttons + gaps in
+     steps so it stays comfortable. Scoped to the landing only. */
+  @media (max-height: 800px) {
+    .landing-screen .form-stack { gap: 0.6rem; }
+    .landing-screen .or-divider { margin-block: 0.05rem; }
+  }
+  @media (max-height: 720px) {
+    .landing-screen .form-stack { gap: 0.5rem; }
+    .landing-screen .btn { padding-block: 0.72rem; }
+    .landing-screen .field-hint { margin-block-end: 0.25rem; }
+  }
+  @media (max-height: 640px) {
+    .landing-screen .form-stack { gap: 0.4rem; }
+    .landing-screen .btn { padding-block: 0.62rem; font-size: 0.95rem; }
+  }
 }
