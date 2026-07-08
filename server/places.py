@@ -207,6 +207,45 @@ async def resolve(place_id: str) -> dict | None:
 
 
 # ─── Google Places API (New) ─────────────────────────────────────────────
+
+# Social/gathering venue types (Table A) — where people actually meet up, so a
+# check-in surfaces bars, cafes, and parks instead of the dry cleaners, offices,
+# and auto shops a bare radius search returns. includedTypes is a request param,
+# not a FieldMask field, so filtering on it does NOT change the billing tier.
+# Tunable; the API allows up to 50.
+_GATHERING_TYPES = [
+    # Food, drink, nightlife — the heart of a check-in for a bar dice game.
+    "restaurant", "bar", "pub", "wine_bar", "bar_and_grill", "cafe",
+    "coffee_shop", "night_club", "bakery",
+    # Leisure / culture places people gather.
+    "park", "tourist_attraction", "amusement_park", "bowling_alley",
+    "movie_theater", "stadium", "art_gallery", "museum", "zoo", "aquarium",
+    "casino", "event_venue", "banquet_hall", "community_center",
+]
+
+# Below this many gathering hits, re-query unfiltered so a check-in still finds
+# where you're standing somewhere with few tagged venues. search_nearby caches
+# the result on a ~100 m grid, so this second call is rare and short-lived.
+_MIN_GATHERING = 3
+
+
+async def _post_nearby(body: dict) -> list[dict]:
+    """POST one searchNearby request and parse it. Field mask is fixed (Basic
+    tier) — the type filtering happens via the request body, at no extra cost."""
+    try:
+        headers = {**await _auth_headers(), "X-Goog-FieldMask":
+            "places.id,places.displayName,places.formattedAddress,places.location,"
+            "places.photos"}
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
+            resp = await c.post(f"{_NEW_BASE}/places:searchNearby",
+                                headers=headers, json=body)
+        resp.raise_for_status()
+        return _parse_places(resp.json())
+    except Exception:  # noqa: BLE001 — places are cosmetic; never fatal
+        log.exception("places searchNearby failed")
+        return []
+
+
 async def _google_nearby(lat: float, lon: float) -> list[dict]:
     body = {
         "maxResultCount": min(PLACES_MAX_RESULTS, 20),  # API caps at 20
@@ -217,19 +256,14 @@ async def _google_nearby(lat: float, lon: float) -> list[dict]:
             "center": {"latitude": lat, "longitude": lon},
             "radius": PLACES_RADIUS_M}},
     }
-    try:
-        headers = {**await _auth_headers(), "X-Goog-FieldMask":
-            "places.id,places.displayName,places.formattedAddress,places.location,"
-            "places.photos"}
-        async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
-            resp = await c.post(f"{_NEW_BASE}/places:searchNearby",
-                                headers=headers, json=body)
-        resp.raise_for_status()
-        data = resp.json()
-    except Exception:  # noqa: BLE001 — places are cosmetic; never fatal
-        log.exception("places searchNearby failed")
-        return []
-    return _parse_places(data)
+    # 1) Prefer gathering venues (still nearest-first). 2) Fall back to the
+    # unfiltered search when that's thin so check-in never comes up empty. A
+    # rejected includedTypes (bad type) also returns [] here, so it degrades to
+    # the unfiltered search rather than breaking nearby.
+    hits = await _post_nearby({**body, "includedTypes": _GATHERING_TYPES})
+    if len(hits) >= _MIN_GATHERING:
+        return hits
+    return await _post_nearby(body)
 
 
 _TEXT_FIELD_MASK = (
