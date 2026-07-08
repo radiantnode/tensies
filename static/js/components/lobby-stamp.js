@@ -1,4 +1,5 @@
 // @ts-check
+import { state } from '../state.js';
 
 const EASE = 'transform 0.52s cubic-bezier(0.22, 1, 0.36, 1)';
 
@@ -17,6 +18,9 @@ const EASE = 'transform 0.52s cubic-bezier(0.22, 1, 0.36, 1)';
 export class LobbyStamp extends HTMLElement {
   /** @type {HTMLElement | null} */ #clone = null;
   /** @type {HTMLDialogElement | null} */ #dialog = null;
+  /** @type {string} last QR source applied to the img (compared directly, not
+   *  via img.src whose data-URL read-back can defeat a string guard). */
+  #qrSrc = '';
 
   connectedCallback() {
     if (this.dataset.rendered) return;
@@ -92,8 +96,10 @@ export class LobbyStamp extends HTMLElement {
     if (date) date.textContent = stampDate();
     const qr = /** @type {HTMLImageElement | null} */ (this.querySelector('.qr'));
     if (qr) {
-      const src = `/api/qr/${code}.svg`;
-      if (!qr.src.endsWith(src)) qr.src = src; // only on code change — no refetch
+      // Prefer the inline QR the server sent with the join (a data: URL — no
+      // fetch, no flicker); fall back to the /api/qr endpoint if it's absent.
+      const src = state.qr || `/api/qr/${code}.svg`;
+      if (src !== this.#qrSrc) { qr.src = src; this.#qrSrc = src; }
     }
   }
 

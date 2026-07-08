@@ -229,6 +229,7 @@ export function leaveGame() {
   state.reconnecting = false;
   state.currentState = null;
   state.gameCode = null;
+  state.qr = null; // next game sends its own; don't carry this one's QR over
   resetRollState();
   const ws = state.ws;
   state.ws = null;
@@ -282,8 +283,10 @@ function handleMessage(msg) {
       return;
     case 'reconnect_token':
       saveReconnectToken(msg.token);
+      if (msg.qr) state.qr = msg.qr; // inline invite QR — cache for the stamp
       return;
     case 'state':
+      if (msg.qr) state.qr = msg.qr; // re-sent on a lobby reconnect
       // My own roll response (private, pre-broadcast): hold it for tryReveal
       // so the shake/reveal animation drives the change instead of a hard
       // re-render. A newer broadcast landing mid-reveal is stashed separately

@@ -21,6 +21,10 @@ export const state = {
   pendingOrigin: null,
   /** @type {GameSnapshot | null} Last server snapshot. */
   currentState: null,
+  /** @type {string | null} Invite QR as a base64 data URL, sent once with the
+   *  reconnect_token (create/join/lobby-reconnect) so the lobby stamp shows it
+   *  with no separate fetch. Null → the stamp falls back to /api/qr. */
+  qr: null,
   reconnecting: false,
   /** True for one game-detail render right after a game_ended, so the detail
    *  screen can show its "Game ended" banner. Set in net.js, cleared on read. */

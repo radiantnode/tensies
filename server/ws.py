@@ -7,7 +7,7 @@ import uuid
 import jwt as pyjwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from . import db, db_places, gamestore, places, state
+from . import db, db_places, gamestore, places, qr, state
 from .broadcast import (
     advance_round,
     broadcast,
@@ -19,6 +19,7 @@ from .broadcast import (
 )
 from .config import (
     ALLOWED_ORIGINS,
+    APP_URL,
     CHECKIN_RATE_MAX,
     CHECKIN_RATE_WINDOW,
     CREATE_RATE_MAX,
@@ -129,6 +130,14 @@ async def handle_auth(session: Session, msg: dict) -> None:
         await _error(session.ws, "Invalid auth token")
 
 
+def _invite_qr(session: Session, code: str) -> str:
+    """Inline invite QR (base64 SVG data URL) for the lobby stamp — generated on
+    demand so the client shows it with no separate fetch (no flicker). Origin:
+    the canonical APP_URL, else the client's own from the WS handshake."""
+    base = APP_URL or (session.ws.headers.get("origin") or "").rstrip("/")
+    return qr.qr_data_url(f"{base}/{code}")
+
+
 async def handle_create(session: Session, msg: dict) -> None:
     # Signed-in users use their account username as the player name.
     raw_name = session.username or msg.get("name") or "Player"
@@ -155,7 +164,8 @@ async def handle_create(session: Session, msg: dict) -> None:
          session_id=session.session_id, player_count=1)
     if session.photo:
         await gamestore.set_player_photo(code, session.pid, session.photo)
-    await send(session.ws, {"type": "reconnect_token", "token": token})
+    await send(session.ws, {"type": "reconnect_token", "token": token,
+                            "qr": _invite_qr(session, code)})
     snap = await gamestore.snapshot(code)
     if snap:
         await broadcast(code, state_msg(snap, code))
@@ -194,7 +204,8 @@ async def handle_join(session: Session, msg: dict) -> None:
          session_id=session.session_id, player_count=res)
     if session.photo:
         await gamestore.set_player_photo(join_code, session.pid, session.photo)
-    await send(session.ws, {"type": "reconnect_token", "token": token})
+    await send(session.ws, {"type": "reconnect_token", "token": token,
+                            "qr": _invite_qr(session, join_code)})
     snap = await gamestore.snapshot(join_code)
     if snap:
         await broadcast(join_code, state_msg(snap, join_code))
@@ -318,7 +329,10 @@ async def handle_reconnect(session: Session, msg: dict) -> None:
          name=session.name, session_id=session.session_id)
     snap = await gamestore.snapshot(join_code)
     if snap:
-        await broadcast(join_code, state_msg(snap, join_code))
+        # A page-refresh reconnect lost the client's cached QR — re-send it (only
+        # in the lobby, where the stamp shows it) so it stays flicker-free.
+        extra = {} if snap.get("started") else {"qr": _invite_qr(session, join_code)}
+        await broadcast(join_code, state_msg(snap, join_code, **extra))
 
 
 async def handle_roll(session: Session, msg: dict) -> None:
