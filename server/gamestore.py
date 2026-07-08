@@ -594,27 +594,30 @@ async def stop_broadcasting(code: str) -> None:
 
 async def set_place(code: str, place_id: str, name: str,
                     lat: float, lon: float,
-                    photo_ref: str | None = None) -> None:
+                    photo_ref: str | None = None,
+                    place_type: str | None = None) -> None:
     """Check the game in to a public place at its exact coordinates."""
     await _r.hset(_gkey(code), mapping={
         "place_id": place_id, "place_name": name,
         "place_lat": lat, "place_lng": lon,
-        "place_photo": photo_ref or "", "place_ts": int(time.time() * 1000)})
+        "place_photo": photo_ref or "", "place_type": place_type or "",
+        "place_ts": int(time.time() * 1000)})
     await _recompute_geo(code)
 
 
 async def clear_place(code: str) -> dict | None:
     """Check the game out of its place. Returns what was cleared
-    ({place_id, place_name, place_ts}) so the caller can emit a checked_out
-    event, or None if the game wasn't checked in."""
-    place_id, place_name, place_ts = await _r.hmget(
-        _gkey(code), ["place_id", "place_name", "place_ts"])
+    ({place_id, place_name, place_type, place_ts}) so the caller can emit a
+    checked_out event, or None if the game wasn't checked in."""
+    place_id, place_name, place_type, place_ts = await _r.hmget(
+        _gkey(code), ["place_id", "place_name", "place_type", "place_ts"])
     await _r.hdel(_gkey(code), "place_id", "place_name", "place_lat", "place_lng",
-                  "place_photo", "place_ts")
+                  "place_photo", "place_type", "place_ts")
     await _recompute_geo(code)
     if not place_id:
         return None
     return {"place_id": place_id, "place_name": place_name or "",
+            "place_type": place_type or "",
             "place_ts": int(place_ts) if place_ts else None}
 
 

@@ -132,7 +132,8 @@ async def _cache_put(p: dict) -> None:
     await gamestore.client().set(
         _ckey(p["place_id"]),
         json.dumps({"name": p["name"], "lat": p["lat"], "lon": p["lon"],
-                    "photo_ref": p.get("photo_ref")}),
+                    "photo_ref": p.get("photo_ref"),
+                    "primary_type": p.get("primary_type") or ""}),
         ex=PLACES_CACHE_TTL,
     )
 
@@ -145,7 +146,7 @@ async def _cache_get(place_id: str) -> dict | None:
     metrics.places_cache_total.labels("place", "hit").inc()
     d = json.loads(raw)
     return {"place_id": place_id, "name": d["name"], "lat": d["lat"], "lon": d["lon"],
-            "photo_ref": d.get("photo_ref")}
+            "photo_ref": d.get("photo_ref"), "primary_type": d.get("primary_type") or ""}
 
 
 # ─── Public API ──────────────────────────────────────────────────────────
@@ -234,10 +235,35 @@ _GATHERING_TYPES = [
 _MIN_GATHERING = 3
 
 
-# Basic-tier field mask shared by the searchNearby and searchText calls.
+# Field mask shared by the searchNearby and searchText calls. primaryType is in
+# the same (Pro) SKU as displayName/formattedAddress already here, so requesting
+# it doesn't bump the billing tier — it's what lets us bucket check-ins by venue
+# kind (bar/restaurant/…) in telemetry.
 _FIELD_MASK = (
     "places.id,places.displayName,places.formattedAddress,places.location,"
-    "places.photos")
+    "places.photos,places.primaryType")
+
+
+# Google primaryType → coarse category bucket for low-cardinality metrics. The
+# raw primaryType still rides along in the checked_in/out event payloads for
+# fine-grained Postgres analysis; this bucketing is only for Prometheus labels.
+_CATEGORY = {
+    "bar": "bar", "pub": "bar", "wine_bar": "bar", "bar_and_grill": "bar",
+    "restaurant": "restaurant",
+    "cafe": "cafe", "coffee_shop": "cafe", "bakery": "cafe",
+    "night_club": "nightlife", "casino": "nightlife",
+    "art_gallery": "culture", "museum": "culture", "zoo": "culture",
+    "aquarium": "culture", "tourist_attraction": "culture",
+    "park": "recreation", "amusement_park": "recreation",
+    "bowling_alley": "recreation", "movie_theater": "recreation",
+    "stadium": "recreation",
+    "event_venue": "venue", "banquet_hall": "venue", "community_center": "venue",
+}
+
+
+def categorize(primary_type: str | None) -> str:
+    """Map a Google primaryType to one of ~7 buckets (else 'other')."""
+    return _CATEGORY.get(primary_type or "", "other")
 
 
 def _mark(kind: str, t0: float, ok: bool) -> None:
@@ -326,6 +352,7 @@ def _parse_places(data: dict) -> list[dict]:
             # First photo's resource name (places/<id>/photos/<ref>), if any —
             # the client fetches the bytes back through /api/places/photo.
             "photo_ref": (photos[0].get("name") if photos else None),
+            "primary_type": pl.get("primaryType") or "",
         })
     return out
 
@@ -394,7 +421,7 @@ async def _google_details(place_id: str) -> dict | None:
     t0 = time.monotonic()
     try:
         headers = {**await _auth_headers(),
-                   "X-Goog-FieldMask": "id,displayName,location,photos"}
+                   "X-Goog-FieldMask": "id,displayName,location,photos,primaryType"}
         async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
             resp = await c.get(f"{_NEW_BASE}/places/{place_id}", headers=headers)
         resp.raise_for_status()
@@ -413,4 +440,5 @@ async def _google_details(place_id: str) -> dict | None:
         "name": (pl.get("displayName") or {}).get("text") or "Unnamed place",
         "lat": loc["latitude"], "lon": loc["longitude"],
         "photo_ref": (photos[0].get("name") if photos else None),
+        "primary_type": pl.get("primaryType") or "",
     }

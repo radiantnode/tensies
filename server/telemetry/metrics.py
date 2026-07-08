@@ -137,8 +137,16 @@ places_cache_total = Counter(
     "tensies_places_cache_total", "Places Redis cache lookups",
     ["cache", "result"],  # cache: nearby|place|photo  result: hit|miss
 )
-checkins_total = Counter("tensies_checkins_total", "Host check-ins to a place")
-checkouts_total = Counter("tensies_checkouts_total", "Host check-outs from a place")
+checkins_total = Counter(
+    "tensies_checkins_total", "Host check-ins to a place", ["category"]
+)  # category: bar|restaurant|cafe|nightlife|culture|recreation|venue|other
+checkouts_total = Counter(
+    "tensies_checkouts_total", "Host check-outs from a place", ["category"]
+)
+checkin_dwell_seconds = Histogram(
+    "tensies_checkin_dwell_seconds", "How long a game stayed checked in", ["category"],
+    buckets=(10, 30, 60, 120, 300, 600, 1800, 3600, 7200),
+)
 nearby_queries_total = Counter(
     "tensies_nearby_queries_total", "GET /api/nearby discovery polls"
 )

@@ -249,9 +249,13 @@ async def handle_stop_broadcast(session: Session, msg: dict) -> None:
     if cleared:
         dwell_ms = (int(time.time() * 1000) - cleared["place_ts"]
                     if cleared["place_ts"] else None)
-        metrics.checkouts_total.inc()
+        category = places.categorize(cleared["place_type"])
+        metrics.checkouts_total.labels(category).inc()
+        if dwell_ms is not None:
+            metrics.checkin_dwell_seconds.labels(category).observe(dwell_ms / 1000)
         emit("checked_out", game_code=code, user_id=session.pid,
              place_id=cleared["place_id"], place_name=cleared["place_name"],
+             place_type=cleared["place_type"], category=category,
              dwell_ms=dwell_ms, session_id=session.session_id)
     if db.available():
         await db_places.delete(code)
@@ -290,12 +294,15 @@ async def handle_checkin(session: Session, msg: dict) -> None:
     await gamestore.set_broadcasting(code, place["lon"], place["lat"])
     await gamestore.set_place(code, place["place_id"], place["name"],
                               place["lat"], place["lon"],
-                              photo_ref=place.get("photo_ref"))
+                              photo_ref=place.get("photo_ref"),
+                              place_type=place.get("primary_type"))
     if db.available():
         await db_places.upsert(code, place, session.pid)
-    metrics.checkins_total.inc()
+    category = places.categorize(place.get("primary_type"))
+    metrics.checkins_total.labels(category).inc()
     emit("checked_in", game_code=code, user_id=session.pid,
          place_id=place["place_id"], place_name=place["name"],
+         place_type=place.get("primary_type") or "", category=category,
          session_id=session.session_id)
     # Log only the game code — the resolved place bundles the host's lat/lon
     # (private location data), so keep it out of the app log. The place name is
