@@ -34,6 +34,22 @@ const PLACES_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
  *  a sheet/search open to ~N billed Place Photo calls instead of up to 20. */
 const PLACES_PHOTO_EAGER_N = 6;
 
+/** Nearby-places cache is refetched on sheet-open once it's older than this… */
+const PLACES_STALE_MS = 90_000;
+/** …or once the host has moved more than this many metres since it was cached. */
+const PLACES_STALE_METERS = 75;
+
+/** Great-circle distance in metres between two {lat, lon} points (haversine). */
+function metersBetween(a, b) {
+  const R = 6371000;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLon = toRad(b.lon - a.lon);
+  const h = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
 const joinLink = () => `${location.origin}/${state.gameCode}`;
 
 /**
@@ -65,6 +81,15 @@ export class LobbyScreen extends HTMLElement {
    *  Nearby places, fetched once so the check-in prompt can name them and the
    *  sheet opens instantly. Null until the first successful lookup. */
   #placesCache = null;
+
+  /** @type {number} ms timestamp the cache was last filled, for staleness. */
+  #placesCacheAt = 0;
+
+  /** @type {number} geolocation watch id while broadcasting (0 = not watching). */
+  #geoWatchId = 0;
+
+  /** @type {boolean} guard so movement bursts don't fire overlapping refetches. */
+  #reloadInFlight = false;
 
   /** @type {boolean} guard so the background prefetch fires at most once. */
   #prefetchTried = false;
@@ -304,6 +329,7 @@ export class LobbyScreen extends HTMLElement {
   disconnectedCallback() {
     window.removeEventListener('resize', this.#onResize);
     this.#stopKeyboardTracking();
+    this.#stopLocationWatch();
     this.#photoObserver?.disconnect();
   }
 
@@ -426,6 +452,9 @@ export class LobbyScreen extends HTMLElement {
       status.hidden = true;
       status.classList.remove('is-error');
     }
+    // Watch the host's location while Nearby is on so places/prompt track moves.
+    if (broadcasting) this.#startLocationWatch();
+    else this.#stopLocationWatch();
   }
 
   /**
@@ -605,6 +634,7 @@ export class LobbyScreen extends HTMLElement {
       if (!res.ok) return;
       const data = await res.json();
       this.#placesCache = data.places || [];
+      this.#placesCacheAt = Date.now();
       // Refresh the prompt now that we know what's nearby (still host + not
       // checked in — a snapshot may have arrived meanwhile).
       const prompt = byId('checkin-prompt');
@@ -690,10 +720,12 @@ export class LobbyScreen extends HTMLElement {
     this.#clearSheetKeyboardStyles(); // drop any docking left from a prior open
     sheet.showModal();
     this.#bindKeyboardTracking();
-    // The background prefetch usually has the list already — open straight to it.
+    // The background prefetch usually has the list already — open straight to it,
+    // then quietly refresh if the fix has gone stale or the host has moved.
     if (this.#placesCache && this.#placesCache.length) {
       this.#renderPlaces(this.#placesCache, true);
       this.#resetPlacesScroll();
+      this.#refreshPlacesIfStale();
       return;
     }
     status.hidden = false;
@@ -706,6 +738,7 @@ export class LobbyScreen extends HTMLElement {
       const data = await res.json();
       const places = data.places || [];
       this.#placesCache = places;
+      this.#placesCacheAt = Date.now();
       this.#renderPlaces(places, true);
       this.#resetPlacesScroll();
     } catch (err) {
@@ -715,6 +748,93 @@ export class LobbyScreen extends HTMLElement {
         : 'Couldn’t load nearby places.';
       status.classList.add('is-error');
     }
+  }
+
+  /**
+   * Quietly refresh the nearby list when the cached fix is stale or the host has
+   * moved (a cache-open still renders instantly first). Never prompts for
+   * permission in the background, and only swaps the list in if the sheet is
+   * still open on the nearby list — so it can't clobber a closed sheet or a
+   * search the user has started typing.
+   */
+  async #refreshPlacesIfStale() {
+    try {
+      const perm = navigator.permissions
+        && await navigator.permissions.query({ name: /** @type {PermissionName} */ ('geolocation') });
+      if (perm && perm.state !== 'granted') return;
+      const { lat, lon } = await getPosition();
+      const moved = this.#lastPos ? metersBetween(this.#lastPos, { lat, lon }) : Infinity;
+      const age = Date.now() - this.#placesCacheAt;
+      if (moved < PLACES_STALE_METERS && age < PLACES_STALE_MS) return; // still fresh
+      await this.#reloadPlacesFrom(lat, lon);
+    } catch {
+      // Best-effort — keep showing the cached list on any failure.
+    }
+  }
+
+  /**
+   * Refetch nearby places for a position and fan the result out: update the
+   * cache + last fix, re-render the sheet if it's open on the nearby list, and
+   * re-name the check-in prompt (same host + not-checked-in guard as the
+   * prefetch) so the sheet and the label never drift apart. An in-flight guard
+   * keeps a burst of watch callbacks from stacking refetches.
+   * @param {number} lat @param {number} lon
+   */
+  async #reloadPlacesFrom(lat, lon) {
+    if (this.#reloadInFlight) return;
+    this.#reloadInFlight = true;
+    try {
+      const res = await fetch(`/api/places/nearby?lat=${lat}&lon=${lon}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      this.#placesCache = data.places || [];
+      this.#lastPos = { lat, lon };
+      this.#placesCacheAt = Date.now();
+      const sheet = /** @type {HTMLDialogElement} */ (byId('places-sheet'));
+      const search = /** @type {HTMLInputElement} */ (byId('places-search'));
+      if (sheet.open && !search.value.trim()) this.#renderPlaces(this.#placesCache, true);
+      const prompt = byId('checkin-prompt');
+      if (this.#isHost && prompt.getAttribute('aria-pressed') !== 'true') {
+        this.#setCheckinPromptCopy();
+      }
+    } finally {
+      this.#reloadInFlight = false;
+    }
+  }
+
+  /**
+   * Watch the host's location while Nearby is broadcasting so the places + prompt
+   * refresh the moment they move past the threshold — not only when the sheet is
+   * reopened. Coarse accuracy keeps it light; the threshold check throttles
+   * refetches. No-op if already watching or geolocation is unavailable.
+   */
+  #startLocationWatch() {
+    if (this.#geoWatchId || !navigator.geolocation) return;
+    this.#geoWatchId = navigator.geolocation.watchPosition(
+      (pos) => this.#onWatchPosition(pos.coords.latitude, pos.coords.longitude),
+      () => { /* transient watch error — keep the cached list */ },
+      { enableHighAccuracy: false, maximumAge: 30000, timeout: 30000 });
+  }
+
+  /** Stop the location watch (Nearby off, checked-in-only, unmount). */
+  #stopLocationWatch() {
+    if (!this.#geoWatchId) return;
+    navigator.geolocation.clearWatch(this.#geoWatchId);
+    this.#geoWatchId = 0;
+  }
+
+  /**
+   * A watch fix arrived. Seed the baseline on the first one; thereafter refetch
+   * only once the host has moved past the distance threshold (or the cache has
+   * gone stale) so we don't refetch on every GPS jitter.
+   * @param {number} lat @param {number} lon
+   */
+  #onWatchPosition(lat, lon) {
+    if (!this.#lastPos) { this.#lastPos = { lat, lon }; return; }
+    const moved = metersBetween(this.#lastPos, { lat, lon });
+    const age = Date.now() - this.#placesCacheAt;
+    if (moved < PLACES_STALE_METERS && age < PLACES_STALE_MS) return;
+    this.#reloadPlacesFrom(lat, lon).catch(() => { /* best-effort */ });
   }
 
   /**
