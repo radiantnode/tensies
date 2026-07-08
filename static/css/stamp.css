@@ -10,25 +10,14 @@
    can't collide with the rest of the app. */
 
 @layer components {
-  /* Host is the tap-to-copy button; strip native button chrome. */
-  .stamp-btn {
-    display: block;
-    inline-size: 100%;
-    padding: 0;
-    border: 0;
-    background: none;
-    cursor: pointer;
-    -webkit-appearance: none;
-    appearance: none;
-  }
-
   /* Slot: a size container spanning the full lobby width (bleeds past the body's
      side padding) so the stamp renders at its native 346px on a normal phone and
      centers; below ~346px of slot width, --u shrinks and the whole stamp scales
      down fluidly. */
   lobby-stamp {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
     /* Bleed ~12px into the lobby's side padding so the stamp runs a bit wider
        than the other content while keeping a gutter (no edge-touch on small
        phones — the gutter, not the cap, sets the side margin). */
@@ -39,13 +28,18 @@
 
   .stamp {
     position: relative;
-    /* Centre within the full-width tap button (needed once the cap holds the
-       stamp narrower than the slot on wide phones). */
+    /* Tapped to enlarge; sits casually tilted rather than mechanically square. */
+    cursor: pointer;
+    transform: rotate(-2.2deg);
     margin-inline: auto;
-    /* 0.28902cqw ≈ 1px per 346px of slot width. The cap sets the MAX stamp width
-       (346 × 1.1 ≈ 380px); below that it fills the slot fluidly. Raise the cap to
-       let it run wider on large phones. */
-    --u: min(1.1px, 0.28902cqw);
+    /* --u is one design unit, capped three ways:
+       - 1.1px       — max size on wide/tall screens (346 × 1.1 ≈ 380px)
+       - 0.28902cqw  — fill the slot width fluidly (≈1px per 346px of width)
+       - 0.12svh     — shrink on SHORT viewports so the stamp doesn't crowd the
+                       column (svh is full-height in a PWA but smaller in Safari,
+                       where the browser chrome eats vertical space; also shrinks
+                       on shorter phones). Lower the 0.12 to shrink more. */
+    --u: min(1.1px, 0.28902cqw, 0.12svh);
     width: calc(var(--u) * 346);
     --ink: #b8442a;
     --ink-soft: rgba(184, 68, 42, 0.5);
@@ -237,5 +231,77 @@
     display: block;
     width: 100%;
     height: 100%;
+  }
+
+  /* Caption under the collapsed stamp; fades out while enlarged. */
+  .enlarge-hint {
+    margin-block-start: 16px;
+    max-inline-size: 22rem;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.35;
+    text-align: center;
+    color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+    transition: opacity 0.25s ease;
+  }
+  .enlarge-hint.hide {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Enlarged presentation lives in a modal <dialog> (top layer): the ::backdrop
+     is the scrim, and the animated clone + close hint are position:fixed inside,
+     so they escape the lobby's clipping and stacking entirely. */
+  .stamp-zoom {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    inline-size: 0;
+    block-size: 0;
+    max-inline-size: none;
+    max-block-size: none;
+    background: transparent;
+    overflow: visible;
+  }
+  .stamp-zoom::backdrop {
+    background: rgba(8, 4, 2, 0.9);
+    animation: stamp-scrim-in 0.4s ease both;
+  }
+  @keyframes stamp-scrim-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .stamp-zoom .close-hint {
+    position: fixed;
+    inset-inline: 0;
+    inset-block-end: calc(30px + env(safe-area-inset-bottom));
+    max-inline-size: 22rem;
+    margin-inline: auto;
+    padding-inline: 1.5rem;
+    text-align: center;
+    /* Match the collapsed caption's typography (sentence case, not a label). */
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--color-text-warm);
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
+    pointer-events: none;
+    /* Driven by a JS-toggled .show class (reliable every open, unlike an
+       animation tied to the dialog's display cycling). */
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+  .stamp-zoom .close-hint.show { opacity: 1; }
+
+  /* Closing: fade the scrim out with the clone's morph-back so the lobby eases
+     in instead of popping (the hint fades via .show being removed). */
+  .stamp-zoom.closing::backdrop {
+    animation: stamp-scrim-out 0.5s ease both;
+  }
+  @keyframes stamp-scrim-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
   }
 }

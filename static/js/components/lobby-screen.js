@@ -153,9 +153,18 @@ export class LobbyScreen extends HTMLElement {
         <button id="lobby-back-btn" type="button" class="btn-back">${BACK_BUTTON_HTML}</button>
         <h1 id="lobby-title" class="lobby-title">Waiting for players…</h1>
         <lobby-stamp></lobby-stamp>
-        <p class="copy-hint" id="copy-hint" hidden></p>
         <div class="or-divider" aria-hidden="true"><span>or</span></div>
         <div class="lobby-actions">
+          <div class="lobby-action-item">
+            <button id="copy-link-btn" type="button" class="lobby-action" aria-label="Copy invite link">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 15l6-6"/>
+                <path d="M11 6l1-1a4 4 0 0 1 6 6l-1 1"/>
+                <path d="M13 18l-1 1a4 4 0 0 1-6-6l1-1"/>
+              </svg>
+            </button>
+            <span id="copy-link-label" class="lobby-action-label">Copy Link</span>
+          </div>
           <div class="lobby-action-item">
             <button id="share-btn" type="button" class="lobby-action" aria-label="Share invite link">
               <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
@@ -236,7 +245,7 @@ export class LobbyScreen extends HTMLElement {
     window.addEventListener('resize', this.#onResize);
 
     byId('lobby-back-btn').addEventListener('click', () => leaveGame());
-    byId('lobby-code').addEventListener('click', () => this.#copyJoinLink());
+    byId('copy-link-btn').addEventListener('click', () => this.#copyJoinLink());
     byId('share-btn').addEventListener('click', () => this.#share());
     byId('play-code-btn').addEventListener('click', () => this.#playCode());
     byId('start-btn').addEventListener('click', () => startGame());
@@ -1078,14 +1087,13 @@ export class LobbyScreen extends HTMLElement {
     const code = state.gameCode;
     if (!code) return;
     navigator.clipboard.writeText(joinLink()).then(() => {
-      const hint = byId('copy-hint');
-      hint.textContent = 'link copied!';
-      hint.classList.add('copied');
-      hint.hidden = false;
+      const label = byId('copy-link-label');
+      label.textContent = 'Copied!';
+      label.classList.add('copied');
       clearTimeout(this.#copyResetTimer);
       this.#copyResetTimer = setTimeout(() => {
-        hint.classList.remove('copied');
-        hint.hidden = true;
+        label.textContent = 'Copy Link';
+        label.classList.remove('copied');
       }, 2000);
     });
   }
