@@ -655,6 +655,102 @@
           }
         }
       }
+    },
+    {
+      "id": 50,
+      "type": "table",
+      "title": "Top venues (check-ins)",
+      "description": "Most-checked-in real venues, by name + Google place id, over the selected range.",
+      "gridPos": {
+        "h": 10,
+        "w": 16,
+        "x": 0,
+        "y": 38
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT payload->>'place_name' AS \"Venue\", payload->>'category' AS \"Category\", payload->>'place_id' AS \"Google place id\", count(*) AS \"Check-ins\", count(DISTINCT user_id) AS \"Hosts\" FROM events WHERE type='checked_in' AND ts >= $__timeFrom() AND ts < $__timeTo() GROUP BY 1,2,3 ORDER BY count(*) DESC, \"Venue\" LIMIT 25"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Check-ins"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 51,
+      "type": "table",
+      "title": "Check-ins by venue category",
+      "description": "Check-in counts and average dwell, bucketed by venue category.",
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 16,
+        "y": 38
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ci.cat AS \"Category\", ci.n AS \"Check-ins\", co.avg_s AS \"Avg dwell (s)\" FROM (SELECT payload->>'category' cat, count(*) n FROM events WHERE type='checked_in' AND ts >= $__timeFrom() AND ts < $__timeTo() GROUP BY 1) ci LEFT JOIN (SELECT payload->>'category' cat, round(avg((payload->>'dwell_ms')::numeric)/1000.0, 0) avg_s FROM events WHERE type='checked_out' AND ts >= $__timeFrom() AND ts < $__timeTo() GROUP BY 1) co USING (cat) ORDER BY ci.n DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Check-ins"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }

@@ -894,15 +894,21 @@ Assert (deltas): `places_requests_total{kind="nearby",outcome="ok"}` +≥1, `pla
 4. Verify both events landed for `GAME_CODE`, and `checked_out` carries a positive `dwell_ms`:
    ```bash
    docker compose exec -T postgres psql -U tensies tensies -c "
-   SELECT type, (payload->>'dwell_ms')::int AS dwell_ms, payload->>'place_id' AS place_id
+   SELECT type, (payload->>'dwell_ms')::int AS dwell_ms, payload->>'place_id' AS place_id,
+          payload->>'place_type' AS place_type, payload->>'category' AS category
    FROM events WHERE game_code='GAME_CODE' AND type IN ('checked_in','checked_out') ORDER BY type;"
+   ```
+   Both rows should carry a non-empty `place_type` (Google primaryType, e.g. `night_club`) and `category` bucket (e.g. `nightlife`) — **provided the place was resolved fresh**; a place still in the pre-`primaryType` Redis cache resolves to an empty type until `PLACES_CACHE_TTL` expires (use a check-in coordinate you haven't hit this run to force a fresh resolve). Also confirm the counter is category-labelled:
+   ```bash
+   curl -sf -H "Authorization: Bearer $METRICS_TOKEN" http://localhost:8888/metrics | grep -E '^tensies_(checkins_total|checkin_dwell_seconds_count)\{'
    ```
 
 **Pass criteria:**
 - Part A: all three metric deltas satisfied (Places call billed once, cache hit on the repeat, nearby query counted)
 - `checked_in` event present for `GAME_CODE`
 - `checked_out` event present **for `GAME_CODE`** with `dwell_ms > 0`
-- `tensies_checkins_total` and `tensies_checkouts_total` both incremented (**+≥1** — the per-`GAME_CODE` event rows are the definitive check; on a shared/remote dev server other live clients may check in concurrently, so the counter delta can exceed 1. Likewise `nearby_queries_total` climbs on its own from background pollers)
+- Both events carry `place_type` + `category` (non-empty for a freshly-resolved place — see the cache caveat above)
+- `tensies_checkins_total{category="…"}` and `tensies_checkouts_total{category="…"}` are **category-labelled** and both incremented (**+≥1** — the per-`GAME_CODE` event rows are the definitive check; on a shared/remote dev server other live clients may check in concurrently, so the counter delta can exceed 1. Likewise `nearby_queries_total` climbs on its own from background pollers). Note: these counters are lazily created per label, so they don't appear in `/metrics` until the first check-in of the web process's life.
 - (If Places is disabled: 📝 NOTE and skip — not a FAIL)
 
 ---
