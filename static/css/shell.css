@@ -100,18 +100,23 @@
     font-weight: 900;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: var(--color-accent);
+    color: var(--color-amber);
+    background: linear-gradient(180deg, #fdf3dd 0%, #f6dd97 28%, var(--color-amber) 58%, #c9964b 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 10px rgba(230, 180, 90, 0.45);
   }
 
   .game-title-mark {
     position: relative;
     z-index: 2;
     flex-shrink: 0;
-    inline-size: 34px;
-    block-size: 34px;
+    inline-size: 40px;
+    block-size: 40px;
     margin-inline-end: -10px;
     filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7))
-            drop-shadow(0 0 10px rgba(255, 77, 109, 0.4));
+            drop-shadow(0 0 10px rgba(230, 180, 90, 0.4));
   }
 
   /* Hamburger toggle */
