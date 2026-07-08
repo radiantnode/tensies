@@ -126,138 +126,18 @@
     text-align: center;
     line-height: 1.2;
   }
-  /* Active broadcast: tint the caption gold to match the on-glow. */
-  .btn-broadcast.is-on + .lobby-action-label { color: var(--color-amber); }
-
-  /* ── Check-in prompt ──
-     A tappable pill (not a fourth icon button) that names the nearest place;
-     tapping opens the places sheet. Host-only. Sized to line up with the
-     game-code box above it (content-sized ~283px on mobile); centred by the
-     lobby column. */
-  .checkin-prompt {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    inline-size: 17.75rem;
-    max-inline-size: 100%;
-    margin-block-end: 1.25rem;
-    padding: 0.7rem 0.9rem;
-    background: var(--color-raised);
-    border: 1px solid var(--color-border-strong);
-    border-radius: var(--radius-md);
+  /* Checked-in "Check Out" button: gold-lit, like the old broadcast on-state. */
+  .btn-checkin.is-on {
+    border-color: rgba(230, 180, 90, 0.7);
     box-shadow:
-      inset 0 1px 0 rgba(220, 170, 70, 0.1),
-      0 4px 14px rgba(0, 0, 0, 0.4);
-    font-family: inherit;
-    color: var(--color-text-warm);
-    text-align: start;
-    cursor: pointer;
-    transition: background 0.12s, border-color 0.12s, box-shadow 0.12s, transform 0.1s;
+      inset 0 1px 0 rgba(255, 220, 150, 0.25),
+      0 0 14px rgba(230, 180, 90, 0.35),
+      0 4px 14px rgba(0, 0, 0, 0.45);
+    color: var(--color-amber);
   }
-  .checkin-prompt[hidden] { display: none; }
-  .checkin-prompt:hover {
-    background: var(--color-raised-hover);
-    border-color: rgba(190, 130, 55, 0.45);
-    transform: translateY(-1px);
-  }
-  .checkin-prompt:active { transform: translateY(0); }
-
-  .checkin-prompt-pin {
-    flex-shrink: 0;
-    inline-size: 20px;
-    block-size: 20px;
-    opacity: 0.9;
-  }
-
-  /* Sizes to its content and shrinks when the row is tight (min-inline-size:0),
-     yielding space so the pinned "and N more" stays whole. */
-  .checkin-prompt-text {
-    flex: 0 1 auto;
-    min-inline-size: 0;
-    font-size: 0.9rem;
-    font-weight: 600;
-    overflow: hidden;
-    white-space: nowrap;
-    text-shadow: var(--shadow-text);
-  }
-  /* Only when the label overflows: dissolve its trailing edge (no ellipsis) so
-     it fades into "and N more". Toggled from JS by measuring overflow. */
-  .checkin-prompt-text.is-faded {
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
-            mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
-  }
-
-  /* Pinned count at the end of the label — never truncated. */
-  .checkin-prompt-more {
-    flex-shrink: 0;
-    font-size: 0.9rem;
-    font-weight: 600;
-    white-space: nowrap;
-    color: var(--color-text-muted);
-    text-shadow: var(--shadow-text);
-  }
-  .checkin-prompt-more[hidden] { display: none; }
-
-  .checkin-prompt-chevron {
-    flex-shrink: 0;
-    /* Push the chevron to the far edge; label + count group at the start. */
-    margin-inline-start: auto;
-    inline-size: 18px;
-    block-size: 18px;
-    opacity: 0.55;
-  }
-
-  /* Checked-in: a rich card (venue photo + name) matching the places/nearby list
-     rows, ringed gold like the pinned current-place row. */
-  .checkin-prompt.is-on {
-    border-color: transparent;
-    box-shadow:
-      inset 0 0 0 1.5px rgba(255, 190, 110, 0.65),
-      inset 0 0 12px rgba(255, 186, 102, 0.2);
-  }
-  /* The pin is an <svg>, so JS .hidden won't reflect — hide it here instead. */
-  .checkin-prompt.is-on .checkin-prompt-pin { display: none; }
-
-  /* Google Places thumbnail (or a pin placeholder when the venue has no photo) —
-     mirrors .places-row-photo so the checked-in card matches the sheet rows. */
-  .checkin-prompt-photo {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    inline-size: 46px;
-    block-size: 46px;
-    border-radius: 10px;
-    overflow: hidden;
-    background: var(--color-field);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-  }
-  .checkin-prompt-photo img { inline-size: 100%; block-size: 100%; object-fit: cover; }
-  .checkin-prompt-photo.is-empty { color: var(--color-text-muted); }
-  .checkin-prompt-photo.is-empty svg { inline-size: 22px; block-size: 22px; }
-
-  /* Venue name over a "Checked in" status line. */
-  .checkin-prompt-body {
-    flex: 1;
-    min-inline-size: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-  }
-  .checkin-prompt-name {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--color-text);
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .checkin-prompt-sub {
-    font-size: 0.78rem;
-    font-weight: 500;
-    color: var(--color-text-muted);
-  }
+  .btn-checkin.is-on + .lobby-action-label { color: var(--color-amber); }
+  /* The pin icon stays still (only Share breathes). */
+  #checkin-btn .btn-icon { animation: none; }
 
   .lobby-action {
     position: relative;
@@ -328,8 +208,9 @@
   /* Idle glyph motion for Share: a single-path glyph can't ripple or bob like
      its neighbours, so it gently breathes instead — the same "alive at rest"
      cue, glyph-only. The button surface stays flat (no container pulse) and the
-     dim warm tone is unchanged (no shimmer). Only the lobby's Share icon is
-     targeted (.eq / .broadcast-wave carry the other two). */
+     dim warm tone is unchanged (no shimmer). Only Share's glyph breathes —
+     Play's .eq bars carry their own idle, and the Copy Link / Check In icons are
+     held still (animation:none overrides below). */
   .lobby-action .btn-icon {
     transform-origin: center;
     animation: share-idle 3s ease-in-out infinite;
@@ -877,4 +758,8 @@
     gap: 0.75rem;
   }
   .confirm-actions .btn { flex: 1; }
+  /* The 3-action check-out dialog stacks vertically — the "different place"
+     label is long, and a primary + two alternates reads clearer stacked. */
+  .confirm-actions-stack { flex-direction: column; }
+  .confirm-actions-stack .btn { flex: none; inline-size: 100%; }
 }

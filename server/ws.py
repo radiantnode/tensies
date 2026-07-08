@@ -19,8 +19,6 @@ from .broadcast import (
 )
 from .config import (
     ALLOWED_ORIGINS,
-    BROADCAST_RATE_MAX,
-    BROADCAST_RATE_WINDOW,
     CHECKIN_RATE_MAX,
     CHECKIN_RATE_WINDOW,
     CREATE_RATE_MAX,
@@ -225,46 +223,6 @@ async def handle_start(session: Session, msg: dict) -> None:
     await broadcast(code, state_msg(snap, code))
 
 
-def _parse_coords(msg: dict) -> tuple[float, float] | None:
-    """Validate a client-supplied fix. Returns (lat, lon) or None if malformed
-    or out of range — never trust the wire for something we feed to Redis GEO."""
-    try:
-        lat = float(msg["lat"])
-        lon = float(msg["lon"])
-    except (KeyError, TypeError, ValueError):
-        return None
-    if not (math.isfinite(lat) and math.isfinite(lon)):
-        return None
-    if not (-90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
-        return None
-    return lat, lon
-
-
-async def handle_broadcast(session: Session, msg: dict) -> None:
-    """Host-only, lobby-only: opt this game into GPS-nearby discovery at the
-    host's (jittered) location."""
-    code = session.code
-    if not code:
-        return
-    meta = await gamestore.get_meta(code)
-    if meta is None or meta["host"] != session.pid or meta["started"]:
-        return
-    if not await gamestore.rate_allow("broadcast", session.ip,
-                                      BROADCAST_RATE_MAX, BROADCAST_RATE_WINDOW):
-        await _error(session.ws, "Slow down")
-        return
-    coords = _parse_coords(msg)
-    if coords is None:
-        await _error(session.ws, "Couldn't read your location")
-        return
-    lat, lon = coords
-    await gamestore.set_broadcasting(code, lon, lat)
-    log.info("broadcast  game=%s  ON", code)
-    snap = await gamestore.snapshot(code)
-    if snap:
-        await broadcast(code, state_msg(snap, code))
-
-
 async def handle_stop_broadcast(session: Session, msg: dict) -> None:
     """Host-only: stop sharing location. This is the master discovery switch —
     turning it off also checks the game out of any place, so the game leaves the
@@ -289,17 +247,15 @@ async def handle_stop_broadcast(session: Session, msg: dict) -> None:
 async def handle_checkin(session: Session, msg: dict) -> None:
     """Host-only, lobby-only: check the game in to a nearby real place. The
     client sends only a place_id; the server resolves the authoritative name +
-    coordinates so a client can't drop a game at arbitrary coordinates. Requires
-    Share Location to be on — check-in is a refinement of it, not a separate way
-    onto the radar."""
+    coordinates so a client can't drop a game at arbitrary coordinates. Check-in
+    IS the way onto the radar — it turns on discovery at the venue's location
+    (there's no discoverable-without-a-place state). Check out via stop_broadcast."""
     code = session.code
     if not code:
         return
     meta = await gamestore.get_meta(code)
     if meta is None or meta["host"] != session.pid or meta["started"]:
         return
-    if not meta.get("broadcasting"):
-        return  # check-in only while Share Location is on
     if not await gamestore.rate_allow("checkin", session.ip,
                                       CHECKIN_RATE_MAX, CHECKIN_RATE_WINDOW):
         await _error(session.ws, "Slow down")
@@ -311,6 +267,10 @@ async def handle_checkin(session: Session, msg: dict) -> None:
     if place is None:
         await _error(session.ws, "Couldn't check in to that place")
         return
+    # Check-in enables discovery at the venue. _recompute_geo prefers the exact
+    # place coords over the (jittered) broadcast fix, so the game shows AT the
+    # venue; the broadcasting flag just keeps "discoverable" ⟺ "checked in".
+    await gamestore.set_broadcasting(code, place["lon"], place["lat"])
     await gamestore.set_place(code, place["place_id"], place["name"],
                               place["lat"], place["lon"],
                               photo_ref=place.get("photo_ref"))
@@ -323,24 +283,6 @@ async def handle_checkin(session: Session, msg: dict) -> None:
     # (private location data), so keep it out of the app log. The place name is
     # still captured in telemetry above (emit → Postgres), not the log stream.
     log.info("checkin  game=%s", code)
-    snap = await gamestore.snapshot(code)
-    if snap:
-        await broadcast(code, state_msg(snap, code))
-
-
-async def handle_checkout(session: Session, msg: dict) -> None:
-    """Host-only: clear the checked-in place (a free-range broadcast, if any,
-    keeps the game discoverable)."""
-    code = session.code
-    if not code:
-        return
-    meta = await gamestore.get_meta(code)
-    if meta is None or meta["host"] != session.pid:
-        return
-    await gamestore.clear_place(code)
-    if db.available():
-        await db_places.delete(code)
-    log.info("checkout  game=%s", code)
     snap = await gamestore.snapshot(code)
     if snap:
         await broadcast(code, state_msg(snap, code))
@@ -612,10 +554,8 @@ ACTIONS = {
     "create": handle_create,
     "join": handle_join,
     "start": handle_start,
-    "broadcast": handle_broadcast,
     "stop_broadcast": handle_stop_broadcast,
     "checkin": handle_checkin,
-    "checkout": handle_checkout,
     "reconnect": handle_reconnect,
     "roll": handle_roll,
     "pause": handle_pause,

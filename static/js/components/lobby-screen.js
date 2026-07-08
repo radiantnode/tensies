@@ -6,9 +6,8 @@ import { BACK_BUTTON_HTML } from '../back-button.js';
 import { byId } from '../dom.js';
 import { EQ_ICON_HTML } from '../eq-icon.js';
 import { GeoError, GEO_ERROR_COPY, getPosition } from '../geo.js';
-import { broadcastNearby, checkIn, checkOut, leaveGame, startGame, stopBroadcast } from '../net.js';
+import { checkIn, leaveGame, startGame, stopBroadcast } from '../net.js';
 import { updateScrollFades } from '../scroll-fades.js';
-import { clearNearbyConsent, hasNearbyConsent, saveNearbyConsent } from '../session.js';
 import { state } from '../state.js';
 
 /** @typedef {import('../types.js').GameSnapshot} GameSnapshot */
@@ -84,14 +83,8 @@ export class LobbyScreen extends HTMLElement {
   /** @type {number} ms timestamp the cache was last filled, for staleness. */
   #placesCacheAt = 0;
 
-  /** @type {number} geolocation watch id while broadcasting (0 = not watching). */
-  #geoWatchId = 0;
-
   /** @type {boolean} guard so movement bursts don't fire overlapping refetches. */
   #reloadInFlight = false;
-
-  /** @type {boolean} guard so the background prefetch fires at most once. */
-  #prefetchTried = false;
 
   /** @type {{lat: number, lon: number} | null} last GPS fix — reused to bias the
    *  places search without re-prompting. */
@@ -179,25 +172,13 @@ export class LobbyScreen extends HTMLElement {
             </button>
             <span class="lobby-action-label">Play</span>
           </div>
-          <div id="broadcast-item" class="lobby-action-item" hidden>
-            <button id="broadcast-btn" type="button" class="lobby-action btn-broadcast" aria-pressed="false" aria-label="Allow nearby players to see and join your game">
-              <span class="broadcast-wave" aria-hidden="true"><span></span><span></span><span></span></span>
+          <div id="checkin-item" class="lobby-action-item" hidden>
+            <button id="checkin-btn" type="button" class="lobby-action btn-checkin" aria-label="Check in to a nearby place">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.6" fill="currentColor" stroke="none"/></svg>
             </button>
-            <span class="lobby-action-label">Nearby</span>
+            <span id="checkin-label" class="lobby-action-label">Check In</span>
           </div>
         </div>
-        <p id="discovery-status" class="discovery-status" role="status" aria-live="polite" hidden></p>
-        <button id="checkin-prompt" type="button" class="checkin-prompt" aria-pressed="false" hidden>
-          <svg id="checkin-prompt-pin" class="checkin-prompt-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.6" fill="currentColor" stroke="none"/></svg>
-          <span id="checkin-prompt-text" class="checkin-prompt-text">Check in to a place</span>
-          <span id="checkin-prompt-more" class="checkin-prompt-more" hidden></span>
-          <span id="checkin-prompt-photo" class="checkin-prompt-photo" hidden></span>
-          <span id="checkin-prompt-body" class="checkin-prompt-body" hidden>
-            <span id="checkin-prompt-name" class="checkin-prompt-name"></span>
-            <span class="checkin-prompt-sub">Checked in</span>
-          </span>
-          <svg class="checkin-prompt-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
-        </button>
         <dialog id="places-sheet" class="places-sheet" aria-label="Check in to a place">
           <div class="places-sheet-head">
             <h2 class="places-sheet-title">Check in to a place</h2>
@@ -207,29 +188,13 @@ export class LobbyScreen extends HTMLElement {
           <p id="places-status" class="places-status">Finding places near you…</p>
           <ul id="places-list" class="places-list" aria-label="Nearby places"></ul>
         </dialog>
-        <dialog id="allow-nearby-confirm" class="confirm-dialog" aria-labelledby="allow-nearby-title">
-          <h2 id="allow-nearby-title" class="confirm-title">Allow nearby players?</h2>
-          <p class="confirm-body">Nearby players will be able to see and join this game using your location.</p>
-          <p class="confirm-note">Your exact location is never stored — others only see your rough distance and direction. Your device may ask for additional permissions.</p>
-          <div class="confirm-actions">
-            <button id="allow-nearby-cancel" type="button" class="btn btn-secondary">Cancel</button>
-            <button id="allow-nearby-ok" type="button" class="btn btn-primary">Allow</button>
-          </div>
-        </dialog>
         <dialog id="checkout-confirm" class="confirm-dialog" aria-labelledby="checkout-title">
-          <h2 id="checkout-title" class="confirm-title">Check out?</h2>
-          <p class="confirm-body">Your game will no longer show as being at <span id="checkout-place-name"></span>.</p>
-          <div class="confirm-actions">
-            <button id="checkout-cancel" type="button" class="btn btn-secondary">Cancel</button>
+          <h2 id="checkout-title" class="confirm-title">Checked in at <span id="checkout-place-name"></span></h2>
+          <p class="confirm-body">Check out to remove your game from Nearby, or pick a different place.</p>
+          <div class="confirm-actions confirm-actions-stack">
+            <button id="checkout-change" type="button" class="btn btn-secondary">Pick a different place</button>
             <button id="checkout-ok" type="button" class="btn btn-primary">Check out</button>
-          </div>
-        </dialog>
-        <dialog id="stop-nearby-confirm" class="confirm-dialog" aria-labelledby="stop-nearby-title">
-          <h2 id="stop-nearby-title" class="confirm-title">Turn off Nearby?</h2>
-          <p class="confirm-body">Nearby players will no longer see or join this game, and your check-in at <span id="stop-nearby-place-name"></span> will end.</p>
-          <div class="confirm-actions">
-            <button id="stop-nearby-cancel" type="button" class="btn btn-secondary">Cancel</button>
-            <button id="stop-nearby-ok" type="button" class="btn btn-primary">Turn off</button>
+            <button id="checkout-cancel" type="button" class="btn btn-secondary">Cancel</button>
           </div>
         </dialog>
         <section class="lobby-players-section" aria-labelledby="players-label">
@@ -249,13 +214,7 @@ export class LobbyScreen extends HTMLElement {
     byId('share-btn').addEventListener('click', () => this.#share());
     byId('play-code-btn').addEventListener('click', () => this.#playCode());
     byId('start-btn').addEventListener('click', () => startGame());
-    byId('broadcast-btn').addEventListener('click', () => this.#toggleBroadcast());
-    byId('allow-nearby-cancel').addEventListener('click', () => this.#closeAllowConfirm());
-    byId('allow-nearby-ok').addEventListener('click', () => {
-      this.#closeAllowConfirm();
-      this.#startBroadcast(); // now run the browser geolocation permission flow
-    });
-    byId('checkin-prompt').addEventListener('click', () => this.#openPlaces());
+    byId('checkin-btn').addEventListener('click', () => this.#onCheckinButton());
     byId('places-search').addEventListener('input', () => this.#onSearchInput());
     byId('places-list').addEventListener('scroll',
       () => updateScrollFades(byId('places-list')), { passive: true });
@@ -278,25 +237,19 @@ export class LobbyScreen extends HTMLElement {
     byId('places-list').addEventListener('click', (e) => {
       const row = /** @type {HTMLElement} */ (e.target).closest('[data-place]');
       if (!row) return;
-      // The current place's row checks OUT (after a confirm) — every other
-      // row checks in.
-      if (row.classList.contains('is-current')) {
-        this.#openCheckoutConfirm();
-        return;
-      }
+      // Any row checks in to that place (re-selecting the current one is a
+      // harmless no-op; the server overwrites the place).
       checkIn(/** @type {string} */ (row.getAttribute('data-place')));
       this.#closePlaces();
     });
     byId('checkout-cancel').addEventListener('click', () => this.#closeCheckoutConfirm());
+    byId('checkout-change').addEventListener('click', () => {
+      this.#closeCheckoutConfirm();
+      this.#openPlaces(); // switch venues — a new check-in overwrites the place
+    });
     byId('checkout-ok').addEventListener('click', () => {
       this.#closeCheckoutConfirm();
-      this.#closePlaces();
-      checkOut();
-    });
-    byId('stop-nearby-cancel').addEventListener('click', () => this.#closeStopNearbyConfirm());
-    byId('stop-nearby-ok').addEventListener('click', () => {
-      this.#closeStopNearbyConfirm();
-      stopBroadcast();
+      stopBroadcast(); // check out = leave the radar entirely (clears the place)
     });
   }
 
@@ -318,27 +271,20 @@ export class LobbyScreen extends HTMLElement {
     /** @type {HTMLDialogElement} */ (byId('checkout-confirm')).close();
   }
 
-  /** Ask before turning Nearby off while checked in — stopping the broadcast
-   *  also ends the check-in, so it's worth an explicit yes (mirrors checkout). */
-  #openStopNearbyConfirm() {
-    byId('stop-nearby-place-name').textContent =
-      state.currentState?.place_name || 'this place';
-    const dlg = /** @type {HTMLDialogElement} */ (byId('stop-nearby-confirm'));
-    dlg.showModal();
-    // Focus the dialog, not the first button — see #openCheckoutConfirm.
-    dlg.tabIndex = -1;
-    dlg.focus();
-  }
-
-  #closeStopNearbyConfirm() {
-    /** @type {HTMLDialogElement} */ (byId('stop-nearby-confirm')).close();
-  }
-
   disconnectedCallback() {
     window.removeEventListener('resize', this.#onResize);
     this.#stopKeyboardTracking();
-    this.#stopLocationWatch();
     this.#photoObserver?.disconnect();
+  }
+
+  /**
+   * The single Check In / Check Out button. Not checked in → open the places
+   * list (which prompts for location permission if needed, then loads). Checked
+   * in → the check-out confirm (check out or pick a different place).
+   */
+  #onCheckinButton() {
+    if (state.currentState?.place_name) this.#openCheckoutConfirm();
+    else this.#openPlaces();
   }
 
   /**
@@ -426,236 +372,29 @@ export class LobbyScreen extends HTMLElement {
       : 'Waiting for host to start…';
     const startBtn = byId('start-btn');
     startBtn.hidden = !isHost;
-    this.#syncBroadcast(!!snap.broadcasting, isHost);
-    // Check-in is a refinement of Share Location — only offered while it's on.
-    this.#syncCheckin(snap.place_name ?? null, isHost, !!snap.broadcasting);
+    this.#syncCheckinButton(snap.place_name ?? null, isHost);
     requestAnimationFrame(() => this.#updateFades());
   }
 
   /**
-   * Reflect the free-range broadcast flag on the host's Broadcast button. The
-   * button is host-only and its on/off state is driven purely by the snapshot
-   * (never optimistically) so a rejected broadcast can't leave it stuck on. The
-   * shared "discoverable" status line is owned by #syncDiscoveryStatus, not here
-   * — this button reflects only its own toggle (broadcasting), so tapping it
-   * always means the same thing.
-   * @param {boolean} broadcasting
-   * @param {boolean} isHost
-   */
-  #syncBroadcast(broadcasting, isHost) {
-    const btn = /** @type {HTMLButtonElement} */ (byId('broadcast-btn'));
-    byId('broadcast-item').hidden = !isHost; // hide the button + its label together
-    if (!isHost) return;
-    btn.classList.toggle('is-on', broadcasting);
-    btn.setAttribute('aria-pressed', broadcasting ? 'true' : 'false');
-    btn.setAttribute('aria-label',
-      broadcasting ? 'Stop allowing nearby players' : 'Allow nearby players to see and join your game');
-    if (broadcasting) {
-      // Sharing is on — the lit button is the cue, so clear the transient
-      // "Getting your location…" once it succeeds. (An error keeps broadcasting
-      // off, so no snapshot arrives to wipe it.)
-      const status = byId('discovery-status');
-      status.hidden = true;
-      status.classList.remove('is-error');
-    }
-    // Watch the host's location while Nearby is on so places/prompt track moves.
-    if (broadcasting) this.#startLocationWatch();
-    else this.#stopLocationWatch();
-  }
-
-  /**
-   * Host-only "Allow Nearby" toggle. Turning off is a bare intent. Turning on
-   * first asks for confirmation (letting strangers find the game is worth an
-   * explicit yes); only on confirm does the browser geolocation flow run. The
-   * visible on/off state follows the next snapshot via #syncBroadcast.
-   */
-  #toggleBroadcast() {
-    const btn = byId('broadcast-btn');
-    if (btn.getAttribute('aria-pressed') === 'true') {
-      // Turning off. If checked in to a place, confirm first — stopping also
-      // ends the check-in. Otherwise it's a bare intent, no dialog.
-      if (state.currentState?.place_name) {
-        this.#openStopNearbyConfirm();
-      } else {
-        stopBroadcast();
-      }
-      return;
-    }
-    // Already consented once? Skip our explainer and go straight to the
-    // geolocation flow — the phone won't re-prompt for a granted permission,
-    // so re-toggling is one tap. A revoke resets consent in #startBroadcast.
-    if (hasNearbyConsent()) {
-      this.#startBroadcast();
-      return;
-    }
-    const dlg = /** @type {HTMLDialogElement} */ (byId('allow-nearby-confirm'));
-    dlg.showModal();
-    // Focus the dialog, not the first button — see #openCheckoutConfirm.
-    dlg.tabIndex = -1;
-    dlg.focus();
-  }
-
-  /** Close the "Allow nearby players?" confirmation. */
-  #closeAllowConfirm() {
-    /** @type {HTMLDialogElement} */ (byId('allow-nearby-confirm')).close();
-  }
-
-  /**
-   * Run the geolocation permission flow and start broadcasting. Called only
-   * after the host confirms. The GPS prompt fires inside getPosition().
-   */
-  async #startBroadcast() {
-    this.#setBroadcastStatus('Getting your location…', false);
-    try {
-      const { lat, lon } = await getPosition();
-      saveNearbyConsent(); // confirmed + granted → skip the dialog next time
-      broadcastNearby(lat, lon);
-    } catch (err) {
-      const reason = err instanceof GeoError ? err.reason : 'unavailable';
-      // OS permission denied/revoked → forget consent so the explainer (with
-      // its privacy context) returns next time they try.
-      if (reason === 'permission') clearNearbyConsent();
-      this.#setBroadcastStatus(GEO_ERROR_COPY[reason] ?? GEO_ERROR_COPY.unavailable, true);
-    }
-  }
-
-  /**
-   * @param {string} text
-   * @param {boolean} isError
-   */
-  #setBroadcastStatus(text, isError) {
-    const status = byId('discovery-status');
-    status.hidden = false;
-    status.textContent = text;
-    status.classList.toggle('is-error', isError);
-  }
-
-  /**
-   * Reflect the checked-in place on the host's Check-in prompt. Only offered
-   * once Share Location is on — checking in is a refinement of sharing, not a
-   * separate opt-in — so the prompt is hidden until then (and the server
-   * clears any check-in when sharing stops). The pill's copy names the
-   * checked-in place, or the nearest options once we've looked them up.
+   * Reflect the checked-in state on the host's single Check In / Check Out
+   * button. Host-only; driven purely by the snapshot (never optimistically).
+   * Checking in to a place IS being discoverable, so there's no separate toggle
+   * or prompt — the button opens the places list, and once checked in it flips
+   * to "Check Out" (lit).
    * @param {string | null} placeName
    * @param {boolean} isHost
-   * @param {boolean} broadcasting Share Location on — gates the prompt.
    */
-  #syncCheckin(placeName, isHost, broadcasting) {
-    const prompt = byId('checkin-prompt');
+  #syncCheckinButton(placeName, isHost) {
+    byId('checkin-item').hidden = !isHost;
+    if (!isHost) return;
     const on = !!placeName;
-    const hasPlaces = !!(this.#placesCache && this.#placesCache.length);
-    // Don't surface the prompt until there's somewhere to check in — an empty
-    // invite pill is noise. (The checked-in card always shows.)
-    prompt.hidden = !(isHost && broadcasting && (on || hasPlaces));
-    // Kick the one-time lookup as soon as sharing is on — even while hidden — so
-    // places arrive and #prefetchPlaces re-syncs to reveal the prompt.
-    if (isHost && broadcasting && !on && !this.#placesCache && !this.#prefetchTried) {
-      this.#prefetchPlaces();
-    }
-    if (prompt.hidden) return;
-    prompt.classList.toggle('is-on', on);
-    prompt.setAttribute('aria-pressed', on ? 'true' : 'false');
-
-    // One button, two layouts: the invite pill (pin + text + "+N more") when not
-    // checked in, and a rich card (venue photo + name) when checked in. The pin
-    // is an <svg>, so .hidden doesn't reflect to the attribute — CSS (.is-on)
-    // hides it instead.
-    byId('checkin-prompt-text').hidden = on;
-    byId('checkin-prompt-photo').hidden = !on;
-    byId('checkin-prompt-body').hidden = !on;
-    if (on) {
-      byId('checkin-prompt-more').hidden = true;
-      byId('checkin-prompt-name').textContent = placeName;
-      this.#setCheckinPhoto(state.currentState?.place_id ?? null);
-    } else {
-      this.#setCheckinPromptCopy();
-    }
-
-    prompt.setAttribute('aria-label', on
-      ? `Checked in at ${placeName} — tap to change or check out`
+    const btn = byId('checkin-btn');
+    btn.classList.toggle('is-on', on);
+    byId('checkin-label').textContent = on ? 'Check Out' : 'Check In';
+    btn.setAttribute('aria-label', on
+      ? `Checked in at ${placeName} — tap to check out or change place`
       : 'Check in to a nearby place');
-  }
-
-  /**
-   * Copy for the check-in prompt pill, split across two spans: the main label
-   * (which may fade) and a pinned "+N more" that always stays visible at the end.
-   * Handles the *invite* state only — the checked-in state is a photo card built
-   * in #syncCheckin. Shows the nearest option + a count of the rest once we know
-   * what's nearby, else a generic invite. Fade applied only when it overflows.
-   */
-  #setCheckinPromptCopy() {
-    const textEl = byId('checkin-prompt-text');
-    const moreEl = byId('checkin-prompt-more');
-    const list = this.#placesCache;
-    if (list && list.length) {
-      textEl.textContent = `Check in to ${list[0].name}`;
-      const rest = list.length - 1;
-      moreEl.hidden = rest <= 0;
-      if (rest > 0) moreEl.textContent = `+${rest} more`;
-    } else {
-      textEl.textContent = 'Check in to a place';
-      moreEl.hidden = true;
-    }
-    // Fade the label's trailing edge only when it can't fit — a fit label keeps
-    // its last characters crisp; a long one dissolves into "+N more".
-    requestAnimationFrame(() =>
-      textEl.classList.toggle('is-faded', textEl.scrollWidth > textEl.clientWidth + 1));
-  }
-
-  /**
-   * Fill the checked-in card's thumbnail from the place's Google photo (proxied
-   * through our server). Falls back to a pin placeholder when the venue has no
-   * photo or it fails to load. Keyed on place id so a re-render doesn't refetch.
-   * @param {string | null} placeId
-   */
-  #setCheckinPhoto(placeId) {
-    const photo = byId('checkin-prompt-photo');
-    if (!placeId) {
-      photo.classList.add('is-empty');
-      photo.innerHTML = PLACES_PIN;
-      return;
-    }
-    if (photo.dataset.place === placeId) return; // already built for this place
-    photo.dataset.place = placeId;
-    photo.classList.remove('is-empty');
-    const img = document.createElement('img');
-    img.alt = '';
-    img.addEventListener('error', () => {
-      photo.classList.add('is-empty');
-      photo.innerHTML = PLACES_PIN;
-    }, { once: true });
-    img.src = `/api/places/photo?place=${encodeURIComponent(placeId)}`;
-    photo.replaceChildren(img);
-  }
-
-  /**
-   * Best-effort background lookup so the prompt can name nearby places. Gated on
-   * an already-granted geolocation permission — the tap handler (#openPlaces) is
-   * the sanctioned, user-initiated moment to ask when permission isn't granted.
-   */
-  async #prefetchPlaces() {
-    this.#prefetchTried = true;
-    try {
-      const perm = navigator.permissions
-        && await navigator.permissions.query({ name: /** @type {PermissionName} */ ('geolocation') });
-      if (perm && perm.state !== 'granted') return;
-      const { lat, lon } = await getPosition();
-      this.#lastPos = { lat, lon };
-      const res = await fetch(`/api/places/nearby?lat=${lat}&lon=${lon}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      this.#placesCache = data.places || [];
-      this.#placesCacheAt = Date.now();
-      // Now that places exist, re-run the sync so the prompt can appear and name
-      // them — it stays hidden until there's somewhere to check in.
-      this.#syncCheckin(
-        state.currentState?.place_name ?? null,
-        this.#isHost,
-        !!state.currentState?.broadcasting);
-    } catch {
-      // Denied/unavailable — the prompt keeps its generic copy and the tap
-      // handler fetches (and prompts for location) on demand.
-    }
   }
 
   /** Force the results list back to the top after a render. Set now and again
@@ -804,50 +543,9 @@ export class LobbyScreen extends HTMLElement {
       const sheet = /** @type {HTMLDialogElement} */ (byId('places-sheet'));
       const search = /** @type {HTMLInputElement} */ (byId('places-search'));
       if (sheet.open && !search.value.trim()) this.#renderPlaces(this.#placesCache, true);
-      // Re-sync the prompt from the new nearest place, and re-evaluate whether it
-      // should show at all (a move may have changed whether anything's nearby).
-      this.#syncCheckin(
-        state.currentState?.place_name ?? null,
-        this.#isHost,
-        !!state.currentState?.broadcasting);
     } finally {
       this.#reloadInFlight = false;
     }
-  }
-
-  /**
-   * Watch the host's location while Nearby is broadcasting so the places + prompt
-   * refresh the moment they move past the threshold — not only when the sheet is
-   * reopened. Coarse accuracy keeps it light; the threshold check throttles
-   * refetches. No-op if already watching or geolocation is unavailable.
-   */
-  #startLocationWatch() {
-    if (this.#geoWatchId || !navigator.geolocation) return;
-    this.#geoWatchId = navigator.geolocation.watchPosition(
-      (pos) => this.#onWatchPosition(pos.coords.latitude, pos.coords.longitude),
-      () => { /* transient watch error — keep the cached list */ },
-      { enableHighAccuracy: false, maximumAge: 30000, timeout: 30000 });
-  }
-
-  /** Stop the location watch (Nearby off, checked-in-only, unmount). */
-  #stopLocationWatch() {
-    if (!this.#geoWatchId) return;
-    navigator.geolocation.clearWatch(this.#geoWatchId);
-    this.#geoWatchId = 0;
-  }
-
-  /**
-   * A watch fix arrived. Seed the baseline on the first one; thereafter refetch
-   * only once the host has moved past the distance threshold (or the cache has
-   * gone stale) so we don't refetch on every GPS jitter.
-   * @param {number} lat @param {number} lon
-   */
-  #onWatchPosition(lat, lon) {
-    if (!this.#lastPos) { this.#lastPos = { lat, lon }; return; }
-    const moved = metersBetween(this.#lastPos, { lat, lon });
-    const age = Date.now() - this.#placesCacheAt;
-    if (moved < PLACES_STALE_METERS && age < PLACES_STALE_MS) return;
-    this.#reloadPlacesFrom(lat, lon).catch(() => { /* best-effort */ });
   }
 
   /**

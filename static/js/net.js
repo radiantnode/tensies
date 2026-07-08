@@ -192,33 +192,22 @@ export function joinGame() {
 }
 
 /**
- * Host-only lobby intent: opt this game into GPS-nearby discovery at the
- * given fix. The lobby toggle reflects the resulting `discoverable` snapshot,
- * not an optimistic flip.
- * @param {number} lat
- * @param {number} lon
+ * Host-only: stop advertising this game to nearby players. Also the check-out
+ * path — clearing the broadcast clears the checked-in place, so the game leaves
+ * the radar entirely.
  */
-export function broadcastNearby(lat, lon) {
-  send('broadcast', { lat, lon });
-}
-
-/** Host-only: stop advertising this game to nearby players. */
 export function stopBroadcast() {
   send('stop_broadcast');
 }
 
 /**
- * Any player: check the game in to a nearby place. Only the place_id is sent;
- * the server resolves the authoritative name + coordinates.
+ * Host-only: check the game in to a nearby place — the only way onto the radar.
+ * Only the place_id is sent; the server resolves the authoritative name +
+ * coordinates and turns on discovery at the venue.
  * @param {string} placeId
  */
 export function checkIn(placeId) {
   send('checkin', { place_id: placeId });
-}
-
-/** Any player: clear the checked-in place. */
-export function checkOut() {
-  send('checkout');
 }
 
 /** Host-only: start the game. */

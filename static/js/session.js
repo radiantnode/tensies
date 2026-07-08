@@ -50,26 +50,3 @@ export function clearSession() {
   localStorage.removeItem(GAME_CODE_KEY);
   localStorage.removeItem(TOKEN_KEY);
 }
-
-// "Allow Nearby" consent — a per-device preference, deliberately independent of
-// the game session above (not cleared by clearSession): once the host has both
-// confirmed the explainer and granted geolocation, re-toggling Nearby skips the
-// dialog. A revoked geolocation permission clears it so the explainer returns.
-const NEARBY_CONSENT_KEY = 'tensies_nearby_ok';
-
-/** Record that the host confirmed the "Allow Nearby" explainer AND granted
- *  geolocation at least once, so the dialog can be skipped next time. */
-export function saveNearbyConsent() {
-  localStorage.setItem(NEARBY_CONSENT_KEY, '1');
-}
-
-/** Whether the host previously consented to broadcasting their location. */
-export function hasNearbyConsent() {
-  return localStorage.getItem(NEARBY_CONSENT_KEY) === '1';
-}
-
-/** Forget the nearby consent (e.g. geolocation was revoked) so the explainer
- *  shows again next time. */
-export function clearNearbyConsent() {
-  localStorage.removeItem(NEARBY_CONSENT_KEY);
-}

@@ -116,7 +116,7 @@ export class NearbyScreen extends HTMLElement {
           </button>
         </div>
         <div class="nearby-list" id="nearby-list" role="list" aria-label="Nearby games"></div>
-        <p class="nearby-empty" id="nearby-empty" hidden>No games nearby yet — ask a host to broadcast.</p>
+        <p class="nearby-empty" id="nearby-empty" hidden>No games nearby yet — ask a host to check in.</p>
         <p class="error-msg nearby-error" id="nearby-error" role="alert" aria-live="polite"></p>
         <button id="nearby-retry" type="button" class="btn btn-secondary nearby-retry" hidden>Try again</button>
       </div>`;
