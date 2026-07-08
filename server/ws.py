@@ -286,6 +286,7 @@ async def handle_checkin(session: Session, msg: dict) -> None:
                               photo_ref=place.get("photo_ref"))
     if db.available():
         await db_places.upsert(code, place, session.pid)
+    metrics.checkins_total.inc()
     emit("checked_in", game_code=code, user_id=session.pid,
          place_id=place["place_id"], place_name=place["name"],
          session_id=session.session_id)

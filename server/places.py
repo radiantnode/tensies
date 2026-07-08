@@ -24,6 +24,7 @@ import httpx
 import jwt
 
 from . import gamestore
+from .telemetry import metrics
 from .config import (
     GOOGLE_APPLICATION_CREDENTIALS,
     GOOGLE_CLOUD_PROJECT,
@@ -139,7 +140,9 @@ async def _cache_put(p: dict) -> None:
 async def _cache_get(place_id: str) -> dict | None:
     raw = await gamestore.client().get(_ckey(place_id))
     if not raw:
+        metrics.places_cache_total.labels("place", "miss").inc()
         return None
+    metrics.places_cache_total.labels("place", "hit").inc()
     d = json.loads(raw)
     return {"place_id": place_id, "name": d["name"], "lat": d["lat"], "lon": d["lon"],
             "photo_ref": d.get("photo_ref")}
@@ -167,8 +170,10 @@ async def search_nearby(lat: float, lon: float) -> list[dict]:
     key = _nearby_ckey(lat, lon)
     cached = await r.get(key)
     if cached:
+        metrics.places_cache_total.labels("nearby", "hit").inc()
         results = json.loads(cached)
     else:
+        metrics.places_cache_total.labels("nearby", "miss").inc()
         results = await _google_nearby(lat, lon)
         # An empty list can be a transient Google failure — don't pin it.
         if results:
@@ -235,17 +240,26 @@ _FIELD_MASK = (
     "places.photos")
 
 
+def _mark(kind: str, t0: float, ok: bool) -> None:
+    """Record one Google Places API call's outcome + latency (never awaits)."""
+    metrics.places_requests_total.labels(kind, "ok" if ok else "error").inc()
+    metrics.places_request_seconds.labels(kind).observe(time.monotonic() - t0)
+
+
 async def _post_nearby(body: dict) -> list[dict]:
     """POST one searchNearby request and parse it. Field mask is fixed (Basic
     tier) — the type filtering happens via the request body, at no extra cost."""
+    t0 = time.monotonic()
     try:
         headers = {**await _auth_headers(), "X-Goog-FieldMask": _FIELD_MASK}
         async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
             resp = await c.post(f"{_NEW_BASE}/places:searchNearby",
                                 headers=headers, json=body)
         resp.raise_for_status()
+        _mark("nearby", t0, True)
         return _parse_places(resp.json())
     except Exception:  # noqa: BLE001 — places are cosmetic; never fatal
+        _mark("nearby", t0, False)
         log.exception("places searchNearby failed")
         return []
 
@@ -280,6 +294,7 @@ async def _google_text(query: str, lat: float, lon: float) -> list[dict]:
             "center": {"latitude": lat, "longitude": lon},
             "radius": PLACES_SEARCH_RADIUS_M}},
     }
+    t0 = time.monotonic()
     try:
         headers = {**await _auth_headers(), "X-Goog-FieldMask": _FIELD_MASK}
         async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
@@ -287,7 +302,9 @@ async def _google_text(query: str, lat: float, lon: float) -> list[dict]:
                                 headers=headers, json=body)
         resp.raise_for_status()
         data = resp.json()
+        _mark("text", t0, True)
     except Exception:  # noqa: BLE001 — search is cosmetic; never fatal
+        _mark("text", t0, False)
         log.exception("places searchText failed")
         return []
     return _parse_places(data)
@@ -340,11 +357,13 @@ async def fetch_photo(place_id: str, max_w: int) -> tuple[str, bytes] | None:
     r = gamestore.client()
     key = _photo_ckey(place_id, max_w)
     cached = await r.get(key)
-    if cached == _PHOTO_MISS:
-        return None
-    if cached:
+    if cached is not None:  # bytes or the negative-cache marker — either saved a call
+        metrics.places_cache_total.labels("photo", "hit").inc()
+        if cached == _PHOTO_MISS:
+            return None
         content_type, b64 = cached.split("\n", 1)
         return content_type, base64.b64decode(b64)
+    metrics.places_cache_total.labels("photo", "miss").inc()
     if not _has_google():
         return None
     place = await resolve(place_id)
@@ -352,13 +371,16 @@ async def fetch_photo(place_id: str, max_w: int) -> tuple[str, bytes] | None:
     if not ref or not _PHOTO_REF_RE.match(ref):
         await r.set(key, _PHOTO_MISS, ex=_PHOTO_MISS_TTL)
         return None
+    t0 = time.monotonic()
     try:
         headers = await _auth_headers()
         async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as c:
             resp = await c.get(f"{_NEW_BASE}/{ref}/media",
                                headers=headers, params={"maxWidthPx": max_w})
         resp.raise_for_status()
+        _mark("photo", t0, True)
     except Exception:  # noqa: BLE001 — photos are cosmetic; never fatal
+        _mark("photo", t0, False)
         log.exception("places photo failed")
         await r.set(key, _PHOTO_MISS, ex=_PHOTO_MISS_TTL)
         return None
@@ -369,6 +391,7 @@ async def fetch_photo(place_id: str, max_w: int) -> tuple[str, bytes] | None:
 
 
 async def _google_details(place_id: str) -> dict | None:
+    t0 = time.monotonic()
     try:
         headers = {**await _auth_headers(),
                    "X-Goog-FieldMask": "id,displayName,location,photos"}
@@ -376,7 +399,9 @@ async def _google_details(place_id: str) -> dict | None:
             resp = await c.get(f"{_NEW_BASE}/places/{place_id}", headers=headers)
         resp.raise_for_status()
         pl = resp.json()
+        _mark("details", t0, True)
     except Exception:  # noqa: BLE001
+        _mark("details", t0, False)
         log.exception("places details failed")
         return None
     loc = pl.get("location") or {}

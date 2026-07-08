@@ -222,6 +222,8 @@ async def api_nearby(request: Request, lat: float, lon: float) -> dict:
     if not await gamestore.rate_allow("nearby", ip, NEARBY_RATE_MAX, NEARBY_RATE_WINDOW):
         raise HTTPException(status_code=429, detail="slow down")
 
+    from server.telemetry import metrics
+    metrics.nearby_queries_total.inc()
     hits = await gamestore.geo_search(lon, lat, DISCOVERY_RADIUS_M, DISCOVERY_MAX_RESULTS)
     bucket = max(1, DISCOVERY_DISTANCE_BUCKET_M)
     games = []

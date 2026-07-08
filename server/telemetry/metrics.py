@@ -123,3 +123,21 @@ drand_fallback_total = Counter(
 drand_fetch_seconds = Histogram(
     "tensies_drand_fetch_seconds", "Drand HTTP fetch latency", buckets=_S_FAST
 )
+
+# ─── Places / discovery (Google Places + nearby) ──────────────────────
+places_requests_total = Counter(
+    "tensies_places_requests_total", "Google Places API calls",
+    ["kind", "outcome"],  # kind: nearby|text|photo|details  outcome: ok|error
+)
+places_request_seconds = Histogram(
+    "tensies_places_request_seconds", "Google Places API latency",
+    ["kind"], buckets=_S_FAST,
+)
+places_cache_total = Counter(
+    "tensies_places_cache_total", "Places Redis cache lookups",
+    ["cache", "result"],  # cache: nearby|place|photo  result: hit|miss
+)
+checkins_total = Counter("tensies_checkins_total", "Host check-ins to a place")
+nearby_queries_total = Counter(
+    "tensies_nearby_queries_total", "GET /api/nearby discovery polls"
+)
