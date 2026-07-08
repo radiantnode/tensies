@@ -177,10 +177,14 @@ In Tab 1:
 2. Submit the landing form: click `#landing-form button[type="submit"]` (or call `document.getElementById('landing-form').requestSubmit()` via `evaluate`). The "Create Game" button itself has no `id`; it's identified by being the form's submit button.
 
 Wait for `#lobby` screen to become `.active`. Then:
-- Read the game code from `#lobby-code` — store it as `GAME_CODE`
-- Verify `#lobby-players` contains "Alpha" and a HOST badge
-- Verify `#start-btn` is visible (you are the host)
-- Verify `#waiting-msg` says something about "solo" or "Invite" (only 1 player)
+- Read the game code via `evaluate` (`() => _state.gameCode`) — store it as `GAME_CODE`. (The old `#lobby-code` box was replaced by the `<lobby-stamp>` graphic; its `.serial` also shows the code.)
+- Verify the invite stamp rendered with an **inline** QR: the `<lobby-stamp> .qr` `<img>` has a non-empty `src` that starts with `data:` (the QR is sent inline with the join — no `/api/qr` fetch/flicker), and `.serial` text equals `GAME_CODE`:
+  ```js
+  () => { const img = document.querySelector('lobby-stamp .qr'); return { src: img?.getAttribute('src')?.slice(0, 15), serial: document.querySelector('lobby-stamp .serial')?.textContent }; }
+  ```
+  Expect `src` to begin `data:image/svg` and `serial` to equal `GAME_CODE`.
+- `#lobby-players` ("Fellow Bar Rats") lists *other* players only, so for a solo host it is **empty** and `#lobby-solo-hint` ("Invite friends or play solo!") is **visible** (`hidden` attribute absent).
+- Verify `#start-btn` is visible (you are the host) and `#lobby-title` reads "Waiting for players…".
 
 Take screenshot **`.playwright-mcp/03-lobby-host.png`**.
 
@@ -201,14 +205,14 @@ Verify:
 
 Type `Beta` into `#join-name-input`, then submit the join form (`#join-form button[type="submit"]`).
 
-Wait for `#lobby` to become active. Verify:
-- Both "Alpha" and "Beta" appear in `#lobby-players`
-- Beta sees `#waiting-msg` = "Waiting for the host to start…"
-- Start button is hidden for Beta
+Wait for `#lobby` to become active. Verify on Tab 2 (Beta's view — the list shows *other* players, so Beta sees Alpha):
+- `#lobby-players` contains "Alpha" with a HOST badge
+- `#lobby-title` reads "Waiting for host to start…"
+- `#start-btn` is hidden for Beta
 
-On Tab 1, verify the lobby synced:
-- Beta now appears in the lobby player list
-- `#waiting-msg` is now empty (2 players — no longer "invite friends")
+On Tab 1, verify the lobby synced (Alpha's view shows *others*, so Alpha sees Beta):
+- `#lobby-players` now contains "Beta"
+- `#lobby-solo-hint` is now hidden (2 players — no longer solo)
 
 Take screenshot **`.playwright-mcp/04-lobby-both.png`**.
 
@@ -800,7 +804,7 @@ Then navigate instance #1 to the signin screen. The entry point is the nav menu:
 
 Verify on the signin screen:
 - `#username-input` is visible
-- `#signup-btn` ("Sign Up") and `#signin-btn` ("Sign In") are both visible and enabled
+- `#auth-submit-btn` ("Sign In / Sign Up") is visible and enabled. (The screen was unified to a single button — `signInOrUp()` tries `loginPasskey`, and on a 404 falls back to `registerPasskey`, so one button both signs in existing accounts and registers new ones. There are no longer separate `#signup-btn`/`#signin-btn`.)
 - `#signin-error` is empty
 - The back button (`#signin-back-btn`) is present
 
@@ -813,7 +817,7 @@ Take screenshot **`.playwright-mcp/24-signin.png`**.
 On instance #1 (signin screen with virtual authenticator installed):
 
 1. Type `TestAlpha` into `#username-input`.
-2. Click `#signup-btn` (the "Sign Up" submit button).
+2. Submit the form (click `#auth-submit-btn`). `TestAlpha` doesn't exist yet, so `signInOrUp` gets a 404 from `loginPasskey` and falls through to `registerPasskey` — the sign-up path.
 
 The virtual authenticator auto-approves the `navigator.credentials.create()` call. The client sends the attestation to `/auth/register/verify`, the server verifies it with `py_webauthn`, creates the user in Postgres, and returns a JWT.
 
@@ -835,7 +839,7 @@ Expect `saved: true`, `username: 'TestAlpha'`, `hasExp: true`.
 
 Verify the user was created in Postgres:
 ```bash
-docker compose exec -T postgres psql -U tensies -tA -c "SELECT username FROM users WHERE username_lower = 'testalpha'"
+docker compose exec -T postgres psql -U tensies -tA -c "SELECT username FROM users WHERE lower(username) = 'testalpha'"
 ```
 Expect output: `TestAlpha`.
 
@@ -948,7 +952,7 @@ Take screenshot **`.playwright-mcp/28-signed-out.png`**.
 Still on instance #1 with the virtual authenticator active. Navigate to the signin screen again (hamburger → sign in link).
 
 1. Type `TestAlpha` into `#username-input`.
-2. Click `#signin-btn` (the "Sign In" button, **not** Sign Up).
+2. Submit the form (click `#auth-submit-btn`). `TestAlpha` now exists, so `signInOrUp` takes the `loginPasskey` path — the sign-in branch.
 
 The virtual authenticator auto-approves `navigator.credentials.get()`. The server verifies the assertion against the stored credential and returns a fresh JWT.
 
@@ -965,15 +969,11 @@ Verify signed-in state is restored:
 
 Expect: `nameHidden: true`, `usernamePill: '@TestAlpha'`, `token: true`.
 
-**Negative check — wrong username:**
-Navigate to signin again. Type `NonexistentUser` into `#username-input`, click `#signin-btn`. Verify `#signin-error` contains "No account with that username" (the 404 from `/auth/login/options`). Navigate back to landing.
-
-**Negative check — duplicate registration:**
-Navigate to signin again. Type `TestAlpha` into `#username-input`, click `#signup-btn` (Sign Up, not Sign In). Verify `#signin-error` contains "Username already taken" (the 409 from `/auth/register/options`). Navigate back to landing.
+**Negative check — invalid username (client-side).** The old "wrong username" and "duplicate registration" negatives no longer apply: with one unified button a nonexistent name auto-registers (no "No account" error) and an existing name just signs in (no "Username already taken" error). What remains is the client-side `validateUsername` guard. Navigate to signin again, clear `#username-input` (leave it empty), and submit `#auth-submit-btn`. Verify `#signin-error` shows the validation message (non-empty) and the screen stays on `#signin` (no network call fired). Navigate back to landing.
 
 **Cleanup:** Remove the test user from Postgres so it doesn't interfere with future runs:
 ```bash
-docker compose exec -T postgres psql -U tensies -c "DELETE FROM users WHERE username_lower = 'testalpha'"
+docker compose exec -T postgres psql -U tensies -c "DELETE FROM users WHERE lower(username) = 'testalpha'"
 ```
 
 Take screenshot **`.playwright-mcp/29-signed-in-again.png`**.
@@ -1104,7 +1104,7 @@ With both instances on the prod build at `http://localhost:8888/`, play a full 3
 
 1. **Clear and setup** — localStorage is already cleared from Step 26. In Tab 1, create a game:
    - Type `Alpha` → submit landing form
-   - Store game code from `#lobby-code`
+   - Store game code via `evaluate` (`() => _state.gameCode`)
 
 2. **Join** — In Tab 2, navigate to `http://localhost:8888/<GAME_CODE>`, type `Beta`, submit join form.
 
