@@ -155,6 +155,8 @@ If the check fails, stop and report — no point running the browser suite again
 
 ## Step 2 — Landing screen (open both instances)
 
+**Set the mobile viewport FIRST — before any `browser_navigate`.** Tensies is mobile-only; never drive it at desktop width. Resize **both** instances to **390×844** (`mcp__playwright__browser_resize` + `mcp__playwright-guest__browser_resize`, width 390, height 844) as the very first browser action of the run. Caveat: the MCP fixes device-scale at 1×, so `window.devicePixelRatio` stays 1 — the 390 CSS width is what drives layout and media-queries (correct), and screenshots simply raster at 1× rather than the pixel harness's 2×. If you navigate before resizing, every screenshot up to that point is desktop-width and must be re-captured — so resize first.
+
 Navigate **instance #1** (`mcp__playwright__browser_navigate → http://localhost:8888/`) — Player 1 / host (Alpha). Also navigate **instance #2** (`mcp__playwright-guest__browser_navigate → http://localhost:8888/`) now so both browsers are warm; Player 2 / guest (Beta) lives there for the rest of the suite. The two navigations are independent — issue them in parallel.
 
 **Expect a one-retry relaunch.** If an instance's browser was closed since a prior session, the first `browser_navigate` errors with "Target page, context or browser has been closed". This is normal — the MCP relaunches the browser on the call; re-issue the same `browser_navigate` once and it succeeds. Only treat it as a failure if the *retry* also errors.
@@ -391,6 +393,8 @@ Then drive the round to a win with the **`rollUntil` helper** (from the `game-ha
 ```
 
 A `reason` of `roll-timeout` here is the roll-ack hang; `max-rolls` means 60 rolls didn't finish the round. Don't reintroduce a `click(); sleep(N)` loop.
+
+**Keep the capture fire-and-forget; never await across the win.** The pattern above works because the `MutationObserver` writing `window._winnerCapture` is installed separately (it persists) and `rollUntil()` resolves at *target-met* — just **before** the round-won overlay and the 3 s-later round-advance. Do **not** collapse this into a single `browser_evaluate` promise that awaits the overlay opening or closing: that promise spans the round-advance **View Transition** (`showScreen`), and Playwright then errors `Execution context was destroyed, most likely because of a navigation`. It is *not* a game reload — the page context survives (`_state` is intact on the very next call); only Playwright's long-promise binding is lost. If you ever need the overlay contents after the fact, just read the `#winner-overlay` DOM in a short follow-up call — the banner/name/round text is **retained after the dialog closes**. (Steps 13 and 22 use the same fire-and-forget-then-poll shape for exactly this reason.)
 
 When `rollUntil` resolves, read `window._winnerCapture`. Verify:
 - `winnerName` contains "Alpha"
@@ -990,14 +994,14 @@ These steps switch to the prod Docker stack, verify the esbuild pipeline produce
 
 The dev stack uses unbundled modules served by FastAPI's `StaticFiles`. The prod stack runs the esbuild pipeline in a Docker builder stage, then serves pre-compressed content-hashed bundles from nginx. These five steps exercise that pipeline.
 
-Stop the dev stack and start the prod build. The `.env.prod` file already sets `WEB_PUBLISH=0.0.0.0:8888`, so nginx lands on the same port. Override `ALLOWED_ORIGINS` so Playwright's localhost WebSocket connections are accepted:
+Stop the dev stack and start the prod build. Use the committed **`.env.test`** env-file — it carries every localhost override the prod compose needs (`ALLOWED_ORIGINS=http://localhost:8888`, `WEBAUTHN_RP_ID=localhost`, `JWT_SECRET`, tokens, `WEB_PUBLISH=0.0.0.0:8888` so nginx lands on the same port), so there are **no inline vars** to remember:
 
 ```bash
 docker compose down
-
-ALLOWED_ORIGINS=http://localhost:8888 \
-  docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+docker compose -f docker-compose.prod.yml --env-file .env.test up -d --build
 ```
+
+**No `docker compose down -v` needed.** `.env.test` sets `POSTGRES_PASSWORD=tensies` to match the dev default, so this stack **reuses the dev-initialised `pg_data` volume** instead of fighting it — switching dev↔prod authenticates cleanly in both directions. (The smoketest validates the asset pipeline + nginx + anonymous gameplay only; it has no need for a separate database.) Pass `--env-file .env.test` to **every** prod compose subcommand (`up`/`ps`/`logs`/`down`) so the `${VAR:?}` required-var interpolation always succeeds — omitting it errors with "required variable … is missing a value".
 
 The `--build` flag runs the full asset pipeline (esbuild bundle + hash + gzip). This takes 30–90 seconds on a cold build. Poll until nginx responds:
 
@@ -1009,7 +1013,7 @@ for i in $(seq 1 30); do
 done
 ```
 
-If the loop exits without printing "OK", stop and report FAIL with the last few lines of `docker compose -f docker-compose.prod.yml --env-file .env.prod logs nginx web`.
+If the loop exits without printing "OK", stop and report FAIL with the last few lines of `docker compose -f docker-compose.prod.yml --env-file .env.test logs nginx web`.
 
 Take screenshot **`.playwright-mcp/30-prod-landing.png`** after navigating instance #1 to `http://localhost:8888/`.
 
@@ -1148,10 +1152,10 @@ Take screenshot **`.playwright-mcp/33-prod-game-r3.png`** after round 3 complete
 
 ## Step 34 — Restore dev stack
 
-Stop the prod stack and restart the dev stack so the session ends in the normal state.
+Stop the prod stack and restart the dev stack so the session ends in the normal state. Plain `up` — **no `-v`**; dev reuses the same `pg_data` volume the prod smoketest just shared (both use `POSTGRES_PASSWORD=tensies`), so it starts clean:
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod down
+docker compose -f docker-compose.prod.yml --env-file .env.test down
 docker compose up -d
 sleep 3
 curl -sf http://localhost:8888/ | grep -q "TENSIES" && echo "Dev stack restored" || echo "FAIL: dev not up"
