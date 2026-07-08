@@ -485,6 +485,6 @@
 
   @media (prefers-reduced-motion: reduce) {
     .radar-sweep { animation: none; }
-    .blip-dot::after { animation: none; opacity: 0; }
+    .blip-avatar-ring::after { animation: none; opacity: 0; }
   }
 }

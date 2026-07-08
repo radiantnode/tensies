@@ -64,9 +64,6 @@ export class NearbyScreen extends HTMLElement {
   /** @type {string | null} code of the currently selected blip */
   #selected = null;
 
-  /** @type {NearbyGame[]} last painted list, for lookups on blip/row tap */
-  #lastGames = [];
-
   /** @type {Map<string, HTMLButtonElement>} code → list row, patched in place
    *  so avatars don't reload on every poll. */
   #rows = new Map();
@@ -339,7 +336,6 @@ export class NearbyScreen extends HTMLElement {
     const blips = byId('radar-blips');
     const radius = data.radius_m || 1;
     const games = data.games || [];
-    this.#lastGames = games;
 
     // Drop a selection whose game is gone.
     if (this.#selected && !games.some((g) => g.code === this.#selected)) {
@@ -507,12 +503,6 @@ export class NearbyScreen extends HTMLElement {
   showError(message) {
     byId('nearby-error').textContent = message;
   }
-}
-
-/** Minimal HTML escaping for the host name (server-sanitised, but belt+braces). */
-function escapeHtml(/** @type {string} */ s) {
-  return s.replace(/[&<>"']/g, (c) => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] ?? c));
 }
 
 customElements.define('nearby-screen', NearbyScreen);

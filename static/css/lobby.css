@@ -61,40 +61,6 @@
     text-shadow: var(--shadow-text-lg);
   }
 
-  .code-display {
-    display: block;
-    margin-block-end: 0.5rem;
-    padding: 1rem 2rem;
-    background: var(--color-field);
-    border: 1px solid var(--color-border-strong);
-    border-radius: var(--radius-md);
-    box-shadow:
-      inset 0 2px 6px rgba(0, 0, 0, 0.5),
-      inset 0 1px 0 rgba(220, 170, 70, 0.08);
-    /* Was a <div>; now a <button>. Restore inherited body font so the code
-       glyphs render with system-ui instead of UA Arial. */
-    font-family: inherit;
-    font-size: clamp(2.5rem, 10vw, 4rem);
-    font-weight: 800;
-    /* Pad the trailing letter-spacing so the glyphs stay optically centred. */
-    letter-spacing: 0.3em;
-    text-indent: 0.3em;
-    /* Warm white, NOT the brand accent — the bold all-caps red is the logo's
-       alone. The code earns prominence from scale + the recessed field. */
-    color: var(--color-text);
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.2s, box-shadow 0.2s;
-  }
-
-  .code-display:hover {
-    background: rgba(30, 15, 5, 0.85);
-    box-shadow:
-      inset 0 2px 6px rgba(0, 0, 0, 0.55),
-      inset 0 1px 0 rgba(220, 170, 70, 0.12);
-  }
-
   .copied { color: var(--color-success) !important; }
 
   /* Share / Play / Broadcast: three circular icon buttons on one row, each with

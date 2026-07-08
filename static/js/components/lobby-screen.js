@@ -12,11 +12,6 @@ import { state } from '../state.js';
 
 /** @typedef {import('../types.js').GameSnapshot} GameSnapshot */
 
-/** Copy hint HTML under the code, showing the shareable link (URL bold), e.g.
- *  "Click to copy — <b>tensies.app/ABCDE</b>" (host reflects the current origin).
- *  Safe to inject: host is the browser origin, code is a sanitised 5-letter code.
- *  @param {string} code */
-
 /** Fallback avatar for anonymous players (no account photo). */
 const DEFAULT_AVATAR = '/static/images/avatar-default.svg';
 

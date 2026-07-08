@@ -229,13 +229,17 @@ _GATHERING_TYPES = [
 _MIN_GATHERING = 3
 
 
+# Basic-tier field mask shared by the searchNearby and searchText calls.
+_FIELD_MASK = (
+    "places.id,places.displayName,places.formattedAddress,places.location,"
+    "places.photos")
+
+
 async def _post_nearby(body: dict) -> list[dict]:
     """POST one searchNearby request and parse it. Field mask is fixed (Basic
     tier) — the type filtering happens via the request body, at no extra cost."""
     try:
-        headers = {**await _auth_headers(), "X-Goog-FieldMask":
-            "places.id,places.displayName,places.formattedAddress,places.location,"
-            "places.photos"}
+        headers = {**await _auth_headers(), "X-Goog-FieldMask": _FIELD_MASK}
         async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
             resp = await c.post(f"{_NEW_BASE}/places:searchNearby",
                                 headers=headers, json=body)
@@ -266,11 +270,6 @@ async def _google_nearby(lat: float, lon: float) -> list[dict]:
     return await _post_nearby(body)
 
 
-_TEXT_FIELD_MASK = (
-    "places.id,places.displayName,places.formattedAddress,places.location,"
-    "places.photos")
-
-
 async def _google_text(query: str, lat: float, lon: float) -> list[dict]:
     body = {
         "textQuery": query,
@@ -282,7 +281,7 @@ async def _google_text(query: str, lat: float, lon: float) -> list[dict]:
             "radius": PLACES_SEARCH_RADIUS_M}},
     }
     try:
-        headers = {**await _auth_headers(), "X-Goog-FieldMask": _TEXT_FIELD_MASK}
+        headers = {**await _auth_headers(), "X-Goog-FieldMask": _FIELD_MASK}
         async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
             resp = await c.post(f"{_NEW_BASE}/places:searchText",
                                 headers=headers, json=body)
