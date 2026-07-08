@@ -856,9 +856,60 @@ docker compose logs postgres --since 5m 2>&1 | grep -i "error\|fatal" | head -10
 
 ---
 
+## Step 19 — Discovery / check-in telemetry
+
+The GPS-discovery + Google-Places subsystem is instrumented separately from the game loop (`tensies_places_*`, `tensies_checkins_total`, `tensies_checkouts_total`, `tensies_nearby_queries_total`) and emits `checked_in` / `checked_out` events. This step exercises that path directly — no geolocation mocking or UI needed, since we drive the real server handlers over the host's WebSocket.
+
+Requires `PLACES_ENABLED` + `DISCOVERY_ENABLED` with Google creds on the dev server. If `/api/places/nearby` returns `503`, note this step as **📝 NOTE (Places disabled — no Google creds)** and skip the assertions.
+
+**A. Places + nearby HTTP metrics** (bash — reuse the `$METRICS_TOKEN` from Step 1):
+```bash
+snap() { curl -sf -H "Authorization: Bearer $METRICS_TOKEN" http://localhost:8888/metrics | grep -E "^tensies_(places_requests_total|places_cache_total|nearby_queries_total|checkins_total|checkouts_total)" | grep -v '^#'; }
+echo "--- before ---"; snap
+# Places search: 1st call bills Google (cache miss), 2nd is served from the ~100m grid cache
+for i in 1 2; do curl -s -o /dev/null -w "places/nearby -> %{http_code}\n" "http://localhost:8888/api/places/nearby?lat=40.7580&lon=-73.9855"; done
+curl -s -o /dev/null -w "nearby -> %{http_code}\n" "http://localhost:8888/api/nearby?lat=40.7580&lon=-73.9855"
+sleep 1; echo "--- after ---"; snap
+```
+Assert (deltas): `places_requests_total{kind="nearby",outcome="ok"}` +≥1, `places_cache_total{cache="nearby",result="hit"}` +≥1, `nearby_queries_total` +≥1.
+
+**B. Check-in → check-out events end-to-end** (drives `handle_checkin` → `checked_in` and `handle_stop_broadcast` → `checked_out`):
+
+1. Grab a real `place_id` from Google:
+   ```bash
+   PLACE_ID=$(curl -sf "http://localhost:8888/api/places/nearby?lat=40.7580&lon=-73.9855" | python3 -c "import sys,json; print(json.load(sys.stdin)['places'][0]['place_id'])")
+   echo "PLACE_ID=$PLACE_ID"
+   ```
+2. On **instance #1**: `localStorage.clear()`, navigate to `http://localhost:8888/`, create a game named `Discover` (type `#name-input` → submit `#landing-form`), wait for `#lobby.active`. Capture `GAME_CODE = _state.gameCode`. (Check-in is host-only + lobby-only + pre-start, so stay in the lobby — do **not** start.)
+3. Send the check-in over the host socket, then check out ~2 s later (dwell), via `evaluate`:
+   ```js
+   // check in (paste the PLACE_ID)
+   () => { _state.ws.send(JSON.stringify({ action: 'checkin', place_id: 'PLACE_ID' })); return 'checkin sent'; }
+   ```
+   Wait ~2.5 s, then:
+   ```js
+   () => { _state.ws.send(JSON.stringify({ action: 'stop_broadcast' })); return 'checkout sent'; }
+   ```
+   Wait ~2 s for the writer to drain, then close the socket (`() => { _state.ws.onclose=null; _state.ws.close(); }`).
+4. Verify both events landed for `GAME_CODE`, and `checked_out` carries a positive `dwell_ms`:
+   ```bash
+   docker compose exec -T postgres psql -U tensies tensies -c "
+   SELECT type, (payload->>'dwell_ms')::int AS dwell_ms, payload->>'place_id' AS place_id
+   FROM events WHERE game_code='GAME_CODE' AND type IN ('checked_in','checked_out') ORDER BY type;"
+   ```
+
+**Pass criteria:**
+- Part A: all three metric deltas satisfied (Places call billed once, cache hit on the repeat, nearby query counted)
+- `checked_in` event present for `GAME_CODE`
+- `checked_out` event present **for `GAME_CODE`** with `dwell_ms > 0`
+- `tensies_checkins_total` and `tensies_checkouts_total` both incremented (**+≥1** — the per-`GAME_CODE` event rows are the definitive check; on a shared/remote dev server other live clients may check in concurrently, so the counter delta can exceed 1. Likewise `nearby_queries_total` climbs on its own from background pollers)
+- (If Places is disabled: 📝 NOTE and skip — not a FAIL)
+
+---
+
 ## Reporting
 
-Print a summary table. Preflights (self-update, prior-run review) are reported as a one-line note, not scored rows. The 18 numbered rows map 1:1 to Steps 1–18.
+Print a summary table. Preflights (self-update, prior-run review) are reported as a one-line note, not scored rows. The 19 numbered rows map 1:1 to Steps 1–19.
 
 TENSIES TELEMETRY TEST RESULTS
 
@@ -884,8 +935,9 @@ Preflight: self-update <ran|none>, prior-run review <ran|none> (not scored)
 | 16 | ✅ PASS | Telemetry self-metrics |
 | 17 | ✅ PASS | Grafana Live push health |
 | 18 | ✅ PASS | Server log audit |
+| 19 | ✅ PASS | Discovery / check-in telemetry (Places metrics + checked_in/checked_out events) |
 
-18/18 passed
+19/19 passed
 
 Replace `✅ PASS` with `❌ FAIL` or `⚠️ WARN` and append a one-line description for any issue. WARN means an anomaly was detected but is within tolerance. FAIL means a hard assertion failed.
 
