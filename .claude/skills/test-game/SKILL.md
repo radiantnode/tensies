@@ -758,6 +758,14 @@ return { authenticatorId };
 
 Once installed, `navigator.credentials.create()` and `navigator.credentials.get()` work transparently — the browser routes them to the virtual authenticator instead of prompting for biometrics. The authenticator auto-approves (no user interaction dialog), so the test can drive the sign-up and sign-in buttons without blocking.
 
+**The dev stack defaults `WEBAUTHN_RP_ID` to `tensies.app`** (`docker-compose.yml`, for the Cloudflare tunnel to `dev.tensies.app`), so the virtual authenticator on `localhost` is rejected — the ceremony fails with *"The relying party ID is not a registrable domain suffix of … the current domain."* Recreate `web` with a `localhost` RP just for the auth steps:
+
+```bash
+WEBAUTHN_RP_ID=localhost docker compose up -d web   # temporary — see the restore below
+```
+
+**⚠️ This temporarily changes the dev RP away from `tensies.app`, which breaks passkeys over the Cloudflare `dev.tensies.app` tunnel.** So: don't run the suite while actively using `dev.tensies.app` for passkeys, and **restore the default immediately after Step 29** (a plain `docker compose up -d web` — with no inline `WEBAUTHN_RP_ID` — resets it to the `tensies.app` default). Step 34's dev restore also resets it, but a run that aborts between here and Step 34 would leave dev on the `localhost` RP until the next plain `up -d web`, so do the explicit restore in Step 29 and don't rely on Step 34.
+
 **Install the virtual authenticator on both instances at the start of Step 24**, before any auth interaction. It persists for the life of the CDP session (i.e., the browser instance). If `browser_run_code_unsafe` is unavailable or errors on the CDP call, fall back to **JWT injection** as a degraded path:
 
 ```js
@@ -978,6 +986,13 @@ Expect: `nameHidden: true`, `usernamePill: '@TestAlpha'`, `token: true`.
 **Cleanup:** Remove the test user from Postgres so it doesn't interfere with future runs:
 ```bash
 docker compose exec -T postgres psql -U tensies -c "DELETE FROM users WHERE lower(username) = 'testalpha'"
+```
+
+**Restore the dev WebAuthn RP now** (don't wait for Step 34). The auth steps recreated `web` with `WEBAUTHN_RP_ID=localhost`; put the `tensies.app` default back so the Cloudflare `dev.tensies.app` tunnel's passkeys work again:
+
+```bash
+docker compose up -d web   # no inline WEBAUTHN_RP_ID → resets to the tensies.app default
+docker compose exec -T web printenv WEBAUTHN_RP_ID   # expect: tensies.app
 ```
 
 Take screenshot **`.playwright-mcp/29-signed-in-again.png`**.
