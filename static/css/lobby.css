@@ -465,8 +465,8 @@
 
   .places-sheet::backdrop {
     background: rgba(6, 3, 1, 0.62);
-    -webkit-backdrop-filter: blur(2px);
-    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
   }
 
   /* Fade the tint + blur in lockstep with the sheet slide — same durations and
@@ -513,35 +513,35 @@
     align-items: center;
     justify-content: center;
     padding: 0;
-    background: var(--color-raised-hover);
-    border: 1px solid rgba(220, 170, 70, 0.5);
-    border-radius: 50%;
+    background: none;
+    border: 0;
     color: var(--color-text);
     cursor: pointer;
-    transition: background 0.12s, border-color 0.12s;
+    transition: color 0.12s;
   }
   /* An SVG X centres perfectly (no glyph-metric drift). */
   .places-close svg {
-    inline-size: 1.05rem;
-    block-size: 1.05rem;
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
     display: block;
   }
   .places-close:hover {
-    background: var(--color-raised-hover);
-    border-color: rgba(235, 190, 90, 0.75);
+    color: #fff;
   }
 
   /* Search box pinned above the list. A leading magnifier is drawn as a
      background SVG so the input stays a plain <input>. */
   .places-search {
     inline-size: 100%;
-    /* Raised above the list (which has an opaque fill) so rows tuck behind it
-       on scroll rather than butting against it. */
+    /* Raised above the list so rows tuck behind it on scroll; the field itself
+       is transparent and frosts what slides under it (no solid fill). */
     position: relative;
     z-index: 1;
     margin-block-end: 1.1rem;
     padding: 0.6rem 0.8rem 0.6rem 2.35rem;
-    background-color: var(--color-field);
+    background-color: transparent;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     background-repeat: no-repeat;
     background-position: 0.7rem center;
     background-size: 1.05rem;
@@ -610,40 +610,14 @@
     gap: 0.75rem;
     inline-size: 100%;
     padding: 0.5rem 0.6rem;
-    background: var(--color-raised);
     border: 1px solid transparent;
     border-radius: var(--radius-md);
     font-family: inherit;
     text-align: start;
     cursor: pointer;
-    transition: background 0.12s, border-color 0.12s;
+    transition: border-color 0.12s;
   }
-  /* The place the game is currently checked in to — pinned to the top of the
-     list with the same gold ring language as the nearby-row selection. Drawn
-     INSET: the list is a scroll container, so an outer shadow would clip at
-     the scrollport edges (the pinned row sits flush against the top). */
-  .places-row.is-current {
-    box-shadow:
-      inset 0 0 0 1.5px rgba(255, 190, 110, 0.65),
-      inset 0 0 12px rgba(255, 186, 102, 0.2);
-  }
-
-  /* "Check out" pill in place of the chevron on the current row. */
-  .places-row-checkout {
-    flex-shrink: 0;
-    padding: 0.22rem 0.5rem;
-    font-size: 0.72rem;
-    font-weight: 400;
-    white-space: nowrap;
-    /* Text a notch brighter than the dim brown border. */
-    color: rgba(214, 172, 122, 0.95);
-    background: transparent;
-    border: 1px solid rgba(160, 110, 60, 0.55);
-    border-radius: 999px;
-  }
-
   .places-row:hover {
-    background: var(--color-raised-hover);
     border-color: var(--color-border);
   }
 

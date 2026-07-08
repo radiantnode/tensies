@@ -473,7 +473,7 @@ export class LobbyScreen extends HTMLElement {
     // The background prefetch usually has the list already — open straight to it,
     // then quietly refresh if the fix has gone stale or the host has moved.
     if (this.#placesCache && this.#placesCache.length) {
-      this.#renderPlaces(this.#placesCache, true);
+      this.#renderPlaces(this.#placesCache);
       this.#resetPlacesScroll();
       this.#refreshPlacesIfStale();
       return;
@@ -489,7 +489,7 @@ export class LobbyScreen extends HTMLElement {
       const places = data.places || [];
       this.#placesCache = places;
       this.#placesCacheAt = Date.now();
-      this.#renderPlaces(places, true);
+      this.#renderPlaces(places);
       this.#resetPlacesScroll();
     } catch (err) {
       const reason = err instanceof GeoError ? err.reason : 'unavailable';
@@ -542,7 +542,7 @@ export class LobbyScreen extends HTMLElement {
       this.#placesCacheAt = Date.now();
       const sheet = /** @type {HTMLDialogElement} */ (byId('places-sheet'));
       const search = /** @type {HTMLInputElement} */ (byId('places-search'));
-      if (sheet.open && !search.value.trim()) this.#renderPlaces(this.#placesCache, true);
+      if (sheet.open && !search.value.trim()) this.#renderPlaces(this.#placesCache);
     } finally {
       this.#reloadInFlight = false;
     }
@@ -557,7 +557,7 @@ export class LobbyScreen extends HTMLElement {
     const q = /** @type {HTMLInputElement} */ (byId('places-search')).value.trim();
     if (q.length < 2) {
       this.#searchSeq++; // cancel any in-flight search
-      this.#renderPlaces(this.#placesCache || [], true);
+      this.#renderPlaces(this.#placesCache || []);
       return;
     }
     this.#searchTimer = setTimeout(() => this.#searchPlaces(q), 300);
@@ -600,24 +600,12 @@ export class LobbyScreen extends HTMLElement {
 
   /**
    * @param {Array<{place_id: string, name: string, address: string, photo_url?: string | null}>} list
-   * @param {boolean} [pinAbsent] prepend the checked-in place even when the
-   *   fetched list doesn't contain it (nearby renders; search leaves it out)
    */
-  #renderPlaces(list, pinAbsent = false) {
+  #renderPlaces(list) {
     const status = byId('places-status');
     const listEl = byId('places-list');
-    // Already checked in: the current place always leads the list, marked with
-    // a gold ring, so the host can re-find their pick at a glance.
-    const currentId = state.currentState?.place_id;
-    if (currentId) {
-      const cur = list.find((p) => p.place_id === currentId);
-      if (cur) {
-        list = [cur, ...list.filter((p) => p !== cur)];
-      } else if (pinAbsent && state.currentState?.place_name) {
-        list = [{ place_id: currentId, name: state.currentState.place_name,
-                  address: '' }, ...list];
-      }
-    }
+    // A plain nearest-first list — no checked-in state here; picking a row (re)
+    // checks in to it, so the current place isn't singled out.
     // Rebuild the deferred-photo observer from scratch each render (search
     // re-renders replace the whole list), and never leak one on the empty path.
     this.#photoObserver?.disconnect();
@@ -648,20 +636,12 @@ export class LobbyScreen extends HTMLElement {
       btn.type = 'button';
       btn.className = 'places-row';
       btn.dataset.place = p.place_id;
-      const isCurrent = p.place_id === currentId;
-      if (isCurrent) {
-        btn.classList.add('is-current');
-        btn.setAttribute('aria-current', 'true');
-      }
-      // The current row's trailing affordance is a "Check out" pill (tapping
-      // the row checks out, after a confirm); every other row keeps the
-      // join-chevron and checks in.
+      // Every row checks in to its place; the join-chevron is the affordance.
       btn.innerHTML =
         '<span class="places-row-body">' +
           '<span class="places-row-name"></span>' +
           '<span class="places-row-addr"></span>' +
-        '</span>' +
-        (isCurrent ? '<span class="places-row-checkout">Check out</span>' : PLACES_CHEVRON);
+        '</span>' + PLACES_CHEVRON;
       // Photo thumbnail (Google Places image proxied through our server), or a
       // pin placeholder. src is set as a property, never interpolated into HTML.
       const thumb = document.createElement(p.photo_url ? 'img' : 'span');
