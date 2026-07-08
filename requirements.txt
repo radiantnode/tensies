@@ -22,3 +22,6 @@ PyJWT==2.13.0
 
 # BLS12-381 signature verification for drand beacon
 blspy==2.0.3
+
+# QR codes for the lobby stamp invite (pure-Python, zero transitive deps)
+segno==1.6.1

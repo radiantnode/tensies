@@ -1,9 +1,11 @@
+import io
 import math
 import re
 from pathlib import Path
 from urllib.parse import quote
 
 import httpx
+import segno
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
@@ -324,6 +326,30 @@ async def api_places_photo(request: Request, place: str, w: int = 200) -> Respon
     # A photo ref names one immutable image, so the URL's content never
     # changes — let browsers keep it a week without ever revalidating.
     return Response(content=data, media_type=content_type,
+                    headers={"Cache-Control": "public, max-age=604800, immutable"})
+
+
+# Game codes are 5 uppercase letters (see gamestore.make_code); bound the input
+# so the QR encoder never sees arbitrary/oversized data.
+_QR_CODE_RE = re.compile(r"[A-Z]{5}")
+# Vermilion stamp ink — dark enough on the cream paper (~4.7:1) to scan.
+_QR_INK = "#b8442a"
+
+
+@router.get("/api/qr/{code}.svg")
+async def api_qr(request: Request, code: str) -> Response:
+    """QR of a game's join link for the lobby stamp — ink modules on a
+    transparent background so the stamp's paper shows through. The URL→image
+    mapping is stable, so it caches hard. APP_URL is the canonical origin in
+    prod; dev falls back to the request host so the code matches the origin the
+    player is actually on."""
+    if not _QR_CODE_RE.fullmatch(code):
+        raise HTTPException(status_code=404, detail="bad code")
+    base = APP_URL or str(request.base_url).rstrip("/")
+    buf = io.BytesIO()
+    segno.make(f"{base}/{code}", error="m").save(
+        buf, kind="svg", dark=_QR_INK, light=None, border=2, xmldecl=False)
+    return Response(content=buf.getvalue(), media_type="image/svg+xml",
                     headers={"Cache-Control": "public, max-age=604800, immutable"})
 
 

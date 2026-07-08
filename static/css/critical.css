@@ -14,6 +14,24 @@
   src: url('/static/fonts/inter-latin-variable.woff2') format('woff2');
 }
 
+/* Vintage-stamp display faces (lobby stamp only): Rye for the engraved serial,
+   panels, and banner; Yellowtail for the script watermark. */
+@font-face {
+  font-family: 'Rye';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/static/fonts/rye-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Yellowtail';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/static/fonts/yellowtail-latin.woff2') format('woff2');
+}
+
 @layer reset {
   * {
     box-sizing: border-box;

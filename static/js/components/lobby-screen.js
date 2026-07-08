@@ -17,7 +17,6 @@ import { state } from '../state.js';
  *  "Click to copy — <b>tensies.app/ABCDE</b>" (host reflects the current origin).
  *  Safe to inject: host is the browser origin, code is a sanitised 5-letter code.
  *  @param {string} code */
-const copyHint = (code) => `Click to copy — <span class="copy-hint-url">${location.host}/${code}</span>`;
 
 /** Fallback avatar for anonymous players (no account photo). */
 const DEFAULT_AVATAR = '/static/images/avatar-default.svg';
@@ -153,8 +152,8 @@ export class LobbyScreen extends HTMLElement {
       <div class="screen-body lobby-body">
         <button id="lobby-back-btn" type="button" class="btn-back">${BACK_BUTTON_HTML}</button>
         <h1 id="lobby-title" class="lobby-title">Waiting for players…</h1>
-        <button id="lobby-code" type="button" class="code-display" aria-label="Copy invite link">——</button>
-        <p class="copy-hint" id="copy-hint">Click to copy</p>
+        <lobby-stamp></lobby-stamp>
+        <p class="copy-hint" id="copy-hint" hidden></p>
         <div class="or-divider" aria-hidden="true"><span>or</span></div>
         <div class="lobby-actions">
           <div class="lobby-action-item">
@@ -356,10 +355,8 @@ export class LobbyScreen extends HTMLElement {
     }
 
     state.gameCode = snap.code;
-    byId('lobby-code').textContent = snap.code;
-    // Show the shareable link; don't clobber the transient "link copied!".
-    const copyHintEl = byId('copy-hint');
-    if (!copyHintEl.classList.contains('copied')) copyHintEl.innerHTML = copyHint(snap.code);
+    // Fill the stamp's serial, QR, and date from the join code.
+    /** @type {any} */ (this.querySelector('lobby-stamp'))?.update(snap.code);
 
     const list = this.#list;
     if (!list) return;
@@ -536,9 +533,17 @@ export class LobbyScreen extends HTMLElement {
    */
   #syncCheckin(placeName, isHost, broadcasting) {
     const prompt = byId('checkin-prompt');
-    prompt.hidden = !(isHost && broadcasting);
-    if (!isHost || !broadcasting) return;
     const on = !!placeName;
+    const hasPlaces = !!(this.#placesCache && this.#placesCache.length);
+    // Don't surface the prompt until there's somewhere to check in — an empty
+    // invite pill is noise. (The checked-in card always shows.)
+    prompt.hidden = !(isHost && broadcasting && (on || hasPlaces));
+    // Kick the one-time lookup as soon as sharing is on — even while hidden — so
+    // places arrive and #prefetchPlaces re-syncs to reveal the prompt.
+    if (isHost && broadcasting && !on && !this.#placesCache && !this.#prefetchTried) {
+      this.#prefetchPlaces();
+    }
+    if (prompt.hidden) return;
     prompt.classList.toggle('is-on', on);
     prompt.setAttribute('aria-pressed', on ? 'true' : 'false');
 
@@ -560,9 +565,6 @@ export class LobbyScreen extends HTMLElement {
     prompt.setAttribute('aria-label', on
       ? `Checked in at ${placeName} — tap to change or check out`
       : 'Check in to a nearby place');
-    // Once, in the background, name the nearby places. Sharing is on, so the
-    // host has already granted geolocation — no surprise prompt.
-    if (!on && !this.#placesCache && !this.#prefetchTried) this.#prefetchPlaces();
   }
 
   /**
@@ -635,12 +637,12 @@ export class LobbyScreen extends HTMLElement {
       const data = await res.json();
       this.#placesCache = data.places || [];
       this.#placesCacheAt = Date.now();
-      // Refresh the prompt now that we know what's nearby (still host + not
-      // checked in — a snapshot may have arrived meanwhile).
-      const prompt = byId('checkin-prompt');
-      if (this.#isHost && prompt.getAttribute('aria-pressed') !== 'true') {
-        this.#setCheckinPromptCopy();
-      }
+      // Now that places exist, re-run the sync so the prompt can appear and name
+      // them — it stays hidden until there's somewhere to check in.
+      this.#syncCheckin(
+        state.currentState?.place_name ?? null,
+        this.#isHost,
+        !!state.currentState?.broadcasting);
     } catch {
       // Denied/unavailable — the prompt keeps its generic copy and the tap
       // handler fetches (and prompts for location) on demand.
@@ -793,10 +795,12 @@ export class LobbyScreen extends HTMLElement {
       const sheet = /** @type {HTMLDialogElement} */ (byId('places-sheet'));
       const search = /** @type {HTMLInputElement} */ (byId('places-search'));
       if (sheet.open && !search.value.trim()) this.#renderPlaces(this.#placesCache, true);
-      const prompt = byId('checkin-prompt');
-      if (this.#isHost && prompt.getAttribute('aria-pressed') !== 'true') {
-        this.#setCheckinPromptCopy();
-      }
+      // Re-sync the prompt from the new nearest place, and re-evaluate whether it
+      // should show at all (a move may have changed whether anything's nearby).
+      this.#syncCheckin(
+        state.currentState?.place_name ?? null,
+        this.#isHost,
+        !!state.currentState?.broadcasting);
     } finally {
       this.#reloadInFlight = false;
     }
@@ -1077,10 +1081,11 @@ export class LobbyScreen extends HTMLElement {
       const hint = byId('copy-hint');
       hint.textContent = 'link copied!';
       hint.classList.add('copied');
+      hint.hidden = false;
       clearTimeout(this.#copyResetTimer);
       this.#copyResetTimer = setTimeout(() => {
-        hint.innerHTML = copyHint(code);
         hint.classList.remove('copied');
+        hint.hidden = true;
       }, 2000);
     });
   }
