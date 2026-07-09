@@ -211,7 +211,13 @@
      this covers the sideways layout with a rotate prompt. Pure CSS via a
      landscape media query — paints with no JS, like the loading screen. -->
 <div id="rotate-overlay" class="rotate-overlay" role="alertdialog" aria-label="Rotate your device to portrait">
-  <img src="/static/images/logo.svg" class="logo-mark rotate-mark" alt="">
+  <div class="rotate-dice">
+    <svg class="rotate-arc" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+      <path class="rotate-arc-line" d="M102 60 A 42 42 0 0 0 18 60" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+      <path class="rotate-arc-head" d="M9 51 L18 61 L27 51" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <img src="/static/images/logo.svg" class="logo-mark rotate-mark" alt="">
+  </div>
   <p class="rotate-msg">Best played upright —<br>rotate your device to portrait.</p>
 </div>
 
