@@ -121,6 +121,11 @@
     overflow: hidden;
     overscroll-behavior: none;
     background: var(--color-bg);
+    /* Stop iOS Safari inflating running text when rotated to landscape (the nav
+       menu about blurb + changelog paragraphs are the wide text blocks it hits);
+       keep the sizes we set at every orientation. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   .bg-video {
