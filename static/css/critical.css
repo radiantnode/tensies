@@ -380,7 +380,7 @@
      by the utilities layer). */
   .rotate-mark {
     inline-size: clamp(56px, 22vh, 112px);
-    margin-block-end: 1.25rem;
+    margin-block-end: 0.35rem;
     animation: rotate-hint 2.8s ease-in-out infinite;
   }
 
