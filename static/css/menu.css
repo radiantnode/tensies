@@ -1,14 +1,14 @@
-/* Menu overlay: the slide-down panel shared by the nav menu (about +
+/* Menu overlay: the fade-in panel shared by the nav menu (about +
    changelog, this file's current scope) and the in-game menu (its
    .menu-item/.menu-switch/.menu-status vocabulary arrives with the game
    menu). The hamburger button itself — .game-menu-btn — lives in shell.css. */
 
 @layer components {
   /* Pre-initialize the custom element so when connectedCallback adds
-     .game-menu the computed transform/visibility don't change — no
+     .game-menu the computed opacity/visibility don't change — no
      transition fires on upgrade. */
   nav-menu {
-    transform: translateY(-100%);
+    opacity: 0;
     visibility: hidden;
   }
 
@@ -17,22 +17,22 @@
     inset: 0;
     z-index: 50;
     background: rgba(8, 4, 1, 0.88);
-    transform: translateY(-100%);
-    /* visibility delays to hidden after slide-out so backdrop-filter never
-       runs while the menu is off-screen (layout bounds = the full screen) */
+    opacity: 0;
+    /* visibility delays to hidden after the fade-out so backdrop-filter never
+       runs while the menu is invisible (layout bounds = the full screen) */
     visibility: hidden;
     pointer-events: none;
-    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    transition: opacity 0.28s ease,
                 visibility 0s linear 0.28s;
   }
 
   .game-menu.open {
-    transform: translateY(0);
+    opacity: 1;
     visibility: visible;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     pointer-events: all;
-    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    transition: opacity 0.28s ease,
                 visibility 0s linear 0s;
   }
 
