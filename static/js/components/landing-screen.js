@@ -1,10 +1,13 @@
 // @ts-check
 import './app-header.js';
+import { AudioShareError, listenForCode } from '../audio-share.js';
 import { byId } from '../dom.js';
-import { getAuthUser } from '../auth.js';
+import { EQ_ICON_HTML } from '../eq-icon.js';
+import { getAuthUser, isSignedIn } from '../auth.js';
 import { shouldOfferInstall, dismissBanner, requestInstall } from '../a2hs.js';
-import { createGame } from '../net.js';
-import { showJoin, showNearby, showSignin } from '../router.js';
+import { createGame, joinGame } from '../net.js';
+import { showNearby, showSignin } from '../router.js';
+import { SheetController } from '../sheet.js';
 import { state } from '../state.js';
 
 // A mini rotating radar (rings + conic sweep) echoing the nearby screen's scope.
@@ -104,7 +107,7 @@ export class LandingScreen extends HTMLElement {
         <h1 class="screen-title landing-greeting">${greeting}</h1>
         <form id="landing-form" class="form-stack" autocomplete="off" novalidate>
           <p class="field-hint">Play with any name, or <a id="signup-link" class="field-hint-link" href="/signin">sign up</a> to keep your stats.</p>
-          <input id="name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20">
+          <input id="name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20" autocomplete="off">
           <button type="submit" class="btn btn-primary">Create Game</button>
           <div class="or-divider" aria-hidden="true"><span>or</span></div>
           <div class="lobby-actions landing-actions">
@@ -123,14 +126,27 @@ export class LandingScreen extends HTMLElement {
           </div>
           <p class="error-msg" id="landing-error" role="alert" aria-live="polite"></p>
         </form>
-      </div>`;
+      </div>
+      <dialog id="join-sheet" class="places-sheet join-sheet" aria-labelledby="join-sheet-title">
+        <div class="places-sheet-head">
+          <h2 id="join-sheet-title" class="places-sheet-title">Join a Game</h2>
+          <button id="join-close" type="button" class="places-close" aria-label="Close" autofocus>${CLOSE_SVG}</button>
+        </div>
+        <form id="join-form" class="form-stack" autocomplete="off" novalidate>
+          <input id="join-name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20" autocomplete="off">
+          <input id="code-input" name="code" class="code-input" type="text" aria-label="Game code" inputmode="latin" placeholder="ABCDE" maxlength="5" autocapitalize="characters" autocomplete="off">
+          <button id="listen-btn" type="button" class="btn btn-secondary btn-listen btn-audio">${EQ_ICON_HTML}<span>Listen</span></button>
+          <button type="submit" class="btn btn-primary">Join Game</button>
+          <p class="error-msg" id="join-error" role="alert" aria-live="polite"></p>
+        </form>
+      </dialog>`;
 
     const nameInput = /** @type {HTMLInputElement} */ (byId('name-input'));
     nameInput.placeholder = state.randomNamePlaceholder;
 
     this.refreshAuth();
 
-    byId('show-join-btn').addEventListener('click', () => showJoin());
+    byId('show-join-btn').addEventListener('click', () => this.openJoinSheet());
     byId('show-nearby-btn').addEventListener('click', () => showNearby());
     byId('signup-link').addEventListener('click', (event) => {
       event.preventDefault();
@@ -141,6 +157,27 @@ export class LandingScreen extends HTMLElement {
       createGame();
     });
 
+    // Join sheet (modal <dialog>, reusing the lobby's places-sheet chrome).
+    const joinNameInput = /** @type {HTMLInputElement} */ (byId('join-name-input'));
+    joinNameInput.placeholder = state.randomNamePlaceholder;
+    if (isSignedIn()) joinNameInput.hidden = true;
+    const codeInput = /** @type {HTMLInputElement} */ (byId('code-input'));
+    codeInput.addEventListener('input', () => { codeInput.value = codeInput.value.toUpperCase(); });
+    byId('join-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      joinGame();
+    });
+    byId('listen-btn').addEventListener('click', () => this.#toggleListen());
+    byId('join-close').addEventListener('click', () => this.closeJoinSheet());
+    // Shared bottom-sheet behaviour (open/close/Escape/backdrop + keyboard
+    // docking). On any dismissal, stop listening and clear a deep-link URL.
+    this.#joinSheet = new SheetController(/** @type {HTMLDialogElement} */ (byId('join-sheet')), {
+      onClosed: () => {
+        this.#listenAbort?.abort();
+        if (location.pathname !== '/') history.replaceState({ id: 'landing' }, '', '/');
+      },
+    });
+
     this.#mountInstallBanner();
     this.#startCodeScramble();
     document.addEventListener('a2hs-installed', this.#onInstalled);
@@ -149,9 +186,86 @@ export class LandingScreen extends HTMLElement {
   disconnectedCallback() {
     document.removeEventListener('a2hs-installed', this.#onInstalled);
     if (this.#codeTimer) clearInterval(this.#codeTimer);
+    this.#listenAbort?.abort();
+    this.#joinSheet?.destroy();
   }
 
   #onInstalled = () => this.#removeBanner();
+
+  /** @type {AbortController | null} non-null while listening for an audio code */
+  #listenAbort = null;
+
+  /** @type {import('../sheet.js').SheetController | null} */
+  #joinSheet = null;
+
+  /**
+   * Open the Join sheet (idempotent). Carries the landing name across, optionally
+   * pre-fills a code and/or surfaces an error, then focuses the field still needed.
+   * @param {{ code?: string, error?: string }} [opts]
+   */
+  openJoinSheet(opts = {}) {
+    const nameInput = /** @type {HTMLInputElement} */ (byId('join-name-input'));
+    const codeInput = /** @type {HTMLInputElement} */ (byId('code-input'));
+    const landingName = /** @type {HTMLInputElement} */ (byId('name-input')).value.trim();
+    if (landingName && !nameInput.value) nameInput.value = landingName;
+    if (opts.code) codeInput.value = opts.code.toUpperCase();
+    this.showJoinError(opts.error ?? '');
+    this.#joinSheet?.open();
+  }
+
+  /** Slide the Join sheet down (mic-abort + URL reset run in its onClosed). */
+  closeJoinSheet() {
+    this.#joinSheet?.close();
+  }
+
+  /**
+   * "Listen" — pick up a game code chirped by a host's "Play" button. One tap
+   * starts listening (mic permission on first use); tapping again cancels. On
+   * success the code input is filled and focused — the user still taps Join.
+   */
+  async #toggleListen() {
+    if (this.#listenAbort) {
+      this.#listenAbort.abort();
+      return;
+    }
+    const btn = /** @type {HTMLButtonElement} */ (byId('listen-btn'));
+    const label = /** @type {HTMLSpanElement} */ (btn.querySelector('span:not(.eq)'));
+    const codeInput = /** @type {HTMLInputElement} */ (byId('code-input'));
+    this.#listenAbort = new AbortController();
+    btn.classList.add('listening');
+    label.textContent = 'Listening…';
+    this.showJoinError('');
+
+    try {
+      codeInput.value = await listenForCode({
+        signal: this.#listenAbort.signal,
+        onStatus: () => { label.textContent = 'Hearing it…'; },
+      });
+      codeInput.focus();
+    } catch (err) {
+      const reason = err instanceof AudioShareError ? err.reason : 'unsupported';
+      if (reason === 'permission') {
+        this.showJoinError('Microphone access needed — check your browser settings.');
+      } else if (reason === 'timeout') {
+        this.showJoinError("Couldn't hear a code — move the phones closer and try again.");
+      } else if (reason === 'unsupported') {
+        this.showJoinError("Audio codes aren't supported in this browser.");
+      }
+      // 'aborted' is a deliberate cancel — stay silent.
+    } finally {
+      this.#listenAbort = null;
+      btn.classList.remove('listening');
+      label.textContent = 'Listen';
+    }
+  }
+
+  /**
+   * Surface an error message inside the Join sheet.
+   * @param {string} message
+   */
+  showJoinError(message) {
+    byId('join-error').textContent = message;
+  }
 
   /** @type {number} */
   #codeTimer = 0;

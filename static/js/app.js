@@ -3,7 +3,6 @@
 // Component registrations (side-effect imports by design: each module's only
 // job at import time is customElements.define for its tag).
 import './components/landing-screen.js';
-import './components/join-screen.js';
 import './components/nearby-screen.js';
 import './components/lobby-stamp.js';
 import './components/lobby-screen.js';

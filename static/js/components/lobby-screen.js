@@ -8,6 +8,7 @@ import { EQ_ICON_HTML } from '../eq-icon.js';
 import { GeoError, GEO_ERROR_COPY, getPosition } from '../geo.js';
 import { checkIn, leaveGame, startGame, stopBroadcast } from '../net.js';
 import { updateScrollFades } from '../scroll-fades.js';
+import { SheetController } from '../sheet.js';
 import { state } from '../state.js';
 
 /** @typedef {import('../types.js').GameSnapshot} GameSnapshot */
@@ -98,36 +99,9 @@ export class LobbyScreen extends HTMLElement {
 
   #onResize = () => this.#updateFades();
 
-  /**
-   * Keep the open places sheet docked above the iOS soft keyboard. iOS shrinks
-   * the visual viewport when the keyboard opens but leaves position:fixed pinned
-   * to the layout viewport, so the keyboard would otherwise cover the sheet. We
-   * lift the sheet's bottom to the keyboard top and cap its height to the space
-   * that remains — driven by `bottom`/`max-block-size` (not transform) so the
-   * open/close slide animation stays intact. Cleared when the keyboard closes.
-   */
-  #syncSheetToKeyboard = () => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const sheet = byId('places-sheet');
-    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-    // >120px filters out URL-bar-sized viewport changes; a keyboard is taller.
-    if (kb > 120) {
-      // `kb` is measured against the full-screen innerHeight, but iOS reports
-      // vv.height from below the status bar — so the raw lift overshoots by the
-      // top safe-area. CSS subtracts env(safe-area-inset-top) from --kb-lift.
-      sheet.style.setProperty('--kb-lift', `${Math.round(kb)}px`);
-      sheet.classList.add('is-kb-docked');
-      // Pin a fixed height (not just a cap) so the sheet fills the space above
-      // the keyboard and doesn't resize as results come and go; the list flexes
-      // to fill it (see .is-kb-docked .places-list).
-      const h = `${Math.round(vv.height - 12)}px`;
-      sheet.style.blockSize = h;
-      sheet.style.maxBlockSize = h;
-    } else {
-      this.#clearSheetKeyboardStyles();
-    }
-  };
+  /** Shared bottom-sheet controller for the places picker (keyboard-aware). */
+  /** @type {import('../sheet.js').SheetController | null} */
+  #sheet = null;
 
   connectedCallback() {
     if (this.dataset.rendered) return;
@@ -214,20 +188,10 @@ export class LobbyScreen extends HTMLElement {
     byId('places-list').addEventListener('scroll',
       () => updateScrollFades(byId('places-list')), { passive: true });
     byId('places-close').addEventListener('click', () => this.#closePlaces());
-    // Escape on a modal <dialog> instant-closes by default — intercept it so the
-    // sheet slides down like every other close path.
-    byId('places-sheet').addEventListener('cancel', (e) => {
-      e.preventDefault();
-      this.#closePlaces();
-    });
-    // Tap the backdrop (anywhere outside the sheet's box) to dismiss. A modal
-    // dialog reports backdrop clicks as a click on the dialog itself, so compare
-    // the point against its rect rather than trusting the target.
-    byId('places-sheet').addEventListener('click', (e) => {
-      const r = /** @type {HTMLElement} */ (e.currentTarget).getBoundingClientRect();
-      const outside = e.clientX < r.left || e.clientX > r.right ||
-                      e.clientY < r.top || e.clientY > r.bottom;
-      if (outside) this.#closePlaces();
+    // Shared bottom-sheet behaviour (open/close/Escape/backdrop + keyboard
+    // docking, with a pinned height so the results list fills the space).
+    this.#sheet = new SheetController(/** @type {HTMLDialogElement} */ (byId('places-sheet')), {
+      pinHeight: true,
     });
     byId('places-list').addEventListener('click', (e) => {
       const row = /** @type {HTMLElement} */ (e.target).closest('[data-place]');
@@ -268,7 +232,7 @@ export class LobbyScreen extends HTMLElement {
 
   disconnectedCallback() {
     window.removeEventListener('resize', this.#onResize);
-    this.#stopKeyboardTracking();
+    this.#sheet?.destroy();
     this.#photoObserver?.disconnect();
   }
 
@@ -401,50 +365,9 @@ export class LobbyScreen extends HTMLElement {
     requestAnimationFrame(() => { el.scrollTop = 0; updateScrollFades(el); });
   }
 
-  /** Start tracking the visual viewport so the open sheet stays above the
-   *  keyboard. Both `resize` (keyboard show/hide) and `scroll` (Safari nudging a
-   *  focused field into view) shift the viewport. */
-  #bindKeyboardTracking() {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    vv.addEventListener('resize', this.#syncSheetToKeyboard);
-    vv.addEventListener('scroll', this.#syncSheetToKeyboard);
-  }
-
-  /** Stop tracking (listeners only) — used at close so the sheet doesn't jump as
-   *  the keyboard dismisses mid slide-down. Styles are cleared separately. */
-  #stopKeyboardTracking() {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    vv.removeEventListener('resize', this.#syncSheetToKeyboard);
-    vv.removeEventListener('scroll', this.#syncSheetToKeyboard);
-  }
-
-  /** Drop the keyboard-docking overrides so the sheet reverts to its CSS bottom
-   *  (pulled under the home indicator) and 78dvh cap. */
-  #clearSheetKeyboardStyles() {
-    const sheet = byId('places-sheet');
-    sheet.classList.remove('is-kb-docked');
-    sheet.style.removeProperty('--kb-lift');
-    sheet.style.blockSize = '';
-    sheet.style.maxBlockSize = '';
-  }
-
-  /** Close the places picker sheet, sliding it back down before it goes (the
-   *  mirror of the open slide-up). Re-entrant calls while already closing — a
-   *  double-tap, or Escape mid-animation — are ignored. */
+  /** Close the places picker sheet, sliding it back down before it goes. */
   #closePlaces() {
-    const sheet = /** @type {HTMLDialogElement} */ (byId('places-sheet'));
-    if (!sheet.open || sheet.classList.contains('is-closing')) return;
-    // Stop viewport tracking now so the sheet doesn't chase the keyboard as it
-    // dismisses mid slide-down; keep the current docked offset until it's gone.
-    this.#stopKeyboardTracking();
-    sheet.classList.add('is-closing');
-    sheet.addEventListener('animationend', () => {
-      sheet.classList.remove('is-closing');
-      sheet.close();
-      this.#clearSheetKeyboardStyles();
-    }, { once: true });
+    this.#sheet?.close();
   }
 
   /**
@@ -453,7 +376,6 @@ export class LobbyScreen extends HTMLElement {
    * Shows a "Check out" action when already checked in.
    */
   async #openPlaces() {
-    const sheet = /** @type {HTMLDialogElement} */ (byId('places-sheet'));
     const list = byId('places-list');
     const status = byId('places-status');
     list.replaceChildren();
@@ -462,9 +384,7 @@ export class LobbyScreen extends HTMLElement {
     clearTimeout(this.#searchTimer);
     this.#searchSeq++;
     /** @type {HTMLInputElement} */ (byId('places-search')).value = '';
-    this.#clearSheetKeyboardStyles(); // drop any docking left from a prior open
-    sheet.showModal();
-    this.#bindKeyboardTracking();
+    this.#sheet?.open();
     // The background prefetch usually has the list already — open straight to it,
     // then quietly refresh if the fix has gone stale or the host has moved.
     if (this.#placesCache && this.#placesCache.length) {

@@ -135,11 +135,6 @@ function landingScreen() {
   return /** @type {import('./components/landing-screen.js').LandingScreen} */ (byId('landing'));
 }
 
-/** The join screen component (typed accessor for its error surface). */
-function joinScreen() {
-  return /** @type {import('./components/join-screen.js').JoinScreen} */ (byId('join'));
-}
-
 /** The nearby screen component (typed accessor for its error surface). */
 function nearbyScreen() {
   return /** @type {import('./components/nearby-screen.js').NearbyScreen} */ (byId('nearby'));
@@ -153,10 +148,9 @@ function currentName() {
   // Signed-in users use their account username as the player name.
   const authUser = getAuthUser();
   if (authUser) return authUser.username;
-  const active = document.querySelector('.screen.active');
-  const input = /** @type {HTMLInputElement} */ (
-    byId(active?.id === 'join' ? 'join-name-input' : 'name-input')
-  );
+  // The join sheet lives on the landing screen; read its name field while open.
+  const joinOpen = /** @type {HTMLDialogElement | null} */ (document.getElementById('join-sheet'))?.open;
+  const input = /** @type {HTMLInputElement} */ (byId(joinOpen ? 'join-name-input' : 'name-input'));
   return input.value.trim() || state.randomNamePlaceholder;
 }
 
@@ -185,7 +179,7 @@ export function joinWithCode(code, origin = 'join') {
 export function joinGame() {
   const code = /** @type {HTMLInputElement} */ (byId('code-input')).value.trim();
   if (!code) {
-    joinScreen().showError('Enter a game code');
+    landingScreen().showJoinError('Enter a game code');
     return;
   }
   joinWithCode(code, 'join');
@@ -387,8 +381,8 @@ function handleError(msg) {
   } else if (state.pendingOrigin === 'join') {
     state.pendingOrigin = null;
     leaveLoading(() => {
-      showScreen('join');
-      joinScreen().showError(msg.msg);
+      const t = showScreen('landing');
+      t.updateCallbackDone.then(() => landingScreen().openJoinSheet({ error: msg.msg }));
     });
   } else if (state.pendingOrigin === 'landing') {
     state.pendingOrigin = null;

@@ -21,28 +21,6 @@
     overflow: visible;
   }
 
-  .join-screen {
-    position: relative;
-    background: transparent;
-  }
-
-  /* The video scrim lives on ::before, NOT the screen root. A backdrop-filter
-     on .join-screen itself makes it a stacking context, which traps the
-     app-header's z-index:100 below the z-50 nav menu (the menu then covers the
-     header — including the hamburger to close it). On the pseudo-element the
-     blur still matches the nav menu's scrim (see .game-menu in menu.css) while
-     the header keeps escaping to the root stacking context. */
-  .join-screen::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    background: rgba(8, 4, 1, 0.88);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    pointer-events: none;
-  }
-
   /* Landing header floats out of flow; only its chrome hides until the menu
      opens. `nav-menu-open` is toggled on <body> by the nav menu. */
   .landing-screen .app-header {
@@ -113,6 +91,16 @@
     text-transform: uppercase;
     color: var(--color-text-label);
     text-shadow: var(--shadow-text);
+  }
+
+  /* Join sheet reuses the lobby's .places-sheet chrome; give its form room. */
+  /* A touch more breathing room around the join form than the base sheet gives. */
+  .join-sheet { padding-inline: 1.75rem; }
+
+  .join-sheet .form-stack {
+    gap: 0.75rem;
+    margin-inline: auto;
+    padding-block: 3rem;
   }
 
   .form-stack {
@@ -239,8 +227,6 @@
 
   /* Round, chevron-only back button — one canonical top-left position shared by
      every screen that has one (per-screen overrides only reposition it). */
-  .join-screen .screen-body { position: relative; }
-
   .btn-back {
     display: inline-flex;
     align-items: center;

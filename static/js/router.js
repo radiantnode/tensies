@@ -21,7 +21,7 @@ import { playIntro } from './video-intro.js';
  */
 
 /** @type {Record<string, string>} */
-const ROUTES = { '/': 'landing', '/join': 'join', '/nearby': 'nearby', '/signin': 'signin', '/welcome': 'onboarding', '/profile': 'profile', '/games': 'game-detail' };
+const ROUTES = { '/': 'landing', '/nearby': 'nearby', '/signin': 'signin', '/welcome': 'onboarding', '/profile': 'profile', '/games': 'game-detail' };
 
 // Monotonic navigation counter. enterFetched() defers its swap behind a fetch +
 // the loading-gate, so a later navigation can start before an earlier one
@@ -40,23 +40,20 @@ export function navigate(path, { replace = false } = {}) {
   return showScreen(id);
 }
 
-/**
- * Carry the name typed on the landing screen over to the join screen, then
- * focus the field the user still needs (code if a name is set, else the name).
- * Focus runs after the DOM swap (updateCallbackDone) — focus() during the
- * view transition gets dropped.
- * @param {{ updateCallbackDone: Promise<void> }} transition The join-swap transition handle.
- */
-function carryNameAndFocus(transition) {
-  const name = /** @type {HTMLInputElement} */ (byId('name-input')).value.trim();
-  /** @type {HTMLInputElement} */ (byId('join-name-input')).value = name;
-  const focusId = name ? 'code-input' : 'join-name-input';
-  transition.updateCallbackDone.then(() => byId(focusId).focus());
+/** The landing screen component (typed accessor for its join sheet). */
+function landing() {
+  return /** @type {import('./components/landing-screen.js').LandingScreen} */ (byId('landing'));
 }
 
-/** Navigate to the join screen, carrying the typed name across. */
-export function showJoin() {
-  carryNameAndFocus(navigate('/join'));
+/**
+ * Show the landing screen and open its Join sheet (used by direct /join and
+ * /<CODE> URLs + Back/Forward onto them). `code` pre-fills the game code.
+ * @param {{ code?: string }} [opts]
+ */
+function openJoinOnLanding(opts = {}) {
+  const transition = showScreen('landing');
+  transition.updateCallbackDone.then(() => landing().openJoinSheet(opts));
+  return transition;
 }
 
 /** Navigate to the landing screen. */
@@ -203,7 +200,18 @@ export function bootstrap({ resumeSession }) {
       enterFetched('profile', decodeURIComponent(profileMatch[1]));
       return;
     }
-    activateNamed(ROUTES[location.pathname] ?? 'landing');
+    if (location.pathname === '/join') {
+      openJoinOnLanding();
+      return;
+    }
+    const backCode = location.pathname.match(/^\/([A-Z]{5})$/i)?.[1];
+    if (backCode) {
+      openJoinOnLanding({ code: backCode });
+      return;
+    }
+    const transition = activateNamed(ROUTES[location.pathname] ?? 'landing');
+    // Landing on any other screen dismisses a Join sheet left open on the landing.
+    transition.updateCallbackDone.then(() => landing().closeJoinSheet());
   });
   // Game detail URLs: /games/<code> → game-detail screen.
   const gameMatch = location.pathname.match(/^\/games\/(.+)$/);
@@ -225,6 +233,13 @@ export function bootstrap({ resumeSession }) {
     leaveLoading(() => activateNamed(namedRoute));
     return;
   }
+  // /join → landing with the Join sheet open. Before the saved-session check so
+  // a direct /join isn't hijacked by a stale reconnect (matched the old named
+  // route's precedence).
+  if (location.pathname === '/join') {
+    leaveLoading(() => openJoinOnLanding());
+    return;
+  }
   if (hasSession()) {
     resumeSession();
     return;
@@ -232,9 +247,10 @@ export function bootstrap({ resumeSession }) {
   const pathCode = location.pathname.match(/^\/([A-Z]{5})$/i)?.[1];
   const joinCode = pathCode ?? new URLSearchParams(location.search).get('join');
   if (joinCode) {
-    history.replaceState({ id: 'join' }, '', '/');
-    /** @type {HTMLInputElement} */ (byId('code-input')).value = joinCode.toUpperCase();
-    leaveLoading(() => carryNameAndFocus(showScreen('join')));
+    // Keep a /<CODE> path in the address bar so a refresh re-opens the sheet;
+    // canonicalise the legacy ?join= form to /<CODE>.
+    if (!pathCode) history.replaceState({ id: 'landing' }, '', `/${joinCode.toUpperCase()}`);
+    leaveLoading(() => openJoinOnLanding({ code: joinCode }));
   } else {
     leaveLoading(() => showScreen('landing'));
   }
