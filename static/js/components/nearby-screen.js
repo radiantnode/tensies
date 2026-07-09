@@ -97,7 +97,7 @@ export class NearbyScreen extends HTMLElement {
       <app-header></app-header>
       <div class="screen-body nearby-body">
         <button id="nearby-back-btn" type="button" class="btn-back">${BACK_BUTTON_HTML}</button>
-        <h1 id="nearby-title" class="screen-title">Nearby Games</h1>
+        <h1 id="nearby-title" class="screen-title has-back">Finding Nearby Games</h1>
         <div class="radar" id="radar" role="group" aria-label="Nearby games radar">
           <div class="radar-face" aria-hidden="true">
             <span class="radar-ring radar-ring-1"></span>

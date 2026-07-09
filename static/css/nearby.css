@@ -22,7 +22,9 @@
   }
 
   /* Radar + list is taller than a centred body allows, so top-align and let
-     the whole screen scroll; leave room at the top for the absolute back chip. */
+     the whole screen scroll. The heading shares the absolute back chip's row
+     (.screen-title.has-back), so the top padding matches the lobby (1.6rem)
+     to line the heading up with the chip. */
   .nearby-body {
     position: relative;
     justify-content: flex-start;
@@ -30,7 +32,7 @@
     /* Hide the scrollbar like every other screen-level scroller — macOS
        overlay scrollbars flash on entry and on every poll's content reflow. */
     scrollbar-width: none;
-    padding-block-start: 3.75rem;
+    padding-block-start: 1.6rem;
   }
   .nearby-body::-webkit-scrollbar { display: none; }
 
