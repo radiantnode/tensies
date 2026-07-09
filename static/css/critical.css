@@ -378,29 +378,9 @@
      sized down to vh so it fits the short landscape height. The gentle rotate
      nudge doubles as the "turn your phone" hint (suppressed under reduced-motion
      by the utilities layer). */
-  /* Dice + a half-circle arrow wrapped around them, stacked in one grid cell so
-     the arc stays centred on the mark. The arrow's counter-clockwise sweep
-     matches the mark's rotate-hint nudge, reading as "turn this way". */
-  .rotate-dice {
-    display: grid;
-    place-items: center;
-    margin-block-end: 0.35rem;
-  }
-
-  .rotate-dice > * {
-    grid-area: 1 / 1;
-  }
-
-  .rotate-arc {
-    inline-size: clamp(96px, 38vh, 188px);
-    block-size: auto;
-    color: var(--color-text);
-    opacity: 0.5;
-    pointer-events: none;
-  }
-
   .rotate-mark {
     inline-size: clamp(56px, 22vh, 112px);
+    margin-block-end: 0.35rem;
     animation: rotate-hint 2.8s ease-in-out infinite;
   }
 
