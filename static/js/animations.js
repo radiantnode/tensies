@@ -161,11 +161,28 @@ export function updateDiceInPlace(snap, onComplete, winForMe = false) {
       return;
     }
 
-    const matchedZone = document.querySelector('.zone-matched');
     if (newlyMatchedCount > 0) {
       const popT = setTimeout(() => {
+        // A pop the round has moved past must not drop its now-stale matched
+        // dice into the next round's fresh zone, so bail once a later snapshot
+        // (a round advance) has replaced ours.
+        if (state.currentState && state.currentState.round_num !== snap.round_num) {
+          if (onComplete) onComplete();
+          return;
+        }
+        // Reconcile the locked zone to exactly this snapshot's matched dice
+        // instead of blindly appending prevMatchedCount→length. Under a
+        // reveal/rebuild race the live zone can already hold a different count
+        // than prevMatchedCount assumed, and a blind append then stacks it past
+        // 10 (the "locked dice keep stacking beyond 10" bug). Re-query the live
+        // zone, trim any excess, then pop in only the genuinely-missing dice so
+        // the animation still plays.
+        const matchedZone = document.querySelector('.zone-matched');
         if (matchedZone) {
-          for (let i = state.prevMatchedCount; i < newMatched.length; i++) {
+          while (matchedZone.children.length > newMatched.length) {
+            matchedZone.lastElementChild?.remove();
+          }
+          for (let i = matchedZone.children.length; i < newMatched.length; i++) {
             const scene = makeDie(newMatched[i], effectiveTarget);
             scene.classList.add('popping');
             matchedZone.appendChild(scene);
