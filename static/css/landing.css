@@ -171,6 +171,21 @@
   .landing-actions { margin-block-end: 0; }
   .landing-actions .lobby-action .btn-icon { animation: none; }
 
+  /* Join with Code: a live, scrambling 5-letter game code in monospace. */
+  .join-code {
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.045em;
+    white-space: nowrap;
+    /* Fade the two ends (left/right) of the code out. */
+    -webkit-mask-image: linear-gradient(to right, transparent 5%, #000 50%, transparent 95%);
+            mask-image: linear-gradient(to right, transparent 5%, #000 50%, transparent 95%);
+    color: var(--color-text-warm);
+    opacity: 0.92;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  }
+
   /* Find Nearby Games: the whole button IS the radar scope — its .lobby-action
      border is the rim, .landing-radar-sweep is the rotating conic wedge filling
      it, ::after is the centre blip (reusing @keyframes radar-spin). */

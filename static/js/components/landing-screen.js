@@ -10,6 +10,12 @@ import { state } from '../state.js';
 // A mini rotating radar (rings + conic sweep) echoing the nearby screen's scope.
 const RADAR_ICON = `<span class="landing-radar" aria-hidden="true"><span class="landing-radar-sweep"></span></span>`;
 
+// The Join button shows a live, scrambling 5-letter "game code" (monospace).
+const CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const randCodeChar = () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+const randCode = () => Array.from({ length: 5 }, randCodeChar).join('');
+const CODE_ICON = `<span class="join-code" aria-hidden="true">${randCode()}</span>`;
+
 const CLOSE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>`;
 
 /**
@@ -104,7 +110,7 @@ export class LandingScreen extends HTMLElement {
           <div class="lobby-actions landing-actions">
             <div class="lobby-action-item">
               <button id="show-join-btn" type="button" class="lobby-action" aria-label="Join a game with a code">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 7 20"/><path d="M17 4 15 20"/><path d="M4.5 9h15"/><path d="M3.5 15h15"/></svg>
+                ${CODE_ICON}
               </button>
               <span class="lobby-action-label">Join with Code</span>
             </div>
@@ -136,14 +142,34 @@ export class LandingScreen extends HTMLElement {
     });
 
     this.#mountInstallBanner();
+    this.#startCodeScramble();
     document.addEventListener('a2hs-installed', this.#onInstalled);
   }
 
   disconnectedCallback() {
     document.removeEventListener('a2hs-installed', this.#onInstalled);
+    if (this.#codeTimer) clearInterval(this.#codeTimer);
   }
 
   #onInstalled = () => this.#removeBanner();
+
+  /** @type {number} */
+  #codeTimer = 0;
+
+  /**
+   * Keep the Join button's 5-letter code scrambling — a couple of positions
+   * flip to a new random letter each tick. Skipped under reduced motion.
+   */
+  #startCodeScramble() {
+    const el = this.querySelector('.join-code');
+    if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    this.#codeTimer = window.setInterval(() => {
+      el.textContent = (el.textContent || '')
+        .split('')
+        .map((c) => (Math.random() < 0.4 ? randCodeChar() : c))
+        .join('');
+    }, 140);
+  }
 
   #removeBanner() {
     this.querySelector('.a2hs-banner')?.remove();
