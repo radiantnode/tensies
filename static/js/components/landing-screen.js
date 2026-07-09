@@ -7,7 +7,8 @@ import { createGame } from '../net.js';
 import { showJoin, showNearby, showSignin } from '../router.js';
 import { state } from '../state.js';
 
-const RADAR_SVG = `<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12 19 7"/></svg>`;
+// A mini rotating radar (rings + conic sweep) echoing the nearby screen's scope.
+const RADAR_ICON = `<span class="landing-radar" aria-hidden="true"><span class="landing-radar-sweep"></span></span>`;
 
 const CLOSE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>`;
 
@@ -100,8 +101,20 @@ export class LandingScreen extends HTMLElement {
           <input id="name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20">
           <button type="submit" class="btn btn-primary">Create Game</button>
           <div class="or-divider" aria-hidden="true"><span>or</span></div>
-          <button id="show-join-btn" type="button" class="btn btn-secondary">Join Game with Code</button>
-          <button id="show-nearby-btn" type="button" class="btn btn-secondary btn-nearby">${RADAR_SVG}<span>Find Nearby Games</span></button>
+          <div class="lobby-actions landing-actions">
+            <div class="lobby-action-item">
+              <button id="show-join-btn" type="button" class="lobby-action" aria-label="Join a game with a code">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 7 20"/><path d="M17 4 15 20"/><path d="M4.5 9h15"/><path d="M3.5 15h15"/></svg>
+              </button>
+              <span class="lobby-action-label">Join with Code</span>
+            </div>
+            <div class="lobby-action-item">
+              <button id="show-nearby-btn" type="button" class="lobby-action" aria-label="Find nearby games">
+                ${RADAR_ICON}
+              </button>
+              <span class="lobby-action-label">Find Nearby Games</span>
+            </div>
+          </div>
           <p class="error-msg" id="landing-error" role="alert" aria-live="polite"></p>
         </form>
       </div>`;
