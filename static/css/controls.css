@@ -73,6 +73,7 @@
     background:
       linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.45) 40%, rgba(255,255,255,0.15) 50%, transparent 65%)
         120% 0 / 200% 100% no-repeat,
+      repeating-linear-gradient(90deg, rgba(255,246,225,0.05) 0 1px, rgba(90,55,15,0.05) 1px 3px),
       linear-gradient(180deg, #f6cf72 0%, #e1b464 55%, #c1913f 100%);
     animation: shimmer 3.5s ease-in-out 2s infinite;
     border-color: rgba(245, 205, 130, 0.55);
@@ -87,8 +88,8 @@
   }
 
   @keyframes shimmer {
-    0% { background-position: 120% 0, 0 0; }
-    40%, 100% { background-position: -120% 0, 0 0; }
+    0% { background-position: 120% 0, 0 0, 0 0; }
+    40%, 100% { background-position: -120% 0, 0 0, 0 0; }
   }
 
   .btn-primary:hover:not(:disabled) {
