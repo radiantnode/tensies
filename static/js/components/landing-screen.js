@@ -4,12 +4,80 @@ import { byId } from '../dom.js';
 import { getAuthUser } from '../auth.js';
 import { shouldOfferInstall, dismissBanner, requestInstall } from '../a2hs.js';
 import { createGame } from '../net.js';
-import { showJoin, showNearby } from '../router.js';
+import { showJoin, showNearby, showSignin } from '../router.js';
 import { state } from '../state.js';
 
 const RADAR_SVG = `<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12 19 7"/></svg>`;
 
 const CLOSE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>`;
+
+/**
+ * Southern, bar-friendly landing greetings, bucketed by time of day. The
+ * ANYTIME regulars are always in the running alongside the current bucket.
+ * @type {Record<'morning'|'afternoon'|'evening'|'night', string[]>}
+ */
+const GREETINGS = {
+  morning: [
+    "Mornin', sunshine.",
+    "Well, look who's up.",
+    "Rise and shine, y'all.",
+    "Coffee first, dice second.",
+    "You're up with the roosters.",
+    "Early's a good look on you.",
+    "Mornin', darlin'.",
+  ],
+  afternoon: [
+    "Afternoon, partner.",
+    "Good afternoon, y'all.",
+    "Beatin' the happy hour rush?",
+    "Little early to be rollin', ain't it?",
+    "Sun's still up. Let's roll.",
+    "Well howdy, afternoon regular.",
+    "Perfect time for a round.",
+  ],
+  evening: [
+    "Evenin', y'all.",
+    "Come on in, night's young.",
+    "Good evenin', darlin'.",
+    "Pull up a stool.",
+    "First round's on you.",
+    "Well howdy, evening crowd.",
+    "The night's young and so are the dice.",
+  ],
+  night: [
+    "Y'all still up?",
+    "Last call. Kidding.",
+    "Night owl, huh?",
+    "The bar never closes here.",
+    "Burnin' the midnight oil, sugar?",
+    "You don't have to go home.",
+    "The good hour for bad decisions.",
+  ],
+};
+
+/** Regulars that fit any hour. */
+const ANYTIME = [
+  "Howdy there.",
+  "Welcome back, stranger.",
+  "Look what the cat dragged in.",
+  "Pull up a stool, partner.",
+];
+
+/**
+ * Pick a random greeting for the given moment (defaults to now, local time).
+ * Fresh on every call — nothing cached.
+ * @param {Date} [now]
+ * @returns {string}
+ */
+function pickGreeting(now = new Date()) {
+  const h = now.getHours();
+  const bucket =
+    h >= 5 && h < 11 ? 'morning' :
+    h >= 11 && h < 17 ? 'afternoon' :
+    h >= 17 && h < 22 ? 'evening' : 'night';
+  const pool = GREETINGS[bucket].concat(ANYTIME);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 /**
  * <landing-screen> — create-or-join entry. Light DOM: the host element *is*
@@ -22,11 +90,13 @@ export class LandingScreen extends HTMLElement {
     this.id = 'landing';
     this.className = 'screen landing-screen';
     this.setAttribute('aria-label', 'Tensies');
+    const greeting = pickGreeting();
     this.innerHTML = `
       <app-header></app-header>
       <div class="screen-body">
+        <h1 class="screen-title landing-greeting">${greeting}</h1>
         <form id="landing-form" class="form-stack" autocomplete="off" novalidate>
-          <label class="field-hint" for="name-input">Enter a player name or go with it</label>
+          <p class="field-hint">Play with any name, or <a id="signup-link" class="field-hint-link" href="/signin">sign up</a> to keep your stats.</p>
           <input id="name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20">
           <button type="submit" class="btn btn-primary">Create Game</button>
           <div class="or-divider" aria-hidden="true"><span>or</span></div>
@@ -43,6 +113,10 @@ export class LandingScreen extends HTMLElement {
 
     byId('show-join-btn').addEventListener('click', () => showJoin());
     byId('show-nearby-btn').addEventListener('click', () => showNearby());
+    byId('signup-link').addEventListener('click', (event) => {
+      event.preventDefault();
+      showSignin();
+    });
     byId('landing-form').addEventListener('submit', (event) => {
       event.preventDefault();
       createGame();
@@ -106,7 +180,7 @@ export class LandingScreen extends HTMLElement {
   refreshAuth() {
     const user = getAuthUser();
     const nameInput = /** @type {HTMLInputElement | null} */ (document.getElementById('name-input'));
-    const nameLabel = /** @type {HTMLElement | null} */ (this.querySelector('.field-hint[for="name-input"]'));
+    const nameLabel = /** @type {HTMLElement | null} */ (this.querySelector('.field-hint'));
     if (nameInput) nameInput.hidden = !!user;
     if (nameLabel) nameLabel.hidden = !!user;
 
