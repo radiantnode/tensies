@@ -127,10 +127,10 @@ export class LandingScreen extends HTMLElement {
           <p class="error-msg" id="landing-error" role="alert" aria-live="polite"></p>
         </form>
       </div>
-      <dialog id="join-sheet" class="places-sheet join-sheet" aria-labelledby="join-sheet-title">
-        <div class="places-sheet-head">
-          <h2 id="join-sheet-title" class="places-sheet-title">Join a Game</h2>
-          <button id="join-close" type="button" class="places-close" aria-label="Close" autofocus>${CLOSE_SVG}</button>
+      <dialog id="join-sheet" class="sheet join-sheet" aria-labelledby="join-sheet-title">
+        <div class="sheet-head">
+          <h2 id="join-sheet-title" class="sheet-title">Join a Game</h2>
+          <button id="join-close" type="button" class="sheet-close" aria-label="Close" autofocus>${CLOSE_SVG}</button>
         </div>
         <form id="join-form" class="form-stack" autocomplete="off" novalidate>
           <input id="join-name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20" autocomplete="off">
@@ -157,7 +157,7 @@ export class LandingScreen extends HTMLElement {
       createGame();
     });
 
-    // Join sheet (modal <dialog>, reusing the lobby's places-sheet chrome).
+    // Join sheet (modal <dialog>, reusing the shared .sheet chrome + controller).
     const joinNameInput = /** @type {HTMLInputElement} */ (byId('join-name-input'));
     joinNameInput.placeholder = state.randomNamePlaceholder;
     if (isSignedIn()) joinNameInput.hidden = true;

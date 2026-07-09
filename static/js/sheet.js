@@ -2,7 +2,7 @@
 
 /**
  * Shared bottom-sheet <dialog> behaviour, used by the lobby places picker and
- * the landing join sheet (both styled by `.places-sheet`):
+ * the landing join sheet (both styled by `.sheet` — see css/sheet.css):
  *
  *  - modal open (`showModal`);
  *  - slide-down close via `.is-closing` + the `places-sheet-out` animation;

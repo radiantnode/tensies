@@ -148,10 +148,10 @@ export class LobbyScreen extends HTMLElement {
             <span id="checkin-label" class="lobby-action-label">Check In</span>
           </div>
         </div>
-        <dialog id="places-sheet" class="places-sheet" aria-label="Check in to a place">
-          <div class="places-sheet-head">
-            <h2 class="places-sheet-title">Check in to a place</h2>
-            <button id="places-close" type="button" class="places-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <dialog id="places-sheet" class="sheet" aria-label="Check in to a place">
+          <div class="sheet-head">
+            <h2 class="sheet-title">Check in to a place</h2>
+            <button id="places-close" type="button" class="sheet-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
           <input id="places-search" class="places-search" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Search for a place" aria-label="Search for a place">
           <p id="places-status" class="places-status">Finding places near you…</p>

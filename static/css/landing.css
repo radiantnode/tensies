@@ -93,8 +93,8 @@
     text-shadow: var(--shadow-text);
   }
 
-  /* Join sheet reuses the lobby's .places-sheet chrome; give its form room. */
-  /* A touch more breathing room around the join form than the base sheet gives. */
+  /* Join sheet = the shared .sheet chrome (css/sheet.css) + these join tweaks:
+     a touch more breathing room around the form than the base sheet gives. */
   .join-sheet { padding-inline: 1.75rem; }
 
   .join-sheet .form-stack {
