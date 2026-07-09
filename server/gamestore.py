@@ -16,9 +16,7 @@ Live asyncio objects (ack events, grace-drop / pause-cap tasks) are NOT stored
 here — they live in process-local registries in `server.state`, because each is
 only ever touched by the instance that owns the relevant connection.
 """
-import hashlib
 import json
-import math
 import secrets
 import string
 import time
@@ -26,7 +24,6 @@ import time
 import redis.asyncio as aioredis
 
 from server.config import (
-    DISCOVERY_JITTER_M,
     GAME_TTL,
     MAX_GAMES,
     MAX_PLAYERS_PER_GAME,
@@ -35,7 +32,7 @@ from server.config import (
 )
 
 INDEX = "games:index"
-GEO_INDEX = "games:geo"  # GEO sorted set of discoverable lobbies (jittered coords)
+GEO_INDEX = "games:geo"  # GEO sorted set of discoverable lobbies (checked-in venue coords)
 
 _r: aioredis.Redis | None = None
 
@@ -190,7 +187,7 @@ async def create_game(host_id: str, host_name: str, token_hash: str) -> str | No
         "target", 1, "round_num", 1, "started", 0, "round_over", 0, "paused", 0,
         "host", host_id, "round_seq", 0, "total_rolls", 0, "round_count", 0,
         "created_ms", now_ms(), "round_start_ms", 0, "round_advance_pending", 0,
-        "broadcasting", 0, "place_id", "", "place_name", "",
+        "place_id", "", "place_name", "",
         "order", json.dumps([host_id]),
         p + "name", host_name, p + "token_hash", token_hash,
         p + "dice", "[]", p + "locked", _LOCKED10,
@@ -272,8 +269,7 @@ async def _order(code: str) -> list[str]:
 
 _GAME_INT = {"target", "round_num", "round_seq", "total_rolls", "round_count",
              "created_ms", "round_start_ms", "pause_deadline_ms"}
-_GAME_BOOL = {"started", "round_over", "paused", "round_advance_pending",
-              "broadcasting"}
+_GAME_BOOL = {"started", "round_over", "paused", "round_advance_pending"}
 _P_INT = {"wins", "roll_count", "last_roll_ms", "disconnected_at_ms"}
 _P_BOOL = {"has_rolled", "disconnected"}
 
@@ -317,8 +313,7 @@ async def snapshot(code: str) -> dict | None:
 async def get_meta(code: str) -> dict | None:
     """Cheap scalar read for handler guards — avoids loading all players."""
     fields = ["started", "round_over", "paused", "host", "target", "round_num",
-              "pause_deadline_ms", "round_advance_pending", "round_start_ms",
-              "broadcasting"]
+              "pause_deadline_ms", "round_advance_pending", "round_start_ms"]
     vals = await _r.hmget(_gkey(code), fields)
     if all(v is None for v in vals):
         return None
@@ -498,35 +493,15 @@ async def delete_game(code: str) -> None:
 
 
 # ─── Nearby discovery (GPS) ──────────────────────────────────────────────────
-# GEO_INDEX is a Redis GEO sorted set (member = game code) of lobbies whose host
-# opted into "broadcast to nearby." The stored point is deliberately NOT the
-# host's true fix: _jitter() offsets it by DISCOVERY_JITTER_M along a bearing
-# derived from the game code, so the offset is stable across re-broadcasts (it
-# can't be averaged out by polling) yet uncorrelated between games. Distance and
-# bearing surface to clients; the raw fix never does.
-
-_M_PER_DEG_LAT = 111_320.0  # metres per degree of latitude (near enough anywhere)
-
-
-def _jitter(code: str, lon: float, lat: float) -> tuple[float, float]:
-    """Deterministic per-code offset of magnitude DISCOVERY_JITTER_M."""
-    if DISCOVERY_JITTER_M <= 0:
-        return lon, lat
-    h = hashlib.sha1(code.encode()).digest()
-    # Two independent [0,1) draws from the digest: bearing and radial fraction.
-    ang = (int.from_bytes(h[:4], "big") / 0xFFFFFFFF) * 2 * math.pi
-    frac = int.from_bytes(h[4:8], "big") / 0xFFFFFFFF
-    dist = DISCOVERY_JITTER_M * math.sqrt(frac)  # sqrt → uniform over the disc
-    dlat = (dist * math.cos(ang)) / _M_PER_DEG_LAT
-    coslat = math.cos(math.radians(lat)) or 1e-9
-    dlon = (dist * math.sin(ang)) / (_M_PER_DEG_LAT * coslat)
-    return lon + dlon, lat + dlat
+# GEO_INDEX is a Redis GEO sorted set (member = game code) of lobbies checked in
+# to a public place. The stored point is the venue's own public coordinates — a
+# real place, not the host's home — so there's nothing private to protect: only
+# distance and bearing surface to clients, and the point is the same for anyone
+# standing at that venue.
 
 
 async def _geo_set(code: str, lon: float, lat: float) -> None:
-    """Place the game's single radar point at exact (lon, lat) — no jitter.
-    Callers pass already-jittered coords for a free-range broadcast, or the
-    exact public coords for a checked-in place."""
+    """Place the game's single radar point at the checked-in venue's coords."""
     await _r.geoadd(GEO_INDEX, (lon, lat, code))
 
 
@@ -543,9 +518,8 @@ async def geo_search(lon: float, lat: float, radius_m: float,
                      limit: int) -> list[tuple[str, float, float, float]]:
     """Codes within radius_m of (lon, lat), nearest first.
 
-    Returns [(code, distance_m, jlon, jlat), ...]. The coordinates are the
-    stored (jittered) point, so the caller can compute a bearing without the
-    raw fix ever being persisted.
+    Returns [(code, distance_m, plon, plat), ...] — the stored venue point, so
+    the caller can compute a bearing to it.
     """
     rows = await _r.geosearch(
         GEO_INDEX, longitude=lon, latitude=lat,
@@ -554,42 +528,24 @@ async def geo_search(lon: float, lat: float, radius_m: float,
     )
     out: list[tuple[str, float, float, float]] = []
     for row in rows:
-        code, dist, (jlon, jlat) = row[0], float(row[1]), row[2]
-        out.append((code, dist, float(jlon), float(jlat)))
+        code, dist, (plon, plat) = row[0], float(row[1]), row[2]
+        out.append((code, dist, float(plon), float(plat)))
     return out
 
 
-# A game's single radar point comes from one of two independent sources — a
-# free-range broadcast (host GPS, jittered) and/or a checked-in place (exact,
-# public). Both can be on at once; _recompute_geo picks the point (place wins).
+# A game is discoverable iff it's checked in to a place: set_place indexes it at
+# the venue's exact public coords, clear_place removes it. _recompute_geo is the
+# single writer that keeps the GEO index in sync with the place fields.
 
 async def _recompute_geo(code: str) -> None:
-    """Set the game's radar point from its current discovery state. Precedence:
-    a checked-in place (exact) over a free-range broadcast (jittered); with
-    neither, the game leaves the index."""
-    place_id, plat, plon, bcast, blat, blon = await _r.hmget(
-        _gkey(code),
-        ["place_id", "place_lat", "place_lng", "broadcasting", "bcast_lat", "bcast_lon"])
+    """Set (or clear) the game's radar point from its checked-in place. Checked
+    in → indexed at the venue's coords; not → removed from the index."""
+    place_id, plat, plon = await _r.hmget(
+        _gkey(code), ["place_id", "place_lat", "place_lng"])
     if place_id and plat is not None and plon is not None:
         await _geo_set(code, float(plon), float(plat))
-    elif bcast == "1" and blat is not None and blon is not None:
-        await _geo_set(code, float(blon), float(blat))
     else:
         await geo_remove(code)
-
-
-async def set_broadcasting(code: str, lon: float, lat: float) -> None:
-    """Turn on free-range broadcast at the host's fix (stored jittered)."""
-    jlon, jlat = _jitter(code, lon, lat)
-    await _r.hset(_gkey(code), mapping={
-        "broadcasting": 1, "bcast_lat": jlat, "bcast_lon": jlon})
-    await _recompute_geo(code)
-
-
-async def stop_broadcasting(code: str) -> None:
-    await _r.hset(_gkey(code), "broadcasting", 0)
-    await _r.hdel(_gkey(code), "bcast_lat", "bcast_lon")
-    await _recompute_geo(code)
 
 
 async def set_place(code: str, place_id: str, name: str,
@@ -605,20 +561,28 @@ async def set_place(code: str, place_id: str, name: str,
     await _recompute_geo(code)
 
 
-async def clear_place(code: str) -> dict | None:
-    """Check the game out of its place. Returns what was cleared
-    ({place_id, place_name, place_type, place_ts}) so the caller can emit a
-    checked_out event, or None if the game wasn't checked in."""
+async def get_place(code: str) -> dict | None:
+    """Read the checked-in place ({place_id, place_name, place_type, place_ts})
+    without mutating, or None if the game isn't checked in. Lets a caller
+    snapshot the check-in before a destructive drop that would wipe the hash."""
     place_id, place_name, place_type, place_ts = await _r.hmget(
         _gkey(code), ["place_id", "place_name", "place_type", "place_ts"])
-    await _r.hdel(_gkey(code), "place_id", "place_name", "place_lat", "place_lng",
-                  "place_photo", "place_type", "place_ts")
-    await _recompute_geo(code)
     if not place_id:
         return None
     return {"place_id": place_id, "place_name": place_name or "",
             "place_type": place_type or "",
             "place_ts": int(place_ts) if place_ts else None}
+
+
+async def clear_place(code: str) -> dict | None:
+    """Check the game out of its place: drop the place fields and prune the
+    radar blip. Returns what was cleared (see get_place) so the caller can emit
+    a checked_out event, or None if the game wasn't checked in."""
+    info = await get_place(code)
+    await _r.hdel(_gkey(code), "place_id", "place_name", "place_lat", "place_lng",
+                  "place_photo", "place_type", "place_ts")
+    await _recompute_geo(code)
+    return info
 
 
 async def discovery_card(code: str) -> dict | None:

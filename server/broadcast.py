@@ -4,7 +4,7 @@ import time
 
 from fastapi import WebSocket
 
-from . import fanout, gamestore, state
+from . import db, db_places, fanout, gamestore, places, state
 from .config import DISCONNECT_GRACE, PAUSE_MAX, ROLL_ACK_TIMEOUT, ROUND_WIN_DELAY, log
 from .game import next_target, state_msg
 from .state import sessions
@@ -148,6 +148,35 @@ async def end_if_paused_over(code: str) -> None:
     state.pause_tasks.pop(code, None)
 
 
+async def _emit_checkout(code: str, pid: str | None, info: dict, *,
+                         reason: str, session_id: str | None = None) -> None:
+    """Telemetry + Postgres side of a check-out, given the place `info` that was
+    (or is about to be) cleared. Split from checkout_game so a destructive drop
+    can snapshot the check-in first, then emit after the game is gone."""
+    dwell_ms = (gamestore.now_ms() - info["place_ts"]) if info["place_ts"] else None
+    category = places.categorize(info["place_type"])
+    metrics.checkouts_total.labels(category).inc()
+    if dwell_ms is not None:
+        metrics.checkin_dwell_seconds.labels(category).observe(dwell_ms / 1000)
+    emit("checked_out", game_code=code, user_id=pid, reason=reason,
+         place_id=info["place_id"], place_name=info["place_name"],
+         place_type=info["place_type"], category=category,
+         dwell_ms=dwell_ms, session_id=session_id)
+    if db.available():
+        await db_places.delete(code)
+
+
+async def checkout_game(code: str, pid: str | None, *, reason: str,
+                        session_id: str | None = None) -> None:
+    """Release a game's check-in: clear the place fields, prune the radar blip,
+    emit checked_out telemetry, and delete the Postgres place row. The single
+    "leave the venue" path — shared by the explicit check-out and game start.
+    Idempotent: no-ops when the game isn't checked in."""
+    info = await gamestore.clear_place(code)
+    if info:
+        await _emit_checkout(code, pid, info, reason=reason, session_id=session_id)
+
+
 async def drop_player(code: str, pid: str) -> None:
     """Remove a disconnected player after the grace period (local-task path)."""
     await asyncio.sleep(DISCONNECT_GRACE)
@@ -190,6 +219,8 @@ async def do_drop(
         return
 
     name = player["name"]
+    # Snapshot any check-in before the drop, which may delete the whole hash.
+    checkin = await gamestore.get_place(code)
     res = await gamestore.drop_player(code, pid, grace_ms)
     if res["action"] == "noop":
         return
@@ -209,11 +240,20 @@ async def do_drop(
              total_rolls=snap["total_rolls"])
         metrics.games_ended_total.labels(reason="all_dropped").inc()
         metrics.game_duration_seconds.observe(duration_ms / 1000.0)
+        # The hash (and its geo blip) is already gone; just close out telemetry
+        # and the Postgres place row.
+        if checkin:
+            await _emit_checkout(code, pid, checkin, reason="game_ended")
         state.connections.pop(code, None)
         return
 
     if res["new_host"]:
         emit("host_transferred", game_code=code, **{"from": pid, "to": res["new_host"]})
+        # The checked-in host left. The new host never opted into that venue, so
+        # release the check-in rather than broadcast a location nobody consented
+        # to — check-in is available again to the new host from the lobby.
+        if checkin:
+            await checkout_game(code, pid, reason="host_left")
     snap2 = await gamestore.snapshot(code)
     if snap2:
         await broadcast(code, state_msg(snap2, code))

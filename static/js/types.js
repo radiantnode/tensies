@@ -28,8 +28,6 @@
  * @property {number} round_num
  * @property {boolean} started
  * @property {boolean} paused
- * @property {boolean} [broadcasting] Host opted this lobby into free-range GPS discovery.
- * @property {string | null} [place_id] Google place the game is checked in to (or null).
  * @property {string | null} [place_name] Name of the checked-in place (or null).
  * @property {string} host Player id of the current host.
  * @property {Record<string, PlayerSnapshot>} players

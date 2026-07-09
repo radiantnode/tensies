@@ -10,6 +10,7 @@ from . import db, db_places, gamestore, places, qr, state
 from .broadcast import (
     advance_round,
     broadcast,
+    checkout_game,
     delayed_broadcast,
     do_drop,
     drop_player,
@@ -218,7 +219,10 @@ async def handle_start(session: Session, msg: dict) -> None:
     if meta is None or meta["host"] != session.pid or meta["started"]:
         return
     await gamestore.start_game(code)
-    await gamestore.geo_remove(code)  # a started game is no longer discoverable
+    # A started game is no longer discoverable: check it out of any venue so the
+    # radar blip, place fields, telemetry, and Postgres row all clear together.
+    await checkout_game(code, session.pid, reason="game_started",
+                        session_id=session.session_id)
     snap = await gamestore.snapshot(code)
     if snap is None:
         return
@@ -243,23 +247,9 @@ async def handle_stop_broadcast(session: Session, msg: dict) -> None:
     meta = await gamestore.get_meta(code)
     if meta is None or meta["host"] != session.pid:
         return
-    await gamestore.stop_broadcasting(code)
-    # Master switch: clearing the broadcast also clears any check-in.
-    cleared = await gamestore.clear_place(code)
-    if cleared:
-        dwell_ms = (int(time.time() * 1000) - cleared["place_ts"]
-                    if cleared["place_ts"] else None)
-        category = places.categorize(cleared["place_type"])
-        metrics.checkouts_total.labels(category).inc()
-        if dwell_ms is not None:
-            metrics.checkin_dwell_seconds.labels(category).observe(dwell_ms / 1000)
-        emit("checked_out", game_code=code, user_id=session.pid,
-             place_id=cleared["place_id"], place_name=cleared["place_name"],
-             place_type=cleared["place_type"], category=category,
-             dwell_ms=dwell_ms, session_id=session.session_id)
-    if db.available():
-        await db_places.delete(code)
-    log.info("broadcast  game=%s  OFF", code)
+    await checkout_game(code, session.pid, reason="manual",
+                        session_id=session.session_id)
+    log.info("checkout   game=%s  (host)", code)
     snap = await gamestore.snapshot(code)
     if snap:
         await broadcast(code, state_msg(snap, code))
@@ -288,10 +278,9 @@ async def handle_checkin(session: Session, msg: dict) -> None:
     if place is None:
         await _error(session.ws, "Couldn't check in to that place")
         return
-    # Check-in enables discovery at the venue. _recompute_geo prefers the exact
-    # place coords over the (jittered) broadcast fix, so the game shows AT the
-    # venue; the broadcasting flag just keeps "discoverable" ⟺ "checked in".
-    await gamestore.set_broadcasting(code, place["lon"], place["lat"])
+    # Check-in IS discovery: set_place indexes the game at the venue's exact
+    # public coordinates. "discoverable" ⟺ "checked in" — there's no other
+    # discoverable state. Check out via stop_broadcast (or on game start / drop).
     await gamestore.set_place(code, place["place_id"], place["name"],
                               place["lat"], place["lon"],
                               photo_ref=place.get("photo_ref"),

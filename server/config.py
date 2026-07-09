@@ -96,13 +96,12 @@ AUTH_RATE_WINDOW = _float("AUTH_RATE_WINDOW", 60.0)       # (a passkey ceremony 
 
 
 # ─── Nearby-games discovery (GPS) ────────────────────────────────────────
-# A host can opt a lobby into being discoverable by GPS-nearby players. The
-# host's fix is jittered before it touches Redis and only distance (bucketed)
-# + bearing are ever returned — raw coordinates never leave the server, and the
-# geo entry is pruned the moment the game starts / stops broadcasting / empties.
+# A host makes a lobby discoverable by checking in to a public place; the game
+# is indexed at that venue's own public coordinates. Only distance (bucketed) +
+# bearing are ever returned to nearby players, and the geo entry is pruned the
+# moment the game starts / checks out / empties.
 DISCOVERY_ENABLED = _flag("DISCOVERY_ENABLED", True)              # master switch
 DISCOVERY_RADIUS_M = _float("DISCOVERY_RADIUS_M", 500.0)          # "same block" cap
-DISCOVERY_JITTER_M = _float("DISCOVERY_JITTER_M", 50.0)           # anti-triangulation offset
 DISCOVERY_DISTANCE_BUCKET_M = _int("DISCOVERY_DISTANCE_BUCKET_M", 25)
 DISCOVERY_MAX_RESULTS = _int("DISCOVERY_MAX_RESULTS", 20)
 NEARBY_RATE_MAX = _int("NEARBY_RATE_MAX", 240)                   # /api/nearby polls/window/IP
