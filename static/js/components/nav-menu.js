@@ -331,10 +331,20 @@ export class NavMenu extends HTMLElement {
     return this.classList.contains('open');
   }
 
+  /** @type {number} truthy (a timer id) while a fade is mid-flight. */
+  #animLock = 0;
+
   /** Open if closed, close if open. */
   toggle() {
+    // Ignore taps while the fade is animating so rapid tapping — and the touch
+    // guard's synthesized-click firing alongside the native click on a quick
+    // second tap — can't thrash the open/close state (the "rapid-tap break").
+    if (this.#animLock) return;
     if (this.isOpen()) this.close();
     else this.open();
+    clearTimeout(this.#animLock);
+    // A touch longer than the 0.28s opacity fade so it always fully settles.
+    this.#animLock = window.setTimeout(() => { this.#animLock = 0; }, 320);
   }
 
   /** Slide the menu in and reflect the open state on body + hamburgers. */
