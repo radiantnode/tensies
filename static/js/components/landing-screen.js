@@ -15,7 +15,19 @@ const RADAR_ICON = `<span class="landing-radar" aria-hidden="true"><span class="
 
 // The Join button shows a live, scrambling 5-letter "game code" (monospace).
 const CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-const randCodeChar = () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+// Decorative-only PRNG (mulberry32). The scrambler runs on a wall-clock timer,
+// so if it drew from Math.random it would advance the shared sequence a
+// non-deterministic number of times and desync the app's meaningful RNG — the
+// seeded player name and the dice scatter the pixel harness pins (see state.js
+// and dice.js). Keeping it self-contained leaves that sequence untouched.
+let _codeSeed = 0x1a2b3c4d;
+function codeRand() {
+  _codeSeed = (_codeSeed + 0x6d2b79f5) | 0;
+  let t = Math.imul(_codeSeed ^ (_codeSeed >>> 15), 1 | _codeSeed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+const randCodeChar = () => CODE_CHARS[Math.floor(codeRand() * CODE_CHARS.length)];
 const randCode = () => Array.from({ length: 5 }, randCodeChar).join('');
 const CODE_ICON = `<span class="join-code" aria-hidden="true">${randCode()}</span>`;
 
@@ -280,7 +292,7 @@ export class LandingScreen extends HTMLElement {
     this.#codeTimer = window.setInterval(() => {
       el.textContent = (el.textContent || '')
         .split('')
-        .map((c) => (Math.random() < 0.4 ? randCodeChar() : c))
+        .map((c) => (codeRand() < 0.4 ? randCodeChar() : c))
         .join('');
     }, 140);
   }

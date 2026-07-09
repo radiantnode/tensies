@@ -3,7 +3,8 @@
     "name": "landing",
     "type": "static",
     "path": "/",
-    "steps": [{ "waitFor": "#landing.active" }]
+    "steps": [{ "waitFor": "#landing.active" }],
+    "mask": [".join-code"]
   },
   {
     "name": "join-empty",
@@ -12,8 +13,9 @@
     "steps": [
       { "waitFor": "#landing.active" },
       { "click": "#show-join-btn" },
-      { "waitFor": "#join.active" }
-    ]
+      { "waitFor": "#join-sheet[open]" }
+    ],
+    "mask": [".join-code"]
   },
   {
     "name": "nav-menu-open",
