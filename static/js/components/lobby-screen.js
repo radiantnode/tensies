@@ -31,10 +31,14 @@ const PLACES_STALE_MS = 90_000;
 /** …or once the host has moved more than this many metres since it was cached. */
 const PLACES_STALE_METERS = 75;
 
-/** Great-circle distance in metres between two {lat, lon} points (haversine). */
+/**
+ * Great-circle distance in metres between two {lat, lon} points (haversine).
+ * @param {{lat: number, lon: number}} a
+ * @param {{lat: number, lon: number}} b
+ */
 function metersBetween(a, b) {
   const R = 6371000;
-  const toRad = (d) => (d * Math.PI) / 180;
+  const toRad = (/** @type {number} */ d) => (d * Math.PI) / 180;
   const dLat = toRad(b.lat - a.lat);
   const dLon = toRad(b.lon - a.lon);
   const h = Math.sin(dLat / 2) ** 2
@@ -457,7 +461,7 @@ export class LobbyScreen extends HTMLElement {
       this.#placesCacheAt = Date.now();
       const sheet = /** @type {HTMLDialogElement} */ (byId('places-sheet'));
       const search = /** @type {HTMLInputElement} */ (byId('places-search'));
-      if (sheet.open && !search.value.trim()) this.#renderPlaces(this.#placesCache);
+      if (sheet.open && !search.value.trim()) this.#renderPlaces(this.#placesCache || []);
     } finally {
       this.#reloadInFlight = false;
     }

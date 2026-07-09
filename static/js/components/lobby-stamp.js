@@ -192,7 +192,7 @@ export class LobbyStamp extends HTMLElement {
 /** Today as `MM · DD · YY`, matching the stamp's postmark style. */
 function stampDate() {
   const d = new Date();
-  const p = (n) => String(n).padStart(2, '0');
+  const p = (/** @type {number} */ n) => String(n).padStart(2, '0');
   return `${p(d.getMonth() + 1)} · ${p(d.getDate())} · ${p(d.getFullYear() % 100)}`;
 }
 

@@ -33,6 +33,7 @@
  * @property {Record<string, PlayerSnapshot>} players
  * @property {string} [winner_name] Present on `round_won` frames.
  * @property {number} [pause_remaining_ms] Present on paused frames sent to the host.
+ * @property {string} [qr] Inline invite QR (data URL) — re-sent to a lobby host on reconnect.
  */
 
 /**
@@ -86,6 +87,7 @@
  * @typedef {object} ReconnectTokenMessage
  * @property {'reconnect_token'} type
  * @property {string} token
+ * @property {string} [qr] Inline invite QR (data URL) sent alongside the token after create/join.
  */
 
 /**
