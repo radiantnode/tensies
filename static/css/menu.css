@@ -77,28 +77,22 @@
   /* About section */
   .menu-about { padding-block-end: 0.75rem; }
 
-  .menu-about-heading,
-  .menu-changelog-heading {
-    font-size: clamp(1.4rem, 5.5vw, 1.75rem);
-    font-weight: 900;
-    letter-spacing: 0.005em;
-    line-height: 1.5;
-    -webkit-text-stroke: 1px #f1cf98;
-    paint-order: stroke fill;
-    background: linear-gradient(180deg, #fff6e9 0%, #f6dcb0 52%, #e7ba7f 100%);
-    -webkit-background-clip: text;
-            background-clip: text;
-    color: transparent;
+  /* Font/shadow from the shared .screen-title (EB Garamond); this only carries
+     its own bottom spacing and a touch more leading for the wrapped sentence. */
+  .menu-about-heading {
+    margin-block-end: 1.5rem;
+    font-size: 2.5rem;
+    line-height: 1.1;
   }
-
-  .menu-about-heading { margin-block-end: 0.75rem; }
 
   .menu-about-body {
     font-size: 1rem;
     font-weight: 500;
     line-height: 1.9;
-    color: rgba(235, 215, 195, 0.72);
+    color: rgba(240, 222, 202, 0.95);
   }
+
+  .menu-about-body + .menu-about-body { margin-block-start: 0.9rem; }
 
   .menu-about-body strong {
     font-weight: 700;
@@ -173,21 +167,23 @@
   .game-menu.show-changelog .menu-panel { display: none; }
   .game-menu.show-changelog .menu-changelog-panel { display: flex; }
 
+  /* Same pattern as the lobby: an absolute back chip on the left with the
+     centred .screen-title.has-back heading (reusing those shared rules). */
   .menu-changelog-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    position: relative;
     margin-block-end: 1.25rem;
   }
 
   .menu-changelog-panel .btn-back {
-    position: static;
-    flex-shrink: 0;
-    align-self: flex-start;
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block-start: 50%;
+    transform: translateY(-50%);
   }
 
-  .menu-changelog-heading { margin-block-end: 1rem; }
+  /* Row spacing comes from the header's own margin, so drop the heading's
+     default bottom margin — it would otherwise offset the chip's centring. */
+  .menu-changelog-header .screen-title { margin-block: 0; }
 
   .menu-changelog-body {
     flex: 1;

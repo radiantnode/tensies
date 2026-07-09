@@ -49,17 +49,9 @@
     margin: 0.85rem 0;
   }
 
-  .lobby-title {
-    /* Clear the round Back button on the left; symmetric on the right keeps the
-       centred text visually centred on the shared row. */
-    padding-inline: 2.75rem;
-    margin-block-end: 1.75rem;
-    font-size: 1.5rem;
-    font-weight: 800;
-    letter-spacing: 0.01em;
-    color: var(--color-text);
-    text-shadow: var(--shadow-text-lg);
-  }
+  /* Font from .screen-title, centring/back-clearance from .has-back; this only
+     carries the lobby's own bottom spacing. */
+  .lobby-title { margin-block-end: 1.75rem; }
 
   .copied { color: var(--color-success) !important; }
 
@@ -464,8 +456,9 @@
 
   .places-sheet-title {
     margin: 0;
-    font-size: 1.1rem;
-    font-weight: 800;
+    font-family: var(--font-family-heading);
+    font-size: 1.25rem;
+    font-weight: 500;
     letter-spacing: 0.01em;
     color: var(--color-text);
     text-shadow: var(--shadow-text);
@@ -668,8 +661,9 @@
 
   .confirm-title {
     margin: 0 0 0.6rem;
-    font-size: 1.15rem;
-    font-weight: 800;
+    font-family: var(--font-family-heading);
+    font-size: 1.25rem;
+    font-weight: 500;
     letter-spacing: 0.01em;
     color: var(--color-text);
     text-shadow: var(--shadow-text);

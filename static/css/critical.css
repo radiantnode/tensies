@@ -14,6 +14,16 @@
   src: url('/static/fonts/inter-latin-variable.woff2') format('woff2');
 }
 
+/* Heading face: EB Garamond — a retro Garamond serif (Apple-Garamond feel) for
+   screen/section headings. Body text stays Inter. Variable weight 400–800. */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/static/fonts/ebgaramond-latin-variable.woff2') format('woff2');
+}
+
 /* Vintage-stamp display faces (lobby stamp only): Rye for the engraved serial,
    panels, and banner; Yellowtail for the script watermark. */
 @font-face {
@@ -98,6 +108,7 @@
     --color-text-label: rgba(220, 200, 180, 0.72);
     --color-amber: rgba(225, 180, 100, 0.95);
     --font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-family-heading: 'EB Garamond', Georgia, 'Times New Roman', serif;
     --shadow-text: 0 1px 4px rgba(0, 0, 0, 0.9);
     --shadow-text-lg: 0 2px 8px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.8);
     --radius-md: 12px;

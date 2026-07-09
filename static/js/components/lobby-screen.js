@@ -139,7 +139,7 @@ export class LobbyScreen extends HTMLElement {
       <app-header></app-header>
       <div class="screen-body lobby-body">
         <button id="lobby-back-btn" type="button" class="btn-back">${BACK_BUTTON_HTML}</button>
-        <h1 id="lobby-title" class="lobby-title">Waiting for players…</h1>
+        <h1 id="lobby-title" class="screen-title has-back lobby-title">Waiting for Players</h1>
         <lobby-stamp></lobby-stamp>
         <div class="or-divider" aria-hidden="true"><span>or</span></div>
         <div class="lobby-actions">
@@ -363,8 +363,8 @@ export class LobbyScreen extends HTMLElement {
     this.#syncEmptyState();
 
     byId('lobby-title').textContent = isHost
-      ? 'Waiting for players…'
-      : 'Waiting for host to start…';
+      ? 'Waiting for Players'
+      : 'Waiting for host to start';
     const startBtn = byId('start-btn');
     startBtn.hidden = !isHost;
     this.#syncCheckinButton(snap.place_name ?? null, isHost);

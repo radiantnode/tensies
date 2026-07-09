@@ -238,8 +238,9 @@ export class NavMenu extends HTMLElement {
     this.innerHTML = `
       <nav class="menu-panel" aria-label="Menu">
         <div class="menu-about">
-          <h2 class="menu-about-heading">Built at the bar because you don't have to go home but you can't stay there.</h2>
-          <p class="menu-about-body">Someone had the bright idea to build a bar game instead of just playing one. That someone was me, and the bar was very much open. <strong>Tensies</strong> is what came out of it: ten dice, one target number, everyone racing to lock all ten first. It runs in your browser, takes forty seconds to explain, and has absolutely no business being as competitive as it gets. Works best with real people in the same room — which, if you're reading this, hopefully describes the situation.</p>
+          <h2 class="screen-title menu-about-heading">Built at the bar because you don't have to go home but you can't stay there.</h2>
+          <p class="menu-about-body">My name's Michael. Over 20 years of making computers do things for businesses, people, and fun, and <strong>Tensies</strong> is squarely in the fun column. I wanted to build something cool while I picked up a few new tricks and passed along what I learned (usually by breaking it first). The real game gets played at the bar, with real dice, the good heavy kind. This is the version for when you forget yours, or the bar closes and reminds you that you do, in fact, have a home to go to: ten dice each, one target number, everybody rolling at once and racing to lock all ten first.</p>
+          <p class="menu-about-body">For a bar game, it's wildly over-engineered, in the best way. I built it to be secure and to hold up under anything, using the same industry standards I'd trust for serious work. I work on it in my spare time, a little at home, a little at the bar, a little in Cap Cana with a drink in reach. The code's all out in the open, if you want to see how it works. Pull up a stool.</p>
           <button type="button" class="menu-whats-new-btn">See What's New</button>
           <a href="https://buymeacoffee.com/radiantnode" target="_blank" rel="noopener noreferrer" class="menu-beer-btn">
             <svg viewBox="0 3 26 26" width="30" height="30" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -258,8 +259,8 @@ export class NavMenu extends HTMLElement {
       </nav>
       <div class="menu-changelog-panel">
         <div class="menu-changelog-header">
-          <h2 class="menu-changelog-heading">See What's New</h2>
           <button type="button" class="menu-changelog-back-btn btn-back">${BACK_BUTTON_HTML}</button>
+          <h2 class="screen-title has-back">What's New on Tensies</h2>
         </div>
         <div class="menu-changelog-body">${CHANGELOG}</div>
       </div>`;
