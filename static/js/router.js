@@ -40,9 +40,22 @@ export function navigate(path, { replace = false } = {}) {
   return showScreen(id);
 }
 
-/** The landing screen component (typed accessor for its join sheet). */
-function landing() {
+/** The landing screen component (typed accessor for its join sheet + errors). */
+export function landing() {
   return /** @type {import('./components/landing-screen.js').LandingScreen} */ (byId('landing'));
+}
+
+/**
+ * The nearby radar acquires GPS + fetches on `enter()` (it can't be prefetched
+ * behind loading). Kick that off once `transition` has swapped it in — shared by
+ * the /nearby navigation and Back/Forward activation onto it.
+ * @template T
+ * @param {T & {updateCallbackDone: Promise<unknown>}} transition
+ * @returns {T}
+ */
+function enterNearbyAfter(transition) {
+  transition.updateCallbackDone.then(() => /** @type {any} */ (byId('nearby'))?.enter?.());
+  return transition;
 }
 
 /**
@@ -76,11 +89,7 @@ export function showSignin() {
  * since discovery is permission-gated and can't be prefetched behind loading.
  */
 export function showNearby() {
-  const transition = navigate('/nearby');
-  transition.updateCallbackDone.then(() => {
-    /** @type {any} */ (byId('nearby'))?.enter?.();
-  });
-  return transition;
+  return enterNearbyAfter(navigate('/nearby'));
 }
 
 /**
@@ -143,10 +152,7 @@ function enterFetched(id, arg) {
  */
 function activateNamed(id) {
   const transition = showScreen(id);
-  if (id === 'nearby') {
-    transition.updateCallbackDone.then(() => /** @type {any} */ (byId('nearby'))?.enter?.());
-  }
-  return transition;
+  return id === 'nearby' ? enterNearbyAfter(transition) : transition;
 }
 
 /**

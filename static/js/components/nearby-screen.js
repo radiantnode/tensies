@@ -1,5 +1,6 @@
 // @ts-check
 import './app-header.js';
+import { avatarImg } from '../avatars.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
 import { byId } from '../dom.js';
 import { GeoError, GEO_ERROR_COPY, getPosition } from '../geo.js';
@@ -9,11 +10,10 @@ import { showLanding } from '../router.js';
 /** @typedef {import('../types.js').NearbyGame} NearbyGame */
 /** @typedef {import('../types.js').NearbyResponse} NearbyResponse */
 
-/** How often the radar re-polls the endpoint while the screen is active. */
-const REFRESH_MS = 1500;
-
-/** Fallback avatar for anonymous hosts / a photo that fails to load. */
-const DEFAULT_AVATAR = '/static/images/avatar-default.svg';
+/** How often the radar re-polls the endpoint while the screen is active. Games
+ *  appear/move on a human timescale, so a few seconds is plenty — each poll
+ *  fans out to a Redis read per nearby game, so a tight loop isn't free. */
+const REFRESH_MS = 4000;
 
 /** Right-chevron disclosure affordance on each list row (tap the row to join). */
 const CHEVRON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
@@ -26,24 +26,6 @@ const CHEVRON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
  * *scale* is perceptual (distance is already bucketed, and shown as text).
  */
 const MIN_FRAC = 0.18;
-
-/**
- * Build an avatar <img> for a host: their account photo when signed in, else
- * the default silhouette. The error handler (a photo URL that won't load) can't
- * be an inline attribute — CSP blocks inline handlers — so it's attached here.
- * @param {string | null | undefined} photo
- * @param {string} className
- */
-function avatarImg(photo, className) {
-  const img = document.createElement('img');
-  img.className = className;
-  img.alt = '';
-  img.src = photo || DEFAULT_AVATAR;
-  img.addEventListener('error', () => {
-    if (img.src !== location.origin + DEFAULT_AVATAR) img.src = DEFAULT_AVATAR;
-  }, { once: true });
-  return img;
-}
 
 /**
  * <nearby-screen> — the GPS discovery radar (#nearby.screen, light DOM).
@@ -74,6 +56,10 @@ export class NearbyScreen extends HTMLElement {
 
   /** @type {number} bumped each acquisition so a stale fetch can't paint. */
   #token = 0;
+
+  /** @type {string | null} last rendered payload — skip a repaint when a poll
+   *  returns byte-identical JSON (the common steady state). */
+  #lastPayload = null;
 
   /** @type {boolean} compass alignment active (scope rotates with heading). */
   #compassOn = false;
@@ -137,6 +123,16 @@ export class NearbyScreen extends HTMLElement {
   }
 
   disconnectedCallback() {
+    this.leave();
+  }
+
+  /**
+   * Called by the router when this screen is navigated away from. The router
+   * toggles the `.active` class instead of removing the element, so
+   * disconnectedCallback never fires on a normal navigation — this is where the
+   * poll loop and the (window-level) compass listener actually get torn down.
+   */
+  leave() {
     this.#stopPolling();
     this.#stopCompass();
     this.#cancelSettle(); // in case a settle was mid-flight when we left
@@ -272,6 +268,7 @@ export class NearbyScreen extends HTMLElement {
   async enter() {
     this.#stopPolling();
     this.#selected = null;
+    this.#lastPayload = null; // rows/blips are cleared below; force a fresh paint
     for (const row of this.#rows.values()) row.remove();
     this.#rows.clear();
     for (const blip of this.#blips.values()) blip.remove();
@@ -314,17 +311,21 @@ export class NearbyScreen extends HTMLElement {
       return;
     }
     const token = this.#token;
-    let data;
+    let text;
     try {
       const res = await fetch(`/api/nearby?lat=${this.#pos.lat}&lon=${this.#pos.lon}`);
       if (!res.ok) throw new Error(`nearby ${res.status}`);
-      data = /** @type {NearbyResponse} */ (await res.json());
+      text = await res.text();
     } catch {
       // A single failed poll is transient — keep the last view, don't wipe it.
       return;
     }
     if (token !== this.#token) return;
-    this.#render(data);
+    // Steady state: the same games at the same bucketed distances poll after
+    // poll. Skip the parse + full radar/list repaint when nothing changed.
+    if (text === this.#lastPayload) return;
+    this.#lastPayload = text;
+    this.#render(/** @type {NearbyResponse} */ (JSON.parse(text)));
   }
 
   /**

@@ -2,6 +2,7 @@
 import { getAuthUser } from '../auth.js';
 import { byId } from '../dom.js';
 import { renderGame } from '../game-render.js';
+import { makeMenuToggle } from '../menu-toggle.js';
 import { RESUME_CLOSE_DELAY_MS } from '../overlays.js';
 import { roll } from '../roll.js';
 import { state } from '../state.js';
@@ -22,9 +23,6 @@ export class GameScreen extends HTMLElement {
 
   /** @type {HTMLElement | null} */
   #menu = null;
-
-  /** @type {number} truthy (a timer id) while the menu fade is mid-flight. */
-  #animLock = 0;
 
   /** @param {KeyboardEvent} event */
   #onKeydown = (event) => {
@@ -79,16 +77,13 @@ export class GameScreen extends HTMLElement {
     this.#menuBtn.id = 'game-menu-btn';
     this.#menuBtn.setAttribute('aria-controls', 'game-menu');
 
-    // Hamburger toggles the GAME menu (not the nav menu). Locked while the fade
-    // animates so rapid tapping (+ the touch guard's synthesized click) can't
-    // thrash the state — same guard as the nav menu.
-    this.#menuBtn.addEventListener('click', () => {
-      if (this.#animLock) return;
-      if (this.menuOpen()) this.closeMenu();
-      else this.openMenu();
-      clearTimeout(this.#animLock);
-      this.#animLock = window.setTimeout(() => { this.#animLock = 0; }, 320);
-    });
+    // Hamburger toggles the GAME menu (not the nav menu), rapid-tap-guarded the
+    // same way (see makeMenuToggle).
+    this.#menuBtn.addEventListener('click', makeMenuToggle({
+      isOpen: () => this.menuOpen(),
+      open: () => this.openMenu(),
+      close: () => this.closeMenu(),
+    }));
 
     // End Game — tap-to-confirm: first tap swaps the label, second tap sends.
     // Resets when the menu closes.

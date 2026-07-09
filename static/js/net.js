@@ -3,7 +3,7 @@ import { myDiceKey } from './dice.js';
 import { byId } from './dom.js';
 import { renderMyArea, renderPlayersBar } from './game-render.js';
 import { showWinner } from './overlays.js';
-import { showFor, showGameDetail, showLanding } from './router.js';
+import { landing, showFor, showGameDetail, showLanding } from './router.js';
 import { getAuthToken, isSignedIn, getAuthUser } from './auth.js';
 import {
   savePlayerId, saveReconnectToken, readSession, hasSession, clearSession,
@@ -48,7 +48,7 @@ function expireSession() {
   state.currentState = null;
   leaveLoading(() => {
     showScreen('landing');
-    landingScreen().showError('Connection failed');
+    landing().showError('Connection failed');
   });
 }
 
@@ -130,11 +130,6 @@ function connectWs(afterConnect) {
   ws.onclose = handleWsClose;
 }
 
-/** The landing screen component (typed accessor for its error surface). */
-function landingScreen() {
-  return /** @type {import('./components/landing-screen.js').LandingScreen} */ (byId('landing'));
-}
-
 /** The nearby screen component (typed accessor for its error surface). */
 function nearbyScreen() {
   return /** @type {import('./components/nearby-screen.js').NearbyScreen} */ (byId('nearby'));
@@ -179,7 +174,7 @@ export function joinWithCode(code, origin = 'join') {
 export function joinGame() {
   const code = /** @type {HTMLInputElement} */ (byId('code-input')).value.trim();
   if (!code) {
-    landingScreen().showJoinError('Enter a game code');
+    landing().showJoinError('Enter a game code');
     return;
   }
   joinWithCode(code, 'join');
@@ -368,7 +363,7 @@ function handleError(msg) {
       // transition (the showScreen early-return race — see transitions.js).
       // The only sanctioned behavior change of the rewrite.
       showScreen('landing', { force: true });
-      landingScreen().showError(msg.msg);
+      landing().showError(msg.msg);
     });
     return;
   }
@@ -382,13 +377,13 @@ function handleError(msg) {
     state.pendingOrigin = null;
     leaveLoading(() => {
       const t = showScreen('landing');
-      t.updateCallbackDone.then(() => landingScreen().openJoinSheet({ error: msg.msg }));
+      t.updateCallbackDone.then(() => landing().openJoinSheet({ error: msg.msg }));
     });
   } else if (state.pendingOrigin === 'landing') {
     state.pendingOrigin = null;
     leaveLoading(() => {
       showScreen('landing');
-      landingScreen().showError(msg.msg);
+      landing().showError(msg.msg);
     });
   } else if (state.currentState) {
     // In-game, non-fatal error (e.g. a rejected roll: "Slow down", "Game is

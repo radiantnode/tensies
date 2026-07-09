@@ -52,7 +52,9 @@ export function getPosition() {
           : 'unavailable';
         reject(new GeoError(reason, err.message || 'geolocation failed'));
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
+      // Coarse fix on purpose: "nearby" is ~500 m, so a high-accuracy GPS lock
+      // isn't worth the extra battery/latency (see the module docstring).
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 },
     );
   });
 }

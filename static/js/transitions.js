@@ -72,6 +72,9 @@ export function showScreen(id, { force = false, staged = false, onSwap } = {}) {
     // placed against the real rect) before the reveal.
     requestAnimationFrame(() => {
       const previous = /** @type {HTMLElement | null} */ (document.querySelector('.screen.active'));
+      // Let the outgoing screen tear down timers/listeners — the router toggles
+      // .active rather than removing screens, so disconnectedCallback never fires.
+      if (previous && previous !== target) /** @type {any} */ (previous).leave?.();
       document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
       target.classList.remove('staging');
       target.classList.add('active');
@@ -93,6 +96,9 @@ export function showScreen(id, { force = false, staged = false, onSwap } = {}) {
     return settledTransition();
   }
   const swap = () => {
+    const previous = /** @type {HTMLElement | null} */ (document.querySelector('.screen.active'));
+    // Give the outgoing screen a chance to clean up (see the staged branch).
+    if (previous && previous !== target) /** @type {any} */ (previous).leave?.();
     document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
     target.classList.add('active');
     onSwap?.();

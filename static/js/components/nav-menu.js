@@ -2,6 +2,7 @@
 import { isSignedIn, getAuthUser, signOut } from '../auth.js';
 import { getPlatform, openGuide } from '../a2hs.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
+import { makeMenuToggle } from '../menu-toggle.js';
 import { showSignin } from '../router.js';
 import { updateScrollFades } from '../scroll-fades.js';
 
@@ -331,20 +332,17 @@ export class NavMenu extends HTMLElement {
     return this.classList.contains('open');
   }
 
-  /** @type {number} truthy (a timer id) while a fade is mid-flight. */
-  #animLock = 0;
+  /** Rapid-tap-guarded open/close (see makeMenuToggle; 320ms tracks the 0.28s
+   *  opacity fade). */
+  #guardedToggle = makeMenuToggle({
+    isOpen: () => this.isOpen(),
+    open: () => this.open(),
+    close: () => this.close(),
+  });
 
   /** Open if closed, close if open. */
   toggle() {
-    // Ignore taps while the fade is animating so rapid tapping — and the touch
-    // guard's synthesized-click firing alongside the native click on a quick
-    // second tap — can't thrash the open/close state (the "rapid-tap break").
-    if (this.#animLock) return;
-    if (this.isOpen()) this.close();
-    else this.open();
-    clearTimeout(this.#animLock);
-    // A touch longer than the 0.28s opacity fade so it always fully settles.
-    this.#animLock = window.setTimeout(() => { this.#animLock = 0; }, 320);
+    this.#guardedToggle();
   }
 
   /** Slide the menu in and reflect the open state on body + hamburgers. */

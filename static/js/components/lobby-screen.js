@@ -1,5 +1,6 @@
 // @ts-check
 import './app-header.js';
+import { attachAvatarFallback, avatarSrc } from '../avatars.js';
 import { getAuthUser } from '../auth.js';
 import { playCode } from '../audio-share.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
@@ -12,9 +13,6 @@ import { SheetController } from '../sheet.js';
 import { state } from '../state.js';
 
 /** @typedef {import('../types.js').GameSnapshot} GameSnapshot */
-
-/** Fallback avatar for anonymous players (no account photo). */
-const DEFAULT_AVATAR = '/static/images/avatar-default.svg';
 
 /** Right-pointing chevron for a places-sheet row. */
 const PLACES_CHEVRON = '<svg class="places-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
@@ -288,6 +286,8 @@ export class LobbyScreen extends HTMLElement {
         el.innerHTML =
           '<span class="lobby-avatar-ring"><img class="lobby-avatar" alt=""></span>' +
           '<span class="lobby-player-name"></span>';
+        // Wire the broken-photo fallback once (the img is patched, not rebuilt).
+        attachAvatarFallback(/** @type {HTMLImageElement} */ (el.querySelector('.lobby-avatar')));
         // Fade+slide the row in as the player joins. One-shot: added only on
         // creation (keyed rows are built once) and cleared when it finishes, so
         // re-renders never replay it.
@@ -302,7 +302,7 @@ export class LobbyScreen extends HTMLElement {
       const slot = others.findIndex(([p]) => p === pid);
       if (list.children[slot] !== row) list.insertBefore(row, list.children[slot] ?? null);
       const img = /** @type {HTMLImageElement} */ (row.querySelector('.lobby-avatar'));
-      const src = player.photo || DEFAULT_AVATAR;
+      const src = avatarSrc(player.photo);
       if (img.getAttribute('src') !== src) img.setAttribute('src', src);
       /** @type {HTMLElement} */ (row.querySelector('.lobby-player-name')).textContent = player.name;
       const badge = row.querySelector('.host-badge');

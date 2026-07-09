@@ -5,7 +5,7 @@
  * the landing join sheet (both styled by `.sheet` — see css/sheet.css):
  *
  *  - modal open (`showModal`);
- *  - slide-down close via `.is-closing` + the `places-sheet-out` animation;
+ *  - slide-down close via `.is-closing` + the `sheet-out` animation;
  *  - Escape + backdrop-tap dismissal;
  *  - docking above the iOS soft keyboard (`visualViewport` → `--kb-lift` +
  *    `.is-kb-docked`), optionally pinning a fixed height so a scrolling list
@@ -70,7 +70,7 @@ export class SheetController {
     d.addEventListener('animationend', finish, { once: true });
     // Fallback so the sheet still closes if the slide-out animation never fires
     // its `animationend` (reduced motion, a backgrounded tab). Slightly longer
-    // than the 0.2s `places-sheet-out` duration.
+    // than the 0.2s `sheet-out` duration.
     setTimeout(finish, 300);
   }
 
