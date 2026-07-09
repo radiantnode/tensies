@@ -32,12 +32,12 @@ let navToken = 0;
 /**
  * Push (or replace) a history entry for `path` and show its screen.
  * @param {string} path
- * @param {{ replace?: boolean }} [options]
+ * @param {{ replace?: boolean, instant?: boolean }} [options]
  */
-export function navigate(path, { replace = false } = {}) {
+export function navigate(path, { replace = false, instant = false } = {}) {
   const id = ROUTES[path] ?? 'landing';
   history[replace ? 'replaceState' : 'pushState']({ id }, '', path);
-  return showScreen(id);
+  return showScreen(id, { instant });
 }
 
 /** The landing screen component (typed accessor for its join sheet + errors). */
@@ -89,7 +89,9 @@ export function showSignin() {
  * since discovery is permission-gated and can't be prefetched behind loading.
  */
 export function showNearby() {
-  return enterNearbyAfter(navigate('/nearby'));
+  // Instant swap (no view transition): the radar's spinning sweep would flicker
+  // through a VT cross-fade — see showScreen's `instant`.
+  return enterNearbyAfter(navigate('/nearby', { instant: true }));
 }
 
 /**
@@ -151,7 +153,8 @@ function enterFetched(id, arg) {
  * @param {string} id
  */
 function activateNamed(id) {
-  const transition = showScreen(id);
+  // Nearby swaps instantly (no VT) so its spinning sweep doesn't flicker.
+  const transition = showScreen(id, { instant: id === 'nearby' });
   return id === 'nearby' ? enterNearbyAfter(transition) : transition;
 }
 
