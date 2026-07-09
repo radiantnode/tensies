@@ -128,14 +128,26 @@ def _ckey(place_id: str) -> str:
     return f"place:{place_id}"
 
 
+def _cache_payload(p: dict) -> str:
+    return json.dumps({"name": p["name"], "lat": p["lat"], "lon": p["lon"],
+                       "photo_ref": p.get("photo_ref"),
+                       "primary_type": p.get("primary_type") or ""})
+
+
 async def _cache_put(p: dict) -> None:
     await gamestore.client().set(
-        _ckey(p["place_id"]),
-        json.dumps({"name": p["name"], "lat": p["lat"], "lon": p["lon"],
-                    "photo_ref": p.get("photo_ref"),
-                    "primary_type": p.get("primary_type") or ""}),
-        ex=PLACES_CACHE_TTL,
-    )
+        _ckey(p["place_id"]), _cache_payload(p), ex=PLACES_CACHE_TTL)
+
+
+async def _cache_put_many(places: list[dict]) -> None:
+    """Warm the per-place resolve cache for a whole result set in one Redis
+    round-trip, rather than a serial SET per place."""
+    if not places:
+        return
+    pipe = gamestore.client().pipeline()
+    for p in places:
+        pipe.set(_ckey(p["place_id"]), _cache_payload(p), ex=PLACES_CACHE_TTL)
+    await pipe.execute()
 
 
 async def _cache_get(place_id: str) -> dict | None:
@@ -179,8 +191,7 @@ async def search_nearby(lat: float, lon: float) -> list[dict]:
         # An empty list can be a transient Google failure — don't pin it.
         if results:
             await r.set(key, json.dumps(results), ex=PLACES_NEARBY_CACHE_TTL)
-    for p in results:
-        await _cache_put(p)
+    await _cache_put_many(results)
     return results
 
 
@@ -191,8 +202,7 @@ async def search_text(query: str, lat: float, lon: float) -> list[dict]:
     if not _has_google():
         return []
     results = await _google_text(query, lat, lon)
-    for p in results:
-        await _cache_put(p)
+    await _cache_put_many(results)
     return results
 
 

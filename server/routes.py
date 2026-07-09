@@ -1,3 +1,4 @@
+import asyncio
 import math
 import re
 from pathlib import Path
@@ -198,6 +199,19 @@ async def nearby_page() -> HTMLResponse:
     return HTMLResponse(_render_index())
 
 
+def _valid_coords(lat: float, lon: float) -> bool:
+    """True when (lat, lon) is a real, in-range WGS84 point (rejects NaN/inf)."""
+    return (math.isfinite(lat) and math.isfinite(lon)
+            and -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0)
+
+
+def _place_photo_url(place_id: str, *, w: int | None = None) -> str:
+    """Same-origin photo-proxy URL keyed by place id (never a raw Google URL /
+    credential). `w` sets the proxy's width cap; omit for its default."""
+    url = f"/api/places/photo?place={quote(place_id, safe='')}"
+    return f"{url}&w={w}" if w else url
+
+
 def _bearing_deg(lat1: float, lon1: float, lat2: float, lon2: float) -> int:
     """Initial great-circle bearing from point 1 to point 2, degrees clockwise
     from true north (0–359)."""
@@ -215,8 +229,7 @@ async def api_nearby(request: Request, lat: float, lon: float) -> dict:
     coordinates. The radius is server-owned; the client cannot widen it."""
     if not DISCOVERY_ENABLED:
         raise HTTPException(status_code=503, detail="discovery disabled")
-    if not (math.isfinite(lat) and math.isfinite(lon)
-            and -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
+    if not _valid_coords(lat, lon):
         raise HTTPException(status_code=400, detail="invalid coordinates")
     ip = client_ip(request)
     if not await gamestore.rate_allow("nearby", ip, NEARBY_RATE_MAX, NEARBY_RATE_WINDOW):
@@ -225,10 +238,13 @@ async def api_nearby(request: Request, lat: float, lon: float) -> dict:
     from server.telemetry import metrics
     metrics.nearby_queries_total.inc()
     hits = await gamestore.geo_search(lon, lat, DISCOVERY_RADIUS_M, DISCOVERY_MAX_RESULTS)
+    # Fetch every card concurrently instead of walking the hits serially — each
+    # discovery_card is a couple of Redis round-trips, so 20 in series was ~40
+    # sequential RTTs per poll.
+    cards = await asyncio.gather(*(gamestore.discovery_card(code) for code, *_ in hits))
     bucket = max(1, DISCOVERY_DISTANCE_BUCKET_M)
     games = []
-    for code, dist, jlon, jlat in hits:
-        card = await gamestore.discovery_card(code)
+    for (code, dist, plon, plat), card in zip(hits, cards):
         # Skip a game that started or vanished between GEOADD and this read.
         if card is None or card["started"]:
             continue
@@ -238,16 +254,13 @@ async def api_nearby(request: Request, lat: float, lon: float) -> dict:
             "photo": card["photo"],
             "player_count": card["player_count"],
             "distance_m": round(dist / bucket) * bucket,
-            "bearing_deg": _bearing_deg(lat, lon, jlat, jlon),
+            "bearing_deg": _bearing_deg(lat, lon, plat, plon),
             "place_id": card["place_id"],      # set when checked in to a place
             "place_name": card["place_name"],
-            # Same-origin proxy URL like the check-in sheet rows — never a raw
-            # Google URL. w=512 is the proxy's cap; the card bg wants the big
-            # one. place_photo (the stored ref) just marks "this place has a
-            # photo"; the URL itself is keyed by place id.
-            "place_photo_url": (
-                f"/api/places/photo?place={quote(card['place_id'], safe='')}&w=512"
-                if card["place_photo"] else None),
+            # The card bg wants the big photo (w=512 is the proxy's cap);
+            # place_photo (the stored ref) just marks "this place has a photo".
+            "place_photo_url": (_place_photo_url(card["place_id"], w=512)
+                                if card["place_photo"] else None),
         })
     return {"radius_m": int(DISCOVERY_RADIUS_M), "games": games}
 
@@ -259,8 +272,7 @@ def _place_json(p: dict) -> dict:
         "place_id": p["place_id"], "name": p["name"], "address": p.get("address", ""),
         # Keyed by place id, not photo ref: refs are re-minted per search, so
         # a ref-based URL would defeat both browser and Redis caching.
-        "photo_url": (f"/api/places/photo?place={quote(p['place_id'], safe='')}"
-                      if p.get("photo_ref") else None),
+        "photo_url": _place_photo_url(p["place_id"]) if p.get("photo_ref") else None,
     }
 
 
@@ -271,8 +283,7 @@ async def api_places_nearby(request: Request, lat: float, lon: float) -> dict:
     backend is configured. Returns place_id/name/address/photo only — no client secrets."""
     if not PLACES_ENABLED:
         raise HTTPException(status_code=503, detail="places disabled")
-    if not (math.isfinite(lat) and math.isfinite(lon)
-            and -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
+    if not _valid_coords(lat, lon):
         raise HTTPException(status_code=400, detail="invalid coordinates")
     ip = client_ip(request)
     if not await gamestore.rate_allow("places", ip, PLACES_RATE_MAX, PLACES_RATE_WINDOW):
@@ -289,8 +300,7 @@ async def api_places_search(request: Request, q: str, lat: float, lon: float) ->
     q = q.strip()
     if not q:
         return {"places": []}
-    if not (math.isfinite(lat) and math.isfinite(lon)
-            and -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
+    if not _valid_coords(lat, lon):
         raise HTTPException(status_code=400, detail="invalid coordinates")
     ip = client_ip(request)
     if not await gamestore.rate_allow("placesearch", ip,

@@ -332,10 +332,15 @@ async def handle_reconnect(session: Session, msg: dict) -> None:
          name=session.name, session_id=session.session_id)
     snap = await gamestore.snapshot(join_code)
     if snap:
-        # A page-refresh reconnect lost the client's cached QR — re-send it (only
-        # in the lobby, where the stamp shows it) so it stays flicker-free.
-        extra = {} if snap.get("started") else {"qr": _invite_qr(session, join_code)}
-        await broadcast(join_code, state_msg(snap, join_code, **extra))
+        # Everyone needs the roster update (this player is back)...
+        await broadcast(join_code, state_msg(snap, join_code))
+        # ...but the invite QR is only for the reconnecting client, whose
+        # page-refresh dropped its cached copy. Send it to that socket alone —
+        # it shows only in the lobby stamp and it's a chunky base64 SVG, so
+        # there's no reason to fan it out to every other player.
+        if not snap.get("started"):
+            await send(session.ws,
+                       state_msg(snap, join_code, qr=_invite_qr(session, join_code)))
 
 
 async def handle_roll(session: Session, msg: dict) -> None:

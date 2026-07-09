@@ -82,7 +82,6 @@ async def _sweep() -> None:
                 # Idempotent: do_drop only removes players actually past grace.
                 await do_drop(code, pid)
     # Reconcile orphaned discovery blips whose game has vanished (hard-crashed
-    # instance, TTL expiry) — a GEO set has no per-member TTL of its own.
-    for code in await gamestore.geo_members():
-        if not await gamestore.exists(code):
-            await gamestore.geo_remove(code)
+    # instance, TTL expiry) — a GEO set has no per-member TTL of its own. One
+    # pipelined pass, not a round-trip per member.
+    await gamestore.prune_orphan_geo()

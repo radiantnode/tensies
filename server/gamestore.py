@@ -514,6 +514,24 @@ async def geo_members() -> list[str]:
     return list(await _r.zrange(GEO_INDEX, 0, -1))
 
 
+async def prune_orphan_geo() -> int:
+    """Drop discovery blips whose game hash has vanished (crashed instance / TTL
+    expiry) — a GEO set has no per-member TTL of its own. Batches the EXISTS
+    probes into one pipeline and removes the dead codes in one ZREM, rather than
+    a round-trip per member. Returns how many were pruned."""
+    members = await geo_members()
+    if not members:
+        return 0
+    pipe = _r.pipeline()
+    for code in members:
+        pipe.exists(_gkey(code))
+    present = await pipe.execute()
+    dead = [code for code, ok in zip(members, present, strict=True) if not ok]
+    if dead:
+        await _r.zrem(GEO_INDEX, *dead)
+    return len(dead)
+
+
 async def geo_search(lon: float, lat: float, radius_m: float,
                      limit: int) -> list[tuple[str, float, float, float]]:
     """Codes within radius_m of (lon, lat), nearest first.
