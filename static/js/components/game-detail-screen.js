@@ -1,5 +1,6 @@
 // @ts-check
 import './app-header.js';
+import { avatarSrc } from '../avatars.js';
 import { getAuthUser } from '../auth.js';
 import { esc } from '../dom.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
@@ -101,7 +102,7 @@ export class GameDetailScreen extends HTMLElement {
 
     // Players
     const playersHtml = data.players.map((/** @type {any} */ p) => {
-      const photo = p.photo || '/static/images/avatar-default.svg';
+      const photo = avatarSrc(p.photo);
       return `
         <div class="gd-player">
           <span class="gd-player-avatar-ring"><img class="gd-player-avatar" src="${esc(photo)}" alt=""></span>

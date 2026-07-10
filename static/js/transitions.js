@@ -45,10 +45,15 @@ function settledTransition() {
  * complete result (`.dissolving`). No raster is ever taken, so WebKit's
  * preserve-3d flattening (the Safari dice bug) can't occur, and the outgoing
  * overlay covers the board until the dice are rendered.
+ * `instant` skips the view transition and swaps synchronously. Use it for a
+ * screen whose first paint animates (e.g. the nearby radar's spinning sweep): a
+ * VT would snapshot the sweep at one angle, let the live animation advance
+ * during the cross-fade, then jump to the live angle at handoff — a visible
+ * flicker. A plain swap has no snapshot, so there's nothing to jump from.
  * @param {string} id Screen element id: 'loading' | 'landing' | 'join' | 'lobby' | 'game'.
- * @param {{ force?: boolean, staged?: boolean, onSwap?: () => void }} [options]
+ * @param {{ force?: boolean, staged?: boolean, instant?: boolean, onSwap?: () => void }} [options]
  */
-export function showScreen(id, { force = false, staged = false, onSwap } = {}) {
+export function showScreen(id, { force = false, staged = false, instant = false, onSwap } = {}) {
   const target = byId(id);
   // Reveal the fixed game-board background only on the game screen (see the
   // #game-bg layer in critical.css). Set before any early return so every
@@ -72,6 +77,9 @@ export function showScreen(id, { force = false, staged = false, onSwap } = {}) {
     // placed against the real rect) before the reveal.
     requestAnimationFrame(() => {
       const previous = /** @type {HTMLElement | null} */ (document.querySelector('.screen.active'));
+      // Let the outgoing screen tear down timers/listeners — the router toggles
+      // .active rather than removing screens, so disconnectedCallback never fires.
+      if (previous && previous !== target) /** @type {any} */ (previous).leave?.();
       document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
       target.classList.remove('staging');
       target.classList.add('active');
@@ -93,11 +101,14 @@ export function showScreen(id, { force = false, staged = false, onSwap } = {}) {
     return settledTransition();
   }
   const swap = () => {
+    const previous = /** @type {HTMLElement | null} */ (document.querySelector('.screen.active'));
+    // Give the outgoing screen a chance to clean up (see the staged branch).
+    if (previous && previous !== target) /** @type {any} */ (previous).leave?.();
     document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
     target.classList.add('active');
     onSwap?.();
   };
-  if (document.startViewTransition) {
+  if (!instant && document.startViewTransition) {
     const transition = document.startViewTransition(() => {
       // The 3-D dice must not be rasterized by the transition: WebKit flattens
       // preserve-3d in the new-view capture, stacking all six faces (every die

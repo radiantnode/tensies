@@ -8,12 +8,13 @@ test('join-error', async ({ page }) => {
   await page.goto('/');
   await page.waitForSelector('#landing.active');
   await page.click('#show-join-btn');
-  await page.waitForSelector('#join.active');
+  await page.waitForSelector('#join-sheet[open]');   // join is now a bottom sheet, not a #join screen
   await page.fill('#join-name-input', 'Alpha');
   await page.fill('#code-input', 'ZZZZZ');           // a code that doesn't exist
   await page.click('#join-form button[type="submit"]');
   await page.waitForFunction(() =>
     (document.getElementById('join-error')?.textContent || '').trim().length > 0);
+  await page.waitForSelector('#join-sheet[open]');   // the sheet reopens with the error
   await settle(page);
   await expect(page).toHaveScreenshot('join-error.png');
 });

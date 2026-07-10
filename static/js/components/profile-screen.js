@@ -1,5 +1,6 @@
 // @ts-check
 import './app-header.js';
+import { attachAvatarFallback, avatarSrc, DEFAULT_AVATAR } from '../avatars.js';
 import { getAuthUser } from '../auth.js';
 import { esc } from '../dom.js';
 import { showLanding, showGameDetail } from '../router.js';
@@ -27,7 +28,7 @@ export class ProfileScreen extends HTMLElement {
             </span>
             <span class="founding-word">Founding</span>
           </div>
-          <div class="profile-avatar-ring"><img class="profile-avatar" src="/static/images/avatar-default.svg" alt="" aria-hidden="true"></div>
+          <div class="profile-avatar-ring"><img class="profile-avatar" src="${DEFAULT_AVATAR}" alt="" aria-hidden="true"></div>
           <div class="founding-flank founding-flank--right" hidden>
             <span class="founding-word founding-word--roller">Roller</span>
             <span class="founding-stars" aria-hidden="true">
@@ -127,7 +128,10 @@ export class ProfileScreen extends HTMLElement {
     const avatar = /** @type {HTMLImageElement | null} */ (
       this.querySelector('.profile-avatar')
     );
-    if (avatar) avatar.src = data.profile_photo_url || '/static/images/avatar-default.svg';
+    if (avatar) {
+      avatar.src = avatarSrc(data.profile_photo_url);
+      attachAvatarFallback(avatar);
+    }
     // "Founding Roller" designation flanks the avatar for pre-cutoff accounts.
     const founding = data.founding_member === true;
     this.querySelectorAll('.founding-flank').forEach((el) => {
@@ -213,7 +217,7 @@ export class ProfileScreen extends HTMLElement {
               (/** @type {any} */ a, /** @type {any} */ b) => (b.wins || 0) - (a.wins || 0)
             );
             const unknownCount = Math.max(0, (r.player_count || 1) - 1 - opps.length);
-            const userPhoto = data.profile_photo_url || '/static/images/avatar-default.svg';
+            const userPhoto = avatarSrc(data.profile_photo_url);
             const mkAvatar = (/** @type {string} */ src, /** @type {string} */ name, /** @type {boolean} */ winner) =>
               `<span class="recent-avatar-ring${winner ? ' recent-avatar-winner' : ''}"><img class="recent-avatar" src="${esc(src)}" alt="${esc(name)}"></span>`;
             // Top opponent is the one with the most wins
@@ -221,11 +225,11 @@ export class ProfileScreen extends HTMLElement {
             const userWins = r.wins || 0;
             const userAv = mkAvatar(userPhoto, data.username, userWins >= topOppWins);
             const oppAvs = opps.map((/** @type {any} */ o, /** @type {number} */ i) =>
-              mkAvatar(o.photo || '/static/images/avatar-default.svg', o.name, i === 0 && (o.wins || 0) >= userWins)
+              mkAvatar(avatarSrc(o.photo), o.name, i === 0 && (o.wins || 0) >= userWins)
             );
             // Add placeholder avatars for opponents who never rolled
             for (let i = 0; i < unknownCount; i++) {
-              oppAvs.push(mkAvatar('/static/images/avatar-default.svg', 'opponent', false));
+              oppAvs.push(mkAvatar(DEFAULT_AVATAR, 'opponent', false));
             }
             // Most wins first
             const allAvatars = userWins >= topOppWins

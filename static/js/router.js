@@ -21,7 +21,7 @@ import { playIntro } from './video-intro.js';
  */
 
 /** @type {Record<string, string>} */
-const ROUTES = { '/': 'landing', '/join': 'join', '/signin': 'signin', '/welcome': 'onboarding', '/profile': 'profile', '/games': 'game-detail' };
+const ROUTES = { '/': 'landing', '/nearby': 'nearby', '/signin': 'signin', '/welcome': 'onboarding', '/profile': 'profile', '/games': 'game-detail' };
 
 // Monotonic navigation counter. enterFetched() defers its swap behind a fetch +
 // the loading-gate, so a later navigation can start before an earlier one
@@ -32,31 +32,41 @@ let navToken = 0;
 /**
  * Push (or replace) a history entry for `path` and show its screen.
  * @param {string} path
- * @param {{ replace?: boolean }} [options]
+ * @param {{ replace?: boolean, instant?: boolean }} [options]
  */
-export function navigate(path, { replace = false } = {}) {
+export function navigate(path, { replace = false, instant = false } = {}) {
   const id = ROUTES[path] ?? 'landing';
   history[replace ? 'replaceState' : 'pushState']({ id }, '', path);
-  return showScreen(id);
+  return showScreen(id, { instant });
+}
+
+/** The landing screen component (typed accessor for its join sheet + errors). */
+export function landing() {
+  return /** @type {import('./components/landing-screen.js').LandingScreen} */ (byId('landing'));
 }
 
 /**
- * Carry the name typed on the landing screen over to the join screen, then
- * focus the field the user still needs (code if a name is set, else the name).
- * Focus runs after the DOM swap (updateCallbackDone) — focus() during the
- * view transition gets dropped.
- * @param {{ updateCallbackDone: Promise<void> }} transition The join-swap transition handle.
+ * The nearby radar acquires GPS + fetches on `enter()` (it can't be prefetched
+ * behind loading). Kick that off once `transition` has swapped it in — shared by
+ * the /nearby navigation and Back/Forward activation onto it.
+ * @template T
+ * @param {T & {updateCallbackDone: Promise<unknown>}} transition
+ * @returns {T}
  */
-function carryNameAndFocus(transition) {
-  const name = /** @type {HTMLInputElement} */ (byId('name-input')).value.trim();
-  /** @type {HTMLInputElement} */ (byId('join-name-input')).value = name;
-  const focusId = name ? 'code-input' : 'join-name-input';
-  transition.updateCallbackDone.then(() => byId(focusId).focus());
+function enterNearbyAfter(transition) {
+  transition.updateCallbackDone.then(() => /** @type {any} */ (byId('nearby'))?.enter?.());
+  return transition;
 }
 
-/** Navigate to the join screen, carrying the typed name across. */
-export function showJoin() {
-  carryNameAndFocus(navigate('/join'));
+/**
+ * Show the landing screen and open its Join sheet (used by direct /join and
+ * /<CODE> URLs + Back/Forward onto them). `code` pre-fills the game code.
+ * @param {{ code?: string }} [opts]
+ */
+function openJoinOnLanding(opts = {}) {
+  const transition = showScreen('landing');
+  transition.updateCallbackDone.then(() => landing().openJoinSheet(opts));
+  return transition;
 }
 
 /** Navigate to the landing screen. */
@@ -71,6 +81,17 @@ export function showLanding() {
 /** Navigate to the sign-in screen. */
 export function showSignin() {
   return navigate('/signin');
+}
+
+/**
+ * Navigate to the nearby-games radar and (re)start location acquisition. The
+ * screen prompts for GPS + fetches on `enter()` — a plain snapshot-less swap,
+ * since discovery is permission-gated and can't be prefetched behind loading.
+ */
+export function showNearby() {
+  // Instant swap (no view transition): the radar's spinning sweep would flicker
+  // through a VT cross-fade — see showScreen's `instant`.
+  return enterNearbyAfter(navigate('/nearby', { instant: true }));
 }
 
 /**
@@ -126,6 +147,18 @@ function enterFetched(id, arg) {
 }
 
 /**
+ * Show a named (non-fetched) screen and run any per-screen activation. The
+ * nearby radar re-acquires GPS on `enter()` so a direct URL / Back-Forward
+ * lands the same as a tap on "Find Nearby Games".
+ * @param {string} id
+ */
+function activateNamed(id) {
+  // Nearby swaps instantly (no VT) so its spinning sweep doesn't flicker.
+  const transition = showScreen(id, { instant: id === 'nearby' });
+  return id === 'nearby' ? enterNearbyAfter(transition) : transition;
+}
+
+/**
  * Navigate to the onboarding screen and display the confirmed username.
  * @param {string} username
  * @param {object | null} [stats]
@@ -176,7 +209,18 @@ export function bootstrap({ resumeSession }) {
       enterFetched('profile', decodeURIComponent(profileMatch[1]));
       return;
     }
-    showScreen(ROUTES[location.pathname] ?? 'landing');
+    if (location.pathname === '/join') {
+      openJoinOnLanding();
+      return;
+    }
+    const backCode = location.pathname.match(/^\/([A-Z]{5})$/i)?.[1];
+    if (backCode) {
+      openJoinOnLanding({ code: backCode });
+      return;
+    }
+    const transition = activateNamed(ROUTES[location.pathname] ?? 'landing');
+    // Landing on any other screen dismisses a Join sheet left open on the landing.
+    transition.updateCallbackDone.then(() => landing().closeJoinSheet());
   });
   // Game detail URLs: /games/<code> → game-detail screen.
   const gameMatch = location.pathname.match(/^\/games\/(.+)$/);
@@ -195,7 +239,14 @@ export function bootstrap({ resumeSession }) {
   // stale reconnect attempt.
   const namedRoute = ROUTES[location.pathname];
   if (namedRoute && namedRoute !== 'landing') {
-    leaveLoading(() => showScreen(namedRoute));
+    leaveLoading(() => activateNamed(namedRoute));
+    return;
+  }
+  // /join → landing with the Join sheet open. Before the saved-session check so
+  // a direct /join isn't hijacked by a stale reconnect (matched the old named
+  // route's precedence).
+  if (location.pathname === '/join') {
+    leaveLoading(() => openJoinOnLanding());
     return;
   }
   if (hasSession()) {
@@ -205,9 +256,10 @@ export function bootstrap({ resumeSession }) {
   const pathCode = location.pathname.match(/^\/([A-Z]{5})$/i)?.[1];
   const joinCode = pathCode ?? new URLSearchParams(location.search).get('join');
   if (joinCode) {
-    history.replaceState({ id: 'join' }, '', '/');
-    /** @type {HTMLInputElement} */ (byId('code-input')).value = joinCode.toUpperCase();
-    leaveLoading(() => carryNameAndFocus(showScreen('join')));
+    // Keep a /<CODE> path in the address bar so a refresh re-opens the sheet;
+    // canonicalise the legacy ?join= form to /<CODE>.
+    if (!pathCode) history.replaceState({ id: 'landing' }, '', `/${joinCode.toUpperCase()}`);
+    leaveLoading(() => openJoinOnLanding({ code: joinCode }));
   } else {
     leaveLoading(() => showScreen('landing'));
   }

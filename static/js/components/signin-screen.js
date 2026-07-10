@@ -1,5 +1,6 @@
 // @ts-check
 import './app-header.js';
+import { DEFAULT_AVATAR } from '../avatars.js';
 import { byId } from '../dom.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
 import {
@@ -25,7 +26,7 @@ export class SigninScreen extends HTMLElement {
       <app-header></app-header>
       <div class="screen-body">
         <button id="signin-back-btn" type="button" class="btn-back">${BACK_BUTTON_HTML}</button>
-        <div class="profile-avatar-ring"><img class="profile-avatar" src="/static/images/avatar-default.svg" alt="" aria-hidden="true"></div>
+        <div class="profile-avatar-ring"><img class="profile-avatar" src="${DEFAULT_AVATAR}" alt="" aria-hidden="true"></div>
         <h1 id="signin-title" class="screen-title">Sign In</h1>
         <p class="tagline">Sign in or create an account</p>
         ${available ? `

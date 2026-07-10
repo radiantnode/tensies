@@ -48,7 +48,9 @@ test('lobby-3p', async ({ page }) => {
     players: roster(myPid, { alpha: [], bravo: [], cosmo: [] }),
   }), '#lobby.active');
   await settle(page);
-  await expect(page).toHaveScreenshot('lobby-3p.png');
+  // Mask the invite QR: it encodes the real (server-random) game code, so its
+  // module pattern varies run-to-run even though the displayed code is pinned.
+  await expect(page).toHaveScreenshot('lobby-3p.png', { mask: [page.locator('.qr-box')] });
 });
 
 test('game-board', async ({ page }) => {
@@ -99,7 +101,7 @@ test('lobby-solo', async ({ page }) => {
     round_num: 0, target: 1, players: { [myPid]: mk('Alpha') },
   }), '#lobby.active');
   await settle(page);
-  await expect(page).toHaveScreenshot('lobby-solo.png');
+  await expect(page).toHaveScreenshot('lobby-solo.png', { mask: [page.locator('.qr-box')] });
 });
 
 test('lobby-guest', async ({ page }) => {
@@ -111,7 +113,7 @@ test('lobby-guest', async ({ page }) => {
     players: { guest_alpha: mk('Alpha'), [myPid]: mk('Bravo'), guest_cosmo: mk('Cosmo') },
   }), '#lobby.active');
   await settle(page);
-  await expect(page).toHaveScreenshot('lobby-guest.png');
+  await expect(page).toHaveScreenshot('lobby-guest.png', { mask: [page.locator('.qr-box')] });
 });
 
 test('lobby-5p', async ({ page }) => {
@@ -124,7 +126,7 @@ test('lobby-5p', async ({ page }) => {
     },
   }), '#lobby.active');
   await settle(page);
-  await expect(page).toHaveScreenshot('lobby-5p.png');
+  await expect(page).toHaveScreenshot('lobby-5p.png', { mask: [page.locator('.qr-box')] });
 });
 
 test('game-menu-open', async ({ page }) => {
@@ -323,7 +325,8 @@ test('fatal-error', async ({ page }) => {
       (err?.textContent || '').trim().length > 0;
   });
   await settle(page);
-  await expect(page).toHaveScreenshot('fatal-error.png');
+  // Bounced back to the landing, whose join-code scrambles on a timer — mask it.
+  await expect(page).toHaveScreenshot('fatal-error.png', { mask: [page.locator('.join-code')] });
 });
 
 // ── Sub-states: player-card variants, paused roll button, every target die ──
