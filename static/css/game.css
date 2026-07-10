@@ -198,6 +198,13 @@
     text-shadow: 0 0 6px rgba(255, 186, 102, 0.4), 0 1px 2px rgba(0, 0, 0, 0.85);
     cursor: pointer;
     touch-action: manipulation;
+    /* Mashing the button spaces some taps past the JS double-tap guard's
+       300ms window; iOS then pairs them as a word-select on the "Roll" label
+       and pops the selection/callout menu. Suppress it the same way the dice
+       zones do. */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
     transition: transform 0.07s ease, box-shadow 0.07s ease, background 0.07s ease;
