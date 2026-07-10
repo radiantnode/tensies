@@ -2,6 +2,15 @@
 
 Pull up a stool. Newest stuff up top.
 
+## 1.28.0 ("House Regular")
+
+Friday, July 10, 2026
+
+- Check in at your spot and your game stamp earns a badge for it, a little "Checked In" mark with the place's name stamped right on. Everyone in the game sees it, host or not. 🍺
+- Tried to hop back into a game that already wrapped? No more scary "Connection failed." It just says the game's gone and sends you home.
+- The roll button quit throwing that annoying iOS text-select menu every time you mashed it mid-round.
+- _Behind the scenes: we pulled in the latest updates for the parts under the hood, so the app stays quick and secure._
+
 ## 1.27.0 ("New Digs")
 
 Thursday, July 9, 2026

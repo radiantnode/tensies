@@ -11,6 +11,14 @@ const A2HS_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 
 // Baked changelog HTML — content, not code; the changelog skill regenerates it.
 const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
+<h2>1.28.0 ("House Regular")</h2>
+<p>Friday, July 10, 2026</p>
+<ul>
+<li>Check in at your spot and your game stamp earns a badge for it, a little "Checked In" mark with the place's name stamped right on. Everyone in the game sees it, host or not. 🍺</li>
+<li>Tried to hop back into a game that already wrapped? No more scary "Connection failed." It just says the game's gone and sends you home.</li>
+<li>The roll button quit throwing that annoying iOS text-select menu every time you mashed it mid-round.</li>
+<li><em>Behind the scenes: we pulled in the latest updates for the parts under the hood, so the app stays quick and secure.</em></li>
+</ul>
 <h2>1.27.0 ("New Digs")</h2>
 <p>Thursday, July 9, 2026</p>
 <ul>
