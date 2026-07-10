@@ -11,6 +11,36 @@ const A2HS_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 
 // Baked changelog HTML — content, not code; the changelog skill regenerates it.
 const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
+<h2>1.27.0 ("New Digs")</h2>
+<p>Thursday, July 9, 2026</p>
+<ul>
+<li>We gave the landing a proper makeover. New layout down low where your thumb lives, a greeting that knows whether it's morning or last call, and headings in a classier serif.</li>
+<li>Joining a game pops up as a little slide-up sheet now instead of a whole new screen. The Join button even shuffles a fake code just for the fun of it. 🎲</li>
+<li>The Nearby Games radar reads cleaner: a nicer compass button, and the sweep glides in smooth instead of stuttering on the way up.</li>
+<li>Menus ease in now, and hammering the menu button won't break it anymore.</li>
+<li><em>Behind the scenes: we combed every screen pixel by pixel and swatted a sneaky randomness bug, so the dice always scatter fair.</em></li>
+</ul>
+<h2>1.26.0 ("Gold Leaf")</h2>
+<p>Wednesday, July 8, 2026</p>
+<ul>
+<li>The Tensies name up top went gold, the dice got a little bigger, and the main buttons picked up the same gold with a brushed-metal sheen. ✨</li>
+<li><em>Behind the scenes: we're paying closer attention to where games get played, so Nearby keeps getting sharper about the crowd.</em></li>
+</ul>
+<h2>1.25.0 ("Hand Stamp")</h2>
+<p>Tuesday, July 7, 2026</p>
+<ul>
+<li>Your game code sits in the lobby as an old-timey stamp now. Tap it and it blows up huge, so someone across the bar can scan it and hop in.</li>
+<li>Checking in to a spot got smoother. Search for a place, glance at its photo, and the sheet tucks up neat above your keyboard.</li>
+<li>Nearby is one clean flow now: pick your spot, and you're on the map. 📍</li>
+</ul>
+<h2>1.24.0 ("Bar Crawl")</h2>
+<p>Monday, July 6, 2026</p>
+<ul>
+<li>You can find games happening right around you now. A radar plots them by direction and distance, with a compass that spins as you turn. 📡</li>
+<li>Hosts can check a game in to a real place, your bar say, so friends nearby can spot it and wander over.</li>
+<li>Every blip wears the host's face, and a tap drops you straight into their game.</li>
+<li><em>Behind the scenes: your exact spot never leaves your phone. Friends only ever see rough distance and direction.</em></li>
+</ul>
 <h2>1.23.0 ("Regular's Tab")</h2>
 <p>Sunday, July 5, 2026</p>
 <ul>

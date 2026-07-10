@@ -2,6 +2,40 @@
 
 Pull up a stool. Newest stuff up top.
 
+## 1.27.0 ("New Digs")
+
+Thursday, July 9, 2026
+
+- We gave the landing a proper makeover. New layout down low where your thumb lives, a greeting that knows whether it's morning or last call, and headings in a classier serif.
+- Joining a game pops up as a little slide-up sheet now instead of a whole new screen. The Join button even shuffles a fake code just for the fun of it. 🎲
+- The Nearby Games radar reads cleaner: a nicer compass button, and the sweep glides in smooth instead of stuttering on the way up.
+- Menus ease in now, and hammering the menu button won't break it anymore.
+- _Behind the scenes: we combed every screen pixel by pixel and swatted a sneaky randomness bug, so the dice always scatter fair._
+
+## 1.26.0 ("Gold Leaf")
+
+Wednesday, July 8, 2026
+
+- The Tensies name up top went gold, the dice got a little bigger, and the main buttons picked up the same gold with a brushed-metal sheen. ✨
+- _Behind the scenes: we're paying closer attention to where games get played, so Nearby keeps getting sharper about the crowd._
+
+## 1.25.0 ("Hand Stamp")
+
+Tuesday, July 7, 2026
+
+- Your game code sits in the lobby as an old-timey stamp now. Tap it and it blows up huge, so someone across the bar can scan it and hop in.
+- Checking in to a spot got smoother. Search for a place, glance at its photo, and the sheet tucks up neat above your keyboard.
+- Nearby is one clean flow now: pick your spot, and you're on the map. 📍
+
+## 1.24.0 ("Bar Crawl")
+
+Monday, July 6, 2026
+
+- You can find games happening right around you now. A radar plots them by direction and distance, with a compass that spins as you turn. 📡
+- Hosts can check a game in to a real place, your bar say, so friends nearby can spot it and wander over.
+- Every blip wears the host's face, and a tap drops you straight into their game.
+- _Behind the scenes: your exact spot never leaves your phone. Friends only ever see rough distance and direction._
+
 ## 1.23.0 ("Regular's Tab")
 
 Sunday, July 5, 2026
