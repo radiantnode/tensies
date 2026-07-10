@@ -233,6 +233,68 @@
     height: 100%;
   }
 
+  /* Check-in cachet: a rubber-stamp overprint slammed onto the stamp when the
+     game is checked in to a place. Absolutely positioned over .main so it never
+     reflows the engraving; transparent interior (paper/QR show through) with a
+     double ink rule from two inset shadows. Everything in --u so it scales with
+     the stamp, and --ink/--paper so it re-tints with the edition. */
+  .stamp .checkin {
+    position: absolute;
+    left: 43%;
+    bottom: calc(var(--u) * -6);
+    transform: translateX(-50%) rotate(-4.5deg);
+    transform-origin: center center;
+    z-index: 3;
+    width: fit-content;
+    max-width: calc(var(--u) * 168);
+    padding: calc(var(--u) * 3.5) calc(var(--u) * 11) calc(var(--u) * 4);
+    border: calc(var(--u) * 1.6) solid var(--ink);
+    box-shadow: inset 0 0 0 calc(var(--u) * 1.2) var(--paper),
+                inset 0 0 0 calc(var(--u) * 2.4) var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(var(--u) * 1.5);
+    color: var(--ink);
+    opacity: 0.96;
+    animation: checkin-slam 0.34s cubic-bezier(0.55, 0, 0.85, 0.35) both;
+  }
+  @keyframes checkin-slam {
+    0%   { transform: translateX(-50%) rotate(-4.5deg) scale(2.7); opacity: 0; }
+    55%  { opacity: 1; }
+    100% { transform: translateX(-50%) rotate(-4.5deg) scale(1); opacity: 0.96; }
+  }
+  .stamp .checkin-top {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--u) * 5);
+    font-family: 'Rye', serif;
+    font-size: calc(var(--u) * 5.5);
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+  .stamp .checkin-top::before,
+  .stamp .checkin-top::after {
+    content: "";
+    width: calc(var(--u) * 13);
+    height: calc(var(--u) * 1.2);
+    background: var(--ink);
+  }
+  .stamp .checkin-name {
+    font-family: 'Rye', serif;
+    font-size: calc(var(--u) * 14);
+    line-height: 1;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    max-width: calc(var(--u) * 142);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 calc(var(--u) * 1) 0 rgba(255, 255, 255, 0.3);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .stamp .checkin { animation: none; }
+  }
+
   /* Caption under the collapsed stamp; fades out while enlarged. */
   .enlarge-hint {
     margin-block-start: 16px;
@@ -253,6 +315,16 @@
   /* Enlarged presentation lives in a modal <dialog> (top layer): the ::backdrop
      is the scrim, and the animated clone + close hint are position:fixed inside,
      so they escape the lobby's clipping and stacking entirely. */
+  /* The enlarged stamp is a top-layer modal <dialog>, so no z-index can push the
+     portrait-only orientation guard above it. In the guard's landscape range,
+     hide the zoom + its scrim so the guard shows over a clean lobby; the dialog
+     stays OPEN, so rotating back to portrait restores the full-screen stamp
+     exactly where it was. Mirrors .rotate-overlay's query in critical.css. */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .stamp-zoom[open],
+    .stamp-zoom[open]::backdrop { display: none; }
+  }
+
   .stamp-zoom {
     margin: 0;
     padding: 0;

@@ -21,6 +21,10 @@ export class LobbyStamp extends HTMLElement {
   /** @type {string} last QR source applied to the img (compared directly, not
    *  via img.src whose data-URL read-back can defeat a string guard). */
   #qrSrc = '';
+  /** @type {string} last venue name applied to the check-in cachet. Guards the
+   *  slam animation so it only replays when the place actually changes, not on
+   *  every WS frame (renders fire on any roster change). */
+  #checkInName = '';
 
   connectedCallback() {
     if (this.dataset.rendered) return;
@@ -88,8 +92,10 @@ export class LobbyStamp extends HTMLElement {
   /**
    * Fill the dynamic fields for a game code.
    * @param {string} code the join code (serial + QR payload)
+   * @param {string} [placeName] venue the game is checked in to; the check-in
+   *   cachet is shown when non-empty, hidden (identical to before) when not.
    */
-  update(code) {
+  update(code, placeName = '') {
     const serial = this.querySelector('.serial');
     if (serial) serial.textContent = code;
     const date = this.querySelector('.stamp-date');
@@ -101,6 +107,28 @@ export class LobbyStamp extends HTMLElement {
       const src = state.qr || `/api/qr/${code}.svg`;
       if (src !== this.#qrSrc) { qr.src = src; this.#qrSrc = src; }
     }
+    this.#syncCheckIn(placeName);
+  }
+
+  /**
+   * Mount / update / remove the check-in cachet over the stamp's center column.
+   * Rebuilds the node (rather than patching text) only when the venue changes so
+   * the CSS slam animation replays exactly on a new check-in and stays put on
+   * unrelated re-renders.
+   * @param {string} placeName venue name, or empty when not checked in
+   */
+  #syncCheckIn(placeName) {
+    const name = (placeName || '').trim();
+    if (name === this.#checkInName) return;
+    this.#checkInName = name;
+    const main = this.querySelector('.main');
+    main?.querySelector('.checkin')?.remove();
+    if (!name || !main) return;
+    const el = document.createElement('div');
+    el.className = 'checkin';
+    el.innerHTML = '<div class="checkin-top">Checked In</div><div class="checkin-name"></div>';
+    /** @type {HTMLElement} */ (el.querySelector('.checkin-name')).textContent = name;
+    main.appendChild(el);
   }
 
   /** Morph a clone of the stamp up to the centred, rotated full-screen view. */
@@ -118,6 +146,10 @@ export class LobbyStamp extends HTMLElement {
     const cy = r.top + r.height / 2;
 
     const clone = /** @type {HTMLElement} */ (stamp.cloneNode(true));
+    // The clone is a fresh node, so its check-in cachet would replay the slam
+    // animation on mount. The slam is a check-in event, not an enlarge one —
+    // kill it so the cachet just rides along in its resting state.
+    /** @type {HTMLElement | null} */ (clone.querySelector('.checkin'))?.style.setProperty('animation', 'none');
     // Pin the clone's size to the live stamp (its --u is container-relative, but
     // the clone lives in the top layer with no container).
     clone.style.setProperty('--u', `${ow / 346}px`);

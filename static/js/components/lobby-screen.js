@@ -271,8 +271,9 @@ export class LobbyScreen extends HTMLElement {
     }
 
     state.gameCode = snap.code;
-    // Fill the stamp's serial, QR, and date from the join code.
-    /** @type {any} */ (this.querySelector('lobby-stamp'))?.update(snap.code);
+    // Fill the stamp's serial, QR, and date from the join code, plus the
+    // check-in cachet when the game is checked in to a place.
+    /** @type {any} */ (this.querySelector('lobby-stamp'))?.update(snap.code, snap.place_name ?? '');
 
     const list = this.#list;
     if (!list) return;
