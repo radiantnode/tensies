@@ -41,14 +41,23 @@ function send(action, extra = {}) {
   state.ws?.send(JSON.stringify({ action, ...extra }));
 }
 
-/** The saved session is unusable — forget it and land on landing with the reason. */
-function expireSession() {
+/**
+ * The saved session can't be resumed — forget it and return to landing.
+ * `reason` surfaces as a landing error only for a genuine transport failure
+ * (we never reached the server for the whole window). When the server rejects
+ * the resume because the game is simply gone — you left an unpaused game, or
+ * created a lobby you never started and it was reaped — the connection worked
+ * fine, so we land quietly rather than flashing a misleading "Connection
+ * failed" banner.
+ * @param {string} [reason]
+ */
+function expireSession(reason) {
   state.reconnecting = false;
   clearSession();
   state.currentState = null;
   leaveLoading(() => {
     showScreen('landing');
-    landing().showError('Connection failed');
+    if (reason) landing().showError(reason);
   });
 }
 
@@ -81,7 +90,8 @@ export function maybeReconnect() {
  */
 function attemptReconnect(playerId, gameCode, deadline) {
   if (Date.now() > deadline) {
-    expireSession();
+    // Ran the whole window without ever reaching the server: a real failure.
+    expireSession('Connection failed');
     return;
   }
   const { token } = readSession();
@@ -95,6 +105,8 @@ function attemptReconnect(playerId, gameCode, deadline) {
     const msg = /** @type {ServerMessage} */ (JSON.parse(event.data));
     if (msg.type === 'welcome') return;
     if (msg.type === 'error') {
+      // The server reached us and declined the resume (the game is gone).
+      // That's an expected end-of-session, not a connection error — land quietly.
       ws.close();
       expireSession();
       return;
