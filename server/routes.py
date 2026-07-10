@@ -244,7 +244,7 @@ async def api_nearby(request: Request, lat: float, lon: float) -> dict:
     cards = await asyncio.gather(*(gamestore.discovery_card(code) for code, *_ in hits))
     bucket = max(1, DISCOVERY_DISTANCE_BUCKET_M)
     games = []
-    for (code, dist, plon, plat), card in zip(hits, cards):
+    for (code, dist, plon, plat), card in zip(hits, cards, strict=True):
         # Skip a game that started or vanished between GEOADD and this read.
         if card is None or card["started"]:
             continue

@@ -24,7 +24,6 @@ import httpx
 import jwt
 
 from . import gamestore
-from .telemetry import metrics
 from .config import (
     GOOGLE_APPLICATION_CREDENTIALS,
     GOOGLE_CLOUD_PROJECT,
@@ -36,6 +35,7 @@ from .config import (
     PLACES_RADIUS_M,
     PLACES_SEARCH_RADIUS_M,
 )
+from .telemetry import metrics
 
 log = logging.getLogger("tensies.places")
 
