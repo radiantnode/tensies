@@ -18,11 +18,11 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* Bleed ~12px into the lobby's side padding so the stamp runs a bit wider
-       than the other content while keeping a gutter (no edge-touch on small
-       phones — the gutter, not the cap, sets the side margin). */
-    inline-size: calc(100% + 1.5rem);
-    margin-inline: -0.75rem;
+    /* Near the screen edges: eat most of the lobby's 1.5rem side padding, but
+       leave a small gutter each side so the stamp breathes and the perforated
+       edge isn't clipped. */
+    inline-size: calc(100% + 1.8rem);
+    margin-inline: -0.9rem;
     container-type: inline-size;
   }
 
@@ -32,15 +32,20 @@
     cursor: pointer;
     transform: rotate(-2.2deg);
     margin-inline: auto;
-    /* --u is one design unit, capped three ways:
-       - 1.1px       — max size on wide/tall screens (346 × 1.1 ≈ 380px)
-       - 0.28902cqw  — fill the slot width fluidly (≈1px per 346px of width)
+    /* --u is one design unit driving the stamp's HEIGHT and every engraving
+       detail (border thickness, perforation pitch, panel width, font sizes),
+       capped three ways:
+       - 1.1px       — max detail size on wide/tall screens
+       - 0.28902cqw  — track the slot width so detail stays proportional
        - 0.12svh     — shrink on SHORT viewports so the stamp doesn't crowd the
                        column (svh is full-height in a PWA but smaller in Safari,
                        where the browser chrome eats vertical space; also shrinks
                        on shorter phones). Lower the 0.12 to shrink more. */
     --u: min(1.1px, 0.28902cqw, 0.12svh);
-    width: calc(var(--u) * 346);
+    /* Width is decoupled from --u: the stamp fills the slot (reaching near the
+       screen edges) while --u keeps the height fixed, so it can be wider than
+       the native 346u without getting any taller. */
+    width: 100%;
     --ink: #b8442a;
     --ink-soft: rgba(184, 68, 42, 0.5);
     --paper: #f3e6ce;
