@@ -86,19 +86,79 @@ const ANYTIME = [
 ];
 
 /**
+ * Same greetings, but for a signed-in regular the bar knows by name. Same
+ * Southern, time-of-day voice as the guest set; each line carries a `{name}`
+ * token filled with the account's username.
+ * @type {Record<'morning'|'afternoon'|'evening'|'night', string[]>}
+ */
+const SIGNED_IN_GREETINGS = {
+  morning: [
+    "Mornin', {name}.",
+    "Look who's up, {name}.",
+    "Coffee's on, {name}.",
+    "Early bird, {name}?",
+    "Rise and shine, {name}.",
+    "Mornin', {name}, sugar.",
+    "You're up early, {name}.",
+  ],
+  afternoon: [
+    "Afternoon, {name}.",
+    "Back for more, {name}?",
+    "Well, if it ain't {name}.",
+    "Good to see ya, {name}.",
+    "Pull up a stool, {name}.",
+    "Afternoon, {name}, partner.",
+    "Perfect timing, {name}.",
+  ],
+  evening: [
+    "Evenin', {name}.",
+    "There's {name}.",
+    "Look what the night dragged in, {name}.",
+    "Usual stool's open, {name}.",
+    "Welcome back, {name}.",
+    "Evenin', {name}, darlin'.",
+    "First round's on you, {name}.",
+  ],
+  night: [
+    "Still up, {name}?",
+    "Night owl, {name}?",
+    "The usual, {name}?",
+    "Last call, {name}. Kidding.",
+    "Burnin' the midnight oil, {name}?",
+    "You don't have to go home, {name}.",
+    "Closin' it down, {name}?",
+  ],
+};
+
+/** Name-forward regulars that fit any hour (signed in). */
+const SIGNED_IN_ANYTIME = [
+  "Welcome back, {name}.",
+  "There's my regular, {name}.",
+  "Well, if it ain't {name}.",
+  "Good to see ya, {name}.",
+];
+
+/**
  * Pick a random greeting for the given moment (defaults to now, local time).
- * Fresh on every call — nothing cached.
+ * Fresh on every call — nothing cached. Pass a `name` to greet a signed-in
+ * regular by name (Southern-bar voice, same time buckets); omit it for the
+ * generic guest greeting.
  * @param {Date} [now]
+ * @param {string} [name] account username; when set, picks the signed-in pool
  * @returns {string}
  */
-function pickGreeting(now = new Date()) {
+function pickGreeting(now = new Date(), name = '') {
   const h = now.getHours();
   const bucket =
     h >= 5 && h < 11 ? 'morning' :
     h >= 11 && h < 17 ? 'afternoon' :
     h >= 17 && h < 22 ? 'evening' : 'night';
-  const pool = GREETINGS[bucket].concat(ANYTIME);
-  return pool[Math.floor(Math.random() * pool.length)];
+  const signedIn = name.length > 0;
+  const table = signedIn ? SIGNED_IN_GREETINGS : GREETINGS;
+  const anytime = signedIn ? SIGNED_IN_ANYTIME : ANYTIME;
+  const pool = table[bucket].concat(anytime);
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  return signedIn ? pick.replace('{name}', name) : pick;
 }
 
 /**
@@ -112,11 +172,13 @@ export class LandingScreen extends HTMLElement {
     this.id = 'landing';
     this.className = 'screen landing-screen';
     this.setAttribute('aria-label', 'Tensies');
-    const greeting = pickGreeting();
+    // The greeting is filled by refreshAuth() below — the single place that
+    // knows whether to greet a guest or a signed-in regular by name — so the
+    // pick happens exactly once, guest or signed-in.
     this.innerHTML = `
       <app-header></app-header>
       <div class="screen-body">
-        <h1 class="screen-title landing-greeting">${greeting}</h1>
+        <h1 class="screen-title landing-greeting"></h1>
         <form id="landing-form" class="form-stack" autocomplete="off" novalidate>
           <p class="field-hint">Play with any name, or <a id="signup-link" class="field-hint-link" href="/signin">sign up</a> to keep your stats.</p>
           <input id="name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20" autocomplete="off">
@@ -348,6 +410,12 @@ export class LandingScreen extends HTMLElement {
     const nameLabel = /** @type {HTMLElement | null} */ (this.querySelector('.field-hint'));
     if (nameInput) nameInput.hidden = !!user;
     if (nameLabel) nameLabel.hidden = !!user;
+
+    // Greet a signed-in regular by name; a guest gets the generic greeting.
+    // Sole greeting pick (guest or signed-in) — keeps one Math.random per render
+    // and swaps correctly if the user signs out here.
+    const greetingEl = /** @type {HTMLElement | null} */ (this.querySelector('.landing-greeting'));
+    if (greetingEl) greetingEl.textContent = pickGreeting(new Date(), user?.username);
 
     const header = this.querySelector('app-header');
     if (!header) return;
