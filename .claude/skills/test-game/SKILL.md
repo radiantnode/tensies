@@ -155,6 +155,8 @@ If the check fails, stop and report — no point running the browser suite again
 
 ## Step 2 — Landing screen (open both instances)
 
+**Set the mobile viewport FIRST — before any `browser_navigate`.** Tensies is mobile-only; never drive it at desktop width. Resize **both** instances to **390×844** (`mcp__playwright__browser_resize` + `mcp__playwright-guest__browser_resize`, width 390, height 844) as the very first browser action of the run. Caveat: the MCP fixes device-scale at 1×, so `window.devicePixelRatio` stays 1 — the 390 CSS width is what drives layout and media-queries (correct), and screenshots simply raster at 1× rather than the pixel harness's 2×. If you navigate before resizing, every screenshot up to that point is desktop-width and must be re-captured — so resize first.
+
 Navigate **instance #1** (`mcp__playwright__browser_navigate → http://localhost:8888/`) — Player 1 / host (Alpha). Also navigate **instance #2** (`mcp__playwright-guest__browser_navigate → http://localhost:8888/`) now so both browsers are warm; Player 2 / guest (Beta) lives there for the rest of the suite. The two navigations are independent — issue them in parallel.
 
 **Expect a one-retry relaunch.** If an instance's browser was closed since a prior session, the first `browser_navigate` errors with "Target page, context or browser has been closed". This is normal — the MCP relaunches the browser on the call; re-issue the same `browser_navigate` once and it succeeds. Only treat it as a failure if the *retry* also errors.
@@ -177,10 +179,14 @@ In Tab 1:
 2. Submit the landing form: click `#landing-form button[type="submit"]` (or call `document.getElementById('landing-form').requestSubmit()` via `evaluate`). The "Create Game" button itself has no `id`; it's identified by being the form's submit button.
 
 Wait for `#lobby` screen to become `.active`. Then:
-- Read the game code from `#lobby-code` — store it as `GAME_CODE`
-- Verify `#lobby-players` contains "Alpha" and a HOST badge
-- Verify `#start-btn` is visible (you are the host)
-- Verify `#waiting-msg` says something about "solo" or "Invite" (only 1 player)
+- Read the game code via `evaluate` (`() => _state.gameCode`) — store it as `GAME_CODE`. (The old `#lobby-code` box was replaced by the `<lobby-stamp>` graphic; its `.serial` also shows the code.)
+- Verify the invite stamp rendered with an **inline** QR: the `<lobby-stamp> .qr` `<img>` has a non-empty `src` that starts with `data:` (the QR is sent inline with the join — no `/api/qr` fetch/flicker), and `.serial` text equals `GAME_CODE`:
+  ```js
+  () => { const img = document.querySelector('lobby-stamp .qr'); return { src: img?.getAttribute('src')?.slice(0, 15), serial: document.querySelector('lobby-stamp .serial')?.textContent }; }
+  ```
+  Expect `src` to begin `data:image/svg` and `serial` to equal `GAME_CODE`.
+- `#lobby-players` ("Fellow Bar Rats") lists *other* players only, so for a solo host it is **empty** and `#lobby-solo-hint` ("Invite friends or play solo!") is **visible** (`hidden` attribute absent).
+- Verify `#start-btn` is visible (you are the host) and `#lobby-title` reads "Waiting for players…".
 
 Take screenshot **`.playwright-mcp/03-lobby-host.png`**.
 
@@ -201,14 +207,14 @@ Verify:
 
 Type `Beta` into `#join-name-input`, then submit the join form (`#join-form button[type="submit"]`).
 
-Wait for `#lobby` to become active. Verify:
-- Both "Alpha" and "Beta" appear in `#lobby-players`
-- Beta sees `#waiting-msg` = "Waiting for the host to start…"
-- Start button is hidden for Beta
+Wait for `#lobby` to become active. Verify on Tab 2 (Beta's view — the list shows *other* players, so Beta sees Alpha):
+- `#lobby-players` contains "Alpha" with a HOST badge
+- `#lobby-title` reads "Waiting for host to start…"
+- `#start-btn` is hidden for Beta
 
-On Tab 1, verify the lobby synced:
-- Beta now appears in the lobby player list
-- `#waiting-msg` is now empty (2 players — no longer "invite friends")
+On Tab 1, verify the lobby synced (Alpha's view shows *others*, so Alpha sees Beta):
+- `#lobby-players` now contains "Beta"
+- `#lobby-solo-hint` is now hidden (2 players — no longer solo)
 
 Take screenshot **`.playwright-mcp/04-lobby-both.png`**.
 
@@ -387,6 +393,8 @@ Then drive the round to a win with the **`rollUntil` helper** (from the `game-ha
 ```
 
 A `reason` of `roll-timeout` here is the roll-ack hang; `max-rolls` means 60 rolls didn't finish the round. Don't reintroduce a `click(); sleep(N)` loop.
+
+**Keep the capture fire-and-forget; never await across the win.** The pattern above works because the `MutationObserver` writing `window._winnerCapture` is installed separately (it persists) and `rollUntil()` resolves at *target-met* — just **before** the round-won overlay and the 3 s-later round-advance. Do **not** collapse this into a single `browser_evaluate` promise that awaits the overlay opening or closing: that promise spans the round-advance **View Transition** (`showScreen`), and Playwright then errors `Execution context was destroyed, most likely because of a navigation`. It is *not* a game reload — the page context survives (`_state` is intact on the very next call); only Playwright's long-promise binding is lost. If you ever need the overlay contents after the fact, just read the `#winner-overlay` DOM in a short follow-up call — the banner/name/round text is **retained after the dialog closes**. (Steps 13 and 22 use the same fire-and-forget-then-poll shape for exactly this reason.)
 
 When `rollUntil` resolves, read `window._winnerCapture`. Verify:
 - `winnerName` contains "Alpha"
@@ -750,6 +758,14 @@ return { authenticatorId };
 
 Once installed, `navigator.credentials.create()` and `navigator.credentials.get()` work transparently — the browser routes them to the virtual authenticator instead of prompting for biometrics. The authenticator auto-approves (no user interaction dialog), so the test can drive the sign-up and sign-in buttons without blocking.
 
+**The dev stack defaults `WEBAUTHN_RP_ID` to `tensies.app`** (`docker-compose.yml`, for the Cloudflare tunnel to `dev.tensies.app`), so the virtual authenticator on `localhost` is rejected — the ceremony fails with *"The relying party ID is not a registrable domain suffix of … the current domain."* Recreate `web` with a `localhost` RP just for the auth steps:
+
+```bash
+WEBAUTHN_RP_ID=localhost docker compose up -d web   # temporary — see the restore below
+```
+
+**⚠️ This temporarily changes the dev RP away from `tensies.app`, which breaks passkeys over the Cloudflare `dev.tensies.app` tunnel.** So: don't run the suite while actively using `dev.tensies.app` for passkeys, and **restore the default immediately after Step 29** (a plain `docker compose up -d web` — with no inline `WEBAUTHN_RP_ID` — resets it to the `tensies.app` default). Step 34's dev restore also resets it, but a run that aborts between here and Step 34 would leave dev on the `localhost` RP until the next plain `up -d web`, so do the explicit restore in Step 29 and don't rely on Step 34.
+
 **Install the virtual authenticator on both instances at the start of Step 24**, before any auth interaction. It persists for the life of the CDP session (i.e., the browser instance). If `browser_run_code_unsafe` is unavailable or errors on the CDP call, fall back to **JWT injection** as a degraded path:
 
 ```js
@@ -800,7 +816,7 @@ Then navigate instance #1 to the signin screen. The entry point is the nav menu:
 
 Verify on the signin screen:
 - `#username-input` is visible
-- `#signup-btn` ("Sign Up") and `#signin-btn` ("Sign In") are both visible and enabled
+- `#auth-submit-btn` ("Sign In / Sign Up") is visible and enabled. (The screen was unified to a single button — `signInOrUp()` tries `loginPasskey`, and on a 404 falls back to `registerPasskey`, so one button both signs in existing accounts and registers new ones. There are no longer separate `#signup-btn`/`#signin-btn`.)
 - `#signin-error` is empty
 - The back button (`#signin-back-btn`) is present
 
@@ -813,7 +829,7 @@ Take screenshot **`.playwright-mcp/24-signin.png`**.
 On instance #1 (signin screen with virtual authenticator installed):
 
 1. Type `TestAlpha` into `#username-input`.
-2. Click `#signup-btn` (the "Sign Up" submit button).
+2. Submit the form (click `#auth-submit-btn`). `TestAlpha` doesn't exist yet, so `signInOrUp` gets a 404 from `loginPasskey` and falls through to `registerPasskey` — the sign-up path.
 
 The virtual authenticator auto-approves the `navigator.credentials.create()` call. The client sends the attestation to `/auth/register/verify`, the server verifies it with `py_webauthn`, creates the user in Postgres, and returns a JWT.
 
@@ -835,7 +851,7 @@ Expect `saved: true`, `username: 'TestAlpha'`, `hasExp: true`.
 
 Verify the user was created in Postgres:
 ```bash
-docker compose exec -T postgres psql -U tensies -tA -c "SELECT username FROM users WHERE username_lower = 'testalpha'"
+docker compose exec -T postgres psql -U tensies -tA -c "SELECT username FROM users WHERE lower(username) = 'testalpha'"
 ```
 Expect output: `TestAlpha`.
 
@@ -948,7 +964,7 @@ Take screenshot **`.playwright-mcp/28-signed-out.png`**.
 Still on instance #1 with the virtual authenticator active. Navigate to the signin screen again (hamburger → sign in link).
 
 1. Type `TestAlpha` into `#username-input`.
-2. Click `#signin-btn` (the "Sign In" button, **not** Sign Up).
+2. Submit the form (click `#auth-submit-btn`). `TestAlpha` now exists, so `signInOrUp` takes the `loginPasskey` path — the sign-in branch.
 
 The virtual authenticator auto-approves `navigator.credentials.get()`. The server verifies the assertion against the stored credential and returns a fresh JWT.
 
@@ -965,15 +981,18 @@ Verify signed-in state is restored:
 
 Expect: `nameHidden: true`, `usernamePill: '@TestAlpha'`, `token: true`.
 
-**Negative check — wrong username:**
-Navigate to signin again. Type `NonexistentUser` into `#username-input`, click `#signin-btn`. Verify `#signin-error` contains "No account with that username" (the 404 from `/auth/login/options`). Navigate back to landing.
-
-**Negative check — duplicate registration:**
-Navigate to signin again. Type `TestAlpha` into `#username-input`, click `#signup-btn` (Sign Up, not Sign In). Verify `#signin-error` contains "Username already taken" (the 409 from `/auth/register/options`). Navigate back to landing.
+**Negative check — invalid username (client-side).** The old "wrong username" and "duplicate registration" negatives no longer apply: with one unified button a nonexistent name auto-registers (no "No account" error) and an existing name just signs in (no "Username already taken" error). What remains is the client-side `validateUsername` guard. Navigate to signin again, clear `#username-input` (leave it empty), and submit `#auth-submit-btn`. Verify `#signin-error` shows the validation message (non-empty) and the screen stays on `#signin` (no network call fired). Navigate back to landing.
 
 **Cleanup:** Remove the test user from Postgres so it doesn't interfere with future runs:
 ```bash
-docker compose exec -T postgres psql -U tensies -c "DELETE FROM users WHERE username_lower = 'testalpha'"
+docker compose exec -T postgres psql -U tensies -c "DELETE FROM users WHERE lower(username) = 'testalpha'"
+```
+
+**Restore the dev WebAuthn RP now** (don't wait for Step 34). The auth steps recreated `web` with `WEBAUTHN_RP_ID=localhost`; put the `tensies.app` default back so the Cloudflare `dev.tensies.app` tunnel's passkeys work again:
+
+```bash
+docker compose up -d web   # no inline WEBAUTHN_RP_ID → resets to the tensies.app default
+docker compose exec -T web printenv WEBAUTHN_RP_ID   # expect: tensies.app
 ```
 
 Take screenshot **`.playwright-mcp/29-signed-in-again.png`**.
@@ -990,14 +1009,14 @@ These steps switch to the prod Docker stack, verify the esbuild pipeline produce
 
 The dev stack uses unbundled modules served by FastAPI's `StaticFiles`. The prod stack runs the esbuild pipeline in a Docker builder stage, then serves pre-compressed content-hashed bundles from nginx. These five steps exercise that pipeline.
 
-Stop the dev stack and start the prod build. The `.env.prod` file already sets `WEB_PUBLISH=0.0.0.0:8888`, so nginx lands on the same port. Override `ALLOWED_ORIGINS` so Playwright's localhost WebSocket connections are accepted:
+Stop the dev stack and start the prod build. Use the committed **`.env.test`** env-file — it carries every localhost override the prod compose needs (`ALLOWED_ORIGINS=http://localhost:8888`, `WEBAUTHN_RP_ID=localhost`, `JWT_SECRET`, tokens, `WEB_PUBLISH=0.0.0.0:8888` so nginx lands on the same port), so there are **no inline vars** to remember:
 
 ```bash
 docker compose down
-
-ALLOWED_ORIGINS=http://localhost:8888 \
-  docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+docker compose -f docker-compose.prod.yml --env-file .env.test up -d --build
 ```
+
+**No `docker compose down -v` needed.** `.env.test` sets `POSTGRES_PASSWORD=tensies` to match the dev default, so this stack **reuses the dev-initialised `pg_data` volume** instead of fighting it — switching dev↔prod authenticates cleanly in both directions. (The smoketest validates the asset pipeline + nginx + anonymous gameplay only; it has no need for a separate database.) Pass `--env-file .env.test` to **every** prod compose subcommand (`up`/`ps`/`logs`/`down`) so the `${VAR:?}` required-var interpolation always succeeds — omitting it errors with "required variable … is missing a value".
 
 The `--build` flag runs the full asset pipeline (esbuild bundle + hash + gzip). This takes 30–90 seconds on a cold build. Poll until nginx responds:
 
@@ -1009,7 +1028,7 @@ for i in $(seq 1 30); do
 done
 ```
 
-If the loop exits without printing "OK", stop and report FAIL with the last few lines of `docker compose -f docker-compose.prod.yml --env-file .env.prod logs nginx web`.
+If the loop exits without printing "OK", stop and report FAIL with the last few lines of `docker compose -f docker-compose.prod.yml --env-file .env.test logs nginx web`.
 
 Take screenshot **`.playwright-mcp/30-prod-landing.png`** after navigating instance #1 to `http://localhost:8888/`.
 
@@ -1104,7 +1123,7 @@ With both instances on the prod build at `http://localhost:8888/`, play a full 3
 
 1. **Clear and setup** — localStorage is already cleared from Step 26. In Tab 1, create a game:
    - Type `Alpha` → submit landing form
-   - Store game code from `#lobby-code`
+   - Store game code via `evaluate` (`() => _state.gameCode`)
 
 2. **Join** — In Tab 2, navigate to `http://localhost:8888/<GAME_CODE>`, type `Beta`, submit join form.
 
@@ -1148,10 +1167,10 @@ Take screenshot **`.playwright-mcp/33-prod-game-r3.png`** after round 3 complete
 
 ## Step 34 — Restore dev stack
 
-Stop the prod stack and restart the dev stack so the session ends in the normal state.
+Stop the prod stack and restart the dev stack so the session ends in the normal state. Plain `up` — **no `-v`**; dev reuses the same `pg_data` volume the prod smoketest just shared (both use `POSTGRES_PASSWORD=tensies`), so it starts clean:
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod down
+docker compose -f docker-compose.prod.yml --env-file .env.test down
 docker compose up -d
 sleep 3
 curl -sf http://localhost:8888/ | grep -q "TENSIES" && echo "Dev stack restored" || echo "FAIL: dev not up"

@@ -55,6 +55,11 @@ async def _sweep() -> None:
             # forever. delete_game is idempotent: DEL of a gone key + SREM.
             await gamestore.delete_game(code)
             continue
+        # A started game must not linger in the discovery index (the live path
+        # prunes it on start; this catches a broadcast/check-in whose owner
+        # crashed). Idempotent — geo_remove no-ops if it's not indexed.
+        if snap.get("started"):
+            await gamestore.geo_remove(code)
         if snap.get("paused"):
             deadline = snap.get("pause_deadline_ms")
             if deadline is not None and gamestore.now_ms() >= deadline:
@@ -76,3 +81,7 @@ async def _sweep() -> None:
             if p.get("disconnected"):
                 # Idempotent: do_drop only removes players actually past grace.
                 await do_drop(code, pid)
+    # Reconcile orphaned discovery blips whose game has vanished (hard-crashed
+    # instance, TTL expiry) — a GEO set has no per-member TTL of its own. One
+    # pipelined pass, not a round-trip per member.
+    await gamestore.prune_orphan_geo()

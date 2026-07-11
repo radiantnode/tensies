@@ -1,0 +1,495 @@
+/* Nearby-games radar (#nearby) + the two entry affordances that live on other
+   screens: the landing "Find Nearby Games" button and the lobby host
+   "Broadcast" toggle. Warm amber scope, pink sweep + blips — same palette
+   family as the dice loader and the audio-sonar buttons. */
+
+@layer components {
+  /* Scrim over the bar photo, matching the join screen. */
+  .nearby-screen {
+    position: relative;
+    background: transparent;
+  }
+
+  .nearby-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: rgba(8, 4, 1, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    pointer-events: none;
+  }
+
+  /* Radar + list is taller than a centred body allows, so top-align and let
+     the whole screen scroll. The heading shares the absolute back chip's row
+     (.screen-title.has-back), so the top padding matches the lobby (1.6rem)
+     to line the heading up with the chip. */
+  .nearby-body {
+    position: relative;
+    justify-content: flex-start;
+    overflow-y: auto;
+    /* Hide the scrollbar like every other screen-level scroller — macOS
+       overlay scrollbars flash on entry and on every poll's content reflow. */
+    scrollbar-width: none;
+    padding-block-start: 1.6rem;
+  }
+  .nearby-body::-webkit-scrollbar { display: none; }
+
+  /* ── Radar scope ──────────────────────────────────────────────────────── */
+  .radar {
+    position: relative;
+    inline-size: min(70vw, 280px);
+    aspect-ratio: 1;
+    flex-shrink: 0;
+    margin-block: 2rem 2.25rem;
+    /* --rot is set by the compass handler (−heading); unset ⇒ north-up. */
+  }
+
+  .radar-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    transform: rotate(var(--rot, 0deg));
+    transform-origin: 50% 50%;
+    background:
+      radial-gradient(circle at 50% 50%,
+        rgba(60, 30, 10, 0.45) 0%,
+        rgba(20, 10, 4, 0.65) 70%,
+        rgba(10, 5, 2, 0.8) 100%);
+    border: 1px solid var(--color-border-strong);
+    box-shadow:
+      inset 0 0 40px rgba(0, 0, 0, 0.6),
+      0 6px 22px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+  }
+
+  /* Concentric range rings (each = 1/3 of the discovery radius). */
+  .radar-ring {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(220, 170, 90, 0.22);
+    border-radius: 50%;
+  }
+  .radar-ring-1 { inline-size: 33.3%; block-size: 33.3%; }
+  .radar-ring-2 { inline-size: 66.6%; block-size: 66.6%; }
+  .radar-ring-3 { inline-size: 100%;  block-size: 100%; }
+
+  /* Cross-hairs through the centre. */
+  .radar-face::before,
+  .radar-face::after {
+    content: '';
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    background: rgba(220, 170, 90, 0.14);
+  }
+  .radar-face::before { inline-size: 100%; block-size: 1px; transform: translate(-50%, -50%); }
+  .radar-face::after  { inline-size: 1px;  block-size: 100%; transform: translate(-50%, -50%); }
+
+  /* The sweep: a rotating radial wedge that lights the scope as it passes. */
+  .radar-sweep {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      rgba(255, 186, 102, 0.32) 0deg,
+      rgba(255, 186, 102, 0.11) 24deg,
+      transparent 60deg,
+      transparent 360deg);
+    animation: radar-spin 4s linear infinite;
+  }
+
+  @keyframes radar-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* "You" at the centre. */
+  .radar-you {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    inline-size: 12px;
+    block-size: 12px;
+    margin: -6px 0 0 -6px;
+    border-radius: 50%;
+    background: var(--color-amber);
+    box-shadow: 0 0 10px rgba(225, 180, 100, 0.9), 0 0 0 4px rgba(225, 180, 100, 0.18);
+  }
+
+  .radar-north {
+    position: absolute;
+    inset-block-start: 4px;
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+  }
+
+  /* Blip layer is its own positioning context so it can rotate with the
+     compass heading (blips are positioned within it). */
+  .radar-blips {
+    position: absolute;
+    inset: 0;
+    transform: rotate(var(--rot, 0deg));
+    transform-origin: 50% 50%;
+    transition: opacity 0.25s;
+  }
+
+  /* While acquiring the fix, dim the blip layer and let the sweep hint at work. */
+  .radar.is-locating .radar-blips { opacity: 0; }
+
+  /* ── Blips ────────────────────────────────────────────────────────────── */
+  .radar-blip {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: flex;
+    padding: 0;
+    background: none;
+    border: none;
+    animation: blip-appear 0.3s ease-out both;
+  }
+
+  /* Avatar + name + place, stacked. Counter-rotates the scope's compass turn as
+     one piece so the whole label stays upright and keeps its internal
+     alignment (rotating each child separately spread them apart). */
+  .blip-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    transform: rotate(calc(-1 * var(--rot, 0deg)));
+  }
+
+  /* Compass turned off → ease the scope back to north instead of snapping.
+     Applied only during the settle (via .is-settling on the radar) so live
+     heading tracking stays instantaneous. Duration must match the settle
+     timeout in nearby-screen.js (#settleToNorth). */
+  .radar.is-settling .radar-face,
+  .radar.is-settling .blip-inner {
+    transition: transform 0.45s ease;
+  }
+  .radar.is-settling .radar-blips {
+    transition: transform 0.45s ease, opacity 0.25s;
+  }
+
+  @keyframes blip-appear {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+
+  /* Avatar disc with the app's gold gradient rim (matches the profile /
+     game-detail avatars). Counter-rotates the compass heading so the face
+     stays upright as the scope turns. */
+  .blip-avatar-ring {
+    position: relative;
+    inline-size: 36px;
+    block-size: 36px;
+    border-radius: 50%;
+    box-shadow:
+      inset -1px 1px 3px rgba(255, 200, 122, 0.3),
+      inset 1px -1px 4px rgba(70, 28, 8, 0.25),
+      0 2px 8px rgba(0, 0, 0, 0.35),
+      0 0 12px rgba(255, 186, 102, 0.18);
+  }
+
+  .blip-avatar-ring::before {
+    padding: 1.5px;
+    background: linear-gradient(to bottom left,
+      rgba(252, 200, 126, 0.8) 0%,
+      rgba(216, 148, 80, 0.55) 38%,
+      rgba(150, 96, 46, 0.25) 100%);
+  }
+
+  .blip-avatar {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--color-field);
+  }
+
+  /* Each blip pings outward — the sonar idiom from the audio buttons, in gold. */
+  .blip-avatar-ring::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 186, 102, 0.55);
+    animation: blip-ping 2.4s ease-out infinite;
+  }
+
+  @keyframes blip-ping {
+    0% { transform: scale(1); opacity: 0.7; }
+    100% { transform: scale(2.6); opacity: 0; }
+  }
+
+  .blip-name {
+    max-inline-size: 62px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(10, 5, 2, 0.72);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--color-text);
+    text-shadow: var(--shadow-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Selected: brighten the gold rim + glow rather than recolour. */
+  .radar-blip.is-selected .blip-avatar-ring {
+    box-shadow:
+      inset -1px 1px 3px rgba(255, 220, 150, 0.5),
+      0 2px 10px rgba(0, 0, 0, 0.4),
+      0 0 18px rgba(255, 200, 120, 0.6);
+  }
+  .radar-blip.is-selected .blip-avatar-ring::before {
+    background: linear-gradient(to bottom left, #ffe6b0 0%, #e8b878 45%, #c8925a 100%);
+  }
+  .radar-blip.is-selected .blip-name {
+    background: rgba(232, 184, 100, 0.96);
+    color: #2a1608;
+  }
+
+  /* Checked-in place, a second line under the host name (gold, matching the
+     check-in theme). Counter-rotated so it stays upright with the compass. */
+  .blip-place {
+    max-inline-size: 62px;
+    margin-block-start: -1px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--color-amber);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Games list (below the radar) ─────────────────────────────────────── */
+  .nearby-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    inline-size: 100%;
+    max-inline-size: 340px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-block-size: 32vh;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nearby-list::-webkit-scrollbar { display: none; }
+
+  .nearby-empty {
+    margin-block: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+  }
+
+  /* Flat card matching the profile screen's recent-games rows. */
+  .nearby-row {
+    position: relative;   /* stacking context for the place-photo background */
+    overflow: hidden;     /* clip the photo to the card radius */
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    inline-size: 100%;
+    padding: 0.6rem 0.75rem;
+    font: inherit;
+    text-align: start;
+    background: var(--color-raised);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    animation: card-appear 0.2s ease-out both;
+    transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+  }
+
+  /* Keep the row's real content above the photo layer. */
+  .nearby-row > * { position: relative; z-index: 1; }
+
+  /* ── Checked-in place photo as the card background ──
+     The photo sits under a leather scrim that stays near-opaque behind the
+     avatar + text and thins toward the chevron, so the place peeks through
+     on the right without costing readability. */
+  .nearby-row-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  .nearby-row-bg-img {
+    display: block;   /* inline images leave a baseline gap at the bottom */
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    filter: saturate(0.7) brightness(0.6);
+    /* Fade the photo itself, not a scrim over it — --color-raised is 50%
+       alpha, so no overlay built from it can get darker than half. Left of
+       45% the card renders exactly like a photo-less row; the photo ramps
+       in toward the chevron. */
+    -webkit-mask-image: linear-gradient(to right,
+      transparent 45%, rgba(0, 0, 0, 0.55) 80%, rgba(0, 0, 0, 0.95) 100%);
+    mask-image: linear-gradient(to right,
+      transparent 45%, rgba(0, 0, 0, 0.55) 80%, rgba(0, 0, 0, 0.95) 100%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .nearby-row-bg-img.is-loaded { opacity: 1; }
+
+  .nearby-row:active { transform: scale(0.99); }
+
+  @keyframes card-appear {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .nearby-row:hover { background: var(--color-raised-hover); }
+
+  .nearby-row.is-selected {
+    box-shadow:
+      0 0 0 1px rgba(255, 190, 110, 0.5),
+      0 0 14px rgba(255, 186, 102, 0.3);
+  }
+
+  .nearby-row-avatar-ring {
+    position: relative;
+    flex-shrink: 0;
+    inline-size: 38px;
+    block-size: 38px;
+    border-radius: 50%;
+    box-shadow:
+      inset -1.5px 1.5px 4px rgba(255, 200, 122, 0.3),
+      inset 1.5px -1.5px 5px rgba(70, 28, 8, 0.25),
+      0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .nearby-row-avatar-ring::before {
+    padding: 1.5px;
+    background: linear-gradient(to bottom left,
+      rgba(252, 200, 126, 0.8) 0%,
+      rgba(216, 148, 80, 0.55) 38%,
+      rgba(150, 96, 46, 0.25) 100%);
+  }
+
+  .nearby-row-avatar {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--color-field);
+  }
+
+  .nearby-row-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-inline-size: 0;
+    flex: 1;
+    text-align: start;
+  }
+
+  .nearby-row-host {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text);
+    text-shadow: var(--shadow-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nearby-row-meta {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+  }
+
+  .nearby-row-chevron {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    margin-inline-start: 0.15rem;
+    color: var(--color-text-muted);
+    transition: color 0.15s, transform 0.15s;
+  }
+  .nearby-row-chevron svg { inline-size: 20px; block-size: 20px; }
+  .nearby-row:hover .nearby-row-chevron,
+  .nearby-row.is-selected .nearby-row-chevron {
+    color: var(--color-amber);
+    transform: translateX(2px);
+  }
+
+  .nearby-retry { align-self: center; max-inline-size: 320px; inline-size: 100%; }
+
+  /* ── Compass toggle: icon button in the radar's top-right corner ──────── */
+  .compass-btn {
+    position: absolute;
+    inset-block-start: -12px;
+    inset-inline-end: -12px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 36px;
+    block-size: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    /* Frosted disc, no rim — a soft raised chip. */
+    background: radial-gradient(circle at 50% 32%, rgba(44, 26, 12, 0.72), rgba(12, 6, 2, 0.62));
+    color: rgba(235, 215, 195, 0.65);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 220, 150, 0.14),
+      0 3px 10px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s, box-shadow 0.15s;
+  }
+  .compass-btn:hover { color: rgba(255, 240, 220, 0.95); }
+
+  .compass-icon { inline-size: 28px; block-size: 28px; }
+
+  /* Active: the needle lights amber and the disc gains a warm glow. */
+  .compass-btn.is-on {
+    color: var(--color-amber);
+    background: radial-gradient(circle at 50% 32%, rgba(90, 50, 16, 0.78), rgba(34, 16, 4, 0.72));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 220, 150, 0.22),
+      0 0 14px rgba(255, 186, 102, 0.5),
+      0 3px 10px rgba(0, 0, 0, 0.5);
+  }
+
+  /* ── Landing entry button ─────────────────────────────────────────────── */
+  .btn-nearby {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+  }
+  .btn-nearby .btn-icon { inline-size: 20px; block-size: 20px; flex-shrink: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .radar-sweep { animation: none; }
+    .blip-avatar-ring::after { animation: none; opacity: 0; }
+  }
+}

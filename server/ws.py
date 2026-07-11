@@ -6,10 +6,11 @@ import uuid
 import jwt as pyjwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from . import db, gamestore, state
+from . import db, db_places, gamestore, places, qr, state
 from .broadcast import (
     advance_round,
     broadcast,
+    checkout_game,
     delayed_broadcast,
     do_drop,
     drop_player,
@@ -18,6 +19,9 @@ from .broadcast import (
 )
 from .config import (
     ALLOWED_ORIGINS,
+    APP_URL,
+    CHECKIN_RATE_MAX,
+    CHECKIN_RATE_WINDOW,
     CREATE_RATE_MAX,
     CREATE_RATE_WINDOW,
     JOIN_RATE_MAX,
@@ -126,6 +130,14 @@ async def handle_auth(session: Session, msg: dict) -> None:
         await _error(session.ws, "Invalid auth token")
 
 
+def _invite_qr(session: Session, code: str) -> str:
+    """Inline invite QR (base64 SVG data URL) for the lobby stamp — generated on
+    demand so the client shows it with no separate fetch (no flicker). Origin:
+    the canonical APP_URL, else the client's own from the WS handshake."""
+    base = APP_URL or (session.ws.headers.get("origin") or "").rstrip("/")
+    return qr.qr_data_url(f"{base}/{code}")
+
+
 async def handle_create(session: Session, msg: dict) -> None:
     # Signed-in users use their account username as the player name.
     raw_name = session.username or msg.get("name") or "Player"
@@ -152,7 +164,8 @@ async def handle_create(session: Session, msg: dict) -> None:
          session_id=session.session_id, player_count=1)
     if session.photo:
         await gamestore.set_player_photo(code, session.pid, session.photo)
-    await send(session.ws, {"type": "reconnect_token", "token": token})
+    await send(session.ws, {"type": "reconnect_token", "token": token,
+                            "qr": _invite_qr(session, code)})
     snap = await gamestore.snapshot(code)
     if snap:
         await broadcast(code, state_msg(snap, code))
@@ -191,7 +204,8 @@ async def handle_join(session: Session, msg: dict) -> None:
          session_id=session.session_id, player_count=res)
     if session.photo:
         await gamestore.set_player_photo(join_code, session.pid, session.photo)
-    await send(session.ws, {"type": "reconnect_token", "token": token})
+    await send(session.ws, {"type": "reconnect_token", "token": token,
+                            "qr": _invite_qr(session, join_code)})
     snap = await gamestore.snapshot(join_code)
     if snap:
         await broadcast(join_code, state_msg(snap, join_code))
@@ -205,6 +219,10 @@ async def handle_start(session: Session, msg: dict) -> None:
     if meta is None or meta["host"] != session.pid or meta["started"]:
         return
     await gamestore.start_game(code)
+    # A started game is no longer discoverable: check it out of any venue so the
+    # radar blip, place fields, telemetry, and Postgres row all clear together.
+    await checkout_game(code, session.pid, reason="game_started",
+                        session_id=session.session_id)
     snap = await gamestore.snapshot(code)
     if snap is None:
         return
@@ -217,6 +235,71 @@ async def handle_start(session: Session, msg: dict) -> None:
     emit("round_started", game_code=code, round_num=snap["round_num"],
          target=snap["target"])
     await broadcast(code, state_msg(snap, code))
+
+
+async def handle_stop_broadcast(session: Session, msg: dict) -> None:
+    """Host-only: stop sharing location. This is the master discovery switch —
+    turning it off also checks the game out of any place, so the game leaves the
+    radar entirely (check-in is only available while sharing is on)."""
+    code = session.code
+    if not code:
+        return
+    meta = await gamestore.get_meta(code)
+    if meta is None or meta["host"] != session.pid:
+        return
+    await checkout_game(code, session.pid, reason="manual",
+                        session_id=session.session_id)
+    log.info("checkout   game=%s  (host)", code)
+    snap = await gamestore.snapshot(code)
+    if snap:
+        await broadcast(code, state_msg(snap, code))
+
+
+async def handle_checkin(session: Session, msg: dict) -> None:
+    """Host-only, lobby-only: check the game in to a nearby real place. The
+    client sends only a place_id; the server resolves the authoritative name +
+    coordinates so a client can't drop a game at arbitrary coordinates. Check-in
+    IS the way onto the radar — it turns on discovery at the venue's location
+    (there's no discoverable-without-a-place state). Check out via stop_broadcast."""
+    code = session.code
+    if not code:
+        return
+    meta = await gamestore.get_meta(code)
+    if meta is None or meta["host"] != session.pid or meta["started"]:
+        return
+    if not await gamestore.rate_allow("checkin", session.ip,
+                                      CHECKIN_RATE_MAX, CHECKIN_RATE_WINDOW):
+        await _error(session.ws, "Slow down")
+        return
+    place_id = (msg.get("place_id") or "").strip()
+    if not place_id:
+        return
+    place = await places.resolve(place_id)
+    if place is None:
+        await _error(session.ws, "Couldn't check in to that place")
+        return
+    # Check-in IS discovery: set_place indexes the game at the venue's exact
+    # public coordinates. "discoverable" ⟺ "checked in" — there's no other
+    # discoverable state. Check out via stop_broadcast (or on game start / drop).
+    await gamestore.set_place(code, place["place_id"], place["name"],
+                              place["lat"], place["lon"],
+                              photo_ref=place.get("photo_ref"),
+                              place_type=place.get("primary_type"))
+    if db.available():
+        await db_places.upsert(code, place, session.pid)
+    category = places.categorize(place.get("primary_type"))
+    metrics.checkins_total.labels(category).inc()
+    emit("checked_in", game_code=code, user_id=session.pid,
+         place_id=place["place_id"], place_name=place["name"],
+         place_type=place.get("primary_type") or "", category=category,
+         session_id=session.session_id)
+    # Log only the game code — the resolved place bundles the host's lat/lon
+    # (private location data), so keep it out of the app log. The place name is
+    # still captured in telemetry above (emit → Postgres), not the log stream.
+    log.info("checkin  game=%s", code)
+    snap = await gamestore.snapshot(code)
+    if snap:
+        await broadcast(code, state_msg(snap, code))
 
 
 async def handle_reconnect(session: Session, msg: dict) -> None:
@@ -249,7 +332,15 @@ async def handle_reconnect(session: Session, msg: dict) -> None:
          name=session.name, session_id=session.session_id)
     snap = await gamestore.snapshot(join_code)
     if snap:
+        # Everyone needs the roster update (this player is back)...
         await broadcast(join_code, state_msg(snap, join_code))
+        # ...but the invite QR is only for the reconnecting client, whose
+        # page-refresh dropped its cached copy. Send it to that socket alone —
+        # it shows only in the lobby stamp and it's a chunky base64 SVG, so
+        # there's no reason to fan it out to every other player.
+        if not snap.get("started"):
+            await send(session.ws,
+                       state_msg(snap, join_code, qr=_invite_qr(session, join_code)))
 
 
 async def handle_roll(session: Session, msg: dict) -> None:
@@ -485,6 +576,8 @@ ACTIONS = {
     "create": handle_create,
     "join": handle_join,
     "start": handle_start,
+    "stop_broadcast": handle_stop_broadcast,
+    "checkin": handle_checkin,
     "reconnect": handle_reconnect,
     "roll": handle_roll,
     "pause": handle_pause,

@@ -24,6 +24,11 @@ for (const s of states) {
       if (step.waitFor) await page.waitForSelector(step.waitFor);
     }
     await settle(page);
-    await expect(page).toHaveScreenshot(`${s.name}.png`, s.screenshot || {});
+    // `mask` (array of selectors) hides volatile regions from the comparison —
+    // e.g. the landing's timer-scrambled join-code. Same idea as
+    // nav-menu-changelog masking its regenerated prose.
+    const opts = { ...(s.screenshot || {}) };
+    if (s.mask) opts.mask = s.mask.map((sel) => page.locator(sel));
+    await expect(page).toHaveScreenshot(`${s.name}.png`, opts);
   });
 }

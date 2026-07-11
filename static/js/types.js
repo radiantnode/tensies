@@ -28,10 +28,33 @@
  * @property {number} round_num
  * @property {boolean} started
  * @property {boolean} paused
+ * @property {string | null} [place_name] Name of the checked-in place (or null).
  * @property {string} host Player id of the current host.
  * @property {Record<string, PlayerSnapshot>} players
  * @property {string} [winner_name] Present on `round_won` frames.
  * @property {number} [pause_remaining_ms] Present on paused frames sent to the host.
+ * @property {string} [qr] Inline invite QR (data URL) — re-sent to a lobby host on reconnect.
+ */
+
+/**
+ * One discoverable game from `GET /api/nearby`. Privacy: distance is bucketed
+ * and bearing is the only directional datum — raw coordinates never cross.
+ * @typedef {object} NearbyGame
+ * @property {string} code
+ * @property {string} host_name
+ * @property {string | null} [photo] Host avatar URL; null for anonymous hosts.
+ * @property {number} player_count
+ * @property {number} distance_m Bucketed metres from the caller.
+ * @property {number} bearing_deg 0–359, clockwise from true north.
+ * @property {string | null} [place_id] Checked-in place id, if any.
+ * @property {string | null} [place_name] Checked-in place name, if any.
+ * @property {string | null} [place_photo_url] Proxied photo of the checked-in place.
+ */
+
+/**
+ * @typedef {object} NearbyResponse
+ * @property {number} radius_m Server-owned discovery radius.
+ * @property {NearbyGame[]} games Nearest first.
  */
 
 /**
@@ -64,6 +87,7 @@
  * @typedef {object} ReconnectTokenMessage
  * @property {'reconnect_token'} type
  * @property {string} token
+ * @property {string} [qr] Inline invite QR (data URL) sent alongside the token after create/join.
  */
 
 /**

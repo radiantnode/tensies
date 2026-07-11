@@ -1,0 +1,379 @@
+/* Lobby vintage postage-stamp graphic (replaces the plain code box). Ported from
+   the design handoff (v3, fluid). Fixed to the Vermilion edition, aged + perforated.
+
+   Responsive strategy: the stamp is a fixed-ratio engraving, so it scales as ONE
+   unit rather than reflowing its internals. `--u` is one "design unit" — 1px at
+   the native 346px width, shrinking proportionally on narrower slots — and every
+   metric is `calc(var(--u) * N)`. So the whole stamp scales continuously and
+   stays razor-crisp at any width (no zoom, no fixed pixels), capping at native on
+   wide screens. All selectors are scoped under .stamp so the generic class names
+   can't collide with the rest of the app. */
+
+@layer components {
+  /* Slot: a size container spanning the full lobby width (bleeds past the body's
+     side padding) so the stamp renders at its native 346px on a normal phone and
+     centers; below ~346px of slot width, --u shrinks and the whole stamp scales
+     down fluidly. */
+  lobby-stamp {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Bleed ~12px into the lobby's side padding so the stamp runs a bit wider
+       than the other content while keeping a gutter (no edge-touch on small
+       phones — the gutter, not the cap, sets the side margin). */
+    inline-size: calc(100% + 1.5rem);
+    margin-inline: -0.75rem;
+    container-type: inline-size;
+  }
+
+  .stamp {
+    position: relative;
+    /* Tapped to enlarge; sits casually tilted rather than mechanically square. */
+    cursor: pointer;
+    transform: rotate(-2.2deg);
+    margin-inline: auto;
+    /* --u is one design unit, capped three ways:
+       - 1.1px       — max size on wide/tall screens (346 × 1.1 ≈ 380px)
+       - 0.28902cqw  — fill the slot width fluidly (≈1px per 346px of width)
+       - 0.12svh     — shrink on SHORT viewports so the stamp doesn't crowd the
+                       column (svh is full-height in a PWA but smaller in Safari,
+                       where the browser chrome eats vertical space; also shrinks
+                       on shorter phones). Lower the 0.12 to shrink more. */
+    --u: min(1.1px, 0.28902cqw, 0.12svh);
+    width: calc(var(--u) * 346);
+    --ink: #b8442a;
+    --ink-soft: rgba(184, 68, 42, 0.5);
+    --paper: #f3e6ce;
+    --perf: calc(var(--u) * 15);
+    --perfr: calc(var(--u) * 5);
+    padding: calc(var(--u) * 9);
+    background: var(--paper);
+    filter: drop-shadow(0 calc(var(--u) * 3) 0 rgba(60, 20, 8, 0.18))
+            drop-shadow(0 calc(var(--u) * 14) calc(var(--u) * 26) rgba(0, 0, 0, 0.6));
+    -webkit-mask:
+      radial-gradient(circle var(--perfr) at 50% 0, #0000 96%, #000) 0 0 / var(--perf) 100%,
+      radial-gradient(circle var(--perfr) at 50% 100%, #0000 96%, #000) 0 0 / var(--perf) 100%,
+      radial-gradient(circle var(--perfr) at 0 50%, #0000 96%, #000) 0 0 / 100% var(--perf),
+      radial-gradient(circle var(--perfr) at 100% 50%, #0000 96%, #000) 0 0 / 100% var(--perf);
+    -webkit-mask-composite: source-in;
+            mask-composite: intersect;
+  }
+
+  /* Aged paper texture: highlight, three foxing stains, faint hatch, vignette. */
+  .stamp .paper-tex {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(70% 60% at 30% 20%, rgba(255, 255, 255, 0.3), transparent 60%),
+      radial-gradient(circle at 82% 74%, rgba(120, 70, 25, 0.16), transparent 9%),
+      radial-gradient(circle at 16% 62%, rgba(120, 70, 25, 0.12), transparent 7%),
+      radial-gradient(circle at 60% 12%, rgba(120, 70, 25, 0.1), transparent 6%),
+      repeating-linear-gradient(90deg, rgba(120, 70, 30, 0.03) 0 calc(var(--u) * 2), transparent calc(var(--u) * 2) calc(var(--u) * 4));
+    box-shadow: inset 0 0 calc(var(--u) * 24) rgba(90, 45, 15, 0.28);
+    mix-blend-mode: multiply;
+  }
+
+  /* Engraved double-rule frame. */
+  .stamp .frame {
+    position: relative;
+    padding: calc(var(--u) * 8) calc(var(--u) * 5);
+    border: calc(var(--u) * 1.5) solid var(--ink);
+    box-shadow: inset 0 0 0 calc(var(--u) * 2) var(--paper), inset 0 0 0 calc(var(--u) * 3.5) var(--ink);
+  }
+
+  /* Vertical denomination panels down each side. */
+  .stamp .panel {
+    position: absolute;
+    top: calc(var(--u) * 5);
+    bottom: calc(var(--u) * 5);
+    width: calc(var(--u) * 25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: calc(var(--u) * 1.5) solid var(--ink);
+  }
+  .stamp .panel-l { left: calc(var(--u) * 5); }
+  .stamp .panel-r { right: calc(var(--u) * 5); }
+  .stamp .panel span {
+    writing-mode: vertical-rl;
+    font-family: 'Rye', serif;
+    font-size: calc(var(--u) * 12);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .stamp .panel-l span { transform: rotate(180deg); }
+
+  /* Corner registration (bullseye) marks, inset 12u into the side panels. */
+  .stamp .corner {
+    position: absolute;
+    width: calc(var(--u) * 11);
+    height: calc(var(--u) * 11);
+    pointer-events: none;
+    background: radial-gradient(circle,
+      var(--ink) 0 calc(var(--u) * 1), transparent calc(var(--u) * 1.3) calc(var(--u) * 2.3),
+      var(--ink) calc(var(--u) * 2.3) calc(var(--u) * 2.9), transparent calc(var(--u) * 3.2) calc(var(--u) * 4.3),
+      var(--ink) calc(var(--u) * 4.3) calc(var(--u) * 4.9), transparent calc(var(--u) * 5.3));
+  }
+  .stamp .corner-tl { top: calc(var(--u) * 12); left: calc(var(--u) * 12); }
+  .stamp .corner-tr { top: calc(var(--u) * 12); right: calc(var(--u) * 12); }
+  .stamp .corner-bl { bottom: calc(var(--u) * 12); left: calc(var(--u) * 12); }
+  .stamp .corner-br { bottom: calc(var(--u) * 12); right: calc(var(--u) * 12); }
+
+  /* Center content, inset to clear the side panels. */
+  .stamp .main {
+    position: relative;
+    margin: 0 calc(var(--u) * 28);
+  }
+
+  .stamp .guilloche {
+    position: absolute;
+    inset: calc(var(--u) * -3);
+    pointer-events: none;
+    opacity: 0.13;
+    background:
+      repeating-radial-gradient(circle at 33% 40%, transparent 0 calc(var(--u) * 3.2), var(--ink) calc(var(--u) * 3.2) calc(var(--u) * 3.8)),
+      repeating-radial-gradient(circle at 69% 63%, transparent 0 calc(var(--u) * 4.1), var(--ink) calc(var(--u) * 4.1) calc(var(--u) * 4.7));
+    -webkit-mask: radial-gradient(ellipse 80% 88% at 50% 52%, #000, transparent 80%);
+            mask: radial-gradient(ellipse 80% 88% at 50% 52%, #000, transparent 80%);
+  }
+
+  .stamp .watermark {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Yellowtail', cursive;
+    font-size: calc(var(--u) * 70);
+    line-height: 1;
+    color: var(--ink);
+    opacity: 0.16;
+    transform: rotate(-5deg);
+    pointer-events: none;
+    text-shadow: 0 calc(var(--u) * 1) 0 rgba(255, 255, 255, 0.25);
+  }
+
+  .stamp .banner {
+    position: relative;
+    padding: calc(var(--u) * 1) 0 calc(var(--u) * 5);
+    border-bottom: calc(var(--u) * 1.5) solid var(--ink);
+    font-family: 'Rye', serif;
+    font-size: calc(var(--u) * 8);
+    letter-spacing: 0.1em;
+    text-align: center;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--ink);
+  }
+
+  .stamp .row1 {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: calc(var(--u) * 14);
+    padding: calc(var(--u) * 9) calc(var(--u) * 4) calc(var(--u) * 5);
+  }
+  .stamp .idblock {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Wax seal with the two-dice mark, offset off the bottom-left corner. */
+  .stamp .seal {
+    position: absolute;
+    left: calc(var(--u) * -2);
+    bottom: calc(var(--u) * -30);
+    z-index: 2;
+    width: calc(var(--u) * 58);
+    height: calc(var(--u) * 58);
+    border-radius: 50%;
+    border: calc(var(--u) * 1.5) solid var(--ink);
+    background: repeating-radial-gradient(circle at 50% 50%, transparent 0 calc(var(--u) * 1.5), var(--ink-soft) calc(var(--u) * 1.5) calc(var(--u) * 1.9));
+    box-shadow: inset 0 0 0 calc(var(--u) * 1.5) var(--paper), inset 0 0 0 calc(var(--u) * 2.5) var(--ink), inset 0 0 0 calc(var(--u) * 4) var(--paper);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotate(-26deg);
+  }
+  .stamp .dice {
+    position: relative;
+    width: calc(var(--u) * 42);
+    height: calc(var(--u) * 42);
+    overflow: visible;
+  }
+
+  .stamp .serial {
+    margin: calc(var(--u) * 2) 0 0;
+    font-family: 'Rye', serif;
+    font-size: calc(var(--u) * 38);
+    letter-spacing: 0.12em;
+    text-indent: 0.12em;
+    white-space: nowrap;
+    color: var(--ink);
+    text-shadow: 0 calc(var(--u) * 1) 0 rgba(255, 255, 255, 0.35);
+  }
+
+  /* Real QR (server-generated ink-on-transparent) fills the box; the paper
+     behind provides the light field so it stays scannable. */
+  .stamp .qr-box {
+    position: relative;
+    width: calc(var(--u) * 86);
+    height: calc(var(--u) * 86);
+    flex-shrink: 0;
+  }
+  .stamp .qr {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Check-in cachet: a rubber-stamp overprint slammed onto the stamp when the
+     game is checked in to a place. Absolutely positioned over .main so it never
+     reflows the engraving; transparent interior (paper/QR show through) with a
+     double ink rule from two inset shadows. Everything in --u so it scales with
+     the stamp, and --ink/--paper so it re-tints with the edition. */
+  .stamp .checkin {
+    position: absolute;
+    left: 43%;
+    bottom: calc(var(--u) * -6);
+    transform: translateX(-50%) rotate(-4.5deg);
+    transform-origin: center center;
+    z-index: 3;
+    width: fit-content;
+    max-width: calc(var(--u) * 168);
+    padding: calc(var(--u) * 3.5) calc(var(--u) * 11) calc(var(--u) * 4);
+    border: calc(var(--u) * 1.6) solid var(--ink);
+    box-shadow: inset 0 0 0 calc(var(--u) * 1.2) var(--paper),
+                inset 0 0 0 calc(var(--u) * 2.4) var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(var(--u) * 1.5);
+    color: var(--ink);
+    opacity: 0.96;
+    animation: checkin-slam 0.34s cubic-bezier(0.55, 0, 0.85, 0.35) both;
+  }
+  @keyframes checkin-slam {
+    0%   { transform: translateX(-50%) rotate(-4.5deg) scale(2.7); opacity: 0; }
+    55%  { opacity: 1; }
+    100% { transform: translateX(-50%) rotate(-4.5deg) scale(1); opacity: 0.96; }
+  }
+  .stamp .checkin-top {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--u) * 5);
+    font-family: 'Rye', serif;
+    font-size: calc(var(--u) * 5.5);
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+  .stamp .checkin-top::before,
+  .stamp .checkin-top::after {
+    content: "";
+    width: calc(var(--u) * 13);
+    height: calc(var(--u) * 1.2);
+    background: var(--ink);
+  }
+  .stamp .checkin-name {
+    font-family: 'Rye', serif;
+    font-size: calc(var(--u) * 14);
+    line-height: 1;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    max-width: calc(var(--u) * 142);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 calc(var(--u) * 1) 0 rgba(255, 255, 255, 0.3);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .stamp .checkin { animation: none; }
+  }
+
+  /* Caption under the collapsed stamp; fades out while enlarged. */
+  .enlarge-hint {
+    margin-block-start: 16px;
+    max-inline-size: 22rem;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.35;
+    text-align: center;
+    color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+    transition: opacity 0.25s ease;
+  }
+  .enlarge-hint.hide {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Enlarged presentation lives in a modal <dialog> (top layer): the ::backdrop
+     is the scrim, and the animated clone + close hint are position:fixed inside,
+     so they escape the lobby's clipping and stacking entirely. */
+  /* The enlarged stamp is a top-layer modal <dialog>, so no z-index can push the
+     portrait-only orientation guard above it. In the guard's landscape range,
+     hide the zoom + its scrim so the guard shows over a clean lobby; the dialog
+     stays OPEN, so rotating back to portrait restores the full-screen stamp
+     exactly where it was. Mirrors .rotate-overlay's query in critical.css. */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .stamp-zoom[open],
+    .stamp-zoom[open]::backdrop { display: none; }
+  }
+
+  .stamp-zoom {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    inline-size: 0;
+    block-size: 0;
+    max-inline-size: none;
+    max-block-size: none;
+    background: transparent;
+    overflow: visible;
+  }
+  .stamp-zoom::backdrop {
+    background: rgba(8, 4, 2, 0.9);
+    animation: stamp-scrim-in 0.4s ease both;
+  }
+  @keyframes stamp-scrim-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .stamp-zoom .close-hint {
+    position: fixed;
+    inset-inline: 0;
+    inset-block-end: calc(30px + env(safe-area-inset-bottom));
+    max-inline-size: 22rem;
+    margin-inline: auto;
+    padding-inline: 1.5rem;
+    text-align: center;
+    /* Match the collapsed caption's typography (sentence case, not a label). */
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--color-text-warm);
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
+    pointer-events: none;
+    /* Driven by a JS-toggled .show class (reliable every open, unlike an
+       animation tied to the dialog's display cycling). */
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+  .stamp-zoom .close-hint.show { opacity: 1; }
+
+  /* Closing: fade the scrim out with the clone's morph-back so the lobby eases
+     in instead of popping (the hint fades via .show being removed). */
+  .stamp-zoom.closing::backdrop {
+    animation: stamp-scrim-out 0.5s ease both;
+  }
+  @keyframes stamp-scrim-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+  }
+}

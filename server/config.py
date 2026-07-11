@@ -95,6 +95,44 @@ AUTH_RATE_MAX = _int("AUTH_RATE_MAX", 20)                 # auth ops per window 
 AUTH_RATE_WINDOW = _float("AUTH_RATE_WINDOW", 60.0)       # (a passkey ceremony is 2 ops)
 
 
+# ─── Nearby-games discovery (GPS) ────────────────────────────────────────
+# A host makes a lobby discoverable by checking in to a public place; the game
+# is indexed at that venue's own public coordinates. Only distance (bucketed) +
+# bearing are ever returned to nearby players, and the geo entry is pruned the
+# moment the game starts / checks out / empties.
+DISCOVERY_ENABLED = _flag("DISCOVERY_ENABLED", True)              # master switch
+DISCOVERY_RADIUS_M = _float("DISCOVERY_RADIUS_M", 500.0)          # "same block" cap
+DISCOVERY_DISTANCE_BUCKET_M = _int("DISCOVERY_DISTANCE_BUCKET_M", 25)
+DISCOVERY_MAX_RESULTS = _int("DISCOVERY_MAX_RESULTS", 20)
+NEARBY_RATE_MAX = _int("NEARBY_RATE_MAX", 240)                   # /api/nearby polls/window/IP
+NEARBY_RATE_WINDOW = _float("NEARBY_RATE_WINDOW", 60.0)
+
+
+# ─── Google Places "check in" (server-side proxy) ────────────────────────
+# A player can check a lobby in to a nearby real place. The API key never
+# reaches the browser — all Google calls go through server/places.py. Places are
+# Google-only: with PLACES_ENABLED on but no key configured, the picker simply
+# shows no places (the proxy returns nothing rather than any canned data).
+PLACES_ENABLED = _flag("PLACES_ENABLED", False)
+GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY") or None  # secret → None when unset
+# Alternative to the API key: a service account (OAuth). Preferred when set —
+# the key never has to be an unrestricted browser key. Points at the SA JSON;
+# GOOGLE_CLOUD_PROJECT sets the X-Goog-User-Project billing project (falls back
+# to the JSON's own project_id).
+GOOGLE_APPLICATION_CREDENTIALS = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") or None
+GOOGLE_CLOUD_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT") or None
+PLACES_RADIUS_M = _float("PLACES_RADIUS_M", 500.0)               # nearby-search radius
+PLACES_SEARCH_RADIUS_M = _float("PLACES_SEARCH_RADIUS_M", 5000.0)  # text-search location bias
+PLACES_MAX_RESULTS = _int("PLACES_MAX_RESULTS", 20)
+PLACES_CACHE_TTL = _int("PLACES_CACHE_TTL", 900)                 # place_id→coords cache seconds
+PLACES_PHOTO_CACHE_TTL = _int("PLACES_PHOTO_CACHE_TTL", 86400)   # photo-bytes cache seconds
+PLACES_NEARBY_CACHE_TTL = _int("PLACES_NEARBY_CACHE_TTL", 300)   # nearby-search cache seconds
+PLACES_RATE_MAX = _int("PLACES_RATE_MAX", 30)                    # /api/places polls/window/IP
+PLACES_RATE_WINDOW = _float("PLACES_RATE_WINDOW", 60.0)
+CHECKIN_RATE_MAX = _int("CHECKIN_RATE_MAX", 20)                  # check-ins/window/IP
+CHECKIN_RATE_WINDOW = _float("CHECKIN_RATE_WINDOW", 60.0)
+
+
 # ─── WebSocket origin allowlist (audit M3) ───────────────────────────────
 # Comma-separated allowed Origins. "*" disables the check (dev default).
 ALLOWED_ORIGINS = [

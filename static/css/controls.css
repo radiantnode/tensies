@@ -73,30 +73,36 @@
     background:
       linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.45) 40%, rgba(255,255,255,0.15) 50%, transparent 65%)
         120% 0 / 200% 100% no-repeat,
-      linear-gradient(180deg, #ff6480 0%, var(--color-accent) 55%, #ef4263 100%);
+      radial-gradient(ellipse 55% 45% at 20% 30%, rgba(255,249,228,0.25) 0%, transparent 62%),
+      radial-gradient(ellipse 50% 60% at 74% 24%, rgba(62,40,10,0.25) 0%, transparent 62%),
+      radial-gradient(ellipse 60% 50% at 45% 72%, rgba(255,246,222,0.22) 0%, transparent 64%),
+      radial-gradient(ellipse 45% 55% at 88% 70%, rgba(70,46,14,0.23) 0%, transparent 62%),
+      radial-gradient(ellipse 50% 50% at 60% 46%, rgba(255,250,232,0.16) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, rgba(255,248,228,0.04) 0 0.5px, transparent 0.5px 2px),
+      linear-gradient(180deg, #f6cf72 0%, #e1b464 55%, #c1913f 100%);
     animation: shimmer 3.5s ease-in-out 2s infinite;
-    border-color: rgba(255, 160, 178, 0.5);
-    color: #fff;
-    text-shadow: 0 1px 2px rgba(120, 0, 25, 0.5);
+    border-color: rgba(245, 205, 130, 0.55);
+    color: #4a2c08;
+    text-shadow: 0 1px 0 rgba(255, 240, 205, 0.4);
     box-shadow:
-      inset 0 1px 0 rgba(255, 220, 226, 0.55),
-      inset 0 5px 9px rgba(255, 200, 210, 0.16),
-      inset 0 -3px 8px rgba(150, 10, 40, 0.3),
-      0 0 20px rgba(255, 77, 109, 0.32),
+      inset 0 1px 0 rgba(255, 240, 210, 0.6),
+      inset 0 5px 9px rgba(255, 226, 176, 0.18),
+      inset 0 -3px 8px rgba(120, 75, 20, 0.32),
+      0 0 20px rgba(230, 180, 90, 0.35),
       0 4px 14px rgba(0, 0, 0, 0.5);
   }
 
   @keyframes shimmer {
-    0% { background-position: 120% 0, 0 0; }
-    40%, 100% { background-position: -120% 0, 0 0; }
+    0% { background-position: 120% 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
+    40%, 100% { background-position: -120% 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
   }
 
   .btn-primary:hover:not(:disabled) {
     box-shadow:
-      inset 0 1px 0 rgba(255, 230, 235, 0.65),
-      inset 0 5px 9px rgba(255, 205, 214, 0.2),
-      inset 0 -3px 8px rgba(150, 10, 40, 0.28),
-      0 0 26px rgba(255, 77, 109, 0.42),
+      inset 0 1px 0 rgba(255, 245, 220, 0.7),
+      inset 0 5px 9px rgba(255, 230, 185, 0.22),
+      inset 0 -3px 8px rgba(120, 75, 20, 0.3),
+      0 0 26px rgba(230, 180, 90, 0.45),
       0 6px 18px rgba(0, 0, 0, 0.55);
   }
 
@@ -160,12 +166,16 @@
      across (same motion family as the loading bar). */
   .btn-audio:is(.playing, .listening) {
     border-color: rgba(255, 160, 178, 0.7);
-    background-image: linear-gradient(
+    /* Custom property so the :hover rule below can restate the gradient —
+       screen-level :hover rules set the background SHORTHAND, which would
+       silently wipe a one-off background-image. */
+    --audio-shimmer: linear-gradient(
       105deg,
       transparent 32%,
-      rgba(255, 220, 226, 0.18) 50%,
+      rgba(255, 220, 226, 0.22) 50%,
       transparent 68%
     );
+    background-image: var(--audio-shimmer);
     background-size: 250% 100%;
     box-shadow:
       inset 0 1px 0 rgba(255, 220, 226, 0.4),
@@ -185,9 +195,13 @@
   .btn-audio:is(.playing, .listening):hover:not(:disabled) {
     border-color: rgba(255, 160, 178, 0.7);
     background-color: var(--color-raised);
+    background-image: var(--audio-shimmer);
+    background-size: 250% 100%;
   }
 
-  /* Sonar rings, centred on the button, clipped by the pill. */
+  /* Sonar rings, centred on the button, clipped by the pill. Only Listen
+     animates them now (rings contracting inward); Play's active look is the
+     shimmer sweep + dancing EQ bars, no rings. */
   .btn-audio::before,
   .btn-audio::after {
     content: '';
@@ -203,15 +217,8 @@
     pointer-events: none;
   }
 
-  .btn-audio.playing::before { animation: sonar-out 1.8s linear infinite; }
-  .btn-audio.playing::after { animation: sonar-out 1.8s linear 0.9s infinite; }
   .btn-audio.listening::before { animation: sonar-in 1.8s linear infinite; }
   .btn-audio.listening::after { animation: sonar-in 1.8s linear 0.9s infinite; }
-
-  @keyframes sonar-out {
-    0% { transform: scale(0.45); opacity: 0.8; }
-    100% { transform: scale(3.8); opacity: 0; }
-  }
 
   @keyframes sonar-in {
     0% { transform: scale(3.8); opacity: 0; }
@@ -268,6 +275,8 @@
   .winner-round-pill::before,
   .profile-avatar-ring::before,
   .gd-player-avatar-ring::before,
+  .blip-avatar-ring::before,
+  .nearby-row-avatar-ring::before,
   .header-username::before,
   .recent-avatar-winner::before {
     content: '';
@@ -284,7 +293,8 @@
   /* Scroll-fade edge mask — shared by scrollable regions that fade at the
      top/bottom when content overflows. JS toggles .can-scroll-up/.can-scroll-down. */
   .player-list,
-  .menu-changelog-body {
+  .menu-changelog-body,
+  .places-list {
     --fade-top: 0px;
     --fade-bottom: 0px;
     -webkit-mask-image: linear-gradient(to bottom,
@@ -297,9 +307,11 @@
   }
 
   .player-list.can-scroll-up,
-  .menu-changelog-body.can-scroll-up { --fade-top: 24px; }
+  .menu-changelog-body.can-scroll-up,
+  .places-list.can-scroll-up { --fade-top: 24px; }
   .player-list.can-scroll-down,
-  .menu-changelog-body.can-scroll-down { --fade-bottom: 24px; }
+  .menu-changelog-body.can-scroll-down,
+  .places-list.can-scroll-down { --fade-bottom: 24px; }
 
   .error-msg {
     min-block-size: 1.4rem;
