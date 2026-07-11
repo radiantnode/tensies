@@ -60,7 +60,7 @@ The install banner + iOS walkthrough. The `?a2hs=ios` localhost dev override for
 
 ## Synthesized server-driven states — `stateful.spec.js`
 
-A single real WebSocket connection; `pinWebSocket` rewrites every inbound `state` frame into the exact roster, dice, and target needed. `seedPage` pins `Math.random` and `Date.now` so dice scatter and countdown timers are byte-stable. The four lobby captures mask the invite QR (`.qr-box`) — it encodes the real, server-random game code, so its module pattern varies even though the displayed code is pinned.
+A single real WebSocket connection; `pinWebSocket` rewrites every inbound `state` frame into the exact roster, dice, and target needed. `seedPage` pins `Math.random` and `Date.now` so dice scatter and countdown timers are byte-stable. The five lobby captures mask the invite QR (`.qr-box`) — it encodes the real, server-random game code — and the stamp's postmark date (`.stamp-date`), which is the real current day (`new Date()`, not pinned) and so drifts daily.
 
 ### Lobby
 
@@ -70,6 +70,7 @@ A single real WebSocket connection; `pinWebSocket` rewrites every inbound `state
 | 8 | <img src="harness/baselines/lobby-solo-mobile.png" width="60"> | Lobby with only the host; single-player list, Start button, Share + Play (audio code) buttons | [stateful.spec.js:96](harness/stateful.spec.js#L96) |
 | 9 | <img src="harness/baselines/lobby-guest-mobile.png" width="60"> | Lobby as a non-host guest; "Waiting for host to start…" title with no Start button; the Fellow Bar Rats list (others only, own row excluded) shows the host with a plain gold **HOST** label (no pill) | [stateful.spec.js:105](harness/stateful.spec.js#L105) |
 | 10 | <img src="harness/baselines/lobby-5p-mobile.png" width="60"> | Lobby at 5 players (max); list overflow and scroll-fade behavior | [stateful.spec.js:117](harness/stateful.spec.js#L117) |
+| 52 | <img src="harness/baselines/lobby-checkedin-mobile.png" width="60"> | Checked-in lobby: the stamp wears the check-in cachet (**CHECKED IN** over the venue name, tilted, double ink rule, transparent interior); a long venue name truncates with an ellipsis; the host's Check In button reads **Check Out** | [stateful.spec.js:132](harness/stateful.spec.js#L132) |
 
 ### Game board
 

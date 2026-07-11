@@ -50,7 +50,7 @@ test('lobby-3p', async ({ page }) => {
   await settle(page);
   // Mask the invite QR: it encodes the real (server-random) game code, so its
   // module pattern varies run-to-run even though the displayed code is pinned.
-  await expect(page).toHaveScreenshot('lobby-3p.png', { mask: [page.locator('.qr-box')] });
+  await expect(page).toHaveScreenshot('lobby-3p.png', { mask: [page.locator('.qr-box'), page.locator('.stamp-date')] });
 });
 
 test('game-board', async ({ page }) => {
@@ -101,7 +101,7 @@ test('lobby-solo', async ({ page }) => {
     round_num: 0, target: 1, players: { [myPid]: mk('Alpha') },
   }), '#lobby.active');
   await settle(page);
-  await expect(page).toHaveScreenshot('lobby-solo.png', { mask: [page.locator('.qr-box')] });
+  await expect(page).toHaveScreenshot('lobby-solo.png', { mask: [page.locator('.qr-box'), page.locator('.stamp-date')] });
 });
 
 test('lobby-guest', async ({ page }) => {
@@ -113,7 +113,7 @@ test('lobby-guest', async ({ page }) => {
     players: { guest_alpha: mk('Alpha'), [myPid]: mk('Bravo'), guest_cosmo: mk('Cosmo') },
   }), '#lobby.active');
   await settle(page);
-  await expect(page).toHaveScreenshot('lobby-guest.png', { mask: [page.locator('.qr-box')] });
+  await expect(page).toHaveScreenshot('lobby-guest.png', { mask: [page.locator('.qr-box'), page.locator('.stamp-date')] });
 });
 
 test('lobby-5p', async ({ page }) => {
@@ -126,7 +126,19 @@ test('lobby-5p', async ({ page }) => {
     },
   }), '#lobby.active');
   await settle(page);
-  await expect(page).toHaveScreenshot('lobby-5p.png', { mask: [page.locator('.qr-box')] });
+  await expect(page).toHaveScreenshot('lobby-5p.png', { mask: [page.locator('.qr-box'), page.locator('.stamp-date')] });
+});
+
+test('lobby-checkedin', async ({ page }) => {
+  // Checked in to a place: the stamp wears the check-in cachet (CHECKED IN /
+  // venue). place_name is game-level state, so it renders for the host lobby.
+  await host(page, (msg, myPid) => ({
+    ...msg, type: 'state', code: 'AYBD', started: false, paused: false, host: myPid,
+    round_num: 0, target: 1, place_name: "Chili's Bar & Grill",
+    players: roster(myPid, { alpha: [], bravo: [], cosmo: [] }),
+  }), '#lobby.active');
+  await settle(page);
+  await expect(page).toHaveScreenshot('lobby-checkedin.png', { mask: [page.locator('.qr-box'), page.locator('.stamp-date')] });
 });
 
 test('game-menu-open', async ({ page }) => {
