@@ -150,9 +150,14 @@ export class LobbyStamp extends HTMLElement {
     // animation on mount. The slam is a check-in event, not an enlarge one —
     // kill it so the cachet just rides along in its resting state.
     /** @type {HTMLElement | null} */ (clone.querySelector('.checkin'))?.style.setProperty('animation', 'none');
-    // Pin the clone's size to the live stamp (its --u is container-relative, but
-    // the clone lives in the top layer with no container).
-    clone.style.setProperty('--u', `${ow / 346}px`);
+    // Pin the clone's size to the live stamp. The clone lives in the top layer
+    // with no size container, so its width:100% and cqw-based --u would both
+    // collapse: give it an explicit width, and resolve --u to px from a child
+    // that's a known --u multiple (a side panel is calc(var(--u) * 25) wide).
+    const panel = /** @type {HTMLElement | null} */ (stamp.querySelector('.panel'));
+    const u = panel ? parseFloat(getComputedStyle(panel).width) / 25 : ow / 346;
+    clone.style.setProperty('--u', `${u}px`);
+    clone.style.width = `${ow}px`;
     clone.style.position = 'fixed';
     clone.style.left = `${cx - ow / 2}px`;
     clone.style.top = `${cy - oh / 2}px`;
