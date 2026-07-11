@@ -153,6 +153,15 @@
 
   .field-hint-link:hover { color: rgba(240, 205, 145, 0.98); }
 
+  /* Signed-in landing hides the name field + hint paragraph, collapsing the
+     greeting almost onto the Create Game button (flex gap skips display:none
+     siblings). Restore a comfortable gap so heading and primary action aren't
+     crowded. Signed-out landing keeps the input visible, so this never matches
+     there and the baseline is unaffected. */
+  .landing-screen #name-input[hidden] + .btn-primary {
+    margin-block-start: 1.5rem;
+  }
+
   /* Landing reuses the lobby's round action buttons (.lobby-action). Hold the
      glyphs still — the share-idle breathe is a lobby-only cue — and drop the
      row's trailing margin since the form-stack gap already spaces it. */
