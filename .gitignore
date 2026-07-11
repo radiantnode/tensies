@@ -26,3 +26,13 @@ pg_data_backup.tar.gz
 
 # Service-account credentials (never commit)
 secrets/
+
+# design-sync (claude.ai/design) machine state
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+.design-sync/bindings/node_modules/
+.design-sync/bindings/dist/
+.design-sync/bindings/src/assets.generated.ts
