@@ -49,6 +49,7 @@ Monday, July 6, 2026
 
 Sunday, July 5, 2026
 
+- We had Claude's new Fable 5 model walk the whole bar with a clipboard, and fixed everything it wrote up. The review came back: "I would drink at this bar." [Read the review yourself](https://github.com/radiantnode/tensies/blob/main/docs/fable5-review/README.md). ⭐
 - The sign-in button pulls double duty now: same button whether you're making a new account or getting back into an old one. Type your name and go.
 - Your username isn't picky about capitals anymore. "MikeD" and "miked" get you the same seat.
 - If you were here early, your profile wears a "Founding Roller" badge. You were rolling before it was cool. 😎

@@ -52,6 +52,7 @@ const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
 <h2>1.23.0 ("Regular's Tab")</h2>
 <p>Sunday, July 5, 2026</p>
 <ul>
+<li>We had Claude's new Fable 5 model walk the whole bar with a clipboard, and fixed everything it wrote up. The review came back: "I would drink at this bar." <a href="https://github.com/radiantnode/tensies/blob/main/docs/fable5-review/README.md" target="_blank" rel="noopener noreferrer">Read the review yourself</a>. ⭐</li>
 <li>The sign-in button pulls double duty now: same button whether you're making a new account or getting back into an old one. Type your name and go.</li>
 <li>Your username isn't picky about capitals anymore. "MikeD" and "miked" get you the same seat.</li>
 <li>If you were here early, your profile wears a "Founding Roller" badge. You were rolling before it was cool. 😎</li>
