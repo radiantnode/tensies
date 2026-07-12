@@ -1,5 +1,9 @@
-// Random "Spicy Squid"-style player-name generator.
-// 50 adjectives × 50 nouns = 2,500 possible combinations.
+// @ts-check
+
+/**
+ * Random "Spicy Squid"-style player-name generator.
+ * 50 adjectives × 50 nouns = 2,500 combinations.
+ */
 
 const ADJECTIVES = [
   'Spicy', 'Funky', 'Sneaky', 'Grumpy', 'Lazy', 'Zippy', 'Wobbly',
@@ -23,8 +27,14 @@ const NOUNS = [
   'Iguana', 'Wallaby', 'Bison',
 ];
 
-function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+/**
+ * @template T
+ * @param {T[]} arr
+ * @returns {T}
+ */
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
+/** Generate a random two-word player name. */
 export function makeName() {
   return `${pick(ADJECTIVES)} ${pick(NOUNS)}`;
 }

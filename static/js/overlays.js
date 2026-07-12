@@ -1,48 +1,116 @@
-import { nextTarget, showScreen } from './util.js';
+// @ts-check
 
-// Winner is the only true dialog overlay — it sits on top of the still-relevant
-// game board. Loading is a screen (see #loading in index.html), not a dialog,
-// and is driven via showLoading().
+/**
+ * Dialog overlays — the winner/loser celebration and the non-host pause wait
+ * screen. Both sit on top of the still-visible game board. (Loading is a
+ * screen, not a dialog.) Module scripts run after parsing, so the dialogs in
+ * index.html exist by the time these lookups run.
+ */
 
-const winner = document.getElementById('winner-overlay');
-if (winner) winner.addEventListener('cancel', e => e.preventDefault());
+/** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
 
-export function showWinner(name, target) {
-  document.getElementById('winner-name').textContent = name;
-  document.getElementById('winner-sub').textContent = `Next up: roll for ${nextTarget(target)}s`;
-  if (winner && !winner.open) winner.showModal();
+const winner = /** @type {HTMLDialogElement | null} */ (document.getElementById('winner-overlay'));
+const pauseOverlay = /** @type {HTMLDialogElement | null} */ (document.getElementById('pause-overlay'));
+
+// Neither dialog may be Escape-dismissed — only game state closes them.
+winner?.addEventListener('cancel', (event) => event.preventDefault());
+pauseOverlay?.addEventListener('cancel', (event) => event.preventDefault());
+
+/**
+ * On resume, hold the pause overlay / menu a beat so the toggle's slide-off
+ * is visible before things close.
+ */
+export const RESUME_CLOSE_DELAY_MS = 600;
+
+// ── Pause overlay (non-host) ──
+
+/**
+ * Open the pause wait dialog with the given message.
+ * @param {string} text
+ */
+export function showPaused(text) {
+  const msg = document.getElementById('pause-overlay-msg');
+  if (msg) msg.textContent = text;
+  if (pauseOverlay && !pauseOverlay.open) pauseOverlay.showModal();
 }
 
-export function hideWinner() {
-  if (winner && winner.open) winner.close();
+/** Close the pause wait dialog if it's open. */
+export function hidePaused() {
+  if (pauseOverlay?.open) pauseOverlay.close();
 }
 
-// Minimum time #loading stays on screen before the next swap. Stops the bar
-// from flashing in and out on fast connections (especially local dev).
-const MIN_LOADING_MS = 600;
-// Start counting from module load — covers the initial HTML paint, which
-// happens before any showLoading() call.
-let loadingShownAt = Date.now();
-
-export function showLoading(text = 'Loading…') {
-  document.getElementById('loading-msg').textContent = text;
-  loadingShownAt = Date.now();
-  showScreen('loading');
+/**
+ * "Waiting for <Host> to resume the game"
+ * @param {GameSnapshot} snap
+ */
+export function pausedText(snap) {
+  const host = snap.players[snap.host]?.name || 'the host';
+  return `Waiting for ${host} to resume the game`;
 }
 
-// Run `action` after #loading has been visible for at least MIN_LOADING_MS,
-// measured from the most recent showLoading() (or module load, which is
-// effectively the initial HTML paint of #loading). If enough time has
-// already passed, just runs on the next animation frame.
-export function leaveLoading(action) {
-  const remaining = Math.max(0, MIN_LOADING_MS - (Date.now() - loadingShownAt));
-  if (remaining === 0) requestAnimationFrame(action);
-  else setTimeout(action, remaining);
-}
-
-// Build the "Waiting for A and B to reconnect…" text from a name list.
+/**
+ * "Waiting for A and B to reconnect…" from a list of dropped player names.
+ * @param {string[]} names
+ */
 export function waitingText(names) {
   if (names.length === 0) return '';
   if (names.length === 1) return `Waiting for ${names[0]} to reconnect…`;
   return `Waiting for ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} to reconnect…`;
 }
+
+// ── Winner / loser overlay ──
+
+// The server holds the overlay for ROUND_WIN_DELAY (server/config.py) before
+// advancing the round — mirror it here to drive the countdown.
+const WIN_OVERLAY_MS = 3000;
+
+/** @type {ReturnType<typeof setInterval> | undefined} */
+let winTimer;
+
+function startWinTimer() {
+  const fill = document.getElementById('winner-timer-fill');
+  const secs = document.getElementById('winner-timer-secs');
+  const end = Date.now() + WIN_OVERLAY_MS;
+  clearInterval(winTimer);
+  const tick = () => {
+    const remaining = Math.max(0, end - Date.now());
+    if (fill) fill.style.width = `${(remaining / WIN_OVERLAY_MS) * 100}%`;
+    if (secs) {
+      const s = String(Math.ceil(remaining / 1000)).padStart(2, '0');
+      secs.textContent = `Next round starts in: ${s}s`;
+    }
+    if (remaining <= 0) clearInterval(winTimer);
+  };
+  tick();
+  winTimer = setInterval(tick, 50);
+}
+
+/**
+ * Show the round result overlay. `name` is shown under the dice (the winner's
+ * name to the winner; the viewer's own name to everyone else); `isLoser`
+ * flips the banner suffix + logo.
+ * @param {string} name
+ * @param {number} target
+ * @param {number} round
+ * @param {boolean} [isLoser]
+ */
+export function showWinner(name, target, round, isLoser = false) {
+  void target; // part of the protocol payload; the next target shows in the round header
+  const pill = document.getElementById('winner-round');
+  if (pill) pill.textContent = String(round);
+  const suffix = document.getElementById('winner-banner-suffix');
+  if (suffix) suffix.textContent = isLoser ? 'Loser' : 'Winner';
+  const logo = /** @type {HTMLImageElement | null} */ (document.querySelector('.winner-logo'));
+  if (logo) logo.src = isLoser ? '/static/images/logo-loser.svg' : '/static/images/logo-winner.svg';
+  const nameEl = document.getElementById('winner-name');
+  if (nameEl) nameEl.textContent = name;
+  startWinTimer();
+  if (winner && !winner.open) winner.showModal();
+}
+
+/** Close the winner overlay (and its countdown) if open. */
+export function hideWinner() {
+  clearInterval(winTimer);
+  if (winner?.open) winner.close();
+}
+

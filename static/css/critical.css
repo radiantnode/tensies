@@ -1,0 +1,446 @@
+/* Critical CSS — everything the first paint needs with no JS in the path:
+   the font, the cascade-layer order, design tokens, the reset, the shared
+   logo, the inline #loading screen, and the view-transition setup.
+   Loaded as the first, render-blocking stylesheet. */
+
+/* Cascade order for the whole app, fixed before any other sheet is parsed. */
+@layer reset, tokens, elements, components, utilities;
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/static/fonts/inter-latin-variable.woff2') format('woff2');
+}
+
+/* Heading face: EB Garamond — a retro Garamond serif (Apple-Garamond feel) for
+   screen/section headings. Body text stays Inter. Variable weight 400–800. */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/static/fonts/ebgaramond-latin-variable.woff2') format('woff2');
+}
+
+/* Vintage-stamp display faces (lobby stamp only): Rye for the engraved serial,
+   panels, and banner; Yellowtail for the script watermark. */
+@font-face {
+  font-family: 'Rye';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/static/fonts/rye-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Yellowtail';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/static/fonts/yellowtail-latin.woff2') format('woff2');
+}
+
+@layer reset {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    touch-action: manipulation;
+  }
+
+  ul, ol { list-style: none; }
+
+  h1, h2, h3, p {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  /* The sanctioned !important home: structural visibility that nothing in a
+     higher layer may override. */
+  [hidden] { display: none !important; }
+
+  .screen:not(.active):not(.staging):not(.dissolving) { display: none !important; }
+
+  /* Shared screen base — every screen is a full-height flex column. Individual
+     screen rules add background and any extras (position, max-block-size). */
+  .screen.active,
+  .screen.staging,
+  .screen.dissolving {
+    display: flex;
+    flex-direction: column;
+    block-size: 100%;
+    overflow: hidden;
+  }
+
+  /* Focus ring for keyboard nav only. Suppress the UA outline for pointer/touch
+     and programmatic focus (e.g. a <dialog>'s auto-focus landing on Cancel),
+     where the blue ring is just noise. Keyboard users still get :focus-visible. */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* A dialog gets initial focus on open (tabindex=-1, so no action button is
+     auto-focused and rings — WebKit paints a focus-visible ring on showModal's
+     auto-focus). The container itself is never a keyboard tab stop, so it never
+     needs a ring; kill it unconditionally so the whole-dialog outline can't show. */
+  dialog:focus {
+    outline: none;
+  }
+}
+
+@layer tokens {
+  :root {
+    --color-accent: #ff4d6d;
+    --color-success: #2ecc71;
+    --color-bg: #1a0e08;
+    --color-panel: rgba(8, 4, 1, 0.58);
+    --color-panel-screen: rgba(6, 3, 1, 0.72);
+    --color-field: rgba(20, 10, 5, 0.7);
+    --color-raised: rgba(30, 15, 5, 0.5);
+    --color-raised-hover: rgba(40, 20, 6, 0.6);
+    --color-border: rgba(180, 100, 20, 0.25);
+    --color-border-strong: rgba(170, 115, 45, 0.3);
+    --color-text: #efe3d4;
+    --color-text-warm: rgba(235, 215, 195, 0.92);
+    --color-text-muted: rgba(214, 188, 158, 0.62);
+    --color-text-label: rgba(220, 200, 180, 0.72);
+    --color-amber: rgba(225, 180, 100, 0.95);
+    --font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-family-heading: 'EB Garamond', Georgia, 'Times New Roman', serif;
+    --shadow-text: 0 1px 4px rgba(0, 0, 0, 0.9);
+    --shadow-text-lg: 0 2px 8px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.8);
+    --radius-md: 12px;
+  }
+}
+
+@layer elements {
+  html {
+    block-size: calc(100% + env(safe-area-inset-top) + env(safe-area-inset-bottom));
+    overflow: hidden;
+    overscroll-behavior: none;
+    background: var(--color-bg);
+    /* Stop iOS Safari inflating running text when rotated to landscape (the nav
+       menu about blurb + changelog paragraphs are the wide text blocks it hits);
+       keep the sizes we set at every orientation. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  .bg-video {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .intro-video {
+    display: none;
+    z-index: 0;
+  }
+
+  .intro-video.playing {
+    display: block;
+  }
+
+  /* Game board background painted on a fixed, full-viewport layer — the same
+     geometry as the intro video — so the intro→board handoff doesn't shift the
+     image. Painting it on .game-screen instead makes `cover` recrop against a
+     box that changes fixed→relative across the staged reveal, so it jumps. */
+  .game-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: var(--color-bg) url('/static/video/poster-game.webp') center / cover no-repeat;
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  body.in-game .game-bg {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  main.intro-fade-out {
+    opacity: 0;
+    transition: opacity 400ms ease-out;
+  }
+
+  main.intro-hidden {
+    visibility: hidden;
+  }
+
+  main.intro-fade-in {
+    animation: intro-reveal 1000ms ease-in forwards;
+  }
+
+  @keyframes intro-reveal {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  body {
+    position: fixed;
+    inset: 0;
+    bottom: calc(0px - env(safe-area-inset-bottom));
+    overflow: hidden;
+    font-family: var(--font-family-base);
+    color: var(--color-text);
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  main {
+    block-size: 100%;
+  }
+}
+
+@layer components {
+  /* Shared logo (loading + landing) */
+  .logo-mark {
+    display: block;
+    position: relative;
+    z-index: 2;
+    inline-size: clamp(110px, 32vw, 160px);
+    block-size: auto;
+    margin-block-end: -2.5rem;
+    filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.75))
+            drop-shadow(0 0 32px rgba(255, 77, 109, 0.35));
+  }
+
+  .logo {
+    margin-block-end: 0.25rem;
+    font-size: clamp(3rem, 12vw, 6rem);
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    color: var(--color-accent);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  }
+
+  /* Loading screen (inline markup in index.html) */
+  .loading-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    block-size: 100%;
+    padding-block: calc(2rem + env(safe-area-inset-top)) calc(2rem + env(safe-area-inset-bottom));
+    padding-inline: 2rem;
+    overflow: hidden;
+    text-align: center;
+    background: var(--color-panel-screen);
+  }
+
+  .loading-msg {
+    max-inline-size: 280px;
+    block-size: 3.5rem;
+    margin-block-start: 1.25rem;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.5;
+    color: var(--color-text);
+  }
+
+  /* Dice loader (inline .stage markup in #loading and #pause-overlay). Two dice
+     — pink 6 + ivory 4 — hop with squash-and-stretch, resting in the logo.svg
+     pose. Geometry derived from logo.svg (200×200 viewBox): pink center (74,80)
+     size 80 rotate −14°, ivory center (132,130) size 76 rotate 10°. Each die is
+     a 3×3 pip grid of divs (not SVG). Background/veil intentionally dropped —
+     the dice sit on the loading screen / pause overlay background. */
+  .stage {
+    position: relative;
+    inline-size: 200px;
+    block-size: 200px;
+    transform: scale(0.55);
+    transform-origin: center;
+    /* scale() leaves the 200px layout box intact, so the visual dice float in
+       empty space; pull the following message up to sit close under them. */
+    margin-block: -4.5rem;
+    filter: drop-shadow(0 14px 26px rgba(0, 0, 0, 0.7))
+            drop-shadow(0 0 30px rgba(255, 77, 109, 0.32));
+  }
+
+  .die {
+    position: absolute;
+    display: grid;
+    grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+    place-items: center;
+    padding: 13px;
+    transform-origin: center;
+    will-change: transform;
+  }
+
+  .pip {
+    inline-size: 13px;
+    block-size: 13px;
+    border-radius: 50%;
+    opacity: 0;             /* inactive pip */
+  }
+  .pip.on { opacity: 1; }   /* active pip */
+
+  /* Back die: pink, showing 6 */
+  .die--pink {
+    inline-size: 80px;
+    block-size: 80px;
+    top: 40px;
+    left: 34px;
+    border-radius: 15px;
+    background: linear-gradient(#ff6b85, #e63a59);
+    border: 1.5px solid #2a0a14;
+    animation: dice-hop-a 0.92s cubic-bezier(0.5, -0.3, 0.4, 1.3) infinite;
+  }
+  .die--pink .pip { background: #fff; }
+
+  /* Front die: ivory, showing 4 */
+  .die--ivory {
+    inline-size: 76px;
+    block-size: 76px;
+    top: 92px;
+    left: 94px;
+    z-index: 3;
+    border-radius: 14px;
+    background: linear-gradient(#ffffff, #dcd9e8);
+    border: 1.5px solid #1a1a2e;
+    box-shadow: 3px 5px 0 rgba(26, 26, 46, 0.35);
+    animation: dice-hop-b 0.92s cubic-bezier(0.5, -0.3, 0.4, 1.3) 0.12s infinite;
+  }
+  .die--ivory .pip { background: #1a1a2e; }
+
+  /* Ground shadow that pulses in sync with the hop */
+  .die--shadow {
+    display: block;
+    padding: 0;
+    left: 50%;
+    bottom: 2px;
+    inline-size: 120px;
+    block-size: 14px;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse, rgba(0, 0, 0, 0.55), transparent 70%);
+    animation: dice-shadow 0.92s ease-in-out infinite;
+    z-index: 1;
+  }
+
+  /* The base rotation (−14°/10°) lives inside the keyframes so the logo pose is
+     preserved at every keyframe stop. */
+  @keyframes dice-hop-a {
+    0%, 100% { transform: translateY(0)     rotate(-14deg) scale(1, 1); }
+    18%      { transform: translateY(2px)   rotate(-14deg) scale(1.08, 0.9); }
+    45%      { transform: translateY(-30px) rotate(-26deg) scale(0.94, 1.08); }
+    75%      { transform: translateY(0)     rotate(-8deg)  scale(1.06, 0.94); }
+  }
+
+  @keyframes dice-hop-b {
+    0%, 100% { transform: translateY(0)     rotate(10deg) scale(1, 1); }
+    18%      { transform: translateY(2px)   rotate(10deg) scale(1.08, 0.9); }
+    45%      { transform: translateY(-24px) rotate(22deg) scale(0.94, 1.08); }
+    75%      { transform: translateY(0)     rotate(4deg)  scale(1.06, 0.94); }
+  }
+
+  @keyframes dice-shadow {
+    0%, 100% { transform: translateX(-50%) scale(1);   opacity: 0.55; }
+    45%      { transform: translateX(-50%) scale(0.6); opacity: 0.28; }
+  }
+
+  /* Orientation guard (inline #rotate-overlay in index.html). Hidden by default;
+     the landscape media query below reveals it. Scoped by max-height so it targets
+     phones held sideways (short in landscape) — never desktop/tablet, which are
+     landscape but tall. There is no true web orientation lock on iOS, so this CSS
+     prompt is the cross-browser stand-in; the manifest covers installed PWAs. */
+  .rotate-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: calc(1.25rem + env(safe-area-inset-top)) calc(1.5rem + env(safe-area-inset-right))
+             calc(1.25rem + env(safe-area-inset-bottom)) calc(1.5rem + env(safe-area-inset-left));
+    text-align: center;
+    background: var(--color-bg);
+  }
+
+  .rotate-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--color-panel-screen);
+  }
+
+  .rotate-overlay > * { position: relative; }
+
+  /* The dice logo-mark IS the brand here (mirrors the loading/pause screens),
+     sized down to vh so it fits the short landscape height. The gentle rotate
+     nudge doubles as the "turn your phone" hint (suppressed under reduced-motion
+     by the utilities layer). */
+  .rotate-mark {
+    inline-size: clamp(56px, 22vh, 112px);
+    margin-block-end: 0.35rem;
+    animation: rotate-hint 2.8s ease-in-out infinite;
+  }
+
+  @keyframes rotate-hint {
+    0%, 60%, 100% { transform: rotate(0deg); }
+    78%, 90% { transform: rotate(-16deg); }
+  }
+
+  .rotate-msg {
+    max-inline-size: 320px;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--color-text);
+    text-shadow: var(--shadow-text);
+  }
+
+  @media (orientation: landscape) and (max-height: 500px) {
+    .rotate-overlay { display: flex; }
+  }
+
+  /* Staged screen reveals (transitions.js showScreen({ staged })): the
+     incoming screen builds invisibly at its final geometry, then the outgoing
+     screen dissolves over the live result — no view-transition raster, so
+     the 3-D dice are never flattened (the Safari capture bug). */
+  .screen.staging {
+    position: fixed;
+    inset: 0;
+    visibility: hidden;
+  }
+
+  .screen.dissolving {
+    position: fixed;
+    inset: 0;
+    z-index: 200;       /* above the game top bar's z-index: 100 */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation-duration: 0.5s; }
+}
+
+@layer utilities {
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) { animation: none !important; }
+
+    /* The dice loader's base rotation lives inside its keyframes, so with the
+       hop suppressed above the dice must be posed explicitly — otherwise they
+       rest at rotate(0) instead of the logo pose. */
+    .die--pink  { transform: rotate(-14deg); }
+    .die--ivory { transform: rotate(10deg); }
+  }
+}

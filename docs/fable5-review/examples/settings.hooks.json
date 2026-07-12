@@ -1,0 +1,41 @@
+{
+  "//": "Merge the `hooks` and `statusLine` keys below into .claude/settings.json (project) or ~/.claude/settings.json (global). Make the scripts executable first: chmod +x docs/fable5-review/examples/hooks/*.sh docs/fable5-review/examples/scripts/statusline.sh. Paths here assume you copy the examples into .claude/ — adjust if you keep them elsewhere. $CLAUDE_PROJECT_DIR expands to the repo root.",
+
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-catchup.sh" }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/protect-main.sh" }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/invariant-guard.sh" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/fast-check.sh" }
+        ]
+      }
+    ]
+  },
+
+  "statusLine": {
+    "type": "command",
+    "command": "$CLAUDE_PROJECT_DIR/.claude/scripts/statusline.sh"
+  }
+}

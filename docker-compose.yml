@@ -1,3 +1,6 @@
+# LOCAL DEVELOPMENT ONLY. Publishes Postgres/Grafana to the host with default
+# credentials and runs uvicorn with --reload + a repo bind-mount. Do NOT expose
+# this beyond localhost — use docker-compose.prod.yml for any shared/public deploy.
 services:
   web:
     build: .
@@ -7,13 +10,55 @@ services:
       - .:/app
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     environment:
+      REDIS_URL: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379/0
       POSTGRES_DSN: postgresql://tensies:tensies@postgres:5432/tensies
       GRAFANA_LIVE_URL: http://grafana:3000/api/live/push
       GRAFANA_USER: admin
       GRAFANA_PASS: admin
+      # Dev also runs /metrics + /stats authenticated (audit M2). These are
+      # local-only dev tokens; Prometheus sends METRICS_TOKEN (see ops/prometheus.yml).
+      METRICS_TOKEN: ${METRICS_TOKEN:-devmetrics}
+      STATS_TOKEN: ${STATS_TOKEN:-devstats}
+      CREATE_RATE_MAX: ${CREATE_RATE_MAX:-10}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-do-not-use-in-prod}
+      WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-tensies.app}
+      WEBAUTHN_ORIGIN: http://localhost:8888,https://dev.tensies.app
+      # Allow the profile-photo CDN so account avatars (lobby, radar blips)
+      # render in dev, matching production. Override to add more image hosts.
+      CSP_EXTRA_IMG_SRC: ${CSP_EXTRA_IMG_SRC:-https://cdn1.simmons.cloud}
+      APP_URL: ${APP_URL:-https://tensies.app}
+      ENABLE_DRAND_ROLLING: ${ENABLE_DRAND_ROLLING:-1}
+      DISCORD_ENABLED: ${DISCORD_ENABLED:-0}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
+      DISCORD_CHANNEL_ID: ${DISCORD_CHANNEL_ID:-}
+      DISCORD_PUBLIC_KEY: ${DISCORD_PUBLIC_KEY:-}
+      DISCORD_APPLICATION_ID: ${DISCORD_APPLICATION_ID:-}
+      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:-}
+      # Google Places "check in" — credentials stay server-side. With
+      # PLACES_ENABLED on and neither an API key nor a service account set, the
+      # proxy serves a dev stub (no Google account needed). A service account
+      # (OAuth) is preferred over the API key when both are set.
+      PLACES_ENABLED: ${PLACES_ENABLED:-1}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7.4-alpine
+    # Password-protected and NOT published to the host even in dev, so the
+    # pattern matches prod. Ephemeral: no persistence (game state is disposable).
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-devpassword}",
+              "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-devpassword}", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
 
   postgres:
     image: postgres:16-alpine
@@ -35,6 +80,9 @@ services:
     image: prom/prometheus:latest
     volumes:
       - ./ops/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Bearer token for the /metrics scrape — must match METRICS_TOKEN. Create
+      # with: printf '%s' "${METRICS_TOKEN:-devmetrics}" > ops/secrets/metrics_token
+      - ./ops/secrets/metrics_token:/etc/prometheus/metrics_token:ro
       - prom_data:/prometheus
     ports:
       - "9090:9090"
@@ -62,6 +110,7 @@ services:
       GF_USERS_DEFAULT_THEME: dark
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/live-games.json
       GF_PANELS_DISABLE_SANITIZE_HTML: "true"
+      GF_SERVER_ROOT_URL: "${GRAFANA_ROOT_URL:-http://localhost:8889}"
     volumes:
       - ./ops/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./ops/grafana/dashboards:/var/lib/grafana/dashboards:ro

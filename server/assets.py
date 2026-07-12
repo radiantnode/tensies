@@ -1,6 +1,7 @@
 import hashlib
 import re
 from pathlib import Path
+from string import Template
 
 STATIC_DIR = Path("static")
 ASSET_REF = re.compile(r'"(/static/[^"?]+\.(?:css|js))"')
@@ -49,15 +50,122 @@ def build_index_html() -> str:
     return ASSET_REF.sub(lambda m: f'"{m.group(1)}?v={version}"', html)
 
 
+_SHARE_IMAGE_PATH = "/static/images/share-hero.png"
+
+# Default values for the $template_vars in index.html. Routes can override any
+# of these by passing keyword arguments to render_page().
+PAGE_DEFAULTS = {
+    "page_title": "Tensies — Real-Time Multiplayer Dice Game",
+    "share_title": "Tensies — Real-Time Multiplayer Dice Game",
+    "share_description": (
+        "Roll all ten dice to match the target and win the round."
+        " Free, real-time multiplayer — no download, just share a code and play."
+    ),
+    "share_image": _SHARE_IMAGE_PATH,
+    "canonical_url": "/",
+}
+
+
+def build_page_template(html_source: str, app_url: str = "") -> tuple[Template, dict[str, str]]:
+    """Wrap the cache-busted index.html in a Template and resolve defaults.
+
+    Called once at startup. The returned (Template, defaults) pair is passed to
+    render_page() per-request — defaults for most routes, with overrides for
+    pages like profiles."""
+    base = app_url.rstrip("/")
+    defaults = PAGE_DEFAULTS.copy()
+    if base:
+        defaults["share_image"] = f"{base}{_SHARE_IMAGE_PATH}"
+        defaults["canonical_url"] = base + "/"
+    return Template(html_source), defaults
+
+
+def _escape_attr(val: str) -> str:
+    """Escape for use inside a double-quoted HTML attribute.
+
+    Escapes &, <, >, and " — but NOT single quotes, which are fine inside
+    content="..." and look ugly when escaped in share-preview titles."""
+    return (
+        val.replace("&", "&amp;").replace("<", "&lt;")
+        .replace(">", "&gt;").replace('"', "&quot;")
+    )
+
+
+def render_page(template: Template, defaults: dict[str, str], **overrides: str) -> str:
+    """Substitute the page template with defaults + per-page overrides.
+
+    All values are escaped for double-quoted HTML attributes."""
+    merged = {k: _escape_attr(v) for k, v in {**defaults, **overrides}.items()}
+    return template.safe_substitute(merged)
+
+
 def build_js_cache() -> dict[str, str]:
     """Return {relative_path: rewritten_js} for every JS file under static/js/.
 
     Keyed by the path as it appears in URLs (e.g. "js/main.js", "js/components/player-card.js").
     """
-    _, js_files, _ = _collect_assets()
-    version = asset_hash(_collect_assets()[0] + js_files + _collect_assets()[2])
+    css, js_files, legacy = _collect_assets()
+    version = asset_hash(css + js_files + legacy)
     cache: dict[str, str] = {}
     for path in js_files:
         rel = path.relative_to(STATIC_DIR).as_posix()
         cache[rel] = _rewrite_js(path.read_text(), version)
     return cache
+
+
+class DevAssets:
+    """Dev-only cache-busted asset serving that survives file edits without a
+    server restart.
+
+    In dev the app serves the raw modules itself, and the version hash + the
+    rewritten module bodies used to be computed once at startup — so any edit to
+    a CSS/JS file needed a `docker compose restart web` to show up (the single
+    biggest source of dev friction). This recomputes them lazily, but only when
+    something actually changed: each call stats the static tree (cheap, no file
+    reads) and rebuilds the index template + JS cache only when the max mtime
+    moves. Prod (FRONTEND_DIST set) never constructs this — nginx serves the
+    prebuilt, fingerprinted dist/.
+    """
+
+    def __init__(self, app_url: str = "") -> None:
+        self._app_url = app_url
+        self._sig: tuple[int, int] | None = None
+        self._tmpl: Template | None = None
+        self._defaults: dict[str, str] = {}
+        self._js: dict[str, str] = {}
+
+    def _signature(self) -> tuple[int, int]:
+        css, js, legacy = _collect_assets()
+        paths = [*css, *js, *legacy, STATIC_DIR / "index.html"]
+        newest = max((p.stat().st_mtime_ns for p in paths if p.exists()), default=0)
+        return newest, len(paths)
+
+    def _refresh_if_stale(self) -> None:
+        sig = self._signature()
+        if sig == self._sig:
+            return
+        self._sig = sig
+        self._tmpl, self._defaults = build_page_template(build_index_html(), self._app_url)
+        self._js = build_js_cache()
+
+    def template(self) -> tuple[Template, dict[str, str]]:
+        self._refresh_if_stale()
+        assert self._tmpl is not None
+        return self._tmpl, self._defaults
+
+    def js(self, key: str) -> str | None:
+        self._refresh_if_stale()
+        return self._js.get(key)
+
+
+_dev_assets: DevAssets | None = None
+
+
+def dev_assets(app_url: str = "") -> DevAssets:
+    """Process-wide DevAssets singleton, so routes.py and main.py share one
+    mtime sweep and one set of caches. First caller (routes.py, at import) sets
+    app_url; later callers reuse the same instance."""
+    global _dev_assets
+    if _dev_assets is None:
+        _dev_assets = DevAssets(app_url)
+    return _dev_assets

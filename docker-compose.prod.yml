@@ -1,0 +1,216 @@
+# Production-oriented stack (audit C1 / deployment hardening).
+#
+# Differences from docker-compose.yml (local dev):
+#   - Runs the built image (no repo bind-mount), no --reload, non-root user.
+#   - ONLY the app port is published. Postgres, Redis, Prometheus and Grafana
+#     live on an internal network and are never exposed to the host/internet.
+#   - All credentials come from the environment (see .env.prod.example); there
+#     are NO defaults — compose will error if a required secret is unset.
+#   - Anonymous Grafana is OFF; admin password from env; Live origins restricted.
+#   - /metrics and /stats/* are gated by bearer tokens (Prometheus scrapes with
+#     a mounted token file over the internal network).
+#   - Images are pinned by @sha256 digest (multi-arch index digest) for full
+#     reproducibility; the tag is kept alongside for readability. Re-resolve
+#     after a bump with: docker buildx imagetools inspect <image:tag>.
+#
+# Usage:
+#   cp .env.prod.example .env.prod && edit it
+#   echo -n "$METRICS_TOKEN" > ops/secrets/metrics_token
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# The `nginx` service is the single published port and round-robins across the
+# `web` replicas (they share Redis, so any instance serves any game; no sticky
+# sessions). To run multiple app instances, scale `web` then reload nginx so it
+# re-resolves the new set:
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --scale web=3
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod exec nginx nginx -s reload
+
+services:
+  web:
+    build: .
+    image: tensies:latest
+    # Internal only. The nginx service below is the single published port and
+    # load-balances across web replicas (scale with --scale web=N). Reaching web
+    # directly isn't needed; nginx talks to it over the internal network.
+    expose:
+      - "8000"
+    environment:
+      REDIS_URL: "redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379/0"
+      POSTGRES_DSN: "postgresql://tensies:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/tensies"
+      GRAFANA_LIVE_URL: http://grafana:3000/api/live/push
+      GRAFANA_USER: admin
+      GRAFANA_PASS: "${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}"
+      METRICS_TOKEN: "${METRICS_TOKEN:?set METRICS_TOKEN}"
+      STATS_TOKEN: "${STATS_TOKEN:?set STATS_TOKEN}"
+      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS}"
+      # Public origin → absolute og:image/twitter:image so the iOS share sheet can
+      # render the invite-link preview with the Tensies icon. Optional; relative
+      # when unset.
+      APP_URL: "${APP_URL:-}"
+      # Behind the TLS proxy / LB: derive the real client IP from X-Forwarded-For
+      # so per-IP caps + rate limits (audit H1) key on the user, not the proxy.
+      # Set TRUSTED_PROXY_HOPS to the number of proxies that append to XFF.
+      TRUST_PROXY_HEADERS: "1"
+      TRUSTED_PROXY_HOPS: "${TRUSTED_PROXY_HOPS:-1}"
+      # Real HTTPS deploy: send HSTS and add upgrade-insecure-requests to the CSP.
+      # Opt into includeSubDomains/preload only once every subdomain is HTTPS.
+      HSTS_ENABLED: "1"
+      HSTS_INCLUDE_SUBDOMAINS: "${HSTS_INCLUDE_SUBDOMAINS:-0}"
+      HSTS_PRELOAD: "${HSTS_PRELOAD:-0}"
+      # Allowlist extra hosts on specific CSP directives without rewriting the
+      # whole policy (e.g. a Cloudflare Web Analytics beacon). Space/comma list.
+      CSP_EXTRA_SCRIPT_SRC: "${CSP_EXTRA_SCRIPT_SRC:-}"
+      CSP_EXTRA_CONNECT_SRC: "${CSP_EXTRA_CONNECT_SRC:-}"
+      CSP_EXTRA_IMG_SRC: "${CSP_EXTRA_IMG_SRC:-}"
+      # Signs JWT auth tokens. Generate with: openssl rand -hex 32
+      JWT_SECRET: "${JWT_SECRET:?set JWT_SECRET}"
+      # WebAuthn relying party ID — the bare domain users register passkeys on
+      # (no scheme, no port). e.g. "tensies.app"
+      WEBAUTHN_RP_ID: "${WEBAUTHN_RP_ID:?set WEBAUTHN_RP_ID}"
+      # Display name shown in the browser's passkey prompt. Defaults to "Tensies".
+      WEBAUTHN_RP_NAME: "${WEBAUTHN_RP_NAME:-Tensies}"
+      # Allowed origins for WebAuthn ceremonies (scheme + domain, no trailing
+      # slash). Defaults to ALLOWED_ORIGINS, which is correct when the app and
+      # the passkey domain are the same. e.g. "https://tensies.app"
+      WEBAUTHN_ORIGIN: "${WEBAUTHN_ORIGIN:-${ALLOWED_ORIGINS}}"
+      ENABLE_DRAND_ROLLING: "${ENABLE_DRAND_ROLLING:-1}"
+      TELEMETRY_ENABLED: "1"
+      # Discord game-status notifier (optional). Off unless DISCORD_ENABLED is
+      # set; the bot token is a secret — pass it via .env.prod, never inline.
+      DISCORD_ENABLED: "${DISCORD_ENABLED:-0}"
+      DISCORD_BOT_TOKEN: "${DISCORD_BOT_TOKEN:-}"
+      DISCORD_CHANNEL_ID: "${DISCORD_CHANNEL_ID:-}"
+      DISCORD_PUBLIC_KEY: "${DISCORD_PUBLIC_KEY:-}"
+      DISCORD_APPLICATION_ID: "${DISCORD_APPLICATION_ID:-}"
+      DISCORD_GUILD_ID: "${DISCORD_GUILD_ID:-}"
+      # Google Places "check in" (optional). Off unless PLACES_ENABLED is set.
+      # Credentials are secrets — pass via .env.prod, never inline. A service
+      # account (OAuth) is preferred; mount the JSON and point
+      # GOOGLE_APPLICATION_CREDENTIALS at the in-container path.
+      PLACES_ENABLED: "${PLACES_ENABLED:-0}"
+      GOOGLE_MAPS_API_KEY: "${GOOGLE_MAPS_API_KEY:-}"
+      GOOGLE_APPLICATION_CREDENTIALS: "${GOOGLE_APPLICATION_CREDENTIALS:-}"
+      GOOGLE_CLOUD_PROJECT: "${GOOGLE_CLOUD_PROJECT:-}"
+      # Prod static-asset mode: serve the prebuilt, fingerprinted index.html that
+      # the build baked into the image (nginx serves everything under /static).
+      # The app does zero asset work — no in-process JS cache, no StaticFiles.
+      FRONTEND_DIST: /app/dist
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [internal]
+    restart: unless-stopped
+
+  # Single published port + load balancer across the web replicas, and the
+  # static file server for /static. Host cloudflared keeps pointing at
+  # ${WEB_PUBLISH} (this), unchanged. Built from the `nginx` stage in
+  # ./Dockerfile: stock nginx with ops/nginx.conf and the prebuilt, fingerprinted
+  # frontend bundle (dist/static) baked in — so /static is served straight from
+  # disk with no runtime volume. Config + scaling notes live in ops/nginx.conf.
+  # After `--scale web=N`, reload nginx:
+  #   docker compose -f docker-compose.prod.yml --env-file .env.prod exec nginx nginx -s reload
+  nginx:
+    build:
+      context: .
+      target: nginx
+    image: tensies-nginx:latest
+    ports:
+      - "${WEB_PUBLISH:-127.0.0.1:8000}:80"
+    depends_on: [web]
+    networks: [internal]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4.1-alpine@sha256:c1e88455c85225310bbea54816e9c3f4b5295815e6dbf80c34d40afc6df28275
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD}",
+              "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [internal]
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16.4-alpine@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c
+    environment:
+      POSTGRES_USER: tensies
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}"
+      POSTGRES_DB: tensies
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tensies"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [internal]
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.54.1@sha256:f6639335d34a77d9d9db382b92eeb7fc00934be8eae81dbc03b31cfe90411a94
+    volumes:
+      - ./ops/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
+      - ./ops/secrets/metrics_token:/etc/prometheus/metrics_token:ro
+      - prom_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=365d'
+    networks: [internal]
+    restart: unless-stopped
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0@sha256:386b12d19eab2a37d7cd8ca8b4c7491cc7a830d9581f49af6c98a393da9605e6
+    environment:
+      DATA_SOURCE_NAME: "postgresql://tensies:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/tensies?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.2.0@sha256:408afb9726de5122b00a2576763a8a57a3c86d5b0eff5305bc994ceb3eb96c3f
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}"
+      # Consumed by the provisioned Postgres datasource (it reads ${POSTGRES_PASSWORD}
+      # from Grafana's env — see ops/grafana/provisioning-prod/datasources).
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}"
+      GF_LIVE_ALLOWED_ORIGINS: "${GRAFANA_ROOT_URL:?set GRAFANA_ROOT_URL}"
+      GF_USERS_DEFAULT_THEME: dark
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/live-games.json
+      GF_SERVER_ROOT_URL: "${GRAFANA_ROOT_URL:?set GRAFANA_ROOT_URL}"
+      # Retained to match dev dashboard rendering (owner decision: don't change
+      # the Grafana flag). The stored-XSS vector via player names is closed at
+      # the source instead — names are sanitized server-side at intake (M1).
+      GF_PANELS_DISABLE_SANITIZE_HTML: "true"
+    volumes:
+      - ./ops/grafana/provisioning-prod/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./ops/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./ops/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    # Direct Grafana access on the host. Defaults to loopback (reach it via an
+    # SSH tunnel: `ssh -L 8889:127.0.0.1:8889 user@host`). To expose it on the
+    # box's network set GRAFANA_PUBLISH to e.g. 0.0.0.0:8889 — but Grafana's
+    # admin UI shouldn't face the public internet; tunnel or firewall it.
+    ports:
+      - "${GRAFANA_PUBLISH:-127.0.0.1:8889}:3000"
+    networks: [internal]
+    depends_on:
+      - prometheus
+      - postgres
+    restart: unless-stopped
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  pg_data:
+  prom_data:
+  grafana_data:

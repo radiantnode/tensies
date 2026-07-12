@@ -1,26 +1,106 @@
-from fastapi import APIRouter
+import asyncio
+import math
+import re
+from pathlib import Path
+from urllib.parse import quote
+
+import httpx
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-from .assets import build_index_html
+from . import gamestore, places, qr
+from .assets import build_page_template, render_page
+from .config import (
+    APP_URL,
+    DISCOVERY_DISTANCE_BUCKET_M,
+    DISCOVERY_ENABLED,
+    DISCOVERY_MAX_RESULTS,
+    DISCOVERY_RADIUS_M,
+    FOUNDING_CUTOFF,
+    FRONTEND_DIST,
+    METRICS_TOKEN,
+    NEARBY_RATE_MAX,
+    NEARBY_RATE_WINDOW,
+    PLACES_ENABLED,
+    PLACES_RATE_MAX,
+    PLACES_RATE_WINDOW,
+    STATS_TOKEN,
+    TELEMETRY_ENABLED,
+    log,
+)
+from .security import client_ip
 
 router = APIRouter()
 
-_index_html = build_index_html()
+# Build the page template once at import. In prod the prebuilt index.html is
+# read from FRONTEND_DIST; in dev it's assembled from the raw source with
+# cache-busting hashes. Either way, render_page() substitutes the $meta_vars
+# per-request (defaults for most routes, overrides for profiles etc.).
+if FRONTEND_DIST:
+    # Prod: bake once from the prebuilt, fingerprinted dist/ index.html.
+    _html_source = (Path(FRONTEND_DIST) / "index.html").read_text()
+    _tmpl, _defaults = build_page_template(_html_source, APP_URL)
+    _index_html = render_page(_tmpl, _defaults)
+
+    def _page_template():
+        return _tmpl, _defaults
+
+    def _render_index() -> str:
+        return _index_html
+else:
+    # Dev: recompute lazily so edits to any CSS/JS/index.html show up without a
+    # server restart (DevAssets rebuilds only when a static file's mtime moves).
+    from .assets import dev_assets
+
+    _dev = dev_assets(APP_URL)
+
+    def _page_template():
+        return _dev.template()
+
+    def _render_index() -> str:
+        tmpl, defaults = _dev.template()
+        return render_page(tmpl, defaults)
+
+# Fail loud, not closed: a bare `uvicorn` run stays usable, but warn so an
+# operator never unknowingly exposes these on a public port. Both compose files
+# set tokens, so dev and prod are authenticated by default.
+if METRICS_TOKEN is None:
+    log.warning("/metrics is UNAUTHENTICATED (set METRICS_TOKEN to require a bearer token)")
+if TELEMETRY_ENABLED and STATS_TOKEN is None:
+    log.warning("/stats/* is UNAUTHENTICATED (set STATS_TOKEN to require a bearer token)")
+
+
+def _bearer_guard(expected: str | None):
+    """Dependency factory (audit M2). When `expected` is set, require
+    `Authorization: Bearer <expected>`. When unset, the endpoint stays open —
+    rely on a network ACL (the prod compose keeps these off the public net)."""
+    async def _dep(authorization: str | None = Header(default=None)) -> None:
+        if expected is None:
+            return
+        if authorization != f"Bearer {expected}":
+            raise HTTPException(status_code=401, detail="unauthorized")
+    return _dep
+
+
+def _require_telemetry() -> None:
+    if not TELEMETRY_ENABLED:
+        raise HTTPException(status_code=503, detail="telemetry disabled")
 
 
 @router.get("/")
 async def root() -> HTMLResponse:
-    return HTMLResponse(_index_html)
+    return HTMLResponse(_render_index())
 
 
-@router.get("/metrics")
+@router.get("/metrics", dependencies=[Depends(_bearer_guard(METRICS_TOKEN))])
 async def metrics_endpoint() -> Response:
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
-@router.get("/stats/leaderboard")
+@router.get("/stats/leaderboard", dependencies=[Depends(_bearer_guard(STATS_TOKEN))])
 async def stats_leaderboard(limit: int = 25) -> dict:
+    _require_telemetry()
     """Top players by wins. Cheap query against the player_stats rollup."""
     from server.telemetry import store
     limit = max(1, min(limit, 100))
@@ -38,9 +118,10 @@ async def stats_leaderboard(limit: int = 25) -> dict:
     return {"leaderboard": [dict(r) for r in rows]}
 
 
-@router.get("/stats/player/{user_id}")
+@router.get("/stats/player/{user_id}", dependencies=[Depends(_bearer_guard(STATS_TOKEN))])
 async def stats_player(user_id: str) -> dict:
     """Lifetime stats for one player plus their recent rounds."""
+    _require_telemetry()
     from server.telemetry import store
     async with store.pool().acquire() as con:
         row = await con.fetchrow(
@@ -65,9 +146,10 @@ async def stats_player(user_id: str) -> dict:
     }
 
 
-@router.get("/stats/game/{game_code}")
+@router.get("/stats/game/{game_code}", dependencies=[Depends(_bearer_guard(STATS_TOKEN))])
 async def stats_game(game_code: str) -> dict:
     """Summary of one game with per-round and per-player breakdowns."""
+    _require_telemetry()
     from server.telemetry import store
     code = game_code.upper().strip()
     async with store.pool().acquire() as con:
@@ -90,3 +172,471 @@ async def stats_game(game_code: str) -> dict:
         "rounds": [dict(r) for r in rounds],
         "players": [dict(p) for p in players],
     }
+
+
+# Clean join URLs: GET /<code> serves the SPA, which reads the code from the
+# path, pre-fills the join screen, then replaces the URL with /. Game codes are
+# 5 letters (gamestore.make_code), so only that shape matches — anything else
+# 404s so this can't shadow favicons or other single-segment asset requests.
+# Declared last so the explicit routes above (/, /metrics, /stats/*) win.
+@router.get("/join")
+async def join_page() -> HTMLResponse:
+    return HTMLResponse(_render_index())
+
+
+@router.get("/signin")
+async def signin_page() -> HTMLResponse:
+    return HTMLResponse(_render_index())
+
+
+@router.get("/welcome")
+async def welcome_page() -> HTMLResponse:
+    return HTMLResponse(_render_index())
+
+
+@router.get("/nearby")
+async def nearby_page() -> HTMLResponse:
+    return HTMLResponse(_render_index())
+
+
+def _valid_coords(lat: float, lon: float) -> bool:
+    """True when (lat, lon) is a real, in-range WGS84 point (rejects NaN/inf)."""
+    return (math.isfinite(lat) and math.isfinite(lon)
+            and -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0)
+
+
+def _place_photo_url(place_id: str, *, w: int | None = None) -> str:
+    """Same-origin photo-proxy URL keyed by place id (never a raw Google URL /
+    credential). `w` sets the proxy's width cap; omit for its default."""
+    url = f"/api/places/photo?place={quote(place_id, safe='')}"
+    return f"{url}&w={w}" if w else url
+
+
+def _bearing_deg(lat1: float, lon1: float, lat2: float, lon2: float) -> int:
+    """Initial great-circle bearing from point 1 to point 2, degrees clockwise
+    from true north (0–359)."""
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dlon = math.radians(lon2 - lon1)
+    y = math.sin(dlon) * math.cos(p2)
+    x = math.cos(p1) * math.sin(p2) - math.sin(p1) * math.cos(p2) * math.cos(dlon)
+    return round((math.degrees(math.atan2(y, x)) + 360) % 360) % 360
+
+
+@router.get("/api/nearby")
+async def api_nearby(request: Request, lat: float, lon: float) -> dict:
+    """Discoverable lobbies within DISCOVERY_RADIUS_M of the caller, nearest
+    first. Privacy: returns bucketed distance + bearing only — never raw
+    coordinates. The radius is server-owned; the client cannot widen it."""
+    if not DISCOVERY_ENABLED:
+        raise HTTPException(status_code=503, detail="discovery disabled")
+    if not _valid_coords(lat, lon):
+        raise HTTPException(status_code=400, detail="invalid coordinates")
+    ip = client_ip(request)
+    if not await gamestore.rate_allow("nearby", ip, NEARBY_RATE_MAX, NEARBY_RATE_WINDOW):
+        raise HTTPException(status_code=429, detail="slow down")
+
+    from server.telemetry import metrics
+    metrics.nearby_queries_total.inc()
+    hits = await gamestore.geo_search(lon, lat, DISCOVERY_RADIUS_M, DISCOVERY_MAX_RESULTS)
+    # Fetch every card concurrently instead of walking the hits serially — each
+    # discovery_card is a couple of Redis round-trips, so 20 in series was ~40
+    # sequential RTTs per poll.
+    cards = await asyncio.gather(*(gamestore.discovery_card(code) for code, *_ in hits))
+    bucket = max(1, DISCOVERY_DISTANCE_BUCKET_M)
+    games = []
+    for (code, dist, plon, plat), card in zip(hits, cards, strict=True):
+        # Skip a game that started or vanished between GEOADD and this read.
+        if card is None or card["started"]:
+            continue
+        games.append({
+            "code": code,
+            "host_name": card["host_name"],
+            "photo": card["photo"],
+            "player_count": card["player_count"],
+            "distance_m": round(dist / bucket) * bucket,
+            "bearing_deg": _bearing_deg(lat, lon, plat, plon),
+            "place_id": card["place_id"],      # set when checked in to a place
+            "place_name": card["place_name"],
+            # The card bg wants the big photo (w=512 is the proxy's cap);
+            # place_photo (the stored ref) just marks "this place has a photo".
+            "place_photo_url": (_place_photo_url(card["place_id"], w=512)
+                                if card["place_photo"] else None),
+        })
+    return {"radius_m": int(DISCOVERY_RADIUS_M), "games": games}
+
+
+def _place_json(p: dict) -> dict:
+    """Client-facing place row: id/name/address + a same-origin photo proxy URL
+    (never a raw Google URL / credential)."""
+    return {
+        "place_id": p["place_id"], "name": p["name"], "address": p.get("address", ""),
+        # Keyed by place id, not photo ref: refs are re-minted per search, so
+        # a ref-based URL would defeat both browser and Redis caching.
+        "photo_url": _place_photo_url(p["place_id"]) if p.get("photo_ref") else None,
+    }
+
+
+@router.get("/api/places/nearby")
+async def api_places_nearby(request: Request, lat: float, lon: float) -> dict:
+    """Nearby real places for the lobby check-in picker. Proxies Google Places
+    server-side (key never reaches the browser); returns nothing when no Google
+    backend is configured. Returns place_id/name/address/photo only — no client secrets."""
+    if not PLACES_ENABLED:
+        raise HTTPException(status_code=503, detail="places disabled")
+    if not _valid_coords(lat, lon):
+        raise HTTPException(status_code=400, detail="invalid coordinates")
+    ip = client_ip(request)
+    if not await gamestore.rate_allow("places", ip, PLACES_RATE_MAX, PLACES_RATE_WINDOW):
+        raise HTTPException(status_code=429, detail="slow down")
+    results = await places.search_nearby(lat, lon)
+    return {"places": [_place_json(p) for p in results]}
+
+
+@router.get("/api/places/search")
+async def api_places_search(request: Request, q: str, lat: float, lon: float) -> dict:
+    """Free-text place search for the check-in picker, biased to the caller."""
+    if not PLACES_ENABLED:
+        raise HTTPException(status_code=503, detail="places disabled")
+    q = q.strip()
+    if not q:
+        return {"places": []}
+    if not _valid_coords(lat, lon):
+        raise HTTPException(status_code=400, detail="invalid coordinates")
+    ip = client_ip(request)
+    if not await gamestore.rate_allow("placesearch", ip,
+                                      PLACES_RATE_MAX, PLACES_RATE_WINDOW):
+        raise HTTPException(status_code=429, detail="slow down")
+    results = await places.search_text(q[:120], lat, lon)
+    return {"places": [_place_json(p) for p in results]}
+
+
+# Place ids only — the Google photo ref is resolved server-side and never
+# appears in a client URL (the ref-shape SSRF guard lives in places.fetch_photo).
+_PLACE_ID_RE = re.compile(r"^[\w-]+$")
+
+
+@router.get("/api/places/photo")
+async def api_places_photo(request: Request, place: str, w: int = 200) -> Response:
+    """Proxy a place's primary Google photo so the API credentials stay
+    server-side. Keyed by place id so the URL — and both cache layers — stay
+    stable across searches (Google re-mints photo refs per search response)."""
+    if not PLACES_ENABLED:
+        raise HTTPException(status_code=503, detail="places disabled")
+    if not _PLACE_ID_RE.match(place):
+        raise HTTPException(status_code=400, detail="bad place id")
+    ip = client_ip(request)
+    # A sheet shows up to 20 photos at once, so allow well above the search rate.
+    if not await gamestore.rate_allow("placephoto", ip,
+                                      PLACES_RATE_MAX * 5, PLACES_RATE_WINDOW):
+        raise HTTPException(status_code=429, detail="slow down")
+    got = await places.fetch_photo(place, max(48, min(w, 512)))
+    if got is None:
+        raise HTTPException(status_code=404, detail="no photo")
+    content_type, data = got
+    # A photo ref names one immutable image, so the URL's content never
+    # changes — let browsers keep it a week without ever revalidating.
+    return Response(content=data, media_type=content_type,
+                    headers={"Cache-Control": "public, max-age=604800, immutable"})
+
+
+# Game codes are 5 uppercase letters (see gamestore.make_code); bound the input
+# so the QR encoder never sees arbitrary/oversized data.
+_QR_CODE_RE = re.compile(r"[A-Z]{5}")
+
+
+@router.get("/api/qr/{code}.svg")
+async def api_qr(request: Request, code: str) -> Response:
+    """QR of a game's join link — a fallback for the inline (WS-embedded) QR (see
+    server/qr.py). Ink-on-transparent; the URL→image mapping is stable, so it
+    caches hard. APP_URL is the canonical origin in prod; dev falls back to the
+    request host so the code matches the origin the player is actually on."""
+    if not _QR_CODE_RE.fullmatch(code):
+        raise HTTPException(status_code=404, detail="bad code")
+    base = APP_URL or str(request.base_url).rstrip("/")
+    return Response(content=qr.qr_svg(f"{base}/{code}"), media_type="image/svg+xml",
+                    headers={"Cache-Control": "public, max-age=604800, immutable"})
+
+
+@router.get("/api/profile/{username}")
+async def api_profile(username: str) -> dict:
+    """Public profile: username + lifetime stats. No auth required."""
+    if not TELEMETRY_ENABLED:
+        raise HTTPException(status_code=503, detail="profiles unavailable")
+    from server.telemetry import store
+    async with store.pool().acquire() as con:
+        user = await con.fetchrow(
+            "SELECT id, username, created_ts, profile_photo_url, location, admin, bio "
+            "FROM users WHERE LOWER(username) = $1",
+            username.lower(),
+        )
+        if user is None:
+            raise HTTPException(status_code=404, detail="Player not found")
+        stats = await con.fetchrow(
+            "SELECT total_games, total_wins, total_rounds, total_rolls, "
+            "fastest_win_ms, fastest_win_rolls, total_time_played_ms "
+            "FROM player_stats WHERE user_id = $1",
+            str(user["id"]),
+        )
+        recent = await con.fetch(
+            """
+            SELECT g.game_code, g.round_count, g.player_count, g.started_ts, g.ended_ts,
+                   EXTRACT(EPOCH FROM (g.ended_ts - g.started_ts)) * 1000 AS duration_ms,
+                   (SELECT count(*) FROM rounds r
+                     WHERE r.game_code = g.game_code
+                       AND r.winner_user_id = $1) AS wins,
+                   (SELECT count(*) FROM rounds r
+                     WHERE r.game_code = g.game_code
+                       AND r.winner_user_id = $1)
+                   >
+                   ALL(SELECT count(*) FROM rounds r2
+                        JOIN round_player rp3 USING (game_code, round_num)
+                       WHERE r2.game_code = g.game_code
+                         AND r2.winner_user_id = rp3.user_id
+                         AND rp3.user_id <> $1
+                       GROUP BY rp3.user_id) AS won_game,
+                   (SELECT min(r3.duration_ms) FROM rounds r3
+                     WHERE r3.game_code = g.game_code
+                       AND r3.winner_user_id = $1) AS fastest_win_ms,
+                   (SELECT avg(rp4.avg_dt_between_rolls_ms) FROM round_player rp4
+                     WHERE rp4.game_code = g.game_code
+                       AND rp4.user_id = $1
+                       AND rp4.avg_dt_between_rolls_ms IS NOT NULL) AS avg_roll_speed_ms,
+                   (SELECT json_agg(json_build_object(
+                             'name', sub.name, 'photo', sub.photo,
+                             'wins', sub.wins)
+                           ORDER BY sub.wins DESC)
+                      FROM (SELECT DISTINCT ON (rp2.user_id)
+                                   COALESCE(u2.username, ps2.name_last, rp2.user_id) AS name,
+                                   u2.profile_photo_url AS photo,
+                                   (SELECT count(*) FROM rounds rw
+                                     WHERE rw.game_code = g.game_code
+                                       AND rw.winner_user_id = rp2.user_id) AS wins
+                              FROM round_player rp2
+                              LEFT JOIN users u2 ON u2.id::text = rp2.user_id
+                              LEFT JOIN player_stats ps2 ON ps2.user_id = rp2.user_id
+                             WHERE rp2.game_code = g.game_code
+                               AND rp2.user_id <> $1
+                             ORDER BY rp2.user_id) sub
+                   ) AS opponents
+              FROM games g
+             WHERE g.game_code IN (
+                     SELECT DISTINCT rp.game_code
+                       FROM round_player rp
+                      WHERE rp.user_id = $1
+                   )
+               AND g.ended_ts IS NOT NULL
+               AND g.peak_players > 1
+             ORDER BY g.ended_ts DESC
+             LIMIT 100
+            """,
+            str(user["id"]),
+        )
+        recent_list = []
+        for r in recent:
+            import json as _json
+            opps_raw = r["opponents"]
+            if isinstance(opps_raw, str):
+                opps_raw = _json.loads(opps_raw)
+            recent_list.append({
+                "rounds": r["round_count"],
+                "wins": r["wins"],
+                "won_game": r["won_game"],
+                "fastest_win_ms": int(r["fastest_win_ms"]) if r["fastest_win_ms"] else None,
+                "avg_roll_speed_ms": (
+                    int(r["avg_roll_speed_ms"]) if r["avg_roll_speed_ms"] else None
+                ),
+                "duration_ms": int(r["duration_ms"]) if r["duration_ms"] else None,
+                "opponents": opps_raw or [],
+                "player_count": r["player_count"],
+                "game_code": r["game_code"],
+            })
+    return {
+        "username": user["username"],
+        "member_since": user["created_ts"].isoformat() if user["created_ts"] else None,
+        "founding_member": bool(user["created_ts"] and user["created_ts"] < FOUNDING_CUTOFF),
+        "profile_photo_url": user["profile_photo_url"],
+        "location": user["location"],
+        "admin": bool(user["admin"]),
+        "bio": user["bio"],
+        "stats": dict(stats) if stats else None,
+        "recent": recent_list or None,
+    }
+
+
+@router.get("/api/game/{code}")
+async def api_game(code: str) -> dict:
+    """Public game detail: rounds, players, results. No auth required."""
+    if not TELEMETRY_ENABLED:
+        raise HTTPException(status_code=503, detail="game history unavailable")
+    from server.telemetry import store
+    code = code.upper().strip()
+    async with store.pool().acquire() as con:
+        game = await con.fetchrow("SELECT * FROM games WHERE game_code = $1", code)
+        if game is None:
+            raise HTTPException(status_code=404, detail="Game not found")
+        rounds = await con.fetch(
+            """
+            SELECT r.round_num, r.target, r.duration_ms, r.total_rolls,
+                   r.winner_user_id,
+                   COALESCE(u.username, ps.name_last, r.winner_user_id) AS winner_name
+              FROM rounds r
+              LEFT JOIN users u ON u.id::text = r.winner_user_id
+              LEFT JOIN player_stats ps ON ps.user_id = r.winner_user_id
+             WHERE r.game_code = $1
+             ORDER BY r.round_num
+            """,
+            code,
+        )
+        players = await con.fetch(
+            """
+            WITH joined AS (
+                SELECT DISTINCT ON (user_id)
+                       user_id,
+                       payload->>'name' AS join_name
+                  FROM events
+                 WHERE game_code = $1 AND type = 'player_joined'
+                 ORDER BY user_id, ts DESC
+            ),
+            roll_stats AS (
+                SELECT rp.user_id,
+                       sum(rp.rolls)::int AS total_rolls,
+                       count(*) FILTER (WHERE r.winner_user_id = rp.user_id)::int AS wins,
+                       count(*)::int AS rounds_played
+                  FROM round_player rp
+                  JOIN rounds r USING (game_code, round_num)
+                 WHERE rp.game_code = $1
+                 GROUP BY rp.user_id
+            )
+            SELECT j.user_id,
+                   COALESCE(u.username, ps.name_last, j.join_name, j.user_id) AS name,
+                   u.profile_photo_url AS photo,
+                   COALESCE(rs.total_rolls, 0) AS total_rolls,
+                   COALESCE(rs.wins, 0) AS wins,
+                   COALESCE(rs.rounds_played, 0) AS rounds_played
+              FROM joined j
+              LEFT JOIN roll_stats rs USING (user_id)
+              LEFT JOIN users u ON u.id::text = j.user_id
+              LEFT JOIN player_stats ps ON ps.user_id = j.user_id
+             ORDER BY wins DESC, total_rolls ASC
+            """,
+            code,
+        )
+    duration_ms = None
+    if game["started_ts"] and game["ended_ts"]:
+        duration_ms = int((game["ended_ts"] - game["started_ts"]).total_seconds() * 1000)
+    return {
+        "game_code": code,
+        "started_at": game["started_ts"].isoformat() if game["started_ts"] else None,
+        "ended_at": game["ended_ts"].isoformat() if game["ended_ts"] else None,
+        "duration_ms": duration_ms,
+        "num_rounds": game["round_count"],
+        "num_players": game["peak_players"],
+        "players": [dict(p) for p in players],
+        "rounds": [dict(r) for r in rounds],
+    }
+
+
+@router.get("/api/game/{code}/verify")
+async def api_game_verify(code: str) -> dict:
+    """Batch-verify all drand-backed rolls for a completed game from Postgres."""
+    if not TELEMETRY_ENABLED:
+        raise HTTPException(status_code=503, detail="telemetry unavailable")
+    from .rolltrust import verify_game
+    return await verify_game(code)
+
+
+@router.get("/api/verify/{code}/{pid}/{roll_count}")
+async def verify_roll(code: str, pid: str, roll_count: int) -> dict:
+    """Re-derive dice from the stored drand round and confirm they match."""
+    from .config import DRAND_BASE_URL, DRAND_CHAIN_HASH, ENABLE_DRAND_ROLLING
+    from .drand import derive_dice
+
+    if not ENABLE_DRAND_ROLLING:
+        raise HTTPException(status_code=404, detail="drand not enabled")
+
+    code = code.upper().strip()
+    from . import gamestore
+    drand_round = await gamestore.get_drand_round(code, pid, roll_count)
+    if drand_round is None:
+        raise HTTPException(status_code=404, detail="no drand data for this roll")
+
+    url = f"{DRAND_BASE_URL}/{DRAND_CHAIN_HASH}/public/{drand_round}"
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(url)
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail="cannot fetch drand beacon")
+    beacon = resp.json()
+
+    derived = derive_dice(beacon["randomness"], pid, roll_count, code, num_dice=10)
+
+    return {
+        "game_code": code,
+        "player_id": pid,
+        "roll_count": roll_count,
+        "drand_round": drand_round,
+        "drand_randomness": beacon["randomness"],
+        "derived_dice": derived,
+        "beacon_url": url,
+    }
+
+
+@router.get("/games/{code}")
+async def game_detail_page(code: str) -> HTMLResponse:
+    return HTMLResponse(_render_index())
+
+
+# Vanity profile URLs: tensies.app/@username. The @ prefix guarantees no
+# collision with game codes (which are [A-Za-z]{5}).
+@router.get("/@{username}")
+async def profile_vanity(username: str) -> HTMLResponse:
+    if not TELEMETRY_ENABLED:
+        return HTMLResponse(_render_index())
+    try:
+        from server.telemetry import store
+        async with store.pool().acquire() as con:
+            user = await con.fetchrow(
+                "SELECT username, profile_photo_url, bio FROM users WHERE LOWER(username) = $1",
+                username.lower(),
+            )
+            if user is None:
+                return HTMLResponse(_render_index())
+            stats = await con.fetchrow(
+                "SELECT total_wins, total_games FROM player_stats WHERE user_id = ("
+                "SELECT id::text FROM users WHERE LOWER(username) = $1)",
+                username.lower(),
+            )
+        display = user["username"]
+        desc_parts = [f"@{display}'s profile on Tensies."]
+        if stats and stats["total_games"]:
+            desc_parts.append(f"{stats['total_wins']} wins across {stats['total_games']} games.")
+        if user["bio"]:
+            desc_parts.append(user["bio"])
+        desc_parts.append("Challenge them to a game — no download required.")
+        base = APP_URL.rstrip("/") if APP_URL else ""
+        tmpl, defaults = _page_template()
+        html = render_page(
+            tmpl, defaults,
+            page_title=f"@{display} — Tensies Player Profile",
+            share_title=f"Play Tensies with @{display}!",
+            share_description=" ".join(desc_parts),
+            canonical_url=f"{base}/@{display}" if base else f"/@{display}",
+        )
+        return HTMLResponse(html)
+    except Exception:
+        log.exception("profile meta injection failed for @%s", username)
+        return HTMLResponse(_render_index())
+
+
+# Clean join URLs: GET /<code> serves the SPA, which reads the code from the
+# path, pre-fills the join screen, then replaces the URL with /. Game codes are
+# 5 letters (gamestore.make_code), so only that shape matches — anything else
+# 404s so this can't shadow favicons or other single-segment asset requests.
+# Declared last so the explicit routes above (/, /metrics, /stats/*) win.
+_GAME_CODE_RE = re.compile(r"[A-Za-z]{5}")
+
+
+@router.get("/{code}")
+async def join_deeplink(code: str) -> HTMLResponse:
+    if not _GAME_CODE_RE.fullmatch(code):
+        raise HTTPException(status_code=404)
+    return HTMLResponse(_render_index())

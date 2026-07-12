@@ -3,107 +3,217 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-  <title>Tensies 🎲</title>
-  <meta property="og:title" content="Come play Tensies!">
-  <meta property="og:description" content="Roll all ten to win the round — real-time multiplayer dice game.">
-  <meta property="og:image" content="/static/come-play-teaser.png">
+  <meta name="theme-color" content="#1a0e08">
+  <title>$page_title</title>
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/images/icon-32.png">
+  <link rel="icon" type="image/png" sizes="180x180" href="/static/images/icon-180.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="/static/images/icon-512.png">
+  <link rel="apple-touch-icon" sizes="1024x1024" href="/static/images/icon-1024.png">
+
+  <meta name="description" content="$share_description">
+  <meta property="og:title" content="$share_title">
+  <meta property="og:description" content="$share_description">
+  <meta property="og:image" content="$share_image">
   <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Come play Tensies!">
-  <meta name="twitter:description" content="Roll all ten to win the round — real-time multiplayer dice game.">
-  <meta name="twitter:image" content="/static/come-play-teaser.png">
-  <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/static/logo.svg">
-  <link rel="stylesheet" href="/static/css/base.css">
-  <link rel="stylesheet" href="/static/css/loading.css">
+  <meta property="og:site_name" content="Tensies">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="$share_title">
+  <meta name="twitter:description" content="$share_description">
+  <meta name="twitter:image" content="$share_image">
+  <link rel="canonical" href="$canonical_url">
+
+  <!-- Installable PWA: a home-screen launch runs standalone (own task, no
+       browser tab) so Firefox/Android can't drop a new tab in front of it on
+       relaunch, and iOS gets a real home-screen icon + standalone window. -->
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Tensies">
+
+  <!-- iOS splash screens — one per device resolution, portrait only. -->
+  <link rel="apple-touch-startup-image" href="/static/images/splash/splash-1320x2868.png" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="/static/images/splash/splash-1206x2622.png" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="/static/images/splash/splash-1290x2796.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="/static/images/splash/splash-1179x2556.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="/static/images/splash/splash-1284x2778.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="/static/images/splash/splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="/static/images/splash/splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="/static/images/splash/splash-1242x2688.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="/static/images/splash/splash-828x1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="/static/images/splash/splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+
+  <!-- First-paint assets, warmed before anything blocks. -->
+  <link rel="preload" href="/static/images/logo.svg" as="image">
+
+  <link rel="preload" href="/static/fonts/inter-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/ebgaramond-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+
+  <!-- Critical CSS: layer order, tokens, reset, loading screen, view-transition setup. -->
+  <link rel="stylesheet" href="/static/css/critical.css">
+
+  <!-- Non-critical CSS — all downloaded in parallel by the browser. -->
+  <link rel="stylesheet" href="/static/css/controls.css">
+  <link rel="stylesheet" href="/static/css/shell.css">
+  <link rel="stylesheet" href="/static/css/sheet.css">
   <link rel="stylesheet" href="/static/css/landing.css">
   <link rel="stylesheet" href="/static/css/lobby.css">
+  <link rel="stylesheet" href="/static/css/stamp.css">
+  <link rel="stylesheet" href="/static/css/nearby.css">
   <link rel="stylesheet" href="/static/css/game.css">
   <link rel="stylesheet" href="/static/css/players-bar.css">
   <link rel="stylesheet" href="/static/css/dice.css">
-  <link rel="stylesheet" href="/static/css/overlays.css">
   <link rel="stylesheet" href="/static/css/menu.css">
+  <link rel="stylesheet" href="/static/css/overlays.css">
+  <link rel="stylesheet" href="/static/css/auth.css">
+  <link rel="stylesheet" href="/static/css/profile.css">
+  <link rel="stylesheet" href="/static/css/game-detail.css">
+  <link rel="stylesheet" href="/static/css/a2hs.css">
+
+  <!-- Preload the whole module graph so it fetches in parallel instead of
+       waterfalling app -> router/net -> components. -->
+  <link rel="modulepreload" href="/static/js/app.js">
+  <link rel="modulepreload" href="/static/js/dom.js">
+  <link rel="modulepreload" href="/static/js/state.js">
+  <link rel="modulepreload" href="/static/js/session.js">
+  <link rel="modulepreload" href="/static/js/names.js">
+  <link rel="modulepreload" href="/static/js/transitions.js">
+  <link rel="modulepreload" href="/static/js/router.js">
+  <link rel="modulepreload" href="/static/js/net.js">
+  <link rel="modulepreload" href="/static/js/touch.js">
+  <link rel="modulepreload" href="/static/js/back-button.js">
+  <link rel="modulepreload" href="/static/js/scroll-fades.js">
+  <link rel="modulepreload" href="/static/js/title-row.js">
+  <link rel="modulepreload" href="/static/js/pips.js">
+  <link rel="modulepreload" href="/static/js/dice.js">
+  <link rel="modulepreload" href="/static/js/dice-positions.js">
+  <link rel="modulepreload" href="/static/js/game-render.js">
+  <link rel="modulepreload" href="/static/js/animations.js">
+  <link rel="modulepreload" href="/static/js/roll.js">
+  <link rel="modulepreload" href="/static/js/overlays.js">
+  <link rel="modulepreload" href="/static/js/video-intro.js">
+  <link rel="modulepreload" href="/static/js/audio-share.js">
+  <link rel="modulepreload" href="/static/js/eq-icon.js">
+  <link rel="modulepreload" href="/static/js/geo.js">
+  <link rel="modulepreload" href="/static/js/components/app-header.js">
+  <link rel="modulepreload" href="/static/js/components/lobby-stamp.js">
+  <link rel="modulepreload" href="/static/js/components/player-card.js">
+  <link rel="modulepreload" href="/static/js/components/round-target.js">
+  <link rel="modulepreload" href="/static/js/auth.js">
+  <link rel="modulepreload" href="/static/js/components/signin-screen.js">
+  <link rel="modulepreload" href="/static/js/components/onboarding-screen.js">
+  <link rel="modulepreload" href="/static/js/components/profile-screen.js">
+  <link rel="modulepreload" href="/static/js/components/game-detail-screen.js">
+  <link rel="modulepreload" href="/static/js/components/landing-screen.js">
+  <link rel="modulepreload" href="/static/js/components/nearby-screen.js">
+  <link rel="modulepreload" href="/static/js/components/lobby-screen.js">
+  <link rel="modulepreload" href="/static/js/components/game-screen.js">
+  <link rel="modulepreload" href="/static/js/components/nav-menu.js">
+  <link rel="modulepreload" href="/static/js/a2hs.js">
+  <link rel="modulepreload" href="/static/js/components/a2hs-guide.js">
+  <script type="module" src="/static/js/app.js"></script>
 </head>
 <body>
 
+<video id="bg-video" class="bg-video" autoplay muted playsinline loop preload="auto"
+       poster="/static/video/poster-landing.webp">
+  <source src="/static/video/landing-hevc.mp4" type="video/mp4; codecs=hvc1">
+  <source src="/static/video/landing-h264.mp4" type="video/mp4">
+</video>
+
+<video id="intro-video" class="bg-video intro-video" autoplay muted playsinline loop preload="auto">
+  <source src="/static/video/game-start-hevc.mp4" type="video/mp4; codecs=hvc1">
+  <source src="/static/video/game-start-h264.mp4" type="video/mp4">
+</video>
+
+<!-- Game board background: a fixed, full-viewport layer sharing the intro
+     video's geometry, so the intro→board handoff doesn't shift the image. -->
+<div id="game-bg" class="game-bg" aria-hidden="true"></div>
+
 <main>
 
-  <section id="loading" class="screen active" aria-labelledby="loading-msg">
-    <img src="/static/logo.svg" class="logo-mark" alt="">
-    <h1 class="logo">TENSIES</h1>
-    <div class="loading-bar" aria-hidden="true">
-      <div class="loading-bar-fill"></div>
-    </div>
-    <p id="loading-msg">Loading…</p>
-  </section>
-
-  <section id="landing" class="screen" aria-labelledby="landing-title">
-    <img src="/static/logo.svg" class="logo-mark" alt="">
-    <h1 id="landing-title" class="logo">TENSIES</h1>
-    <p class="tagline">Roll all ten to win the round</p>
-    <form id="landing-form" class="form-stack" autocomplete="off" novalidate>
-      <input id="name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20">
-      <button type="submit" class="btn btn-primary">Create Game</button>
-      <button id="show-join-btn" type="button" class="btn btn-secondary">Join Game</button>
-      <p class="error-msg" id="landing-error" role="alert" aria-live="polite"></p>
-    </form>
-  </section>
-
-  <section id="join" class="screen" aria-labelledby="join-title">
-    <button id="back-btn" type="button" class="join-back">← Back</button>
-    <h1 id="join-title" class="logo">JOIN</h1>
-    <p class="tagline">Enter your name and game code</p>
-    <form id="join-form" class="form-stack" autocomplete="off" novalidate>
-      <input id="join-name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20">
-      <input id="code-input" name="code" class="code-input" type="text" aria-label="Game code" inputmode="latin" placeholder="ABCDE" maxlength="5" autocapitalize="characters">
-      <button type="submit" class="btn btn-primary">Join Game</button>
-      <p class="error-msg" id="join-error" role="alert" aria-live="polite"></p>
-    </form>
-  </section>
-
-  <section id="lobby" class="screen" aria-labelledby="lobby-title">
-    <h1 id="lobby-title" class="lobby-title">Waiting for players…</h1>
-    <p class="lobby-hint">Share this link to invite friends</p>
-    <button id="lobby-code" type="button" class="code-display" aria-label="Copy invite link">——</button>
-    <p class="copy-hint" id="copy-hint">click to copy link</p>
-    <button id="sms-btn" type="button" class="btn btn-sms">💬 Send Text Invite</button>
-    <ul class="player-list" id="lobby-players" aria-label="Players"></ul>
-    <button id="start-btn" type="button" class="btn btn-primary btn-block" hidden>
-      Start Game 🎲
-    </button>
-    <p id="waiting-msg"></p>
-  </section>
-
-  <section id="game" class="screen" aria-labelledby="game-title">
-    <header class="game-topbar">
-      <div class="topbar-title-row">
-        <h1 id="game-title" class="game-title">
-          <img src="/static/logo.svg" class="game-title-mark" alt="">
-          <span>Tensies</span>
-        </h1>
-        <button id="game-menu-btn" class="game-menu-btn"
-                aria-label="Open menu" aria-expanded="false" aria-controls="game-menu">
-          <span></span><span></span><span></span>
-        </button>
+  <!-- Inline loading screen: paints from the critical CSS above with no JS.
+       The router swaps it for landing/join/lobby/game once the app boots. -->
+  <section id="loading" class="screen loading-screen active" aria-labelledby="loading-msg">
+    <!-- Dice loader: pink 6 + ivory 4 tumble, resting in the logo pose. Each die
+         is a 3×3 pip grid (.on = filled); pure CSS, paints with no JS. -->
+    <div class="stage" aria-hidden="true">
+      <div class="die die--shadow"></div>
+      <div class="die die--pink">
+        <span class="pip on"></span><span class="pip"></span><span class="pip on"></span>
+        <span class="pip on"></span><span class="pip"></span><span class="pip on"></span>
+        <span class="pip on"></span><span class="pip"></span><span class="pip on"></span>
       </div>
-      <div class="players-bar" id="players-bar" role="list" aria-label="Players"></div>
-    </header>
-    <div id="game-menu" class="game-menu" aria-hidden="true"></div>
-    <div class="my-area" id="my-area"></div>
+      <div class="die die--ivory">
+        <span class="pip on"></span><span class="pip"></span><span class="pip on"></span>
+        <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+        <span class="pip on"></span><span class="pip"></span><span class="pip on"></span>
+      </div>
+    </div>
+    <p id="loading-msg" class="loading-msg">Loading…</p>
   </section>
+
+  <landing-screen></landing-screen>
+  <nearby-screen></nearby-screen>
+  <lobby-screen></lobby-screen>
+  <game-screen></game-screen>
+  <signin-screen></signin-screen>
+  <onboarding-screen></onboarding-screen>
+  <profile-screen></profile-screen>
+  <game-detail-screen></game-detail-screen>
 
 </main>
 
-<dialog id="winner-overlay" class="overlay-dialog" aria-labelledby="winner-name">
+<nav-menu></nav-menu>
+
+<!-- Add-to-Home-Screen walkthrough. Body-level custom element; inert (no box)
+     until opened via the a2hs-open event from the landing banner / nav menu. -->
+<a2hs-guide></a2hs-guide>
+
+<!-- Non-host wait screen while the game is paused. Body-level <dialog> so the
+     board stays live underneath; visually mirrors the loading screen. -->
+<dialog id="pause-overlay" class="overlay-dialog pause-overlay" aria-labelledby="pause-overlay-msg">
+  <h1 class="logo">TENSIES</h1>
+  <!-- Dice loader stands in for the brand mark (see #loading). -->
+  <div class="stage" aria-hidden="true">
+    <div class="die die--shadow"></div>
+    <div class="die die--pink">
+      <span class="pip on"></span><span class="pip"></span><span class="pip on"></span>
+      <span class="pip on"></span><span class="pip"></span><span class="pip on"></span>
+      <span class="pip on"></span><span class="pip"></span><span class="pip on"></span>
+    </div>
+    <div class="die die--ivory">
+      <span class="pip on"></span><span class="pip"></span><span class="pip on"></span>
+      <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+      <span class="pip on"></span><span class="pip"></span><span class="pip on"></span>
+    </div>
+  </div>
+  <p id="pause-overlay-msg" class="pause-overlay-msg"></p>
+</dialog>
+
+<!-- Round winner/loser celebration. Body-level <dialog> over the live board. -->
+<dialog id="winner-overlay" class="overlay-dialog winner-overlay" aria-label="Round winner">
   <div class="winner-box">
-    <div class="confetti" aria-hidden="true">🎉</div>
-    <p class="winner-label">Round Winner</p>
+    <div class="winner-banner"><span class="winner-banner-label">Round <span class="winner-round-pill" id="winner-round"></span> <span id="winner-banner-suffix">Winner</span></span></div>
+    <img src="/static/images/logo-winner.svg" class="winner-logo" alt="" aria-hidden="true">
     <p class="winner-name" id="winner-name"></p>
-    <p class="winner-sub" id="winner-sub"></p>
+  </div>
+  <div class="winner-timer" aria-hidden="true">
+    <div class="winner-timer-bar"><div class="winner-timer-fill" id="winner-timer-fill"></div></div>
+    <p class="winner-timer-secs" id="winner-timer-secs"></p>
   </div>
 </dialog>
 
-<script type="module" src="/static/js/main.js"></script>
-<script type="module" src="/static/js/menu.js"></script>
+
+<!-- Orientation guard: Tensies is portrait-only. The web has no true orientation
+     lock (the manifest only locks an installed PWA), so on a phone held landscape
+     this covers the sideways layout with a rotate prompt. Pure CSS via a
+     landscape media query — paints with no JS, like the loading screen. -->
+<div id="rotate-overlay" class="rotate-overlay" role="alertdialog" aria-label="Rotate your device to portrait">
+  <img src="/static/images/logo.svg" class="logo-mark rotate-mark" alt="">
+  <p class="rotate-msg">Best played upright —<br>rotate your device to portrait.</p>
+</div>
+
 </body>
 </html>

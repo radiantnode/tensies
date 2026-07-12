@@ -115,7 +115,8 @@ Every event is one row in `events(id, ts, game_code, round_num, user_id, session
 | `player_left` | WS disconnect / 30s grace timeout | `reason` (`disconnect`\|`drop`), `player_count` |
 | `host_transferred` | `drop_player` when host drops | `from`, `to` |
 | `game_started` | `handle_start` | `target`, `player_count` |
-| `game_ended` | `drop_player` last-player branch | `reason`, `duration_ms`, `round_count`, `total_rolls` |
+| `game_ended` | 3 sites: `handle_end_game` (`host_ended`), `pause_timeout` (`pause_timeout`), `drop_player` last-player (`all_dropped`) | `reason`, `duration_ms`, `round_count`, `total_rolls` |
+| `game_paused` / `game_resumed` | `handle_pause` (host toggles pause) | `user_id`, `name`, `round_num` |
 | `round_started` | `handle_start` + `delayed_broadcast` (post-win) | `round_num`, `target` |
 | `round_ended` | `delayed_broadcast` (just before advancing) | `round_num`, `target` |
 | `roll` | `handle_roll` | `target`, `matched`, `newly_locked[]`, `rolled_values[]`, `dice_before[]`, `dice_after[]`, `locked_before[]`, `locked_after[]`, `dt_ms`, `round_roll_num`, `seq` |
@@ -219,6 +220,21 @@ All metrics are prefixed `tensies_`. Buckets are tuned to the game's dynamics �
 | `telemetry_dropped_total` | Counter | — |
 | `live_push_seconds` | Histogram | `channel` |
 | `live_push_failures_total` | Counter | — |
+
+**Discord notifier**
+| Metric | Type | Labels |
+|---|---|---|
+| `discord_messages_total` | Counter | `op` |
+| `discord_failures_total` | Counter | `op` |
+| `discord_interactions_total` | Counter | `command`, `outcome` |
+
+**drand beacon**
+| Metric | Type | Labels |
+|---|---|---|
+| `drand_beacon_fetches_total` | Counter | — |
+| `drand_verify_failures_total` | Counter | — |
+| `drand_fallback_total` | Counter | — |
+| `drand_fetch_seconds` | Histogram | — |
 
 ---
 
@@ -359,7 +375,7 @@ SELECT seq, ts, type, user_id, payload
  ORDER BY ts, seq;
 ```
 
-Replay this stream into the existing client renderer (`static/js/screens.js`) and the round plays back frame-by-frame. The UI for that doesn't exist yet — the data does.
+Replay this stream into the client renderer components in `static/js/components/` and the round plays back frame-by-frame. The UI for that doesn't exist yet — the data does.
 
 ---
 

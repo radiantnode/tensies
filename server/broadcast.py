@@ -4,9 +4,10 @@ import time
 
 from fastapi import WebSocket
 
-from .config import DISCONNECT_GRACE, ROLL_ACK_TIMEOUT, ROUND_WIN_DELAY, log
-from .game import deal_round, next_target, state_msg
-from .state import connections, games, sessions
+from . import db, db_places, fanout, gamestore, places, state
+from .config import DISCONNECT_GRACE, PAUSE_MAX, ROLL_ACK_TIMEOUT, ROUND_WIN_DELAY, log
+from .game import next_target, state_msg
+from .state import sessions
 from .telemetry import emit, metrics
 
 
@@ -39,101 +40,220 @@ async def send(ws: WebSocket, message: dict) -> None:
 
 
 async def broadcast(code: str, message: dict, *, exclude: str | None = None) -> None:
-    if code not in connections:
+    """Fan a message out to every player in a game, across all instances."""
+    await fanout.publish(code, message, exclude=exclude)
+
+
+async def advance_round(code: str) -> None:
+    """Roll the game to the next round: cycle the target, deal fresh dice."""
+    meta = await gamestore.get_meta(code)
+    if meta is None:
         return
-    dead = []
-    for pid, ws in list(connections[code].items()):
-        if pid == exclude:
-            continue
-        try:
-            await send(ws, message)
-        except Exception:
-            dead.append(pid)
-    for pid in dead:
-        connections[code].pop(pid, None)
+    old_round = meta["round_num"]
+    old_target = meta["target"]
+    emit("round_ended", game_code=code, round_num=old_round, target=old_target)
+    new_target = next_target(old_target)
+    await gamestore.advance_round(code, new_target)
+    snap = await gamestore.snapshot(code)
+    if snap is None:
+        return
+    emit("round_started", game_code=code,
+         round_num=snap["round_num"], target=new_target)
+    metrics.rounds_started_total.labels(target=str(new_target)).inc()
+    await broadcast(code, state_msg(snap, code))
 
 
 async def delayed_broadcast(code: str, pid: str, is_win: bool, winner_name: str | None) -> None:
-    """Hold the broadcast until the roller acks their reveal (or times out)."""
-    if code not in games:
-        return
-    player = games[code]["players"].get(pid)
+    """Hold the broadcast until the roller acks their reveal (or times out).
 
-    if player is not None:
-        ev: asyncio.Event = asyncio.Event()
-        player["ack_event"] = ev
-        try:
-            await asyncio.wait_for(ev.wait(), timeout=ROLL_ACK_TIMEOUT)
-        except asyncio.TimeoutError:
-            log.info("ack_timeout  game=%s  pid=%s", code, pid[:8])
-            metrics.ack_timeouts_total.inc()
-            emit("ack_timeout", game_code=code, user_id=pid,
-                 wait_ms=int(ROLL_ACK_TIMEOUT * 1000))
-        finally:
-            if player.get("ack_event") is ev:
-                player.pop("ack_event", None)
-
-    if code not in games:
+    The ack event is process-local (server.state.ack_events): the roller and
+    its `roll_done` are always on this instance, so the handshake never crosses
+    processes — only the resulting fan-out does.
+    """
+    if not await gamestore.exists(code):
         return
-    game = games[code]
+
+    ev = asyncio.Event()
+    state.ack_events[pid] = ev
+    try:
+        await asyncio.wait_for(ev.wait(), timeout=ROLL_ACK_TIMEOUT)
+    except TimeoutError:
+        log.info("ack_timeout  game=%s  pid=%s", code, pid[:8])
+        metrics.ack_timeouts_total.inc()
+        emit("ack_timeout", game_code=code, user_id=pid,
+             wait_ms=int(ROLL_ACK_TIMEOUT * 1000))
+    finally:
+        if state.ack_events.get(pid) is ev:
+            state.ack_events.pop(pid, None)
+
+    snap = await gamestore.snapshot(code)
+    if snap is None:
+        return
 
     if is_win:
-        msg = state_msg(game, code, "round_won", winner_name=winner_name or "?")
+        msg = state_msg(snap, code, "round_won", winner_name=winner_name or "?")
     else:
-        msg = state_msg(game, code)
+        msg = state_msg(snap, code)
     await broadcast(code, msg, exclude=pid)
 
     if is_win:
         await asyncio.sleep(ROUND_WIN_DELAY)
-        if code not in games:
+        meta = await gamestore.get_meta(code)
+        if meta is None:
             return
-        game = games[code]
-        # End the old round
-        old_round = game["round_num"]
-        old_target = game["target"]
-        emit("round_ended", game_code=code, round_num=old_round, target=old_target)
-        # Advance to the next round
-        game["target"] = next_target(old_target)
-        game["round_num"] += 1
-        game["round_over"] = False
-        game["round_count"] += 1
-        deal_round(game)
-        emit("round_started", game_code=code,
-             round_num=game["round_num"], target=game["target"])
-        metrics.rounds_started_total.labels(target=str(game["target"])).inc()
-        await broadcast(code, state_msg(game, code))
+        if meta["paused"]:
+            # A pause landed during the win delay — don't advance the round on
+            # top of it. Freeze here; handle_pause() advances on resume.
+            await gamestore.set_round_advance_pending(code, True)
+            return
+        await advance_round(code)
+
+
+async def pause_timeout(code: str) -> None:
+    """End a game that has stayed paused past PAUSE_MAX — assumed abandoned.
+
+    Cancelled by handle_pause() on resume. The reaper is a cross-instance
+    backstop if the instance that scheduled this dies first.
+    """
+    try:
+        await asyncio.sleep(PAUSE_MAX)
+    except asyncio.CancelledError:
+        return
+    await end_if_paused_over(code)
+
+
+async def end_if_paused_over(code: str) -> None:
+    snap = await gamestore.snapshot(code)
+    if snap is None or not snap.get("paused"):
+        return
+    deadline = snap.get("pause_deadline_ms")
+    if deadline is not None and gamestore.now_ms() < deadline:
+        return  # not actually over yet (reaper called early)
+    # Atomic claim: with N instances, several reapers (plus the local watchdog)
+    # can reach this point in the same sweep window. Only the caller whose CAS
+    # deletes the game emits/broadcasts, so the fatal frame and the game_ended
+    # metrics stay exactly-once — same gate-on-Lua-result pattern as do_drop.
+    if not await gamestore.try_end_paused(code):
+        return
+    log.info("pause_timeout  game=%s  (paused > %ds)", code, int(PAUSE_MAX))
+    duration_ms = gamestore.now_ms() - snap["created_ms"]
+    emit("game_ended", game_code=code, reason="pause_timeout",
+         duration_ms=duration_ms, round_count=snap["round_count"],
+         total_rolls=snap["total_rolls"])
+    metrics.games_ended_total.labels(reason="pause_timeout").inc()
+    metrics.game_duration_seconds.observe(duration_ms / 1000.0)
+    await broadcast(code, {"type": "error", "fatal": True,
+                           "msg": "Game ended — it was paused too long."})
+    state.connections.pop(code, None)
+    state.pause_tasks.pop(code, None)
+
+
+async def _emit_checkout(code: str, pid: str | None, info: dict, *,
+                         reason: str, session_id: str | None = None) -> None:
+    """Telemetry + Postgres side of a check-out, given the place `info` that was
+    (or is about to be) cleared. Split from checkout_game so a destructive drop
+    can snapshot the check-in first, then emit after the game is gone."""
+    dwell_ms = (gamestore.now_ms() - info["place_ts"]) if info["place_ts"] else None
+    category = places.categorize(info["place_type"])
+    metrics.checkouts_total.labels(category).inc()
+    if dwell_ms is not None:
+        metrics.checkin_dwell_seconds.labels(category).observe(dwell_ms / 1000)
+    emit("checked_out", game_code=code, user_id=pid, reason=reason,
+         place_id=info["place_id"], place_name=info["place_name"],
+         place_type=info["place_type"], category=category,
+         dwell_ms=dwell_ms, session_id=session_id)
+    if db.available():
+        await db_places.delete(code)
+
+
+async def checkout_game(code: str, pid: str | None, *, reason: str,
+                        session_id: str | None = None) -> None:
+    """Release a game's check-in: clear the place fields, prune the radar blip,
+    emit checked_out telemetry, and delete the Postgres place row. The single
+    "leave the venue" path — shared by the explicit check-out and game start.
+    Idempotent: no-ops when the game isn't checked in."""
+    info = await gamestore.clear_place(code)
+    if info:
+        await _emit_checkout(code, pid, info, reason=reason, session_id=session_id)
 
 
 async def drop_player(code: str, pid: str) -> None:
-    """Remove a disconnected player after the grace period."""
+    """Remove a disconnected player after the grace period (local-task path)."""
     await asyncio.sleep(DISCONNECT_GRACE)
-    if code not in games:
+    state.drop_tasks.pop((code, pid), None)
+    await do_drop(code, pid)
+
+
+async def do_drop(
+    code: str, pid: str,
+    grace_ms: int = int(DISCONNECT_GRACE * 1000), reason: str = "drop",
+) -> None:
+    """Shared drop logic used by the grace task and the reaper. Idempotent.
+
+    `grace_ms=0` removes a just-disconnected player immediately (used by the
+    voluntary-leave path); the default holds the slot for the reconnect grace.
+    `reason` labels the emitted player_left event (drop vs leave)."""
+    snap = await gamestore.snapshot(code)
+    if snap is None:
         return
-    game = games[code]
-    player = game["players"].get(pid)
+    player = snap["players"].get(pid)
     if player is None or not player.get("disconnected"):
         return
-    player_name = player["name"]
-    del game["players"][pid]
-    connections[code].pop(pid, None)
-    log.info("drop     game=%s  player=%s  (30s timeout)", code, player_name)
-    emit("player_left", game_code=code, user_id=pid, name=player_name,
-         reason="drop", player_count=len(game["players"]))
-    if not game["players"]:
+
+    if snap.get("paused"):
+        # While paused, nobody is dropped — the host may have stepped away. But
+        # a paused game must not be held hostage by an absent host: if the host
+        # is the one who's gone, hand the host role (and the resume control) to
+        # a still-connected player so the game stays recoverable.
+        if snap["host"] == pid:
+            new_host = next((q for q, pl in snap["players"].items()
+                             if q != pid and not pl.get("disconnected")), None)
+            if new_host:
+                await gamestore.transfer_host(code, new_host)
+                log.info("host_xfer game=%s  (paused, host away)  %s -> %s",
+                         code, pid[:8], new_host[:8])
+                emit("host_transferred", game_code=code, **{"from": pid, "to": new_host})
+                snap2 = await gamestore.snapshot(code)
+                if snap2:
+                    await broadcast(code, state_msg(snap2, code))
+        return
+
+    name = player["name"]
+    # Snapshot any check-in before the drop, which may delete the whole hash.
+    checkin = await gamestore.get_place(code)
+    res = await gamestore.drop_player(code, pid, grace_ms)
+    if res["action"] == "noop":
+        return
+    local = state.connections.get(code)
+    if local:
+        local.pop(pid, None)
+    log.info("drop     game=%s  player=%s  (reason=%s)", code, name, reason)
+    remaining = len(snap["players"]) - 1
+    emit("player_left", game_code=code, user_id=pid, name=name,
+         reason=reason, player_count=remaining)
+
+    if res["action"] == "deleted":
         log.info("close    game=%s  (all dropped)", code)
-        duration_ms = int((time.monotonic() - game["created_mono"]) * 1000)
+        duration_ms = gamestore.now_ms() - snap["created_ms"]
         emit("game_ended", game_code=code, reason="all_dropped",
-             duration_ms=duration_ms, round_count=game["round_count"],
-             total_rolls=game["total_rolls"])
-        metrics.games_active.dec()
+             duration_ms=duration_ms, round_count=snap["round_count"],
+             total_rolls=snap["total_rolls"])
         metrics.games_ended_total.labels(reason="all_dropped").inc()
         metrics.game_duration_seconds.observe(duration_ms / 1000.0)
-        del games[code]
-        connections.pop(code, None)
+        # The hash (and its geo blip) is already gone; just close out telemetry
+        # and the Postgres place row.
+        if checkin:
+            await _emit_checkout(code, pid, checkin, reason="game_ended")
+        state.connections.pop(code, None)
         return
-    if game["host"] == pid:
-        old_host = game["host"]
-        new_host = next(iter(game["players"]))
-        game["host"] = new_host
-        emit("host_transferred", game_code=code, **{"from": old_host, "to": new_host})
-    await broadcast(code, state_msg(game, code))
+
+    if res["new_host"]:
+        emit("host_transferred", game_code=code, **{"from": pid, "to": res["new_host"]})
+        # The checked-in host left. The new host never opted into that venue, so
+        # release the check-in rather than broadcast a location nobody consented
+        # to — check-in is available again to the new host from the lobby.
+        if checkin:
+            await checkout_game(code, pid, reason="host_left")
+    snap2 = await gamestore.snapshot(code)
+    if snap2:
+        await broadcast(code, state_msg(snap2, code))

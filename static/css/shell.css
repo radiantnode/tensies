@@ -1,0 +1,197 @@
+/* Shared shell chrome: the branded header bar and the centred body used by
+   landing, join, lobby and game — one source of truth, every screen renders
+   the same <app-header>. */
+
+@layer components {
+  .app-header { flex-shrink: 0; }
+
+  .game-topbar {
+    position: relative;
+    flex-shrink: 0;
+    padding-block-start: env(safe-area-inset-top);
+  }
+
+  /* Game screen only (not the pre-game app-header): one frosted surface behind
+     the whole top bar — the title row and players bar sit on it transparently. */
+  .game-topbar:not(.app-header) {
+    background: var(--color-panel);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Bottom-border glow. By default it sits at the bottom of the whole top bar —
+     under the app header on pre-game screens, under the scoreboard on the game
+     screen. When the game menu is open it slides over the scoreboard (and this
+     glow, which sits below the menu overlay at z-index:50), so the glow moves up
+     to directly under the title row, which its z-index:100 keeps above the menu.
+     One source for the gradient across both positions. */
+  .game-topbar::after,
+  .game-screen:has(.game-menu.open) .topbar-title-row::after,
+  .a2hs-banner::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    block-size: 1px;
+    background: linear-gradient(
+      to right,
+      rgba(170, 115, 45, 0.35) 0%,
+      rgba(255, 200, 100, 0.7) 50%,
+      rgba(170, 115, 45, 0.35) 100%
+    );
+  }
+
+  /* Pre-game headers: lift the glow above the title-row's opaque z-index:100
+     background (which fills the whole header there). */
+  .game-topbar.app-header::after { z-index: 101; }
+
+  /* Game menu open: hand the glow off from the topbar bottom (now under the
+     menu) to the title-row bottom (above it). */
+  .game-screen:has(.game-menu.open) .game-topbar::after { opacity: 0; }
+
+  /* Non-game screens (the pre-game app-header): opaque shield behind the iOS
+     status bar so nothing shows through the clock/signal area. The game screen
+     doesn't need it — its .game-topbar background already fills the safe area. */
+  .game-topbar.app-header::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    block-size: env(safe-area-inset-top);
+    background: var(--color-panel);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 100;
+  }
+
+  .topbar-title-row {
+    display: flex;
+    align-items: center;
+    position: relative;
+    z-index: 100;
+    background: var(--color-panel);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Game screen only: the frosted surface lives on .game-topbar, so the title
+     row sits on it transparently (no double blur). */
+  .game-topbar:not(.app-header) .topbar-title-row {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  /* Menu open: drop the parent's backdrop-filter so it stops being a stacking
+     context — the title row's z-index:100 re-escapes above the z-index:50 menu
+     (hamburger stays tappable). The header stays transparent, so the dark menu
+     overlay shows straight through it; the players bar drops under the menu. */
+  .game-screen:has(.game-menu.open) .game-topbar:not(.app-header) {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .game-title {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem 0.5rem 0.4rem;
+    font-size: 1.2rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-amber);
+    background: linear-gradient(180deg, #fdf3dd 0%, #f6dd97 28%, var(--color-amber) 58%, #c9964b 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 10px rgba(230, 180, 90, 0.45);
+  }
+
+  .game-title-mark {
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+    inline-size: 40px;
+    block-size: 40px;
+    margin-inline-end: -10px;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7))
+            drop-shadow(0 0 10px rgba(230, 180, 90, 0.4));
+  }
+
+  /* Hamburger toggle */
+  .game-menu-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    flex-shrink: 0;
+    min-inline-size: 44px;
+    min-block-size: 44px;
+    margin-inline-start: auto;
+    padding: 0.5rem 0.75rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .game-menu-btn span {
+    display: block;
+    inline-size: 18px;
+    block-size: 2px;
+    background: rgba(255, 255, 255, 0.65);
+    border-radius: 2px;
+    transition: transform 0.25s ease, opacity 0.2s ease;
+    transform-origin: center;
+  }
+
+  /* Signed-in username badge in the app-header (pre-game screens only) */
+  .header-username {
+    margin-inline-start: auto;
+    position: relative;
+    padding: 0.25rem 0.7rem;
+    background: rgba(30, 15, 6, 0.22);
+    border-radius: 999px;
+    box-shadow:
+      inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.2),
+      inset 2px -2px 6px rgba(70, 28, 8, 0.25),
+      2px -2px 9px rgba(255, 186, 102, 0.15),
+      0 3px 9px rgba(0, 0, 0, 0.3);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--color-text-warm);
+    text-shadow: var(--shadow-text);
+    text-decoration: none;
+  }
+
+  .header-username::before {
+    padding: 1px;
+    background: linear-gradient(to bottom left,
+      rgba(252, 200, 126, 0.5) 0%,
+      rgba(216, 148, 80, 0.3) 38%,
+      rgba(150, 96, 46, 0.1) 100%);
+  }
+
+  .header-username + .game-menu-btn {
+    margin-inline-start: 0;
+  }
+
+  .game-menu-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .game-menu-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+  .game-menu-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  /* Centred screen body beneath the header */
+  .screen-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-block-size: 0;
+    padding: 2rem 2rem calc(2rem + env(safe-area-inset-bottom));
+    overflow: hidden;
+    text-align: center;
+  }
+}
