@@ -68,7 +68,8 @@ capture_one() {  # clone port idx sha
 }
 
 worker() {  # worker_id  (handles every commit where idx % JOBS == id)
-  local w="$1" port=$((BASEPORT + w)) clone="$WORK/clone$w" idx sha
+  local w="$1"
+  local port=$((BASEPORT + w)) clone="$WORK/clone$w" idx sha
   while read -r idx sha; do
     [ $((10#$idx % JOBS)) -eq "$w" ] && capture_one "$clone" "$port" "$idx" "$sha"
   done < "$SHAS"
