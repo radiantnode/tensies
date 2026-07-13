@@ -1,0 +1,145 @@
+/* Standalone stylesheet for the /api/widget home-screen widget page — NOT part
+   of the app cascade (no @layer): this document never loads the app's CSS.
+   Excluded from the prod app.css bundle and fingerprinted as its own file
+   (scripts/build_assets.mjs); dev serves it with a ?v= content hash.
+   Palette mirrors static/css/critical.css tokens. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: #1a0e08;
+  color: #efe3d4;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+/* Fill the webview exactly at real widget sizes; clamp to wide-widget
+   proportions (anchored top-left) when the viewport is larger — widget
+   apps screenshot from the origin, so the card must hug that corner. */
+.card {
+  display: flex;
+  gap: 4%;
+  width: min(100vw, 440px);
+  height: min(100vh, 203px);
+  padding: 16px 18px;
+  /* The game screen's own wood-table poster; positioned on the clean lower
+     grain (the top of the photo has a beer glass), darkened for contrast. */
+  background: linear-gradient(rgba(26, 14, 8, 0.9), rgba(26, 14, 8, 0.9)),
+              #1a0e08 url('/static/video/poster-game.webp') 50% 70% / cover;
+  position: relative;
+}
+/* The app header's gold bottom-border glow (shell.css .game-topbar::after),
+   along the widget's top edge. */
+.card::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  block-size: 2px;
+  background: linear-gradient(
+    to right,
+    rgba(170, 115, 45, 0.35) 0%,
+    rgba(255, 200, 100, 0.7) 50%,
+    rgba(170, 115, 45, 0.35) 100%
+  );
+}
+.col-status { flex: 0 0 40%; display: flex; flex-direction: column; }
+.col-recent { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.brand {
+  display: block;
+  height: 48px;
+  /* Explicit width: width:auto on a flex item stretches to the column and the
+     SVG letterboxes its drawing to the centre. The small negative margin
+     cancels the artwork's internal whitespace so the visible dice edge lines
+     up with the health dot below. */
+  width: 48px;
+  margin-left: -4px;
+}
+/* Logo with the status/updated block to its right. */
+.brand-row { display: flex; align-items: center; gap: 6px; }
+.health {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: rgba(214, 188, 158, 0.62);
+}
+/* Own line under the health row, indented past the dot (7px + 6px gap) so it
+   aligns with the status text. */
+.updated {
+  margin-left: 13px;
+  margin-top: 1px;
+  font-size: 11px;
+  color: rgba(214, 188, 158, 0.62);
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; }
+.dot.ok { background: #2ecc71; box-shadow: 0 0 6px rgba(46, 204, 113, 0.7); }
+.dot.warn { background: rgba(225, 180, 100, 0.95); box-shadow: 0 0 6px rgba(225, 180, 100, 0.6); }
+.dot.down { background: #ff4d6d; box-shadow: 0 0 6px rgba(255, 77, 109, 0.7); }
+.stats { display: flex; gap: 6px; margin-top: 10px; }
+/* Boxed metrics — frosted translucent black over the wood. */
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex: 1;
+  padding: 6px 4px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 8px;
+}
+.stat .num { font-size: 19px; font-weight: 700; line-height: 1.1; }
+.stat .lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em;
+             color: rgba(220, 200, 180, 0.72); }
+.hd {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(220, 200, 180, 0.72);
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(180, 100, 20, 0.25);
+}
+.games { list-style: none; display: flex; flex-direction: column;
+         gap: 3px; padding-top: 5px; flex: 1; min-height: 0; overflow: hidden;
+         /* Fade the tail of the list into the card's bottom edge: a fixed
+            42px band anchored to the bottom (percent stops shift with content
+            height), eased with intermediate stops so there's no visible knee
+            where the fade begins and no banding in dark webviews. */
+         mask-image: linear-gradient(to top,
+           transparent 0,
+           rgba(0, 0, 0, 0.08) 7px,
+           rgba(0, 0, 0, 0.26) 14px,
+           rgba(0, 0, 0, 0.50) 21px,
+           rgba(0, 0, 0, 0.74) 28px,
+           rgba(0, 0, 0, 0.92) 35px,
+           black 42px);
+         -webkit-mask-image: linear-gradient(to top,
+           transparent 0,
+           rgba(0, 0, 0, 0.08) 7px,
+           rgba(0, 0, 0, 0.26) 14px,
+           rgba(0, 0, 0, 0.50) 21px,
+           rgba(0, 0, 0, 0.74) 28px,
+           rgba(0, 0, 0, 0.92) 35px,
+           black 42px); }
+.games li { display: flex; align-items: baseline; gap: 7px; font-size: 12px; min-width: 0; }
+.games .code {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: rgba(225, 180, 100, 0.95);
+}
+.games .matchup {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(235, 215, 195, 0.92);
+}
+.games .ago { font-size: 10px; color: rgba(214, 188, 158, 0.62); }
+.games .empty { font-size: 11px; color: rgba(214, 188, 158, 0.62); }

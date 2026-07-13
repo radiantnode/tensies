@@ -160,6 +160,11 @@ TRUSTED_PROXY_HOPS = _int("TRUSTED_PROXY_HOPS", 1)
 METRICS_TOKEN = os.environ.get("METRICS_TOKEN") or None
 STATS_TOKEN = os.environ.get("STATS_TOKEN") or None
 
+# API key for the home-screen widget page (/api/widget). Passed as ?key=<token>
+# because widget apps can only configure a URL, not request headers. Unset
+# disables the endpoint entirely (503).
+WIDGET_TOKEN = os.environ.get("WIDGET_TOKEN") or None
+
 
 # ─── Frontend asset serving ──────────────────────────────────────────────
 # In prod the frontend is bundled + fingerprinted into a static dist/ at
