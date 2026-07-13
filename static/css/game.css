@@ -302,7 +302,7 @@
     z-index: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-end;
     align-items: center;
     padding: 2rem 1.5rem calc(2rem + env(safe-area-inset-bottom));
     pointer-events: none;
@@ -316,8 +316,12 @@
     visibility: visible;
   }
 
+  /* Sits just above the progress block (flex-end + this bottom gap) rather than
+     centred, so the fact reads with the loading bar as one unit. */
   .intro-fact {
     max-inline-size: 22rem;
+    margin-block-end: 2.75rem;
+    padding-inline: 1.25rem;
     font-family: var(--font-family-heading);
     font-size: 1.5rem;
     font-weight: 500;
@@ -344,14 +348,17 @@
     block-size: 4px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.18);
-    overflow: hidden;
   }
 
+  /* Gold fill (the brand primary) with a soft glow. The track is intentionally
+     NOT overflow:hidden so the glow can bleed past the 4px rail; the fill keeps
+     rounded ends via the inherited radius. */
   .intro-progress-bar {
     inline-size: 0%;
     block-size: 100%;
     border-radius: inherit;
-    background: var(--color-accent);
+    background: linear-gradient(90deg, #e1b464 0%, #f6cf72 100%);
+    box-shadow: 0 0 8px rgba(246, 207, 114, 0.8), 0 0 3px rgba(246, 207, 114, 0.55);
     transition: inline-size 200ms linear;
   }
 
