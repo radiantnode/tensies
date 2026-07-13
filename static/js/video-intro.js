@@ -11,6 +11,11 @@ import { randomFact } from './bar-facts.js';
 const FADE_OUT_MS = 400;
 const FADE_IN_MS = 1000;
 const EARLY_FADE_IN_S = 1;
+// The fact fades in this long after the video starts, and fades out this many
+// seconds before the reveal — so it eases in a beat after the clip begins and
+// out a beat before it ends, while the progress bar stays up the whole intro.
+const FACT_IN_DELAY_MS = 600;
+const FACT_OUT_LEAD_S = 0.5;
 // Hard ceiling on the whole intro. Comfortably longer than the clip, but a
 // backstop so a stalled/undecodable video (never plays, never fires `ended`,
 // never rejects) still reveals the game instead of stranding a hidden screen.
@@ -37,7 +42,9 @@ export function playIntro(buildGame) {
     intro.currentTime = 0;
     intro.classList.add('playing');
 
-    // 1b. Fresh bar fact + reset progress, then reveal the overlay over the video.
+    // 1b. Fresh fact text + reset progress, then show the overlay so the
+    // progress bar is up for the whole intro. The fact itself stays hidden
+    // (opacity 0) and fades in shortly after via .show-fact, below.
     if (factEl) factEl.textContent = randomFact();
     if (bar) bar.style.inlineSize = '0%';
     overlay?.classList.add('visible');
@@ -54,13 +61,20 @@ export function playIntro(buildGame) {
     // 3. Fade the game screen in 1s before the video ends.
     let fadeStarted = false;
     let failsafe = 0;
+    // Fade the fact in a beat after the clip starts (guarded so a video that
+    // fails fast — revealGame already fired — never flashes the fact in late).
+    const factInTimer = setTimeout(() => {
+      if (!fadeStarted) overlay?.classList.add('show-fact');
+    }, FACT_IN_DELAY_MS);
     const revealGame = () => {
       if (fadeStarted) return;
       fadeStarted = true;
       clearTimeout(failsafe);
+      clearTimeout(factInTimer);
       // Fact/bar fade out as the board fades in; snap the bar full first so it
       // reads as "ready" even if the video stalled before reaching the end.
       if (bar) bar.style.inlineSize = '100%';
+      overlay?.classList.remove('show-fact');
       overlay?.classList.remove('visible');
       main.classList.remove('intro-hidden');
       void main.offsetHeight;
@@ -84,6 +98,9 @@ export function playIntro(buildGame) {
         bar.style.inlineSize = `${Math.min(100, (intro.currentTime / fillDuration) * 100)}%`;
       }
       const remaining = intro.duration - intro.currentTime;
+      // Fade the fact out a beat before the reveal, leaving the bar up until the
+      // board takes over.
+      if (remaining <= EARLY_FADE_IN_S + FACT_OUT_LEAD_S) overlay?.classList.remove('show-fact');
       if (remaining <= EARLY_FADE_IN_S) revealGame();
       else requestAnimationFrame(startFadeIn);
     };

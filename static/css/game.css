@@ -317,7 +317,9 @@
   }
 
   /* Sits in the lower third of the screen (flex-end + this viewport-relative
-     bottom gap), above the progress block pinned at the very bottom. */
+     bottom gap), above the progress block pinned at the very bottom. Fades in/out
+     on its own (via .show-fact) shortly after the video starts and before it
+     ends, while the progress bar stays shown for the whole intro. */
   .intro-fact {
     max-inline-size: 22rem;
     margin-block-end: 20vh;
@@ -330,6 +332,12 @@
     text-wrap: balance;
     color: var(--color-text);
     text-shadow: var(--shadow-text-lg);
+    opacity: 0;
+    transition: opacity 500ms ease;
+  }
+
+  .intro-overlay.show-fact .intro-fact {
+    opacity: 1;
   }
 
   .intro-progress {
