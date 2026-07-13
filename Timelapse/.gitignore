@@ -1,2 +1,5 @@
 .work/
 frames/
+# Transient encode artifact — build_video/restitch writes here, then moves it
+# atomically onto the tracked tensies-gameplay-timelapse.mp4 on success.
+*.tmp.mp4
