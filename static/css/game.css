@@ -290,4 +290,75 @@
     .zone-matched { inline-size: calc(2 * 46px + 14px); }
     .round-target-die { --sz: 46px; }
   }
+
+  /* Bar fact + progress, layered over #intro-video (z-index:0) during the
+     lobby→board intro (video-intro.js). Body-level, not inside <main> (which is
+     hidden mid-intro); hidden until .visible so it never shows outside the
+     intro, and non-interactive so taps fall through to the board building
+     underneath. */
+  .intro-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem 1.5rem calc(2rem + env(safe-area-inset-bottom));
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 400ms ease-out, visibility 400ms;
+  }
+
+  .intro-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .intro-fact {
+    max-inline-size: 22rem;
+    font-family: var(--font-family-heading);
+    font-size: 1.5rem;
+    font-weight: 500;
+    line-height: 1.35;
+    text-align: center;
+    text-wrap: balance;
+    color: var(--color-text);
+    text-shadow: var(--shadow-text-lg);
+  }
+
+  .intro-progress {
+    position: absolute;
+    inset-inline: 1.5rem;
+    inset-block-end: calc(2rem + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .intro-progress-track {
+    inline-size: 100%;
+    max-inline-size: 18rem;
+    block-size: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    overflow: hidden;
+  }
+
+  .intro-progress-bar {
+    inline-size: 0%;
+    block-size: 100%;
+    border-radius: inherit;
+    background: var(--color-accent);
+    transition: inline-size 200ms linear;
+  }
+
+  .intro-loading-text {
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+    color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+  }
 }

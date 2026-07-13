@@ -1,9 +1,11 @@
 // @ts-check
+import { randomFact } from './bar-facts.js';
 
 /**
  * Game-start video intro: the intro video autoplays hidden+looping so iOS
  * grants playback permission. On game start we seek to 0, show it, and
- * let it play once — then fade in the game screen.
+ * let it play once — then fade in the game screen. While it plays, a bar fact
+ * and a progress bar are overlaid (#intro-overlay) so there's something to read.
  */
 
 const FADE_OUT_MS = 400;
@@ -26,11 +28,19 @@ export function playIntro(buildGame) {
     const intro = /** @type {HTMLVideoElement} */ (document.getElementById('intro-video'));
     const bg = /** @type {HTMLVideoElement} */ (document.getElementById('bg-video'));
     const main = /** @type {HTMLElement} */ (document.querySelector('main'));
+    const overlay = document.getElementById('intro-overlay');
+    const factEl = document.getElementById('intro-fact');
+    const bar = document.getElementById('intro-progress-bar');
 
     // 1. Seek to start, stop looping so it plays once, and show it.
     intro.loop = false;
     intro.currentTime = 0;
     intro.classList.add('playing');
+
+    // 1b. Fresh bar fact + reset progress, then reveal the overlay over the video.
+    if (factEl) factEl.textContent = randomFact();
+    if (bar) bar.style.inlineSize = '0%';
+    overlay?.classList.add('visible');
 
     // 2. Fade out UI simultaneously.
     main.classList.add('intro-fade-out');
@@ -48,6 +58,10 @@ export function playIntro(buildGame) {
       if (fadeStarted) return;
       fadeStarted = true;
       clearTimeout(failsafe);
+      // Fact/bar fade out as the board fades in; snap the bar full first so it
+      // reads as "ready" even if the video stalled before reaching the end.
+      if (bar) bar.style.inlineSize = '100%';
+      overlay?.classList.remove('visible');
       main.classList.remove('intro-hidden');
       void main.offsetHeight;
       main.classList.remove('intro-fade-out');
@@ -61,6 +75,10 @@ export function playIntro(buildGame) {
     };
     const startFadeIn = () => {
       if (fadeStarted) return;
+      // Drive the progress bar off real playback so it tracks time-until-ready.
+      if (bar && intro.duration) {
+        bar.style.inlineSize = `${Math.min(100, (intro.currentTime / intro.duration) * 100)}%`;
+      }
       const remaining = intro.duration - intro.currentTime;
       if (remaining <= EARLY_FADE_IN_S) revealGame();
       else requestAnimationFrame(startFadeIn);
