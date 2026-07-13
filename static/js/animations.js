@@ -77,7 +77,14 @@ export function updateDiceInPlace(snap, onComplete, winForMe = false) {
   const player = state.myId ? snap.players[state.myId] : undefined;
   const wrappers = /** @type {HTMLElement[]} */ ([...document.querySelectorAll('.zone-unmatched .die-wrapper')]);
 
-  if (!player || wrappers.length === 0) {
+  // If the board on screen was built for a different round, we fell behind the
+  // server — a round-advance broadcast was lost (flaky link) — and are only now
+  // catching up through this roll response. Animating in place would paint the
+  // new round's dice onto the stale board: old locks kept, new target stacking
+  // on top (the dropped-broadcast frankenboard). Hard-rebuild to the round the
+  // snapshot actually describes.
+  const staleBoard = state.boardRound != null && snap.round_num !== state.boardRound;
+  if (!player || wrappers.length === 0 || staleBoard) {
     renderMyArea(snap);
     renderPlayersBar(snap);
     if (onComplete) onComplete();
