@@ -21,6 +21,74 @@ OUTDIR = sys.argv[2]
 os.makedirs(OUTDIR, exist_ok=True)
 FF = imageio_ffmpeg.get_ffmpeg_exe()
 
+# CSS-relevance gating: a frame counts as a possible design change only if its
+# commit touched a stylesheet that affects the screen. This drops frames from
+# commits that restyled *other* screens (so gameplay randomness on an unchanged
+# screen can't masquerade as progression). GLOBAL = tokens/reset/monolith that
+# affect everything (incl. the pre-split single stylesheet).
+WORKLIST = os.environ.get("SCREENS_WL_PATH", os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", ".work_screens", "worklist.txt"))
+GLOBAL_CSS = {"style.css", "base.css", "tokens.css", "critical.css"}
+RELEVANT_CSS = {
+    "landing":  {"landing.css", "controls.css", "shell.css"},
+    "join":     {"landing.css", "sheet.css", "controls.css"},
+    "lobby":    {"lobby.css", "stamp.css", "controls.css", "shell.css"},
+    "board":    {"game.css", "dice.css", "players-bar.css", "shell.css"},
+    "win":      {"overlays.css", "game.css"},
+    "menu":     {"menu.css"},
+    "profile":  {"profile.css"},
+    "postgame": {"game-detail.css"},
+    "places":   {"sheet.css", "nearby.css"},
+}
+
+
+def _load_worklist():
+    idx2sha = {}
+    try:
+        for line in open(WORKLIST):
+            p = line.split()
+            if len(p) >= 2:
+                idx2sha[int(p[0])] = p[1]
+    except OSError:
+        pass
+    return idx2sha
+
+
+_CSS_CACHE = {}
+
+
+def _changed_css(sha):
+    if sha not in _CSS_CACHE:
+        try:
+            out = subprocess.check_output(
+                ["git", "show", "--name-only", "--format=", sha, "--", "*.css"],
+                stderr=subprocess.DEVNULL).decode()
+            _CSS_CACHE[sha] = {os.path.basename(x) for x in out.split() if x.endswith(".css")}
+        except Exception:
+            _CSS_CACHE[sha] = set()
+    return _CSS_CACHE[sha]
+
+
+IDX2SHA = _load_worklist()
+
+
+def css_relevant_frames(screen, frames):
+    """Keep the first frame (baseline) + any frame whose commit touched CSS
+    relevant to this screen. Falls back to all frames if the worklist is absent."""
+    if not IDX2SHA:
+        return frames
+    rel = RELEVANT_CSS.get(screen, set()) | GLOBAL_CSS
+    kept = []
+    for i, f in enumerate(frames):
+        try:
+            idx = int(os.path.basename(f)[6:10])
+        except ValueError:
+            continue
+        sha = IDX2SHA.get(idx)
+        if i == 0 or (sha and (_changed_css(sha) & rel)):
+            kept.append(f)
+    return kept or frames
+
 # Per-screen Hamming-distance threshold on a 64-bit dHash: a frame is kept only
 # if it differs from the last kept frame by MORE than this. Static screens use a
 # low value (catch subtle design tweaks); content-heavy screens (dice/codes) use
@@ -46,7 +114,17 @@ def ham(a, b):
     return int(np.unpackbits(a ^ b).sum())
 
 
+def is_blank(path):
+    """A failed/loading capture is near-uniform (very low variance)."""
+    try:
+        a = np.asarray(Image.open(path).convert("L").resize((64, 128)), dtype=np.float32)
+        return a.std() < 7.0
+    except Exception:
+        return True
+
+
 def dedup(frames, thresh):
+    frames = [f for f in frames if not is_blank(f)]
     kept = []
     last = None
     for f in frames:
@@ -90,12 +168,18 @@ def main():
     for a in sys.argv[3:]:
         k, v = a.split("=")
         overrides[k] = int(v)
-    screens = sorted(d for d in os.listdir(ROOT) if os.path.isdir(os.path.join(ROOT, d)))
+    # 'lose' has no dedicated screen in Tensies — everyone sees the winner
+    # overlay, captured cleanly as 'win' — and the guest capture is unreliable
+    # (blank/transition frames), so it is skipped.
+    skip = {"lose"}
+    screens = sorted(d for d in os.listdir(ROOT)
+                     if os.path.isdir(os.path.join(ROOT, d)) and d not in skip)
     for screen in screens:
         d = os.path.join(ROOT, screen)
         frames = sorted(os.path.join(d, f) for f in os.listdir(d) if f.endswith(".png"))
         if not frames:
             continue
+        frames = css_relevant_frames(screen, frames)  # design-relevant commits only
         thresh = overrides.get(screen, DEFAULT_THRESH.get(screen, 8))
         kept = dedup(frames, thresh)
         out = build(screen, kept)

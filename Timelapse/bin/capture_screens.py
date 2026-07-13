@@ -115,6 +115,22 @@ def main():
         gc = browser.new_context(**DEVICE)
         hc.add_init_script(NO_OUTLINE)
         gc.add_init_script(NO_OUTLINE)
+
+        # The sandbox blocks the capture browser's direct egress to the profile-
+        # photo CDN, so fulfil cdn1.simmons.cloud image requests from a local
+        # copy (MICH_PHOTO) — the profile/post-game avatars then render as in
+        # production instead of a broken/placeholder image.
+        photo_path = os.environ.get("MICH_PHOTO", "")
+        if photo_path and os.path.exists(photo_path):
+            with open(photo_path, "rb") as fh:
+                _photo = fh.read()
+
+            def _route_cdn(route):
+                route.fulfill(status=200, content_type="image/webp", body=_photo)
+
+            hc.route("https://cdn1.simmons.cloud/**", _route_cdn)
+            gc.route("https://cdn1.simmons.cloud/**", _route_cdn)
+
         host = hc.new_page()
         guest = gc.new_page()
 

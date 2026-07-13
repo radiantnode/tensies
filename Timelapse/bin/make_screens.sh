@@ -19,7 +19,10 @@ ROOT="$SCRIPT_DIR/../screens_frames"
 WL="$WORK/worklist.txt"
 BASEPORT=8400
 
-rm -rf "$ROOT"; mkdir -p "$ROOT" "$WORK"
+# KEEP_FRAMES re-captures into an existing frame set (e.g. re-shoot one screen)
+# without wiping the others or re-cloning.
+if [ -z "${KEEP_FRAMES:-}" ]; then rm -rf "$ROOT"; fi
+mkdir -p "$ROOT" "$WORK"
 # SCREENS_WL lets a smoke test supply a truncated worklist; else generate full.
 if [ -n "${SCREENS_WL:-}" ] && [ -r "${SCREENS_WL:-}" ]; then
   cp "$SCREENS_WL" "$WL"
@@ -30,8 +33,10 @@ TOTAL=$(wc -l < "$WL")
 echo "[screens] $TOTAL css commits | jobs=$JOBS"
 
 for k in $(seq 0 $((JOBS - 1))); do
-  rm -rf "$WORK/clone$k"
-  git clone --quiet --shared "$REPO" "$WORK/clone$k"
+  if [ -z "${KEEP_FRAMES:-}" ] || [ ! -d "$WORK/clone$k/.git" ]; then
+    rm -rf "$WORK/clone$k"
+    git clone --quiet --shared "$REPO" "$WORK/clone$k"
+  fi
 done
 
 capture_one() {  # clone port idx sha screens
