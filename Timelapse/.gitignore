@@ -1,5 +1,10 @@
 .work/
 frames/
+# Per-screen design-progression timelapse (make_screens.sh): worker clones,
+# captured frames, and rendered clips are all regenerable artifacts.
+.work_screens/
+screens_frames/
+screens_video/
 # Transient encode artifact — build_video/restitch writes here, then moves it
 # atomically onto the tracked tensies-gameplay-timelapse.mp4 on success.
 *.tmp.mp4
