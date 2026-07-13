@@ -75,9 +75,13 @@ export function playIntro(buildGame) {
     };
     const startFadeIn = () => {
       if (fadeStarted) return;
-      // Drive the progress bar off real playback so it tracks time-until-ready.
+      // Drive the bar off real playback, but scale it so 100% lands at the
+      // reveal moment (EARLY_FADE_IN_S before the clip ends), not at the clip's
+      // end — so it fills smoothly to full exactly as the board reveals instead
+      // of snapping the last stretch to 100%.
       if (bar && intro.duration) {
-        bar.style.inlineSize = `${Math.min(100, (intro.currentTime / intro.duration) * 100)}%`;
+        const fillDuration = Math.max(0.1, intro.duration - EARLY_FADE_IN_S);
+        bar.style.inlineSize = `${Math.min(100, (intro.currentTime / fillDuration) * 100)}%`;
       }
       const remaining = intro.duration - intro.currentTime;
       if (remaining <= EARLY_FADE_IN_S) revealGame();
