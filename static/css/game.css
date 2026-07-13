@@ -316,11 +316,11 @@
     visibility: visible;
   }
 
-  /* Sits just above the progress block (flex-end + this bottom gap) rather than
-     centred, so the fact reads with the loading bar as one unit. */
+  /* Sits in the lower third of the screen (flex-end + this viewport-relative
+     bottom gap), above the progress block pinned at the very bottom. */
   .intro-fact {
     max-inline-size: 22rem;
-    margin-block-end: 2.75rem;
+    margin-block-end: 20vh;
     padding-inline: 1.25rem;
     font-family: var(--font-family-heading);
     font-size: 1.5rem;
