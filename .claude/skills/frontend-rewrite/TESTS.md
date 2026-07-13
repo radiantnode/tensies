@@ -1,6 +1,6 @@
 # Pixel Verification Tests
 
-51 tests, 51 mobile baselines (390×844 · 2× dpr · Chromium 149.0.7827.55; `rotate-overlay` is the one landscape capture, 844×390).
+54 tests, 54 mobile baselines (390×844 · 2× dpr · Chromium 149.0.7827.55; `rotate-overlay` is the one landscape capture, 844×390; the two `widget-*` captures are the standalone `/api/widget` card, element-clipped at 440×203).
 Run with `npm run verify` from `harness/`; all must pass at `maxDiffPixels 0` before any frontend change ships.
 
 The landing/intro background videos (`feature/video-intro`) are frozen to a fixed frame at capture time — `settle()` in `determinism.js` pauses every `<video>` and pins `currentTime` to its midpoint — so the looping playback doesn't defeat the two-stable-consecutive-screenshots check.
@@ -55,6 +55,24 @@ The install banner + iOS walkthrough. The `?a2hs=ios` localhost dev override for
 | 47 | <img src="harness/baselines/a2hs-step2-mobile.png" width="60"> | Walkthrough step 2 phone scene | [a2hs.spec.js:38](harness/a2hs.spec.js#L38) |
 | 48 | <img src="harness/baselines/a2hs-step3-mobile.png" width="60"> | Walkthrough step 3 phone scene | [a2hs.spec.js:38](harness/a2hs.spec.js#L38) |
 | 49 | <img src="harness/baselines/a2hs-step4-mobile.png" width="60"> | Walkthrough step 4 phone scene | [a2hs.spec.js:38](harness/a2hs.spec.js#L38) |
+
+---
+
+## Home-screen widget — `widget.spec.js`
+
+The standalone `/api/widget` card (a wide phone web-widget, ~440×203) — the one
+SERVER-rendered page, not the SPA. The `/api/widget` response is stubbed with the
+**real** `static/html/widget.html` template substituted with deterministic data,
+so the actual `widget.css` / `widget.js` / logo load as real `/static` sub-resources
+and stay under pixel test; only the backend data is synthetic (same route-stub idea
+as the profile / game-detail states). `Date` is fully pinned (not just `Date.now`)
+so `widget.js`'s `new Date()` "Updated 12:00a" render stamp is byte-stable. Captured
+at a bespoke 440-wide viewport, element-clipped to `.card`.
+
+| # | Screenshot | Checks | Spec |
+|---|-----------|--------|------|
+| 53 | <img src="harness/baselines/widget-populated-mobile.png" width="120"> | Healthy widget: dice logo, green "All systems go" dot + "Updated 12:00a", live/playing/today stat boxes (3/2/12), and the Recent Games list over the wood poster — every `_matchup` shape (vs / solo / +N), a long name pair truncated with an ellipsis, all `_ago` buckets (now/m/h/d), and the bottom fade mask on the overflowing list | [widget.spec.js:92](harness/widget.spec.js#L92) |
+| 54 | <img src="harness/baselines/widget-empty-mobile.png" width="120"> | Degraded widget: amber "warn" dot + "Stats DB offline", zeroed live/playing counts and "–" today, and the "No finished games yet" empty games row | [widget.spec.js:105](harness/widget.spec.js#L105) |
 
 ---
 

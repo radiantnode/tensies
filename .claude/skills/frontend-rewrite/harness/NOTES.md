@@ -136,7 +136,28 @@ Confirmed by observing a real game (`page.on('websocket')` → `framereceived`):
 
 Use as the reference inventory. Approach: **static** = served files only;
 **synth** = `pinWebSocket` frame rewrite; **auth** = fake JWT in localStorage
-(+ WS auth intercept for server-driven views); **real** = real interaction outcome.
+(+ WS auth intercept for server-driven views); **real** = real interaction
+outcome; **stub** = `page.route` fulfils a data endpoint (`/api/profile`,
+`/api/game`, `/api/widget`) with deterministic content.
+
+## Server-rendered pages (the widget) — stub the whole HTML response
+
+`/api/widget` is the one view that is **not** the SPA: the server returns a
+complete HTML card, not JSON the client renders. So the stub fulfils the
+`/api/widget` request with the **real** `static/html/widget.html` template
+substituted with fixed data (mirroring `server/widget.py`'s `$`-placeholder
+fill). The `<link>`/`<script>`/`<img>` inside it still point at real `/static`
+URLs, so the actual `widget.css` / `widget.js` / logo load from the dev server
+and stay under pixel test — only the backend numbers and recent-games rows are
+synthetic. Two extra gotchas the widget needed:
+
+- **`new Date()` is not pinned by `seedPage`.** `widget.js` stamps its "Updated"
+  time with `new Date()`, which ignores the `Date.now` override. Fully replace
+  `Date` in an init script (the a2hs trick); with `timezoneId:'UTC'` the frozen
+  instant renders a stable "Updated 12:00a".
+- **Bespoke viewport.** The card targets a ~440-wide web widget, so it sets its
+  own `page.setViewportSize({ width: 440, … })` (like `rotate-overlay`) and
+  element-clips the screenshot to `.card` (which clamps its own 203px height).
 
 | state | approach | notes |
 |-------|----------|-------|
@@ -176,6 +197,8 @@ Use as the reference inventory. Approach: **static** = served files only;
 | game-detail-no-data | auth | same stub pattern; verify returns `total: 0` → "No beacon data for this game" |
 | a2hs-banner | real | `/?a2hs=ios` localhost override (whole `Date` pinned for the mock status-bar clock) → the Add-to-Home-Screen install banner over the frozen landing |
 | a2hs-step1..4 | real | open the guide, then click `.a2hs-dot[data-step=n]` to freeze each of the 4 iOS walkthrough steps → the phone-mockup scene |
+| widget-populated | stub | the standalone `/api/widget` card — see the server-rendered-page note below |
+| widget-empty | stub | same, degraded state (Stats DB offline, empty games row) |
 
 **Deliberately not captured** (transient / external, no stable frame): the
 initial `#loading` flash, the mid-roll shake animation (frozen by
