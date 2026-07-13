@@ -1,90 +1,91 @@
-# 50 bar facts (for the game intro)
+# 70 bar facts (for the game intro)
 
-Fun, verified facts about bars, saloons, beer, distilling, and their pop culture.
-Researched against reputable sources and run through the humanizer skill. Myths are
-labeled as myths on purpose, since a "wait, that's not true?" fact plays well on screen.
+Short, verified facts about bars, saloons, beer, distilling, and their pop culture.
+Written to read in a second or two on screen. Researched against reputable sources and
+run through the humanizer skill. Myths are labeled as myths on purpose, since a "wait,
+that's not true?" fact plays well.
 
 ## beer
 
-1. Beer might be older than bread. Residue on 13,000-year-old stone mortars in an Israeli cave shows people were brewing cereal beer for funeral feasts before anyone had settled down to farm, which has some archaeologists arguing we took up farming to keep the beer coming.
-2. The oldest beer recipe we have is a 3,800-year-old Sumerian hymn to Ninkasi, the goddess of beer. It doubles as worship and instructions, basically singing the recipe so you don't forget it.
-3. Babylon did not mess around with beer fraud. Under the Code of Hammurabi, a tavern keeper caught watering the beer or shorting the measure could be thrown into the river to drown.
-4. The workers who built the Giza pyramids were partly paid in beer and bread. Archaeologists dug up the breweries and bakeries right next to the workers' village.
-5. Germany's beer purity law, the Reinheitsgebot, dates to 1516 and is often called the oldest food regulation still on the books. It allowed only water, barley, and hops, partly so brewers and bakers would stop fighting over wheat.
-6. One of the most important tools in modern statistics, the Student's t-test, was invented by a Guinness brewer doing quality control. He published as "Student" because Guinness banned staff from using their real names, and his identity stayed secret until he died.
-7. In 1814 a giant vat at a London brewery burst and sent more than a million liters of porter flooding into the surrounding slum. Eight people drowned, and the inquest ruled it an act of God.
-8. The word "bridal" started life as "bride ale," the wedding feast where everyone drank a lot of ale. Over the centuries people misheard the "ale" as an ordinary suffix.
-9. Oktoberfest began in 1810 as a royal wedding party with a horse race. It went so well they just kept throwing it every year.
-10. Hops, the plant that makes beer bitter, is the closest botanical cousin of cannabis. They split from a common ancestor around 20 million years ago.
-11. Myth check: medieval people did not drink beer because water would kill them. Clean water was around and people drank it. They drank weak "small beer" because it was cheap calories for a brutal day of manual labor.
-12. Another myth: IPA was not invented so beer could survive the long voyage to India. Strong hoppy ales already existed for long storage. The sea trip just aged them faster.
+1. Beer may be older than bread. Brewing residue in an Israeli cave dates back 13,000 years, before farming.
+2. The oldest known beer recipe is a 3,800-year-old Sumerian hymn to Ninkasi, the goddess of beer.
+3. Under the Code of Hammurabi, a tavern keeper who watered the beer could be drowned in the river.
+4. The workers who built the Giza pyramids were partly paid in beer.
+5. Germany's beer purity law dates to 1516 and allows only water, barley, and hops.
+6. The Student's t-test was invented by a Guinness brewer who had to publish under a fake name.
+7. In 1814 a London brewery vat burst, and a wave of beer drowned eight people.
+8. "Bridal" comes from "bride ale," the wedding feast where everyone drank ale.
+9. Oktoberfest started in 1810 as a royal wedding party with a horse race.
+10. Hops, the plant that flavors beer, is the closest botanical cousin of cannabis.
+11. Myth: medieval people drank beer because water was deadly. Water was fine; weak beer was just cheap calories.
+12. Myth: IPA was invented to survive the trip to India. Strong hoppy ales already existed; the voyage just aged them.
 
-## bars, saloons, and pubs
+## bars and saloons
 
-13. "Bar" really does come from the physical barrier. It traces to an old French word for a beam, and by the 1590s it meant the counter keeping customers away from the liquor. And no, it is not an acronym for "Beer And Alcohol Room."
-14. "There's no such thing as a free lunch" comes from real saloons that fed you free if you bought a drink. The catch: the food was salted hard so you would get thirsty and order more beer.
-15. Nobody actually knows why "86" means to cut someone off or run out of something. The best guess linguists have is that it started as rhyming slang for "nix."
-16. The pub story behind "mind your Ps and Qs," a barkeep tallying your Pints and Quarts, is charming but the Oxford English Dictionary doesn't buy it. The real origin is a mystery.
-17. No pub can honestly call itself England's oldest. Guinness gave up trying to verify the title and dropped the record in 2000, so the ancient dates on the sign are marketing.
-18. At the peak of Prohibition, New York City may have had more speakeasies than it ever had legal bars, with estimates running from 20,000 to 100,000.
-19. American cocktail culture has a founding father: Jerry Thomas, who wrote the first US bar guide in 1862. His signature move was hurling a stream of flaming whiskey between two glasses to make a drink called the Blue Blazer.
-20. That brass foot rail at the bottom of a bar exists because old saloons ran a trough of water along the floor for tobacco spit. The rail let you park a boot above the mess, and it kept you comfortable enough to stand and drink longer.
-21. English pubs hang painted signs because a 1393 law made them. King Richard II wanted his ale inspector to find every alehouse, and since most people couldn't read, the signs used pictures.
-22. The world's longest bar runs 405 feet and sits on a tiny island in Lake Erie. The Beer Barrel Saloon in Put-in-Bay, Ohio has 160 stools and 56 taps.
-23. Colonial American taverns doubled as courthouses, post offices, and polling places. The Boston Tea Party was planned in one, which Daniel Webster later called the headquarters of the Revolution.
-24. To "give a toast" once meant literally putting toast in your drink. People dropped a piece of spiced, charred bread into wine to improve the flavor and soak up sediment, and the word for the bread became the word for the honor.
-25. "Wet your whistle" has nothing to do with a whistle built into your mug. "Whistle" was just old slang for your throat, and the phrase goes back to Chaucer in the 1380s. The whistle-mug story is made up. No such mug has ever been found.
-26. In Georgian London gin got so cheap that one shop's sign reportedly read: "Drunk for a penny, dead drunk for two pence, clean straw for nothing."
-27. "The real McCoy" probably isn't the bootlegger everyone credits. The phrase shows up before Prohibition and likely comes from a Scotch whisky slogan, "the real MacKay."
+13. "Bar" is named after the actual barrier that once kept customers away from the liquor.
+14. "No such thing as a free lunch" came from saloons that fed you free, then salted the food to sell more beer.
+15. Nobody really knows why "86" means cut off. Best guess: old slang for "nix."
+16. The "Ps and Qs means pints and quarts" pub story is one the Oxford English Dictionary doesn't buy.
+17. No pub can prove it's England's oldest. Guinness dropped the record in 2000 as unverifiable.
+18. At its peak, Prohibition-era New York may have had more speakeasies than it ever had legal bars.
+19. Jerry Thomas, the father of American mixology, made a signature drink out of flaming whiskey thrown between two glasses.
+20. The brass foot rail exists because old saloons had a spit trough on the floor, and you needed somewhere to put your boot.
+21. English pubs hang painted signs because a 1393 law required it, and most people couldn't read.
+22. The world's longest bar runs 405 feet, on a tiny island in Lake Erie.
+23. Colonial taverns doubled as courthouses and polling places. The Boston Tea Party was planned in one.
+24. "Giving a toast" once meant literally dropping a piece of charred bread in your wine.
+25. "Wet your whistle" goes back to Chaucer. The whistle-in-the-mug story is invented; no such mug exists.
+26. A Georgian gin shop's sign reportedly read: "Drunk for a penny, dead drunk for two pence, clean straw for nothing."
+27. "The real McCoy" predates the bootlegger everyone credits, and likely comes from a whisky slogan.
 
 ## distilling and spirits
 
-28. Distillers lose part of every barrel to evaporation and call it the "angel's share." In cool Scotland it's about 2% a year, but in the Kentucky heat a barrel can give up 10% in a single summer.
-29. There's a black fungus that lives on the alcohol fumes drifting off whiskey warehouses. It coats nearby buildings, trees, and cars in dark soot, and homeowners near Kentucky distilleries have sued over it.
-30. By law, bourbon has to age in brand new charred oak barrels, so a barrel can only make bourbon once. That's exactly why Scotch and Irish distillers snap up America's used bourbon barrels for their own whisky.
-31. "Proof" comes from a tax-era test where officials soaked gunpowder in the spirit and lit it. If it still caught fire, the alcohol was strong enough to be "proved."
-32. Absinthe does not make you hallucinate. The green fairy legend is a myth. Chemists tested century-old bottles and found normal thujone levels, so any wild behavior came from the fact that it's about 70% alcohol.
-33. In 1730s London there were an estimated 7,000 gin shops selling cheap gin nicknamed "Mother's Ruin." The panic got bad enough that a 1751 law finally reined it in.
-34. "Whiskey" literally means "water of life." It's a mangled shortening of the Gaelic uisce beatha, which was itself a translation of the Latin aqua vitae.
-35. Whether it's spelled "whisky" or "whiskey" tells you roughly where it's from. Scotland, Canada, and Japan drop the e; Ireland and the US keep it, a split that hardened in the 1800s as a branding move.
-36. NASCAR grew straight out of moonshine running. Bootleggers souped up plain-looking cars to outrun federal agents, then started racing each other for bragging rights, and the sport went official in the late 1940s.
-37. There was never supposed to be a worm in tequila. Mexican rules actually forbid it. The worm turns up only in some mezcal, and it was dropped in during the mid-20th century as a marketing gimmick.
-38. Jack Daniel may have died because he kicked his safe. The story goes he forgot the combination, kicked it in frustration, hurt his toe, and got a fatal infection, though his biographer suspects diabetes was the real cause.
-39. That deep dimple in the bottom of a champagne bottle, the "punt," helps the glass survive the pressure inside, which runs about three times what's in a car tire.
-40. "Vodka" means "little water." It's the affectionate diminutive of the Russian word for water.
-41. Dom Pérignon probably never cried "I am tasting the stars," and he didn't invent champagne either. The famous quote first showed up in an advertisement about 200 years after he died.
-42. No spirit is actually a stimulant, tequila included. It's a depressant like the rest, and that "energized" feeling is just early-buzz dopamine plus the theater of doing shots.
+28. Whiskey lost to evaporation is called the "angel's share," up to 10% a year in Kentucky heat.
+29. A black fungus feeds on the fumes off whiskey warehouses and coats nearby buildings in soot.
+30. Bourbon must use brand new charred barrels, so each barrel can make bourbon only once.
+31. "Proof" comes from a test where officials soaked gunpowder in the spirit and tried to light it.
+32. Absinthe doesn't make you hallucinate. It's just about 70% alcohol.
+33. In 1730s London, 7,000 gin shops sold cheap gin nicknamed "Mother's Ruin."
+34. "Whiskey" literally means "water of life."
+35. Whether it's "whisky" or "whiskey" tells you where it's from. Scotland drops the e; Ireland and the US keep it.
+36. NASCAR grew out of moonshine runners souping up cars to outrun the law.
+37. There was never supposed to be a worm in tequila. The worm belongs to mezcal, as a marketing gimmick.
+38. Jack Daniel may have died from kicking his safe after forgetting the combination.
+39. The dimple in a champagne bottle helps it survive pressure about three times a car tire's.
+40. "Vodka" means "little water."
+41. Dom Pérignon never said "I am tasting the stars," and he didn't invent champagne.
+42. No spirit is a stimulant, tequila included. It's a depressant like the rest.
 
 ## the science and the drinks
 
-43. Yeast basically drinks itself to death. It eats sugar and excretes alcohol, but that alcohol is toxic to the yeast, so once it climbs past roughly 15% the yeast dies off. Anything stronger has to be distilled.
-44. Dark liquor gives worse hangovers than clear liquor, and it isn't only in your head. Bourbon and brandy carry far more congeners, the flavor byproducts your body has to clean up the next morning.
-45. The bubbles in a pint of Guinness really do sink, and physicists have the math to prove it. The tapered glass sets up a current that drags the tiny bubbles down the sides while pushing beer up the middle.
-46. The oversized label on a bottle of Angostura bitters is a 150-year-old mistake nobody bothered to fix. Two brothers designed the bottle and the label separately, the label came out too big, and a judge told them to keep it because it stood out.
-47. The Negroni exists because a customer wanted his drink stronger. Around 1919 in Florence, Count Camillo Negroni asked his bartender to swap the soda in his Americano for gin.
-48. Before refrigerators, a Boston businessman got rich shipping blocks of frozen pond ice to the tropics. Packed in sawdust, New England ice became one of the country's biggest exports by weight.
-49. Tonic water glows electric blue under a black light, thanks to the quinine in it. That quinine was originally anti-malaria medicine, so bitter that British colonials cut it with gin and sugar and accidentally invented the gin and tonic.
-50. The espresso martini was born in early-1980s London when a woman stepped up to the bar and asked for something that would, in polite terms, wake her up and then mess her up. The bartender obliged.
+43. Yeast drinks itself to death. Its own alcohol turns toxic around 15%, so stronger drinks need distilling.
+44. Dark liquor really does hit harder the next morning, thanks to more congeners.
+45. The bubbles in a pint of Guinness actually sink, and physicists have proven it.
+46. The oversized Angostura bitters label is a 150-year-old mistake nobody ever fixed.
+47. The Negroni was born when a customer asked to swap the soda in his Americano for gin.
+48. Before fridges, a Boston man got rich shipping frozen pond ice to the tropics.
+49. Tonic water glows blue under a black light, thanks to the anti-malaria quinine that gave us the gin and tonic.
+50. The espresso martini was invented for a woman who wanted something to wake her up and then wreck her.
 
 ## pop culture and movies
 
-51. In The Big Lebowski, The Dude drinks nine White Russians, which he insists on calling "Caucasians," roughly one every twelve minutes of runtime.
-52. The bar on the outside of Cheers is a real Boston pub. The owner of the Bull & Finch reportedly licensed the exterior shot for a dollar, never guessing it would front all eleven seasons. The cozy interior was a set, so tourists who wander in are usually a little let down.
-53. A real medical journal once diagnosed James Bond. A 2013 paper in The BMJ read every Fleming novel and put Bond at about 92 units of alcohol a week, four times the safe limit, and suggested his shaky "shaken, not stirred" preference might be an alcohol tremor.
-54. Bond's Vesper martini is named after the double agent Vesper Lynd in the 1953 novel Casino Royale. You can't quite make the original anymore, because one of its ingredients, Kina Lillet, stopped being produced in 1986.
-55. Matt Groening spent years refusing to license Duff Beer for real, worried it would nudge kids toward drinking. Bootleggers made it anyway, and officially licensed Duff now pours at Universal's Springfield.
-56. In The Shining, Jack asks the ghost bartender for "a little bourbon," but the bottle on the bar is Jack Daniel's, which is Tennessee whiskey, not bourbon.
-57. "Play it again, Sam" is never actually said in Casablanca. The real line is "Play it, Sam." Bogart's toast "here's looking at you, kid" was reportedly a phrase he picked up teaching Ingrid Bergman poker between takes.
-58. The Coyote Ugly bar came before the movie. The 2000 film grew out of a 1997 magazine essay about bartending at a real, grimy East Village dive, written by Elizabeth Gilbert, who later wrote Eat, Pray, Love.
-59. For the Mos Eisley Cantina, George Lucas told John Williams to imagine alien creatures who dug up some 1930s Benny Goodman records and tried to copy them. That's why the "we don't serve their kind here" bar has a swing band.
-60. Tom Cruise learned his bottle-juggling for Cocktail over three months from a real flair bartender who worked at a Los Angeles TGI Friday's, the chain that helped kick off the whole flair craze.
-61. It's Always Sunny's Paddy's Pub isn't real and isn't even in Philadelphia (the exterior is in L.A.), but stars Rob McElhenney and Kaitlin Olson do co-own an actual Philly bar, Mac's Tavern.
-62. Budweiser's "Wassup?" ads were lifted almost word for word from a 1998 short film a director made of himself and his real friends goofing around on the phone.
-63. The Budweiser Frogs were directed by Gore Verbinski, who went on to make the Pirates of the Caribbean films. A 1996 study found more kids recognized the frogs than Ronald McDonald or Smokey Bear.
-64. "Tequila" by The Champs hit number one in 1958 with a grand total of one spoken word, said three times. It won a Grammy at the very first Grammy Awards, and it started as a throwaway B-side.
-65. Frank Sinatra was buried with a bottle of Jack Daniel's, along with a Zippo, a pack of Camels, and ten dimes, reportedly so he would always have change for a payphone.
-66. George Clooney and his partners started Casamigos tequila and sold it four years later for up to $1 billion ($700 million up front, the rest tied to how the brand performed).
-67. Ryan Reynolds sold Aviation Gin in 2020 for up to $610 million, having marketed it largely by making fun of his own ads.
-68. Heineken reportedly paid around $45 million to put a beer in James Bond's hand in Skyfall. Fans were furious that 007 skipped his martini, and Daniel Craig defended it by pointing out the sponsorship helped pay for the film.
-69. Miller High Life has called itself "The Champagne of Beers" since the early 1900s, thanks to a clear, sloping, champagne-style bottle and a lot of fizz.
-70. Absolut Vodka's famous bottle ad campaign was first sketched by an art director in his bathtub. It ran about 25 years across more than 1,500 different ads and helped grow the brand from 10,000 cases a year to millions.
+51. In The Big Lebowski, The Dude drinks nine White Russians, about one every twelve minutes.
+52. The outside of Cheers is a real Boston pub that reportedly rented its facade for a dollar.
+53. A real medical journal calculated that James Bond drinks about four times the safe limit.
+54. Bond's Vesper martini is named after a Bond girl, and you can't make the original anymore.
+55. Matt Groening refused to make Duff Beer real for years, afraid it would encourage kids to drink.
+56. In The Shining, Jack orders bourbon, but the bottle on the bar is Jack Daniel's, which isn't bourbon.
+57. "Play it again, Sam" is never actually said in Casablanca.
+58. The Coyote Ugly bar was a real New York dive before it was a movie.
+59. Star Wars' cantina band sounds that way because Lucas asked for aliens playing 1930s swing.
+60. Tom Cruise learned his Cocktail bottle-juggling from a real TGI Friday's bartender.
+61. Paddy's Pub isn't in Philadelphia, but the It's Always Sunny stars do own a real bar there.
+62. Budweiser's "Wassup?" ads were lifted from a short film a guy made with his real friends.
+63. The Budweiser Frogs were directed by the man who would later make Pirates of the Caribbean.
+64. "Tequila" by The Champs hit number one in 1958 with exactly one spoken word.
+65. Frank Sinatra was buried with a bottle of Jack Daniel's and ten dimes for a payphone.
+66. George Clooney started Casamigos tequila and sold it four years later for up to $1 billion.
+67. Ryan Reynolds sold Aviation Gin for up to $610 million, after marketing it by mocking his own ads.
+68. Heineken reportedly paid $45 million to put a beer in James Bond's hand, and fans were furious.
+69. Miller High Life has called itself "The Champagne of Beers" since the early 1900s.
+70. Absolut's famous bottle ad campaign was first sketched in a bathtub and ran for 25 years.
