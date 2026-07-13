@@ -1,8 +1,8 @@
 # 50 bar facts (for the game intro)
 
-Fun, verified facts about bars, saloons, beer, and distilling. Researched against
-reputable sources and run through the humanizer skill. Myths are labeled as myths on
-purpose, since a "wait, that's not true?" fact plays well on screen.
+Fun, verified facts about bars, saloons, beer, distilling, and their pop culture.
+Researched against reputable sources and run through the humanizer skill. Myths are
+labeled as myths on purpose, since a "wait, that's not true?" fact plays well on screen.
 
 ## beer
 
@@ -65,3 +65,26 @@ purpose, since a "wait, that's not true?" fact plays well on screen.
 48. Before refrigerators, a Boston businessman got rich shipping blocks of frozen pond ice to the tropics. Packed in sawdust, New England ice became one of the country's biggest exports by weight.
 49. Tonic water glows electric blue under a black light, thanks to the quinine in it. That quinine was originally anti-malaria medicine, so bitter that British colonials cut it with gin and sugar and accidentally invented the gin and tonic.
 50. The espresso martini was born in early-1980s London when a woman stepped up to the bar and asked for something that would, in polite terms, wake her up and then mess her up. The bartender obliged.
+
+## pop culture and movies
+
+51. In The Big Lebowski, The Dude drinks nine White Russians, which he insists on calling "Caucasians," roughly one every twelve minutes of runtime.
+52. The bar on the outside of Cheers is a real Boston pub. The owner of the Bull & Finch reportedly licensed the exterior shot for a dollar, never guessing it would front all eleven seasons. The cozy interior was a set, so tourists who wander in are usually a little let down.
+53. A real medical journal once diagnosed James Bond. A 2013 paper in The BMJ read every Fleming novel and put Bond at about 92 units of alcohol a week, four times the safe limit, and suggested his shaky "shaken, not stirred" preference might be an alcohol tremor.
+54. Bond's Vesper martini is named after the double agent Vesper Lynd in the 1953 novel Casino Royale. You can't quite make the original anymore, because one of its ingredients, Kina Lillet, stopped being produced in 1986.
+55. Matt Groening spent years refusing to license Duff Beer for real, worried it would nudge kids toward drinking. Bootleggers made it anyway, and officially licensed Duff now pours at Universal's Springfield.
+56. In The Shining, Jack asks the ghost bartender for "a little bourbon," but the bottle on the bar is Jack Daniel's, which is Tennessee whiskey, not bourbon.
+57. "Play it again, Sam" is never actually said in Casablanca. The real line is "Play it, Sam." Bogart's toast "here's looking at you, kid" was reportedly a phrase he picked up teaching Ingrid Bergman poker between takes.
+58. The Coyote Ugly bar came before the movie. The 2000 film grew out of a 1997 magazine essay about bartending at a real, grimy East Village dive, written by Elizabeth Gilbert, who later wrote Eat, Pray, Love.
+59. For the Mos Eisley Cantina, George Lucas told John Williams to imagine alien creatures who dug up some 1930s Benny Goodman records and tried to copy them. That's why the "we don't serve their kind here" bar has a swing band.
+60. Tom Cruise learned his bottle-juggling for Cocktail over three months from a real flair bartender who worked at a Los Angeles TGI Friday's, the chain that helped kick off the whole flair craze.
+61. It's Always Sunny's Paddy's Pub isn't real and isn't even in Philadelphia (the exterior is in L.A.), but stars Rob McElhenney and Kaitlin Olson do co-own an actual Philly bar, Mac's Tavern.
+62. Budweiser's "Wassup?" ads were lifted almost word for word from a 1998 short film a director made of himself and his real friends goofing around on the phone.
+63. The Budweiser Frogs were directed by Gore Verbinski, who went on to make the Pirates of the Caribbean films. A 1996 study found more kids recognized the frogs than Ronald McDonald or Smokey Bear.
+64. "Tequila" by The Champs hit number one in 1958 with a grand total of one spoken word, said three times. It won a Grammy at the very first Grammy Awards, and it started as a throwaway B-side.
+65. Frank Sinatra was buried with a bottle of Jack Daniel's, along with a Zippo, a pack of Camels, and ten dimes, reportedly so he would always have change for a payphone.
+66. George Clooney and his partners started Casamigos tequila and sold it four years later for up to $1 billion ($700 million up front, the rest tied to how the brand performed).
+67. Ryan Reynolds sold Aviation Gin in 2020 for up to $610 million, having marketed it largely by making fun of his own ads.
+68. Heineken reportedly paid around $45 million to put a beer in James Bond's hand in Skyfall. Fans were furious that 007 skipped his martini, and Daniel Craig defended it by pointing out the sponsorship helped pay for the film.
+69. Miller High Life has called itself "The Champagne of Beers" since the early 1900s, thanks to a clear, sloping, champagne-style bottle and a lot of fizz.
+70. Absolut Vodka's famous bottle ad campaign was first sketched by an art director in his bathtub. It ran about 25 years across more than 1,500 different ads and helped grow the brand from 10,000 cases a year to millions.
