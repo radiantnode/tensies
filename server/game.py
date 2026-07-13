@@ -1,77 +1,62 @@
+import hashlib
 import random
-import string
+import re
+import secrets
 import time
 
-from .state import games
+
+def make_reconnect_token() -> tuple[str, str]:
+    """Mint an opaque reconnect token; return (raw_token, sha256_hex).
+
+    The raw token is sent only to the owning player. We store the hash on
+    the player record so a leaked game snapshot (which carries pids) can't be
+    used to hijack a disconnected slot — reconnect requires the raw token.
+    """
+    token = secrets.token_urlsafe(32)
+    return token, hashlib.sha256(token.encode()).hexdigest()
 
 
-def make_code() -> str:
-    while True:
-        code = "".join(random.choices(string.ascii_uppercase, k=5))
-        if code not in games:
-            return code
+def verify_token(token_hash: str | None, token: str) -> bool:
+    """Constant-time check of a presented reconnect token against its hash."""
+    if not token_hash or not token:
+        return False
+    presented = hashlib.sha256(token.encode()).hexdigest()
+    return secrets.compare_digest(presented, token_hash)
+
+
+# HTML-significant + control characters. Player names flow into telemetry and
+# are rendered on Grafana dashboards (which run with HTML sanitization off), so
+# we neutralise markup at intake — defense-in-depth for the stored-XSS path
+# (audit M1). The client already renders names via textContent.
+_UNSAFE_NAME = re.compile(r"""[<>&"'`\x00-\x1f\x7f]""")
+
+
+def sanitize_name(raw: str) -> str:
+    """Strip markup/control chars, collapse whitespace, cap at 20 chars."""
+    cleaned = _UNSAFE_NAME.sub("", raw or "")
+    cleaned = " ".join(cleaned.split())
+    return cleaned[:20]
 
 
 def fresh_dice() -> list[int]:
     return [random.randint(1, 6) for _ in range(10)]
 
 
-def fresh_player(name: str) -> dict:
-    return {
-        "name": name,
-        "dice": [],
-        "locked": [False] * 10,
-        "wins": 0,
-        "has_rolled": False,
-        "last_roll": 0.0,
-        "roll_count": 0,
-        "disconnected": False,
-    }
-
-
-def deal_round(game: dict) -> None:
-    """Reset every player's dice for a new round and stamp the round start."""
-    for p in game["players"].values():
-        p["dice"] = fresh_dice()
-        p["locked"] = [False] * 10
-        p["has_rolled"] = False
-        p["last_roll"] = 0.0
-        p["roll_count"] = 0
-    game["round_start_mono"] = time.monotonic()
-    game["round_seq"] = 0
-
-
-def new_game(host_id: str, host_name: str) -> tuple[str, dict]:
-    code = make_code()
-    games[code] = {
-        "target": 6,
-        "round_num": 1,
-        "started": False,
-        "round_over": False,
-        "host": host_id,
-        "players": {host_id: fresh_player(host_name)},
-        # Telemetry bookkeeping — monotonic timers + counters. Consumed by
-        # ws.py / broadcast.py when emitting events.
-        "created_mono": time.monotonic(),
-        "round_start_mono": None,
-        "round_seq": 0,
-        "total_rolls": 0,
-        "round_count": 0,
-    }
-    return code, games[code]
-
-
 def next_target(t: int) -> int:
-    # cycles 6 → 5 → 4 → 3 → 2 → 1 → 6 → …
-    return (t - 2) % 6 + 1
+    # cycles 1 → 2 → 3 → 4 → 5 → 6 → 1 → …
+    return t % 6 + 1
 
 
-def apply_roll(player: dict, target: int) -> dict:
+def apply_roll(player: dict, target: int, *, dice_values: list[int] | None = None) -> dict:
     """Re-randomise unlocked dice, then lock any matching `target`.
 
-    Returns the per-roll detail dict the roll handler consumes — a single
-    source of truth for `matched`, `newly_locked`, and full before/after
-    snapshots used for telemetry.
+    Pure: mutates the passed-in player dict only. Returns the per-roll detail
+    dict the roll handler consumes — a single source of truth for `matched`,
+    `newly_locked`, and full before/after snapshots used for telemetry.
+
+    When *dice_values* is provided (drand-derived), those values are used
+    instead of random.randint(). The caller supplies at least as many values
+    as there are unlocked dice; this function consumes them in order.
     """
     dice = player["dice"]
     locked = player["locked"]
@@ -79,9 +64,14 @@ def apply_roll(player: dict, target: int) -> dict:
     locked_before = list(locked)
 
     rolled_values: list[int] = []
+    val_idx = 0
     for i in range(10):
         if not locked[i]:
-            dice[i] = random.randint(1, 6)
+            if dice_values is not None:
+                dice[i] = dice_values[val_idx]
+                val_idx += 1
+            else:
+                dice[i] = random.randint(1, 6)
             rolled_values.append(dice[i])
 
     newly_locked: list[int] = []
@@ -104,12 +94,14 @@ def apply_roll(player: dict, target: int) -> dict:
 
 
 def state_msg(game: dict, code: str, msg_type: str = "state", **extra) -> dict:
-    return {
+    msg = {
         "type": msg_type,
         "code": code,
         "target": game["target"],
         "round_num": game["round_num"],
         "started": game["started"],
+        "paused": game.get("paused", False),
+        "place_name": game.get("place_name") or None,
         "host": game["host"],
         "players": {
             pid: {
@@ -119,8 +111,16 @@ def state_msg(game: dict, code: str, msg_type: str = "state", **extra) -> dict:
                 "has_rolled": p.get("has_rolled", False),
                 "roll_count": p.get("roll_count", 0),
                 "disconnected": p.get("disconnected", False),
+                "photo": p.get("photo"),
             }
             for pid, p in game["players"].items()
         },
         **extra,
     }
+    # While paused, hand the host a live countdown to the abandonment cap.
+    # pause_deadline_ms is wall-clock (cross-instance comparable).
+    if game.get("paused") and game.get("pause_deadline_ms") is not None:
+        msg["pause_remaining_ms"] = max(
+            0, int(game["pause_deadline_ms"] - time.time() * 1000)
+        )
+    return msg

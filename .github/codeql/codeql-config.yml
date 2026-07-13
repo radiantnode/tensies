@@ -1,0 +1,9 @@
+name: CodeQL config
+
+# Keep analysis on first-party app code. .claude holds vendored skill harnesses
+# (incl. the humanizer submodule); dist/node_modules are build output. None are
+# part of the shipped app.
+paths-ignore:
+  - .claude
+  - dist
+  - node_modules

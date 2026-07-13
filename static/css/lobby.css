@@ -1,89 +1,552 @@
-#lobby {
-  height: 100vh;
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: calc(3rem + env(safe-area-inset-top)) 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
-  background: rgba(6, 3, 1, 0.72);
-  overflow: hidden;
+/* Lobby: invite controls (code display, SMS) above a scrollable keyed player
+   list, with the Start button pinned beneath. */
+
+/* Animatable custom props for the scroll edge fades (also consumed by the
+   changelog body in menu.css). @property registrations are global and live
+   outside the layers. */
+@property --fade-top { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@property --fade-bottom { syntax: '<length>'; inherits: false; initial-value: 0px; }
+
+@layer components {
+  .lobby-screen {
+    position: relative;
+    background: transparent;
+  }
+
+  /* Scrim on ::before, not the screen root — a backdrop-filter here would make
+     .lobby-screen a stacking context and trap the app-header's z-index:100
+     below the z-50 nav menu. See the matching note on .join-screen. */
+  .lobby-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: rgba(8, 4, 1, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    pointer-events: none;
+  }
+
+  /* Positioned so the absolute .btn-back chip anchors inside the body (below
+     the header), matching the join screen (.join-screen .screen-body). */
+  .lobby-screen .screen-body { position: relative; }
+
+  /* Lobby content sits top-aligned beneath the header (it's a tall screen
+     with the scrollable player list), rather than vertically centred. The
+     title shares the round Back button's row (top padding aligns them), which
+     reclaims the vertical space the old stacked chip + heading used. */
+  .lobby-body {
+    justify-content: flex-start;
+    padding: 1.6rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
+  }
+
+  /* The shared .or-divider stretches to its container on landing (the form
+     stack), but the centred lobby column won't stretch it — give it an
+     explicit width so the flanking rules have room to grow. */
+  .lobby-body .or-divider {
+    inline-size: 100%;
+    max-inline-size: 400px;
+    margin: 0.85rem 0;
+  }
+
+  /* Font from .screen-title, centring/back-clearance from .has-back; this only
+     carries the lobby's own bottom spacing. */
+  .lobby-title { margin-block-end: 1.75rem; }
+
+  .copied { color: var(--color-success) !important; }
+
+  /* Share / Play / Broadcast: three circular icon buttons on one row, each with
+     a caption underneath. */
+  .lobby-actions {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 1.5rem;
+    margin-block-end: 1.25rem;
+  }
+
+  .lobby-action-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .lobby-action-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+    /* Keep a two-word caption ("Share Location") stacked under its button
+       instead of spilling into the neighbours. */
+    max-inline-size: 4.75rem;
+    text-align: center;
+    line-height: 1.2;
+  }
+  /* Checked-in "Check Out" button: gold-lit, like the old broadcast on-state. */
+  .btn-checkin.is-on {
+    border-color: rgba(230, 180, 90, 0.7);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 220, 150, 0.25),
+      0 0 14px rgba(230, 180, 90, 0.35),
+      0 4px 14px rgba(0, 0, 0, 0.45);
+    color: var(--color-amber);
+  }
+  .btn-checkin.is-on + .lobby-action-label { color: var(--color-amber); }
+  /* The pin icon stays still (only Share breathes). */
+  #checkin-btn .btn-icon { animation: none; }
+
+  .lobby-action {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 58px;
+    block-size: 58px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    /* Warm leather secondary — same surface language as .btn-secondary and
+       the in-game menu items. */
+    background: var(--color-raised);
+    border: 1px solid var(--color-border-strong);
+    box-shadow:
+      inset 0 1px 0 rgba(220, 170, 70, 0.12),
+      0 4px 14px rgba(0, 0, 0, 0.45);
+    font-family: inherit;
+    color: var(--color-text-warm);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, transform 0.1s;
+  }
+
+  .lobby-action:hover:not(:disabled) {
+    background: var(--color-raised-hover);
+    border-color: rgba(190, 130, 55, 0.45);
+    transform: translateY(-1px);
+  }
+  .lobby-action:active { transform: translateY(0); }
+
+  /* No idle glow on the Play button — sit flat like Share. The audio glow
+     (breathing + sonar) returns only while actively chirping (.playing). */
+  .lobby-action.btn-audio:not(.playing):not(.listening) { animation: none; }
+
+  /* At rest, tint the equalizer bars the same warm tone as the Share glyph
+     (rather than the brighter amber) so the two icons read alike. The active
+     magenta bars are unchanged. */
+  .lobby-action.btn-audio:not(.playing):not(.listening) .eq i {
+    background: var(--color-text-warm);
+    opacity: 0.9;
+  }
+
+  /* Idle glyph motion: at rest the bars gently bob so the icon reads as alive,
+     without the container breathing (that stays off, above) or the bars
+     brightening to the active magenta dance. Low-amplitude, unsynchronised
+     durations — a calm echo of eq-dance. Lobby-scoped so the join-screen Play
+     button is untouched. */
+  .lobby-action.btn-audio:not(.playing):not(.listening) .eq i:nth-child(1) { animation: eq-idle 1.9s ease-in-out -0.2s infinite alternate; }
+  .lobby-action.btn-audio:not(.playing):not(.listening) .eq i:nth-child(2) { animation: eq-idle 2.2s ease-in-out -0.7s infinite alternate; }
+  .lobby-action.btn-audio:not(.playing):not(.listening) .eq i:nth-child(3) { animation: eq-idle 1.7s ease-in-out infinite alternate; }
+  .lobby-action.btn-audio:not(.playing):not(.listening) .eq i:nth-child(4) { animation: eq-idle 2.05s ease-in-out -0.45s infinite alternate; }
+  .lobby-action.btn-audio:not(.playing):not(.listening) .eq i:nth-child(5) { animation: eq-idle 1.8s ease-in-out -0.9s infinite alternate; }
+
+  @keyframes eq-idle {
+    from { transform: scaleY(0.3); }
+    to { transform: scaleY(0.75); }
+  }
+
+  .btn-icon {
+    flex-shrink: 0;
+    inline-size: 24px;
+    block-size: 24px;
+    /* Warm-amber tone rather than full white. */
+    opacity: 0.9;
+  }
+
+  /* Idle glyph motion for Share: a single-path glyph can't ripple or bob like
+     its neighbours, so it gently breathes instead — the same "alive at rest"
+     cue, glyph-only. The button surface stays flat (no container pulse) and the
+     dim warm tone is unchanged (no shimmer). Only Share's glyph breathes —
+     Play's .eq bars carry their own idle, and the Copy Link / Check In icons are
+     held still (animation:none overrides below). */
+  .lobby-action .btn-icon {
+    transform-origin: center;
+    animation: share-idle 3s ease-in-out infinite;
+  }
+  /* Only Share breathes — the Copy Link icon uses .btn-icon for sizing but stays
+     still. */
+  #copy-link-btn .btn-icon { animation: none; }
+
+  @keyframes share-idle {
+    0%, 100% { transform: scale(0.9); }
+    50%      { transform: scale(1.08); }
+  }
+
+  /* Distinct "joined players" section — set off from the invite controls
+     above by a hairline rule, with its own warm uppercase eyebrow label. */
+  .lobby-players-section {
+    display: flex;
+    flex-direction: column;
+    /* Fill the space between the invite controls and the pinned Start button
+       so the player list scrolls internally rather than pushing Start off. */
+    flex: 1;
+    min-block-size: 0;
+    inline-size: 100%;
+    max-inline-size: 400px;
+    margin-block-end: 0.75rem;
+    padding-block-start: 1.25rem;
+    border-block-start: 1px solid var(--color-border);
+    /* Fade the section in/out as it fills/empties (driven by #syncEmptyState,
+       which toggles .is-hiding around the display swap). */
+    transition: opacity 0.3s ease;
+  }
+
+  .lobby-players-section.is-hiding { opacity: 0; }
+
+  /* Pin Start to the bottom of the column even when the players section is
+     hidden (solo lobby) — the auto margin absorbs the free space the section's
+     flex:1 would otherwise fill, so the button never drifts up. */
+  .lobby-body > .btn-primary {
+    margin-block-start: auto;
+  }
+
+  /* Solo host: takes the hidden players section's place, filling the gap
+     between the invite buttons and Start with a dim, centred invite hint. */
+  .lobby-solo-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-block-size: 0;
+    inline-size: 100%;
+    /* Cancel the invite-actions 1.5rem bottom margin so the hint box spans the
+       full gap between the buttons and its text centres exactly (without this
+       the box starts 1.5rem low, so the text reads too far down). */
+    margin-block: -1.5rem 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+    text-align: center;
+  }
+  .lobby-solo-hint[hidden] { display: none; }
+
+  .section-label {
+    margin-block-end: 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    text-align: start;
+    color: var(--color-text-label);
+    text-shadow: var(--shadow-text);
+  }
+
+  .player-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    /* Scroll within the section; the label above and Start below stay put. */
+    flex: 1;
+    min-block-size: 0;
+    inline-size: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  .player-list::-webkit-scrollbar { display: none; }
+
+  /* Flat containing box matching the profile's "Recent Games" rows
+     (.recent-game): raised surface, rounded, no border/shadow. */
+  .player-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--color-raised);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    color: var(--color-text-warm);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  }
+
+  /* Entrance for a newly joined player: fade in while sliding up. Applied once
+     on row creation (lobby-screen.js) and removed on animationend. Global
+     reduced-motion guard collapses the duration, so it's instant there. */
+  .player-list-item.player-enter {
+    animation: player-enter 0.3s ease-out both;
+  }
+
+  @keyframes player-enter {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Exit for a leaving player: collapse block-size to 0 while fading. Driven by
+     #collapseAndRemove (JS pins the start height, then transitions to 0);
+     overflow hides the content as the box closes. */
+  .player-list-item.player-leave {
+    overflow: hidden;
+    pointer-events: none;
+    transition: block-size 0.28s ease, opacity 0.28s ease,
+      padding-block 0.28s ease, margin-block-end 0.28s ease;
+  }
+
+  .lobby-avatar-ring {
+    flex-shrink: 0;
+    inline-size: 2rem;
+    block-size: 2rem;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--color-field);
+    /* Same faint ring as the profile's non-winner recent avatars. */
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+
+  .lobby-avatar {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Sit next to the avatar (overriding the screen-body centred text), take the
+     free space, and truncate so a long name can't shove the badge off. */
+  .lobby-player-name {
+    flex: 1;
+    min-inline-size: 0;
+    text-align: start;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .host-badge {
+    margin-inline-start: auto; /* push the label to the end of the row */
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--color-amber);
+  }
+
+  /* ── Check-in places picker ──
+     A `.sheet` (see css/sheet.css for the reusable bottom-sheet chrome) filled
+     with a search box + a scrollable list of nearby places. Only the
+     places-specific bits live here. */
+
+  /* The sheet is pinned to a fixed height while keyboard-docked; let the list
+     fill it so a short/empty result set doesn't shrink the sheet (no jump). */
+  .sheet.is-kb-docked .places-list {
+    flex: 1 1 auto;
+  }
+
+  /* Search box pinned above the list. A leading magnifier is drawn as a
+     background SVG so the input stays a plain <input>. */
+  .places-search {
+    inline-size: 100%;
+    /* Raised above the list so rows tuck behind it on scroll; the field itself
+       is transparent and frosts what slides under it (no solid fill). */
+    position: relative;
+    z-index: 1;
+    margin-block-end: 1.1rem;
+    padding: 0.6rem 0.8rem 0.6rem 2.35rem;
+    background-color: transparent;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    background-repeat: no-repeat;
+    background-position: 0.7rem center;
+    background-size: 1.05rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c9a978' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E");
+    /* Same amber border as the close button. */
+    border: 1px solid rgba(220, 170, 70, 0.5);
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 0.95rem;
+    text-align: start; /* the lobby column centres text; keep the field left-aligned */
+    color: var(--color-text);
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .places-search::placeholder { color: var(--color-text-muted); }
+  /* No focus restyle — the field keeps its resting amber border. outline:none
+     still suppresses the UA focus ring (which can read as a red/orange hue). */
+  .places-search:focus {
+    outline: none;
+  }
+  /* Drop the native clear/decoration so the field reads consistently. */
+  .places-search::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+  /* While a status shows (searching / no results / error) it fills the space
+     below the search and centres its message; the empty list is hidden so it
+     doesn't compete for that space. */
+  .places-status {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 0.25rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+  }
+  .places-status[hidden] { display: none; }
+  .places-status:not([hidden]) ~ .places-list { display: none; }
+  .places-status.is-error { color: var(--color-error, #ff8a8a); }
+
+  .places-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-block-size: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    list-style: none;
+    /* Slide the list's top up behind the search field so rows scroll under it.
+       The -2rem margin overlaps 0.9rem behind the field; the top padding cancels
+       that 0.9rem and adds ~0.6rem more so the first row rests clear of the
+       field at scroll-0 while later rows still scroll up under it. */
+    margin: -2rem 0 0;
+    padding-block-start: 1.5rem;
+  }
+  .places-list::-webkit-scrollbar { display: none; }
+
+  /* Flat leather row button — same surface as .player-list-item, tappable. */
+  .places-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    inline-size: 100%;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    text-align: start;
+    cursor: pointer;
+    transition: border-color 0.12s;
+  }
+  .places-row:hover {
+    border-color: var(--color-border);
+  }
+
+  /* Google Places thumbnail (or a pin placeholder when a place has no photo). */
+  .places-row-photo {
+    flex-shrink: 0;
+    inline-size: 46px;
+    block-size: 46px;
+    border-radius: 10px;
+    object-fit: cover;
+    background: var(--color-field);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+  .places-row-photo.is-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+  }
+  .places-row-photo.is-empty svg { inline-size: 22px; block-size: 22px; }
+
+  /* Name over address, taking the middle and truncating so the chevron stays. */
+  .places-row-body {
+    flex: 1;
+    min-inline-size: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .places-row-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-text);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .places-row-addr {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .places-row-addr:empty { display: none; }
+
+  .places-row-chevron {
+    flex-shrink: 0;
+    inline-size: 18px;
+    block-size: 18px;
+    color: var(--color-text-muted);
+    opacity: 0.6;
+  }
+
+  /* ── Confirm dialog ("Allow nearby players?") ──
+     Minimal centered modal — native <dialog> via showModal() (UA centers it).
+     Intentionally simple; design iterates later. */
+  .confirm-dialog {
+    inline-size: min(88vw, 340px);
+    max-inline-size: none;
+    /* The @layer reset zeroes margins, which kills the UA's margin:auto that
+       centers a modal <dialog>; restore it so showModal() centres on screen. */
+    margin: auto;
+    padding: 1.5rem 1.4rem 1.25rem;
+    background: var(--color-panel-screen);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-lg, 20px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    color: var(--color-text);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+  .confirm-dialog::backdrop {
+    background: rgba(6, 3, 1, 0.62);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+
+  .confirm-title {
+    margin: 0 0 0.6rem;
+    font-family: var(--font-family-heading);
+    font-size: 1.25rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--color-text);
+    text-shadow: var(--shadow-text);
+  }
+
+  .confirm-body {
+    margin: 0 0 0.6rem;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: var(--color-text-muted);
+    text-shadow: var(--shadow-text);
+  }
+
+  /* Fine print under the body copy. */
+  .confirm-note {
+    margin: 0 0 1.25rem;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    color: var(--color-text-muted);
+    opacity: 0.75;
+    text-shadow: var(--shadow-text);
+  }
+
+  .confirm-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+  .confirm-actions .btn { flex: 1; }
+  /* The 3-action check-out dialog stacks vertically — the "different place"
+     label is long, and a primary + two alternates reads clearer stacked. */
+  .confirm-actions-stack { flex-direction: column; }
+  .confirm-actions-stack .btn { flex: none; inline-size: 100%; }
 }
-
-.lobby-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
-.lobby-hint  { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
-
-.code-display {
-  display: block;
-  /* Was a <div>; now a <button>. Restore inherited body font so the code
-     glyphs render with system-ui instead of UA Arial. */
-  font-family: inherit;
-  font-size: clamp(2.5rem, 10vw, 4rem);
-  font-weight: 900;
-  letter-spacing: 0.3em;
-  color: var(--accent);
-  background: rgba(20, 10, 5, 0.75);
-  border: 1px solid rgba(180, 100, 20, 0.25);
-  padding: 1rem 2rem;
-  border-radius: var(--radius);
-  cursor: pointer;
-  user-select: none;
-  margin-bottom: 0.5rem;
-  transition: background 0.2s;
-}
-.code-display:hover { background: rgba(30, 15, 5, 0.85); }
-
-.copy-hint { color: var(--muted); font-size: 0.8rem; margin-bottom: 1rem; }
-.copied { color: var(--green) !important; }
-
-.btn-sms {
-  display: inline-block;
-  /* Was an <a>; now a <button>. Restore inherited body font. */
-  font-family: inherit;
-  text-decoration: none;
-  background: rgba(30, 180, 100, 0.18);
-  color: var(--text);
-  border: 1px solid rgba(30, 180, 100, 0.35);
-  width: 100%;
-  max-width: 400px;
-  margin-bottom: 1.5rem;
-  text-align: center;
-}
-
-.player-list {
-  width: 100%;
-  max-width: 400px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
-  overflow-y: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
-.player-list::-webkit-scrollbar { display: none; }
-
-.player-list-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: rgba(20, 10, 5, 0.75);
-  border: 1px solid rgba(180, 100, 20, 0.2);
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius);
-  font-weight: 600;
-}
-
-.host-badge {
-  font-size: 0.7rem;
-  font-weight: 700;
-  background: var(--accent);
-  color: #fff;
-  padding: 0.2rem 0.5rem;
-  border-radius: 6px;
-  margin-left: auto;
-}
-
-.you-badge { font-size: 0.7rem; color: var(--muted); margin-left: auto; }
-
-#waiting-msg { color: var(--muted); font-size: 0.95rem; }

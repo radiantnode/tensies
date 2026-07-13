@@ -1,0 +1,28 @@
+apiVersion: 1
+
+# Prod datasource provisioning. The Postgres password is read from the
+# environment (Grafana expands ${VAR} in provisioning files) rather than being
+# committed, unlike the dev provisioning/datasources/datasources.yaml.
+datasources:
+  - name: Postgres
+    uid: postgres
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    user: tensies
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    jsonData:
+      database: tensies
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+    isDefault: true
+    editable: false
+
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    editable: false

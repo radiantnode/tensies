@@ -1,0 +1,28 @@
+[
+  {
+    "name": "landing",
+    "type": "static",
+    "path": "/",
+    "steps": [{ "waitFor": "#landing.active" }]
+  },
+  {
+    "name": "join-empty",
+    "type": "static",
+    "path": "/",
+    "steps": [
+      { "click": "#show-join" },
+      { "waitFor": "#join.active" }
+    ]
+  },
+  {
+    "name": "join-error",
+    "type": "static",
+    "path": "/",
+    "steps": [
+      { "click": "#show-join" },
+      { "fill": { "selector": "#join-code", "value": "ZZZZ" } },
+      { "click": "#join-submit" },
+      { "waitFor": "#join .error-msg" }
+    ]
+  }
+]

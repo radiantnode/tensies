@@ -1,0 +1,30 @@
+[
+  {
+    "name": "landing",
+    "type": "static",
+    "path": "/",
+    "steps": [{ "waitFor": "#landing.active" }],
+    "mask": [".join-code"]
+  },
+  {
+    "name": "join-empty",
+    "type": "static",
+    "path": "/",
+    "steps": [
+      { "waitFor": "#landing.active" },
+      { "click": "#show-join-btn" },
+      { "waitFor": "#join-sheet[open]" }
+    ],
+    "mask": [".join-code"]
+  },
+  {
+    "name": "nav-menu-open",
+    "type": "static",
+    "path": "/",
+    "steps": [
+      { "waitFor": "#landing.active" },
+      { "click": "#landing-menu-btn" },
+      { "waitFor": "#nav-menu.open" }
+    ]
+  }
+]

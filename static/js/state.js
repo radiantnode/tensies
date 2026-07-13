@@ -1,38 +1,85 @@
-// Single mutable bag shared across modules. Module-scope `let` exports are
-// read-only on the importing side, so a shared object is the simplest way for
-// every module to read and write the same client-side state.
+// @ts-check
+import { makeName } from './names.js';
+
+/** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
+
+/**
+ * Single mutable state bag shared across modules.
+ *
+ * Kept deliberately flat: every field is readable in one hop from anywhere,
+ * and the test suites assert on these exact names (see the localhost seam
+ * below).
+ */
 export const state = {
+  /** @type {WebSocket | null} */
   ws: null,
+  /** @type {string | null} */
   myId: null,
+  /** @type {string | null} */
   gameCode: null,
-  currentState: null,
-
-  // Roll animation sequencing
-  rolling: false,
-  awaitingAck: false,
-  pendingRollState: null,    // server's response, held until shake animation ends
-  pendingWinName: null,      // winner overlay info, held until reveal completes
-  pendingWinTarget: null,
-  pendingRollTimeouts: [],
-  rollShakeEnd: 0,
-  prevMatchedCount: 0,
-  lastMyDiceKey: null,
-
-  // Players-bar cards persisted across rounds for in-place updates
-  barCards: {},
-
-  // Reconnection
-  reconnecting: false,
-
-  // Random-name placeholder (generated locally via static/js/names.js)
-  randomNamePlaceholder: 'Player',
-
-  // Which screen initiated the in-flight create/join. Set by landing.js so
-  // the error handler can route an error response back to that screen
-  // (instead of letting it land on the currently-active #loading screen
-  // and never being seen).
+  /** @type {'landing' | 'join' | 'nearby' | null} Where a failed connect intent returns to. */
   pendingOrigin: null,
+  /** @type {GameSnapshot | null} Last server snapshot. */
+  currentState: null,
+  /** @type {string | null} Invite QR as a base64 data URL, sent once with the
+   *  reconnect_token (create/join/lobby-reconnect) so the lobby stamp shows it
+   *  with no separate fetch. Null → the stamp falls back to /api/qr. */
+  qr: null,
+  reconnecting: false,
+  /** True for one game-detail render right after a game_ended, so the detail
+   *  screen can show its "Game ended" banner. Set in net.js, cleared on read. */
+  gameJustEnded: false,
+  /** @type {string | null} Authenticated account username (from JWT). */
+  authUsername: null,
+  /** @type {string | null} Authenticated account user ID (from JWT). */
+  authUserId: null,
+  // The "Zesty Pickle" name shared by both name-field placeholders. Seeded
+  // here because state.js evaluates before any component module — this must
+  // stay the FIRST Math.random consumer (the pixel harness pins the RNG).
+  randomNamePlaceholder: makeName(),
+
+  // ── Game board / roll choreography (driven by the game view) ──
+  /** @type {string | null} Fingerprint to skip needless my-area re-renders. */
+  lastMyDiceKey: null,
+  /** True while the shake animation is running. */
+  rolling: false,
+  /** True while waiting on the server's roll response. */
+  awaitingAck: false,
+  /** @type {GameSnapshot | null} Roll response held until the shake finishes. */
+  pendingRollState: null,
+  /** @type {GameSnapshot | null} Newer broadcast that arrived mid-reveal. */
+  postRevealState: null,
+  /** @type {ReturnType<typeof setTimeout>[]} */
+  pendingRollTimeouts: [],
+  /** Matched dice before the in-flight roll (to find the newly locked ones). */
+  prevMatchedCount: 0,
+  rollShakeEnd: 0,
+  /** @type {string | null} Winner overlay payload, held until the reveal completes. */
+  pendingWinName: null,
+  /** @type {number | null} */
+  pendingWinTarget: null,
+  /** @type {number | null} */
+  pendingWinRound: null,
+  pendingWinIsLoser: false,
 };
 
-// Exposed for the test-game skill (page.evaluate can't reach module locals).
-if (typeof window !== 'undefined') window._state = state;
+// Test seam: expose the bag as window._state for the game-harness / test-game
+// suites' evaluate() snippets. Localhost only — present in local dev and the
+// local prod smoketest, never on a public deploy.
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+  /** @type {any} */ (window)._state = state;
+}
+
+/** Clear every in-flight roll/overlay field and cancel pending roll timers. */
+export function resetRollState() {
+  for (const timeout of state.pendingRollTimeouts) clearTimeout(timeout);
+  state.pendingRollTimeouts = [];
+  state.rolling = false;
+  state.awaitingAck = false;
+  state.pendingRollState = null;
+  state.postRevealState = null;
+  state.pendingWinName = null;
+  state.pendingWinTarget = null;
+  state.pendingWinRound = null;
+  state.pendingWinIsLoser = false;
+}

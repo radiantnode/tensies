@@ -70,7 +70,7 @@ async def _run(q: asyncio.Queue) -> None:
 async def _collect(q: asyncio.Queue) -> list[str]:
     try:
         first = await asyncio.wait_for(q.get(), timeout=PUSH_INTERVAL_S)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         return []
     lines: list[str] = []
     _maybe_add(lines, first)
@@ -81,7 +81,7 @@ async def _collect(q: asyncio.Queue) -> list[str]:
             break
         try:
             ev = await asyncio.wait_for(q.get(), timeout=remaining)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             break
         _maybe_add(lines, ev)
     return lines
