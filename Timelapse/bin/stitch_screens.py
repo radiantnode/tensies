@@ -114,17 +114,24 @@ def ham(a, b):
     return int(np.unpackbits(a ^ b).sum())
 
 
-def is_blank(path):
-    """A failed/loading capture is near-uniform (very low variance)."""
+# Minimum grayscale variance for a "real" capture. Default catches truly blank
+# frames; the data screens (profile/post-game) render an error/placeholder state
+# ("Player not found", pre-load) at low-but-nonzero variance when the seeded
+# lookup isn't satisfied by an early commit, so they need a higher floor.
+BLANK_STD = {"profile": 13.0, "postgame": 13.0}
+
+
+def is_blank(path, min_std=7.0):
+    """A failed/loading/error capture is near-uniform (low variance)."""
     try:
         a = np.asarray(Image.open(path).convert("L").resize((64, 128)), dtype=np.float32)
-        return a.std() < 7.0
+        return a.std() < min_std
     except Exception:
         return True
 
 
-def dedup(frames, thresh):
-    frames = [f for f in frames if not is_blank(f)]
+def dedup(frames, thresh, min_std=7.0):
+    frames = [f for f in frames if not is_blank(f, min_std)]
     kept = []
     last = None
     for f in frames:
@@ -181,7 +188,7 @@ def main():
             continue
         frames = css_relevant_frames(screen, frames)  # design-relevant commits only
         thresh = overrides.get(screen, DEFAULT_THRESH.get(screen, 8))
-        kept = dedup(frames, thresh)
+        kept = dedup(frames, thresh, BLANK_STD.get(screen, 7.0))
         out = build(screen, kept)
         sz = os.path.getsize(out) / 1e6 if out and os.path.exists(out) else 0
         print(f"{screen:9s}  {len(frames):3d} frames -> {len(kept):3d} kept  "
