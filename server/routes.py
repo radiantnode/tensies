@@ -1,21 +1,35 @@
+import asyncio
+import math
 import re
 from pathlib import Path
+from urllib.parse import quote
 
 import httpx
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+from . import gamestore, places, qr
 from .assets import build_page_template, render_page
 from .config import (
     APP_URL,
+    DISCOVERY_DISTANCE_BUCKET_M,
+    DISCOVERY_ENABLED,
+    DISCOVERY_MAX_RESULTS,
+    DISCOVERY_RADIUS_M,
     FOUNDING_CUTOFF,
     FRONTEND_DIST,
     METRICS_TOKEN,
+    NEARBY_RATE_MAX,
+    NEARBY_RATE_WINDOW,
+    PLACES_ENABLED,
+    PLACES_RATE_MAX,
+    PLACES_RATE_WINDOW,
     STATS_TOKEN,
     TELEMETRY_ENABLED,
     log,
 )
+from .security import client_ip
 
 router = APIRouter()
 
@@ -178,6 +192,169 @@ async def signin_page() -> HTMLResponse:
 @router.get("/welcome")
 async def welcome_page() -> HTMLResponse:
     return HTMLResponse(_render_index())
+
+
+@router.get("/nearby")
+async def nearby_page() -> HTMLResponse:
+    return HTMLResponse(_render_index())
+
+
+def _valid_coords(lat: float, lon: float) -> bool:
+    """True when (lat, lon) is a real, in-range WGS84 point (rejects NaN/inf)."""
+    return (math.isfinite(lat) and math.isfinite(lon)
+            and -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0)
+
+
+def _place_photo_url(place_id: str, *, w: int | None = None) -> str:
+    """Same-origin photo-proxy URL keyed by place id (never a raw Google URL /
+    credential). `w` sets the proxy's width cap; omit for its default."""
+    url = f"/api/places/photo?place={quote(place_id, safe='')}"
+    return f"{url}&w={w}" if w else url
+
+
+def _bearing_deg(lat1: float, lon1: float, lat2: float, lon2: float) -> int:
+    """Initial great-circle bearing from point 1 to point 2, degrees clockwise
+    from true north (0–359)."""
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dlon = math.radians(lon2 - lon1)
+    y = math.sin(dlon) * math.cos(p2)
+    x = math.cos(p1) * math.sin(p2) - math.sin(p1) * math.cos(p2) * math.cos(dlon)
+    return round((math.degrees(math.atan2(y, x)) + 360) % 360) % 360
+
+
+@router.get("/api/nearby")
+async def api_nearby(request: Request, lat: float, lon: float) -> dict:
+    """Discoverable lobbies within DISCOVERY_RADIUS_M of the caller, nearest
+    first. Privacy: returns bucketed distance + bearing only — never raw
+    coordinates. The radius is server-owned; the client cannot widen it."""
+    if not DISCOVERY_ENABLED:
+        raise HTTPException(status_code=503, detail="discovery disabled")
+    if not _valid_coords(lat, lon):
+        raise HTTPException(status_code=400, detail="invalid coordinates")
+    ip = client_ip(request)
+    if not await gamestore.rate_allow("nearby", ip, NEARBY_RATE_MAX, NEARBY_RATE_WINDOW):
+        raise HTTPException(status_code=429, detail="slow down")
+
+    from server.telemetry import metrics
+    metrics.nearby_queries_total.inc()
+    hits = await gamestore.geo_search(lon, lat, DISCOVERY_RADIUS_M, DISCOVERY_MAX_RESULTS)
+    # Fetch every card concurrently instead of walking the hits serially — each
+    # discovery_card is a couple of Redis round-trips, so 20 in series was ~40
+    # sequential RTTs per poll.
+    cards = await asyncio.gather(*(gamestore.discovery_card(code) for code, *_ in hits))
+    bucket = max(1, DISCOVERY_DISTANCE_BUCKET_M)
+    games = []
+    for (code, dist, plon, plat), card in zip(hits, cards, strict=True):
+        # Skip a game that started or vanished between GEOADD and this read.
+        if card is None or card["started"]:
+            continue
+        games.append({
+            "code": code,
+            "host_name": card["host_name"],
+            "photo": card["photo"],
+            "player_count": card["player_count"],
+            "distance_m": round(dist / bucket) * bucket,
+            "bearing_deg": _bearing_deg(lat, lon, plat, plon),
+            "place_id": card["place_id"],      # set when checked in to a place
+            "place_name": card["place_name"],
+            # The card bg wants the big photo (w=512 is the proxy's cap);
+            # place_photo (the stored ref) just marks "this place has a photo".
+            "place_photo_url": (_place_photo_url(card["place_id"], w=512)
+                                if card["place_photo"] else None),
+        })
+    return {"radius_m": int(DISCOVERY_RADIUS_M), "games": games}
+
+
+def _place_json(p: dict) -> dict:
+    """Client-facing place row: id/name/address + a same-origin photo proxy URL
+    (never a raw Google URL / credential)."""
+    return {
+        "place_id": p["place_id"], "name": p["name"], "address": p.get("address", ""),
+        # Keyed by place id, not photo ref: refs are re-minted per search, so
+        # a ref-based URL would defeat both browser and Redis caching.
+        "photo_url": _place_photo_url(p["place_id"]) if p.get("photo_ref") else None,
+    }
+
+
+@router.get("/api/places/nearby")
+async def api_places_nearby(request: Request, lat: float, lon: float) -> dict:
+    """Nearby real places for the lobby check-in picker. Proxies Google Places
+    server-side (key never reaches the browser); returns nothing when no Google
+    backend is configured. Returns place_id/name/address/photo only — no client secrets."""
+    if not PLACES_ENABLED:
+        raise HTTPException(status_code=503, detail="places disabled")
+    if not _valid_coords(lat, lon):
+        raise HTTPException(status_code=400, detail="invalid coordinates")
+    ip = client_ip(request)
+    if not await gamestore.rate_allow("places", ip, PLACES_RATE_MAX, PLACES_RATE_WINDOW):
+        raise HTTPException(status_code=429, detail="slow down")
+    results = await places.search_nearby(lat, lon)
+    return {"places": [_place_json(p) for p in results]}
+
+
+@router.get("/api/places/search")
+async def api_places_search(request: Request, q: str, lat: float, lon: float) -> dict:
+    """Free-text place search for the check-in picker, biased to the caller."""
+    if not PLACES_ENABLED:
+        raise HTTPException(status_code=503, detail="places disabled")
+    q = q.strip()
+    if not q:
+        return {"places": []}
+    if not _valid_coords(lat, lon):
+        raise HTTPException(status_code=400, detail="invalid coordinates")
+    ip = client_ip(request)
+    if not await gamestore.rate_allow("placesearch", ip,
+                                      PLACES_RATE_MAX, PLACES_RATE_WINDOW):
+        raise HTTPException(status_code=429, detail="slow down")
+    results = await places.search_text(q[:120], lat, lon)
+    return {"places": [_place_json(p) for p in results]}
+
+
+# Place ids only — the Google photo ref is resolved server-side and never
+# appears in a client URL (the ref-shape SSRF guard lives in places.fetch_photo).
+_PLACE_ID_RE = re.compile(r"^[\w-]+$")
+
+
+@router.get("/api/places/photo")
+async def api_places_photo(request: Request, place: str, w: int = 200) -> Response:
+    """Proxy a place's primary Google photo so the API credentials stay
+    server-side. Keyed by place id so the URL — and both cache layers — stay
+    stable across searches (Google re-mints photo refs per search response)."""
+    if not PLACES_ENABLED:
+        raise HTTPException(status_code=503, detail="places disabled")
+    if not _PLACE_ID_RE.match(place):
+        raise HTTPException(status_code=400, detail="bad place id")
+    ip = client_ip(request)
+    # A sheet shows up to 20 photos at once, so allow well above the search rate.
+    if not await gamestore.rate_allow("placephoto", ip,
+                                      PLACES_RATE_MAX * 5, PLACES_RATE_WINDOW):
+        raise HTTPException(status_code=429, detail="slow down")
+    got = await places.fetch_photo(place, max(48, min(w, 512)))
+    if got is None:
+        raise HTTPException(status_code=404, detail="no photo")
+    content_type, data = got
+    # A photo ref names one immutable image, so the URL's content never
+    # changes — let browsers keep it a week without ever revalidating.
+    return Response(content=data, media_type=content_type,
+                    headers={"Cache-Control": "public, max-age=604800, immutable"})
+
+
+# Game codes are 5 uppercase letters (see gamestore.make_code); bound the input
+# so the QR encoder never sees arbitrary/oversized data.
+_QR_CODE_RE = re.compile(r"[A-Z]{5}")
+
+
+@router.get("/api/qr/{code}.svg")
+async def api_qr(request: Request, code: str) -> Response:
+    """QR of a game's join link — a fallback for the inline (WS-embedded) QR (see
+    server/qr.py). Ink-on-transparent; the URL→image mapping is stable, so it
+    caches hard. APP_URL is the canonical origin in prod; dev falls back to the
+    request host so the code matches the origin the player is actually on."""
+    if not _QR_CODE_RE.fullmatch(code):
+        raise HTTPException(status_code=404, detail="bad code")
+    base = APP_URL or str(request.base_url).rstrip("/")
+    return Response(content=qr.qr_svg(f"{base}/{code}"), media_type="image/svg+xml",
+                    headers={"Cache-Control": "public, max-age=604800, immutable"})
 
 
 @router.get("/api/profile/{username}")

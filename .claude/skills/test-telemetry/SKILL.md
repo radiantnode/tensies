@@ -91,13 +91,20 @@ Check the server:
 curl -sf http://localhost:8888/ | grep -q "TENSIES" && echo "SERVER OK" || echo "FAIL: server not up"
 ```
 
-Check the `/metrics` endpoint — it must respond and contain the key metric names:
+**`/metrics` is bearer-gated in dev.** The dev stack now sets `METRICS_TOKEN` (in `.env`), so an unauthenticated `curl` gets `401 {"detail":"unauthorized"}`. Grab the token once and send it on **every** `/metrics` curl in this skill (Steps 1, 4, 8, 16, 17) via `-H "Authorization: Bearer $METRICS_TOKEN"`:
+
 ```bash
-curl -sf http://localhost:8888/metrics | grep -cE "^tensies_" | awk '{print "Tensies metrics found:", $1}'
-curl -sf http://localhost:8888/metrics | grep -q "tensies_rolls_total" && echo "rolls_total OK"
-curl -sf http://localhost:8888/metrics | grep -q "tensies_games_active" && echo "games_active OK"
-curl -sf http://localhost:8888/metrics | grep -q "tensies_telemetry_dropped_total" && echo "dropped_total OK"
+export METRICS_TOKEN=$(docker compose exec -T web printenv METRICS_TOKEN | tr -d '\r')
 ```
+
+Check the `/metrics` endpoint — it must respond and contain the key metric names. Add `-H "Authorization: Bearer $METRICS_TOKEN"` to each `/metrics` curl (here and in Steps 4/8/16/17):
+```bash
+curl -sf -H "Authorization: Bearer $METRICS_TOKEN" http://localhost:8888/metrics | grep -cE "^tensies_" | awk '{print "Tensies metrics found:", $1}'
+curl -sf -H "Authorization: Bearer $METRICS_TOKEN" http://localhost:8888/metrics | grep -q "tensies_rolls_total" && echo "rolls_total OK"
+curl -sf -H "Authorization: Bearer $METRICS_TOKEN" http://localhost:8888/metrics | grep -q "tensies_games_active" && echo "games_active OK"
+curl -sf -H "Authorization: Bearer $METRICS_TOKEN" http://localhost:8888/metrics | grep -q "tensies_telemetry_dropped_total" && echo "dropped_total OK"
+```
+(If a future dev stack leaves `/metrics` open, the header is simply ignored — harmless either way.)
 
 Check Prometheus:
 ```bash
@@ -108,7 +115,8 @@ curl -sf 'http://localhost:9090/api/v1/targets' | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
 targets = data.get('data', {}).get('activeTargets', [])
-tensies = [t for t in targets if '8888' in t.get('scrapeUrl','') or 'tensies' in str(t.get('labels',''))]
+# The web app is scraped on its INTERNAL port (web:8000), not the published 8888.
+tensies = [t for t in targets if '/web:' in t.get('scrapeUrl','') or t.get('scrapeUrl','').startswith('http://web:') or 'tensies' in str(t.get('labels',''))]
 if not tensies:
     print('FAIL: no tensies scrape target found')
 else:
@@ -244,7 +252,7 @@ Then navigate both to `http://localhost:8888/`.
 **Alpha creates the game:**
 1. Type `Telemetry` into `#name-input` on instance #1
 2. Submit `#landing-form` → wait for `#lobby.active`
-3. Capture the game code from `#lobby-code` — store as `GAME_CODE`
+3. Capture the game code via `evaluate` (`() => _state.gameCode`) — store as `GAME_CODE`. (The old `#lobby-code` box was replaced by the `<lobby-stamp>` graphic on the discovery branch; the code now lives in `_state.gameCode` / `lobby-stamp .serial`.)
 
 **Beta joins:**
 4. In instance #2 (guest), navigate to `http://localhost:8888/<GAME_CODE>`
@@ -604,19 +612,18 @@ Run the panel health check:
 
 These four panels are only populated for *active* games. All other panels query `events`/`rounds` directly and must have data. Report WARN only if a panel outside this list shows No data.
 
-**Per-panel assertions** — verify each of these panels has data by checking page text:
+**Per-panel assertions** — verify each panel has data by checking page text. **Take the fullPage screenshot (below) FIRST**: Grafana lazy-renders panels below the fold, so a text check before scrolling reads `false` for lower panels (they aren't in the DOM yet). The current per-game dashboard has 12 panels: `Status`, `Round / Target`, `Players`, `Total rolls`, `Rounds completed`, `Game age`, `Current round progress`, `Match progression (current round)`, `Luck balance (dice ahead of expectation)`, `Game event log`, `Rounds in this game`, `Rolls per round`.
 
 ```js
 () => {
   const text = document.body.innerText;
   return {
-    stat_rounds_completed: /Rounds completed/.test(text) && !/Rounds completed\s*[-–]\s*$/.test(text),
-    event_log_has_entries: (text.match(/rolled \d+\/10/g) || []).length > 0,
-    rounds_table_has_rows: (text.match(/Alpha|Beta|Telemetry|Monitor/g) || []).length > 0,
+    stat_rounds_completed: /Rounds completed/.test(text),
+    stat_total_rolls: /Total rolls/.test(text),
+    event_log_has_entries: (text.match(/rolled \d+\/10/g) || []).length > 0,   // "Game event log"
+    rounds_table_has_rows: (text.match(/Alpha|Beta|Telemetry|Monitor/g) || []).length > 0,  // "Rounds in this game"
     rolls_per_round_visible: /Rolls per round/.test(text),
-    match_progression_all_rounds: /Match progression \(all rounds\)/.test(text),
-    dice_distribution_visible: /Dice distribution/.test(text),
-    player_wins_visible: /Player wins/.test(text),
+    luck_balance_visible: /Luck balance/.test(text),   // replaced the old "Dice distribution"/"Match progression (all rounds)"/"Player wins" panels
   };
 }
 ```
@@ -627,9 +634,10 @@ Cross-check stat panels against Postgres:
 
 **Pass criteria:**
 - `total` panels >= 8
-- Only `"Match progression (current round)"` may show No data — anything else is a FAIL
+- No-data panels only among the four `live_games`-backed ones (`Status`, `Round / Target`, `Current round progress`, `Match progression (current round)`) — any other No-data panel is a FAIL
 - `event_log_has_entries = true` (rolled N/10 entries visible)
 - `rounds_table_has_rows = true`
+- `luck_balance_visible = true`
 - Stat panel values match Postgres (within 1 roll — timing window)
 
 ---
@@ -848,9 +856,66 @@ docker compose logs postgres --since 5m 2>&1 | grep -i "error\|fatal" | head -10
 
 ---
 
+## Step 19 — Discovery / check-in telemetry
+
+The GPS-discovery + Google-Places subsystem is instrumented separately from the game loop (`tensies_places_*`, `tensies_checkins_total`, `tensies_checkouts_total`, `tensies_nearby_queries_total`) and emits `checked_in` / `checked_out` events. This step exercises that path directly — no geolocation mocking or UI needed, since we drive the real server handlers over the host's WebSocket.
+
+Requires `PLACES_ENABLED` + `DISCOVERY_ENABLED` with Google creds on the dev server. If `/api/places/nearby` returns `503`, note this step as **📝 NOTE (Places disabled — no Google creds)** and skip the assertions.
+
+**A. Places + nearby HTTP metrics** (bash — reuse the `$METRICS_TOKEN` from Step 1):
+```bash
+snap() { curl -sf -H "Authorization: Bearer $METRICS_TOKEN" http://localhost:8888/metrics | grep -E "^tensies_(places_requests_total|places_cache_total|nearby_queries_total|checkins_total|checkouts_total)" | grep -v '^#'; }
+echo "--- before ---"; snap
+# Places search: 1st call bills Google (cache miss), 2nd is served from the ~100m grid cache
+for i in 1 2; do curl -s -o /dev/null -w "places/nearby -> %{http_code}\n" "http://localhost:8888/api/places/nearby?lat=40.7580&lon=-73.9855"; done
+curl -s -o /dev/null -w "nearby -> %{http_code}\n" "http://localhost:8888/api/nearby?lat=40.7580&lon=-73.9855"
+sleep 1; echo "--- after ---"; snap
+```
+Assert (deltas): `places_requests_total{kind="nearby",outcome="ok"}` +≥1, `places_cache_total{cache="nearby",result="hit"}` +≥1, `nearby_queries_total` +≥1.
+
+**B. Check-in → check-out events end-to-end** (drives `handle_checkin` → `checked_in` and `handle_stop_broadcast` → `checked_out`):
+
+1. Grab a real `place_id` from Google:
+   ```bash
+   PLACE_ID=$(curl -sf "http://localhost:8888/api/places/nearby?lat=40.7580&lon=-73.9855" | python3 -c "import sys,json; print(json.load(sys.stdin)['places'][0]['place_id'])")
+   echo "PLACE_ID=$PLACE_ID"
+   ```
+2. On **instance #1**: `localStorage.clear()`, navigate to `http://localhost:8888/`, create a game named `Discover` (type `#name-input` → submit `#landing-form`), wait for `#lobby.active`. Capture `GAME_CODE = _state.gameCode`. (Check-in is host-only + lobby-only + pre-start, so stay in the lobby — do **not** start.)
+3. Send the check-in over the host socket, then check out ~2 s later (dwell), via `evaluate`:
+   ```js
+   // check in (paste the PLACE_ID)
+   () => { _state.ws.send(JSON.stringify({ action: 'checkin', place_id: 'PLACE_ID' })); return 'checkin sent'; }
+   ```
+   Wait ~2.5 s, then:
+   ```js
+   () => { _state.ws.send(JSON.stringify({ action: 'stop_broadcast' })); return 'checkout sent'; }
+   ```
+   Wait ~2 s for the writer to drain, then close the socket (`() => { _state.ws.onclose=null; _state.ws.close(); }`).
+4. Verify both events landed for `GAME_CODE`, and `checked_out` carries a positive `dwell_ms`:
+   ```bash
+   docker compose exec -T postgres psql -U tensies tensies -c "
+   SELECT type, (payload->>'dwell_ms')::int AS dwell_ms, payload->>'place_id' AS place_id,
+          payload->>'place_type' AS place_type, payload->>'category' AS category
+   FROM events WHERE game_code='GAME_CODE' AND type IN ('checked_in','checked_out') ORDER BY type;"
+   ```
+   Both rows should carry a non-empty `place_type` (Google primaryType, e.g. `night_club`) and `category` bucket (e.g. `nightlife`) — **provided the place was resolved fresh**; a place still in the pre-`primaryType` Redis cache resolves to an empty type until `PLACES_CACHE_TTL` expires (use a check-in coordinate you haven't hit this run to force a fresh resolve). Also confirm the counter is category-labelled:
+   ```bash
+   curl -sf -H "Authorization: Bearer $METRICS_TOKEN" http://localhost:8888/metrics | grep -E '^tensies_(checkins_total|checkin_dwell_seconds_count)\{'
+   ```
+
+**Pass criteria:**
+- Part A: all three metric deltas satisfied (Places call billed once, cache hit on the repeat, nearby query counted)
+- `checked_in` event present for `GAME_CODE`
+- `checked_out` event present **for `GAME_CODE`** with `dwell_ms > 0`
+- Both events carry `place_type` + `category` (non-empty for a freshly-resolved place — see the cache caveat above)
+- `tensies_checkins_total{category="…"}` and `tensies_checkouts_total{category="…"}` are **category-labelled** and both incremented (**+≥1** — the per-`GAME_CODE` event rows are the definitive check; on a shared/remote dev server other live clients may check in concurrently, so the counter delta can exceed 1. Likewise `nearby_queries_total` climbs on its own from background pollers). Note: these counters are lazily created per label, so they don't appear in `/metrics` until the first check-in of the web process's life.
+- (If Places is disabled: 📝 NOTE and skip — not a FAIL)
+
+---
+
 ## Reporting
 
-Print a summary table. Preflights (self-update, prior-run review) are reported as a one-line note, not scored rows. The 18 numbered rows map 1:1 to Steps 1–18.
+Print a summary table. Preflights (self-update, prior-run review) are reported as a one-line note, not scored rows. The 19 numbered rows map 1:1 to Steps 1–19.
 
 TENSIES TELEMETRY TEST RESULTS
 
@@ -876,8 +941,9 @@ Preflight: self-update <ran|none>, prior-run review <ran|none> (not scored)
 | 16 | ✅ PASS | Telemetry self-metrics |
 | 17 | ✅ PASS | Grafana Live push health |
 | 18 | ✅ PASS | Server log audit |
+| 19 | ✅ PASS | Discovery / check-in telemetry (Places metrics + checked_in/checked_out events) |
 
-18/18 passed
+19/19 passed
 
 Replace `✅ PASS` with `❌ FAIL` or `⚠️ WARN` and append a one-line description for any issue. WARN means an anomaly was detected but is within tolerance. FAIL means a hard assertion failed.
 

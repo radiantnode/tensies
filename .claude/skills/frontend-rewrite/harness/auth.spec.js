@@ -45,7 +45,10 @@ test('landing-signed-in', async ({ page }) => {
   // Verify the signed-in state took effect before capturing.
   await page.waitForFunction(() => document.getElementById('name-input')?.hidden === true);
   await settle(page);
-  await expect(page).toHaveScreenshot('landing-signed-in.png');
+  // Mask the timer-scrambled join-code (its text isn't deterministic).
+  await expect(page).toHaveScreenshot('landing-signed-in.png', {
+    mask: [page.locator('.join-code')],
+  });
 });
 
 test('onboarding', async ({ page }) => {

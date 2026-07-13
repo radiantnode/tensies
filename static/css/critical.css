@@ -14,6 +14,34 @@
   src: url('/static/fonts/inter-latin-variable.woff2') format('woff2');
 }
 
+/* Heading face: EB Garamond — a retro Garamond serif (Apple-Garamond feel) for
+   screen/section headings. Body text stays Inter. Variable weight 400–800. */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/static/fonts/ebgaramond-latin-variable.woff2') format('woff2');
+}
+
+/* Vintage-stamp display faces (lobby stamp only): Rye for the engraved serial,
+   panels, and banner; Yellowtail for the script watermark. */
+@font-face {
+  font-family: 'Rye';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/static/fonts/rye-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Yellowtail';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/static/fonts/yellowtail-latin.woff2') format('woff2');
+}
+
 @layer reset {
   * {
     box-sizing: border-box;
@@ -45,6 +73,21 @@
     block-size: 100%;
     overflow: hidden;
   }
+
+  /* Focus ring for keyboard nav only. Suppress the UA outline for pointer/touch
+     and programmatic focus (e.g. a <dialog>'s auto-focus landing on Cancel),
+     where the blue ring is just noise. Keyboard users still get :focus-visible. */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* A dialog gets initial focus on open (tabindex=-1, so no action button is
+     auto-focused and rings — WebKit paints a focus-visible ring on showModal's
+     auto-focus). The container itself is never a keyboard tab stop, so it never
+     needs a ring; kill it unconditionally so the whole-dialog outline can't show. */
+  dialog:focus {
+    outline: none;
+  }
 }
 
 @layer tokens {
@@ -65,6 +108,7 @@
     --color-text-label: rgba(220, 200, 180, 0.72);
     --color-amber: rgba(225, 180, 100, 0.95);
     --font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-family-heading: 'EB Garamond', Georgia, 'Times New Roman', serif;
     --shadow-text: 0 1px 4px rgba(0, 0, 0, 0.9);
     --shadow-text-lg: 0 2px 8px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.8);
     --radius-md: 12px;
@@ -77,6 +121,11 @@
     overflow: hidden;
     overscroll-behavior: none;
     background: var(--color-bg);
+    /* Stop iOS Safari inflating running text when rotated to landscape (the nav
+       menu about blurb + changelog paragraphs are the wide text blocks it hits);
+       keep the sizes we set at every orientation. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   .bg-video {
@@ -331,18 +380,13 @@
      by the utilities layer). */
   .rotate-mark {
     inline-size: clamp(56px, 22vh, 112px);
-    margin-block-end: -1rem;
+    margin-block-end: 0.35rem;
     animation: rotate-hint 2.8s ease-in-out infinite;
   }
 
   @keyframes rotate-hint {
     0%, 60%, 100% { transform: rotate(0deg); }
     78%, 90% { transform: rotate(-16deg); }
-  }
-
-  .rotate-logo {
-    font-size: clamp(1.5rem, 6.5vh, 2.3rem);
-    margin-block-end: 0.75rem;
   }
 
   .rotate-msg {

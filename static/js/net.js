@@ -3,7 +3,7 @@ import { myDiceKey } from './dice.js';
 import { byId } from './dom.js';
 import { renderMyArea, renderPlayersBar } from './game-render.js';
 import { showWinner } from './overlays.js';
-import { showFor, showGameDetail, showLanding } from './router.js';
+import { landing, showFor, showGameDetail, showLanding } from './router.js';
 import { getAuthToken, isSignedIn, getAuthUser } from './auth.js';
 import {
   savePlayerId, saveReconnectToken, readSession, hasSession, clearSession,
@@ -48,7 +48,7 @@ function expireSession() {
   state.currentState = null;
   leaveLoading(() => {
     showScreen('landing');
-    landingScreen().showError('Connection failed');
+    landing().showError('Connection failed');
   });
 }
 
@@ -130,14 +130,9 @@ function connectWs(afterConnect) {
   ws.onclose = handleWsClose;
 }
 
-/** The landing screen component (typed accessor for its error surface). */
-function landingScreen() {
-  return /** @type {import('./components/landing-screen.js').LandingScreen} */ (byId('landing'));
-}
-
-/** The join screen component (typed accessor for its error surface). */
-function joinScreen() {
-  return /** @type {import('./components/join-screen.js').JoinScreen} */ (byId('join'));
+/** The nearby screen component (typed accessor for its error surface). */
+function nearbyScreen() {
+  return /** @type {import('./components/nearby-screen.js').NearbyScreen} */ (byId('nearby'));
 }
 
 /**
@@ -148,10 +143,9 @@ function currentName() {
   // Signed-in users use their account username as the player name.
   const authUser = getAuthUser();
   if (authUser) return authUser.username;
-  const active = document.querySelector('.screen.active');
-  const input = /** @type {HTMLInputElement} */ (
-    byId(active?.id === 'join' ? 'join-name-input' : 'name-input')
-  );
+  // The join sheet lives on the landing screen; read its name field while open.
+  const joinOpen = /** @type {HTMLDialogElement | null} */ (document.getElementById('join-sheet'))?.open;
+  const input = /** @type {HTMLInputElement} */ (byId(joinOpen ? 'join-name-input' : 'name-input'));
   return input.value.trim() || state.randomNamePlaceholder;
 }
 
@@ -163,17 +157,46 @@ export function createGame() {
   connectWs(() => send('create', { name }));
 }
 
+/**
+ * Join a game by code as `currentName()`. Shared by the join form and the
+ * nearby radar; `origin` records where a failed attempt returns to.
+ * @param {string} code
+ * @param {'join' | 'nearby'} [origin]
+ */
+export function joinWithCode(code, origin = 'join') {
+  const name = currentName();
+  state.pendingOrigin = origin;
+  showLoading('Joining game…');
+  connectWs(() => send('join', { name, code }));
+}
+
 /** Join the game whose code is in the join form. */
 export function joinGame() {
   const code = /** @type {HTMLInputElement} */ (byId('code-input')).value.trim();
   if (!code) {
-    joinScreen().showError('Enter a game code');
+    landing().showJoinError('Enter a game code');
     return;
   }
-  const name = currentName();
-  state.pendingOrigin = 'join';
-  showLoading('Joining game…');
-  connectWs(() => send('join', { name, code }));
+  joinWithCode(code, 'join');
+}
+
+/**
+ * Host-only: stop advertising this game to nearby players. Also the check-out
+ * path — clearing the broadcast clears the checked-in place, so the game leaves
+ * the radar entirely.
+ */
+export function stopBroadcast() {
+  send('stop_broadcast');
+}
+
+/**
+ * Host-only: check the game in to a nearby place — the only way onto the radar.
+ * Only the place_id is sent; the server resolves the authoritative name +
+ * coordinates and turns on discovery at the venue.
+ * @param {string} placeId
+ */
+export function checkIn(placeId) {
+  send('checkin', { place_id: placeId });
 }
 
 /** Host-only: start the game. */
@@ -195,6 +218,7 @@ export function leaveGame() {
   state.reconnecting = false;
   state.currentState = null;
   state.gameCode = null;
+  state.qr = null; // next game sends its own; don't carry this one's QR over
   resetRollState();
   const ws = state.ws;
   state.ws = null;
@@ -248,8 +272,10 @@ function handleMessage(msg) {
       return;
     case 'reconnect_token':
       saveReconnectToken(msg.token);
+      if (msg.qr) state.qr = msg.qr; // inline invite QR — cache for the stamp
       return;
     case 'state':
+      if (msg.qr) state.qr = msg.qr; // re-sent on a lobby reconnect
       // My own roll response (private, pre-broadcast): hold it for tryReveal
       // so the shake/reveal animation drives the change instead of a hard
       // re-render. A newer broadcast landing mid-reveal is stashed separately
@@ -337,21 +363,27 @@ function handleError(msg) {
       // transition (the showScreen early-return race — see transitions.js).
       // The only sanctioned behavior change of the rewrite.
       showScreen('landing', { force: true });
-      landingScreen().showError(msg.msg);
+      landing().showError(msg.msg);
     });
     return;
   }
-  if (state.pendingOrigin === 'join') {
+  if (state.pendingOrigin === 'nearby') {
     state.pendingOrigin = null;
     leaveLoading(() => {
-      showScreen('join');
-      joinScreen().showError(msg.msg);
+      showScreen('nearby');
+      nearbyScreen().showError(msg.msg);
+    });
+  } else if (state.pendingOrigin === 'join') {
+    state.pendingOrigin = null;
+    leaveLoading(() => {
+      const t = showScreen('landing');
+      t.updateCallbackDone.then(() => landing().openJoinSheet({ error: msg.msg }));
     });
   } else if (state.pendingOrigin === 'landing') {
     state.pendingOrigin = null;
     leaveLoading(() => {
       showScreen('landing');
-      landingScreen().showError(msg.msg);
+      landing().showError(msg.msg);
     });
   } else if (state.currentState) {
     // In-game, non-fatal error (e.g. a rejected roll: "Slow down", "Game is

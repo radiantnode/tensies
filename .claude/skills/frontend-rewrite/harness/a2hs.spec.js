@@ -29,7 +29,10 @@ test('a2hs-banner', async ({ page }) => {
   await page.waitForSelector('#landing.active');
   await page.waitForSelector('.a2hs-banner');
   await settle(page);
-  await expect(page).toHaveScreenshot('a2hs-banner.png');
+  // Mask the timer-scrambled join-code (its text isn't deterministic).
+  await expect(page).toHaveScreenshot('a2hs-banner.png', {
+    mask: [page.locator('.join-code')],
+  });
 });
 
 // Each walkthrough step: open the guide, then click the step's dot — that stops

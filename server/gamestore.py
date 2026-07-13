@@ -23,9 +23,16 @@ import time
 
 import redis.asyncio as aioredis
 
-from server.config import GAME_TTL, MAX_GAMES, MAX_PLAYERS_PER_GAME, REDIS_URL, log
+from server.config import (
+    GAME_TTL,
+    MAX_GAMES,
+    MAX_PLAYERS_PER_GAME,
+    REDIS_URL,
+    log,
+)
 
 INDEX = "games:index"
+GEO_INDEX = "games:geo"  # GEO sorted set of discoverable lobbies (checked-in venue coords)
 
 _r: aioredis.Redis | None = None
 
@@ -111,12 +118,13 @@ return 0
 """
 
 _DROP_LUA = """
--- KEYS[1]=game key  KEYS[2]=index ; ARGV: code, pid, grace_ms, now_ms, ttl
+-- KEYS[1]=game key  KEYS[2]=index  KEYS[3]=geo index
+-- ARGV: code, pid, grace_ms, now_ms, ttl
 -- Removes a disconnected player past the grace window. Idempotent: a second
 -- caller (local task vs reaper) finds the player gone and no-ops.
 -- Returns {0}=noop, {1,new_host}=removed (new_host '' if unchanged),
 -- {2}=removed and game deleted (was last player).
-local key, idx, code, pid = KEYS[1], KEYS[2], ARGV[1], ARGV[2]
+local key, idx, geo, code, pid = KEYS[1], KEYS[2], KEYS[3], ARGV[1], ARGV[2]
 if redis.call('EXISTS', key) == 0 then return {0} end
 if redis.call('HGET', key, 'paused') == '1' then return {0} end   -- never drop while paused
 local p = 'p:' .. pid .. ':'
@@ -132,6 +140,7 @@ end
 if #kept == 0 then
   redis.call('DEL', key)
   redis.call('SREM', idx, code)
+  redis.call('ZREM', geo, code)   -- prune the discovery blip with the game
   return {2}
 end
 redis.call('HSET', key, 'order', cjson.encode(kept))
@@ -178,6 +187,7 @@ async def create_game(host_id: str, host_name: str, token_hash: str) -> str | No
         "target", 1, "round_num", 1, "started", 0, "round_over", 0, "paused", 0,
         "host", host_id, "round_seq", 0, "total_rolls", 0, "round_count", 0,
         "created_ms", now_ms(), "round_start_ms", 0, "round_advance_pending", 0,
+        "place_id", "", "place_name", "",
         "order", json.dumps([host_id]),
         p + "name", host_name, p + "token_hash", token_hash,
         p + "dice", "[]", p + "locked", _LOCKED10,
@@ -463,7 +473,7 @@ async def drop_player(code: str, pid: str, grace_ms: int) -> dict:
 
     Returns {"action": "noop"|"removed"|"deleted", "new_host": str|None}.
     """
-    res = await _drop(keys=[_gkey(code), INDEX],
+    res = await _drop(keys=[_gkey(code), INDEX, GEO_INDEX],
                       args=[code, pid, grace_ms, now_ms(), GAME_TTL])
     status = int(res[0])
     if status == 2:
@@ -478,7 +488,146 @@ async def delete_game(code: str) -> None:
     pipe = _r.pipeline()
     pipe.delete(_gkey(code))
     pipe.srem(INDEX, code)
+    pipe.zrem(GEO_INDEX, code)  # prune the discovery blip with the game
     await pipe.execute()
+
+
+# ─── Nearby discovery (GPS) ──────────────────────────────────────────────────
+# GEO_INDEX is a Redis GEO sorted set (member = game code) of lobbies checked in
+# to a public place. The stored point is the venue's own public coordinates — a
+# real place, not the host's home — so there's nothing private to protect: only
+# distance and bearing surface to clients, and the point is the same for anyone
+# standing at that venue.
+
+
+async def _geo_set(code: str, lon: float, lat: float) -> None:
+    """Place the game's single radar point at the checked-in venue's coords."""
+    await _r.geoadd(GEO_INDEX, (lon, lat, code))
+
+
+async def geo_remove(code: str) -> None:
+    await _r.zrem(GEO_INDEX, code)
+
+
+async def geo_members() -> list[str]:
+    """All indexed codes — used by the reaper to reconcile orphaned blips."""
+    return list(await _r.zrange(GEO_INDEX, 0, -1))
+
+
+async def prune_orphan_geo() -> int:
+    """Drop discovery blips whose game hash has vanished (crashed instance / TTL
+    expiry) — a GEO set has no per-member TTL of its own. Batches the EXISTS
+    probes into one pipeline and removes the dead codes in one ZREM, rather than
+    a round-trip per member. Returns how many were pruned."""
+    members = await geo_members()
+    if not members:
+        return 0
+    pipe = _r.pipeline()
+    for code in members:
+        pipe.exists(_gkey(code))
+    present = await pipe.execute()
+    dead = [code for code, ok in zip(members, present, strict=True) if not ok]
+    if dead:
+        await _r.zrem(GEO_INDEX, *dead)
+    return len(dead)
+
+
+async def geo_search(lon: float, lat: float, radius_m: float,
+                     limit: int) -> list[tuple[str, float, float, float]]:
+    """Codes within radius_m of (lon, lat), nearest first.
+
+    Returns [(code, distance_m, plon, plat), ...] — the stored venue point, so
+    the caller can compute a bearing to it.
+    """
+    rows = await _r.geosearch(
+        GEO_INDEX, longitude=lon, latitude=lat,
+        radius=radius_m, unit="m", sort="ASC", count=limit,
+        withdist=True, withcoord=True,
+    )
+    out: list[tuple[str, float, float, float]] = []
+    for row in rows:
+        code, dist, (plon, plat) = row[0], float(row[1]), row[2]
+        out.append((code, dist, float(plon), float(plat)))
+    return out
+
+
+# A game is discoverable iff it's checked in to a place: set_place indexes it at
+# the venue's exact public coords, clear_place removes it. _recompute_geo is the
+# single writer that keeps the GEO index in sync with the place fields.
+
+async def _recompute_geo(code: str) -> None:
+    """Set (or clear) the game's radar point from its checked-in place. Checked
+    in → indexed at the venue's coords; not → removed from the index."""
+    place_id, plat, plon = await _r.hmget(
+        _gkey(code), ["place_id", "place_lat", "place_lng"])
+    if place_id and plat is not None and plon is not None:
+        await _geo_set(code, float(plon), float(plat))
+    else:
+        await geo_remove(code)
+
+
+async def set_place(code: str, place_id: str, name: str,
+                    lat: float, lon: float,
+                    photo_ref: str | None = None,
+                    place_type: str | None = None) -> None:
+    """Check the game in to a public place at its exact coordinates."""
+    await _r.hset(_gkey(code), mapping={
+        "place_id": place_id, "place_name": name,
+        "place_lat": lat, "place_lng": lon,
+        "place_photo": photo_ref or "", "place_type": place_type or "",
+        "place_ts": int(time.time() * 1000)})
+    await _recompute_geo(code)
+
+
+async def get_place(code: str) -> dict | None:
+    """Read the checked-in place ({place_id, place_name, place_type, place_ts})
+    without mutating, or None if the game isn't checked in. Lets a caller
+    snapshot the check-in before a destructive drop that would wipe the hash."""
+    place_id, place_name, place_type, place_ts = await _r.hmget(
+        _gkey(code), ["place_id", "place_name", "place_type", "place_ts"])
+    if not place_id:
+        return None
+    return {"place_id": place_id, "place_name": place_name or "",
+            "place_type": place_type or "",
+            "place_ts": int(place_ts) if place_ts else None}
+
+
+async def clear_place(code: str) -> dict | None:
+    """Check the game out of its place: drop the place fields and prune the
+    radar blip. Returns what was cleared (see get_place) so the caller can emit
+    a checked_out event, or None if the game wasn't checked in."""
+    info = await get_place(code)
+    await _r.hdel(_gkey(code), "place_id", "place_name", "place_lat", "place_lng",
+                  "place_photo", "place_type", "place_ts")
+    await _recompute_geo(code)
+    return info
+
+
+async def discovery_card(code: str) -> dict | None:
+    """Cheap read for the discovery endpoint — host name + avatar + player count
+    + started flag + checked-in place, without loading every player via
+    snapshot(). None if the game has vanished. Two steps: the host pid comes
+    from `host`, then its name/photo."""
+    started, host, order, place_id, place_name, place_photo = await _r.hmget(
+        _gkey(code), ["started", "host", "order", "place_id", "place_name",
+                      "place_photo"])
+    if host is None or order is None:
+        return None
+    host_name, host_photo = await _r.hmget(
+        _gkey(code), [f"p:{host}:name", f"p:{host}:photo"])
+    try:
+        player_count = len(json.loads(order))
+    except (TypeError, ValueError):
+        player_count = 0
+    return {
+        "host_name": host_name or "Someone",
+        "photo": host_photo,  # None for anonymous hosts; client uses a fallback
+        "player_count": player_count,
+        "started": started == "1",
+        "place_id": place_id or None,
+        "place_name": place_name or None,
+        "place_photo": place_photo or None,
+    }
 
 
 # ─── Abuse limits (audit H1) — enforced in Redis so they hold across instances ─

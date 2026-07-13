@@ -1,9 +1,11 @@
 # Pixel Verification Tests
 
-49 tests, 49 mobile baselines (390×844 · 2× dpr · Chromium 149.0.7827.55; `rotate-overlay` is the one landscape capture, 844×390).
+51 tests, 51 mobile baselines (390×844 · 2× dpr · Chromium 149.0.7827.55; `rotate-overlay` is the one landscape capture, 844×390).
 Run with `npm run verify` from `harness/`; all must pass at `maxDiffPixels 0` before any frontend change ships.
 
-The landing/intro background videos (`feature/video-intro`) are frozen to their first frame at capture time — `settle()` in `determinism.js` pauses every `<video>` and pins `currentTime` to 0 — so the looping playback doesn't defeat the two-stable-consecutive-screenshots check.
+The landing/intro background videos (`feature/video-intro`) are frozen to a fixed frame at capture time — `settle()` in `determinism.js` pauses every `<video>` and pins `currentTime` to its midpoint — so the looping playback doesn't defeat the two-stable-consecutive-screenshots check.
+
+**Volatile content is masked** (the `nav-menu-changelog` pattern): the landing's timer-scrambled join-code (`.join-code`) and the lobby stamp's invite QR (`.qr-box`, which encodes a server-random game code) are excluded from the comparison via `toHaveScreenshot({ mask: [...] })`. The scrambler also runs on its own decorative PRNG so it never advances the shared `Math.random` sequence the harness pins for the seeded name + dice scatter (see `landing-screen.js` / `state.js`).
 
 ---
 
@@ -13,9 +15,20 @@ Driven by `states.json`. Each navigates to a URL, clicks through steps, and scre
 
 | # | Screenshot | Checks | Spec |
 |---|-----------|--------|------|
-| 1 | <img src="harness/baselines/landing-mobile.png" width="60"> | Landing screen at `/`; name input, Create Game button, Join Game with Code button, hamburger | [views.spec.js:15](harness/views.spec.js#L15) |
-| 2 | <img src="harness/baselines/join-empty-mobile.png" width="60"> | Join screen after clicking "Join Game with Code"; name input, code input, Listen (audio code) button with equalizer icon, Back chip | [views.spec.js:15](harness/views.spec.js#L15) |
-| 3 | <img src="harness/baselines/nav-menu-open-mobile.png" width="60"> | Nav menu slid down from the hamburger; about blurb and "See What's New" button | [views.spec.js:15](harness/views.spec.js#L15) |
+| 1 | <img src="harness/baselines/landing-mobile.png" width="60"> | Landing at `/`; time-of-day greeting, name input, gold **Create Game** button, and the **Join with Code** / **Find Nearby Games** action row, over the (frozen) neon bar-sign background. The scrambling join-code is masked | [views.spec.js:16](harness/views.spec.js#L16) |
+| 2 | <img src="harness/baselines/join-empty-mobile.png" width="60"> | **Join** bottom sheet (modal `<dialog>`) opened from the landing's "Join with Code" button; name input, code input, Listen (audio code) button with equalizer icon, over the dimmed landing | [views.spec.js:16](harness/views.spec.js#L16) |
+| 3 | <img src="harness/baselines/nav-menu-open-mobile.png" width="60"> | Nav menu faded in from the hamburger; about blurb and "See What's New" button | [views.spec.js:16](harness/views.spec.js#L16) |
+
+---
+
+## Nearby-games radar — `nearby.spec.js`
+
+Reached from the landing's "Find Nearby Games" button. Deterministic via a faked geolocation fix (overridden `navigator.geolocation`) plus a stubbed `GET /api/nearby` payload (fixed hosts, bucketed distances, bearings) — no live GPS or discovery backend needed.
+
+| # | Screenshot | Checks | Spec |
+|---|-----------|--------|------|
+| 50 | <img src="harness/baselines/nearby-mobile.png" width="60"> | Radar populated with 3 discovered games; blips placed by true bearing + distance, "Finding Nearby Games" title, compass button, and the list below (host · venue · players · distance) | [nearby.spec.js:32](harness/nearby.spec.js#L32) |
+| 51 | <img src="harness/baselines/nearby-empty-mobile.png" width="60"> | Radar with no games nearby; empty scope with the "you" dot and the "No games nearby yet — ask a host to check in" message | [nearby.spec.js:50](harness/nearby.spec.js#L50) |
 
 ---
 
@@ -25,8 +38,8 @@ Reached by driving the live app through actual clicks and form submissions.
 
 | # | Screenshot | Checks | Spec |
 |---|-----------|--------|------|
-| 4 | <img src="harness/baselines/join-error-mobile.png" width="60"> | Join form submitted with a non-existent code (`ZZZZZ`); inline error message visible below the form, Listen button between code input and submit | [extras.spec.js:6](harness/extras.spec.js#L6) |
-| 5 | <img src="harness/baselines/rotate-overlay-mobile.png" width="120"> | Phone held sideways (844×390 landscape — the only non-portrait baseline); the CSS orientation guard covers the layout: dice logo-mark, TENSIES wordmark, "rotate your device to portrait" prompt | [extras.spec.js:21](harness/extras.spec.js#L21) |
+| 4 | <img src="harness/baselines/join-error-mobile.png" width="60"> | **Join sheet** submitted with a non-existent code (`ZZZZZ`); the sheet reopens with the inline error below the form, Listen button between code input and submit | [extras.spec.js:6](harness/extras.spec.js#L6) |
+| 5 | <img src="harness/baselines/rotate-overlay-mobile.png" width="120"> | Phone held sideways (844×390 landscape — the only non-portrait baseline); the CSS orientation guard covers the layout: dice logo-mark + "rotate your device to portrait" prompt (the red wordmark was removed) | [extras.spec.js:22](harness/extras.spec.js#L22) |
 | 6 | <img src="harness/baselines/nav-menu-changelog-mobile.png" width="60"> | "What's New" changelog panel open; changelog body masked (content changes) — protects panel chrome: header, Back button, scroll fades | [extras.spec.js:34](harness/extras.spec.js#L34) |
 
 ---
@@ -47,7 +60,7 @@ The install banner + iOS walkthrough. The `?a2hs=ios` localhost dev override for
 
 ## Synthesized server-driven states — `stateful.spec.js`
 
-A single real WebSocket connection; `pinWebSocket` rewrites every inbound `state` frame into the exact roster, dice, and target needed. `seedPage` pins `Math.random` and `Date.now` so dice scatter and countdown timers are byte-stable.
+A single real WebSocket connection; `pinWebSocket` rewrites every inbound `state` frame into the exact roster, dice, and target needed. `seedPage` pins `Math.random` and `Date.now` so dice scatter and countdown timers are byte-stable. The five lobby captures mask the invite QR (`.qr-box`) — it encodes the real, server-random game code — and the stamp's postmark date (`.stamp-date`), which is the real current day (`new Date()`, not pinned) and so drifts daily.
 
 ### Lobby
 
@@ -57,6 +70,7 @@ A single real WebSocket connection; `pinWebSocket` rewrites every inbound `state
 | 8 | <img src="harness/baselines/lobby-solo-mobile.png" width="60"> | Lobby with only the host; single-player list, Start button, Share + Play (audio code) buttons | [stateful.spec.js:96](harness/stateful.spec.js#L96) |
 | 9 | <img src="harness/baselines/lobby-guest-mobile.png" width="60"> | Lobby as a non-host guest; "Waiting for host to start…" title with no Start button; the Fellow Bar Rats list (others only, own row excluded) shows the host with a plain gold **HOST** label (no pill) | [stateful.spec.js:105](harness/stateful.spec.js#L105) |
 | 10 | <img src="harness/baselines/lobby-5p-mobile.png" width="60"> | Lobby at 5 players (max); list overflow and scroll-fade behavior | [stateful.spec.js:117](harness/stateful.spec.js#L117) |
+| 52 | <img src="harness/baselines/lobby-checkedin-mobile.png" width="60"> | Checked-in lobby: the stamp wears the check-in cachet (**CHECKED IN** over the venue name, tilted, double ink rule, transparent interior); a long venue name truncates with an ellipsis; the host's Check In button reads **Check Out** | [stateful.spec.js:132](harness/stateful.spec.js#L132) |
 
 ### Game board
 
@@ -69,7 +83,7 @@ A single real WebSocket connection; `pinWebSocket` rewrites every inbound `state
 | 15 | <img src="harness/baselines/paused-guest-mobile.png" width="60"> | Paused game as non-host; pause overlay with the TENSIES wordmark, animated dice loader (replaced the progress bar; the static logo mark was removed), and "Waiting for Alpha to resume the game" | [stateful.spec.js:166](harness/stateful.spec.js#L166) |
 | 16 | <img src="harness/baselines/disconnect-waiting-mobile.png" width="60"> | Peer (Bravo) disconnected mid-game; loading screen with the animated dice loader (pink 6 + ivory 4, replaced the old progress bar) and reconnect message | [stateful.spec.js:182](harness/stateful.spec.js#L182) |
 | 17 | <img src="harness/baselines/game-ended-mobile.png" width="60"> | Game ended by host mid-round; redirects to game-detail screen with one-shot "Game ended" label, player list, stats, and Roll Trust verification | [stateful.spec.js:200](harness/stateful.spec.js#L200) |
-| 18 | <img src="harness/baselines/fatal-error-mobile.png" width="60"> | Terminal error frame received (simulates pause-cap expiry); session cleared, landing returns with error message inline | [stateful.spec.js:289](harness/stateful.spec.js#L289) |
+| 18 | <img src="harness/baselines/fatal-error-mobile.png" width="60"> | Terminal error frame received (simulates pause-cap expiry); session cleared, landing returns with error message inline (the landing's scrambling join-code is masked) | [stateful.spec.js:291](harness/stateful.spec.js#L291) |
 
 ### Round winner
 
@@ -93,7 +107,7 @@ States that require a fake JWT in `localStorage` before page load (so `refreshAu
 | # | Screenshot | Checks | Spec |
 |---|-----------|--------|------|
 | 34 | <img src="harness/baselines/signin-mobile.png" width="60"> | Sign-in/sign-up screen reached via nav menu `.menu-auth-btn`; no JWT needed. Gold-glow default avatar above the title; single "Sign In / Sign Up" button does double duty (signs in if the account exists, else registers) | [auth.spec.js:26](harness/auth.spec.js#L26) |
-| 35 | <img src="harness/baselines/landing-signed-in-mobile.png" width="60"> | Landing with JWT injected; name input hidden, label hidden, `@TestUser` pill in header | [auth.spec.js:39](harness/auth.spec.js#L39) |
+| 35 | <img src="harness/baselines/landing-signed-in-mobile.png" width="60"> | Landing with JWT injected; name input hidden, hint label hidden, name-personalized greeting ("Welcome back, TestUser."), `@TestUser` pill in header, and a restored gap above **Create Game** (since the hidden name field would otherwise crowd it) | [auth.spec.js:39](harness/auth.spec.js#L39) |
 | 36 | <img src="harness/baselines/onboarding-mobile.png" width="60"> | Post-signup welcome screen; JWT + `sessionStorage('tensies_onboarding')` seeded, navigated to `/welcome`; `@TestUser` username and vanity URL | [auth.spec.js:51](harness/auth.spec.js#L51) |
 | 37 | <img src="harness/baselines/nav-menu-signed-in-mobile.png" width="60"> | Nav menu when signed in; shows "Sign out" instead of "Sign in or Sign up" | [auth.spec.js:67](harness/auth.spec.js#L67) |
 | 38 | <img src="harness/baselines/game-board-signed-in-mobile.png" width="60"> | Game board with JWT + WS auth intercept; `@TestUser` pill visible next to hamburger, same dice layout as signed-out for diffing | [auth.spec.js:143](harness/auth.spec.js#L143) |

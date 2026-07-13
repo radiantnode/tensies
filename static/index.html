@@ -48,6 +48,7 @@
   <link rel="preload" href="/static/images/logo.svg" as="image">
 
   <link rel="preload" href="/static/fonts/inter-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/ebgaramond-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 
   <!-- Critical CSS: layer order, tokens, reset, loading screen, view-transition setup. -->
   <link rel="stylesheet" href="/static/css/critical.css">
@@ -55,8 +56,11 @@
   <!-- Non-critical CSS — all downloaded in parallel by the browser. -->
   <link rel="stylesheet" href="/static/css/controls.css">
   <link rel="stylesheet" href="/static/css/shell.css">
+  <link rel="stylesheet" href="/static/css/sheet.css">
   <link rel="stylesheet" href="/static/css/landing.css">
   <link rel="stylesheet" href="/static/css/lobby.css">
+  <link rel="stylesheet" href="/static/css/stamp.css">
+  <link rel="stylesheet" href="/static/css/nearby.css">
   <link rel="stylesheet" href="/static/css/game.css">
   <link rel="stylesheet" href="/static/css/players-bar.css">
   <link rel="stylesheet" href="/static/css/dice.css">
@@ -91,7 +95,9 @@
   <link rel="modulepreload" href="/static/js/video-intro.js">
   <link rel="modulepreload" href="/static/js/audio-share.js">
   <link rel="modulepreload" href="/static/js/eq-icon.js">
+  <link rel="modulepreload" href="/static/js/geo.js">
   <link rel="modulepreload" href="/static/js/components/app-header.js">
+  <link rel="modulepreload" href="/static/js/components/lobby-stamp.js">
   <link rel="modulepreload" href="/static/js/components/player-card.js">
   <link rel="modulepreload" href="/static/js/components/round-target.js">
   <link rel="modulepreload" href="/static/js/auth.js">
@@ -100,7 +106,7 @@
   <link rel="modulepreload" href="/static/js/components/profile-screen.js">
   <link rel="modulepreload" href="/static/js/components/game-detail-screen.js">
   <link rel="modulepreload" href="/static/js/components/landing-screen.js">
-  <link rel="modulepreload" href="/static/js/components/join-screen.js">
+  <link rel="modulepreload" href="/static/js/components/nearby-screen.js">
   <link rel="modulepreload" href="/static/js/components/lobby-screen.js">
   <link rel="modulepreload" href="/static/js/components/game-screen.js">
   <link rel="modulepreload" href="/static/js/components/nav-menu.js">
@@ -149,7 +155,7 @@
   </section>
 
   <landing-screen></landing-screen>
-  <join-screen></join-screen>
+  <nearby-screen></nearby-screen>
   <lobby-screen></lobby-screen>
   <game-screen></game-screen>
   <signin-screen></signin-screen>
@@ -206,7 +212,6 @@
      landscape media query — paints with no JS, like the loading screen. -->
 <div id="rotate-overlay" class="rotate-overlay" role="alertdialog" aria-label="Rotate your device to portrait">
   <img src="/static/images/logo.svg" class="logo-mark rotate-mark" alt="">
-  <h2 class="logo rotate-logo">TENSIES</h2>
   <p class="rotate-msg">Best played upright —<br>rotate your device to portrait.</p>
 </div>
 
