@@ -19,6 +19,7 @@ services:
       # local-only dev tokens; Prometheus sends METRICS_TOKEN (see ops/prometheus.yml).
       METRICS_TOKEN: ${METRICS_TOKEN:-devmetrics}
       STATS_TOKEN: ${STATS_TOKEN:-devstats}
+      WIDGET_TOKEN: ${WIDGET_TOKEN:-devwidget}
       CREATE_RATE_MAX: ${CREATE_RATE_MAX:-10}
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-do-not-use-in-prod}
       WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-tensies.app}

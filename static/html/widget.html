@@ -1,0 +1,40 @@
+<!doctype html>
+<!-- Template for the /api/widget home-screen widget page (server/widget.py).
+     Dollar-placeholders (string.Template) are filled per request; note a
+     literal dollar sign here would need doubling. Not served directly as a
+     static asset in prod (nginx only serves dist/static). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="$refresh">
+<meta name="robots" content="noindex">
+<title>Tensies</title>
+<link rel="stylesheet" href="$css_href">
+</head>
+<body>
+<div class="card">
+  <div class="col-status">
+    <div class="brand-row">
+      <img class="brand" src="$logo_href" alt="Tensies">
+      <div class="status-block">
+        <div class="health"><span class="dot $health_class"></span>$health_text</div>
+        <div class="updated" id="updated"></div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="num">$active</span><span class="lbl">live</span></div>
+      <div class="stat"><span class="num">$online</span><span class="lbl">playing</span></div>
+      <div class="stat"><span class="num">$today</span><span class="lbl">today</span></div>
+    </div>
+  </div>
+  <div class="col-recent">
+    <div class="hd">Recent games</div>
+    <ul class="games">
+$rows
+    </ul>
+  </div>
+</div>
+<script src="$js_href" defer></script>
+</body>
+</html>

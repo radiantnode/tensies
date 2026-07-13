@@ -10,6 +10,7 @@ from server.config import FRONTEND_DIST
 from server.discord_interactions import router as discord_router
 from server.routes import router as http_router
 from server.security import SecurityHeadersMiddleware
+from server.widget import router as widget_router
 from server.ws import router as ws_router
 
 
@@ -78,6 +79,7 @@ if not FRONTEND_DIST:
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(auth_router)
+app.include_router(widget_router)
 app.include_router(http_router)
 app.include_router(discord_router)
 app.include_router(ws_router)

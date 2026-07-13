@@ -70,6 +70,9 @@ COPY . .
 # stays single-sourced in the security middleware — while nginx serves every
 # /static asset. The app builds no in-process JS cache and mounts no StaticFiles.
 COPY --from=assets /build/dist/index.html /app/dist/index.html
+# The asset manifest (original -> hashed URL) lets server-rendered pages
+# outside index.html (e.g. /api/widget) link their fingerprinted assets.
+COPY --from=assets /build/dist/manifest.json /app/dist/manifest.json
 
 # Run as an unprivileged user, not root.
 RUN useradd --create-home --uid 10001 appuser \

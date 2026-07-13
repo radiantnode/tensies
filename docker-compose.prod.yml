@@ -42,6 +42,8 @@ services:
       GRAFANA_PASS: "${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}"
       METRICS_TOKEN: "${METRICS_TOKEN:?set METRICS_TOKEN}"
       STATS_TOKEN: "${STATS_TOKEN:?set STATS_TOKEN}"
+      # Home-screen widget page (/api/widget?key=...). Optional: unset → 503.
+      WIDGET_TOKEN: "${WIDGET_TOKEN:-}"
       ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS}"
       # Public origin → absolute og:image/twitter:image so the iOS share sheet can
       # render the invite-link preview with the Tensies icon. Optional; relative
