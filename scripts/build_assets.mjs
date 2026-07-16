@@ -118,11 +118,23 @@ for (const sub of ['images', 'fonts', 'video']) {
 // itself so it stays self-maintaining; append any stray .css not linked there (a
 // forgotten <link>) at the end so it's still bundled, with a warning.
 const indexHtml = readFileSync(join(SRC, 'index.html'), 'utf8');
+// Standalone pages served outside the app document (their own <link>, no
+// @layer): each asset is fingerprinted on its own, never concatenated into
+// app.css. Declared once here so the bundle-exclusion filters below AND the
+// step-4c hashing loop stay in sync — add a page's assets here and they're both
+// excluded from the bundle and fingerprinted. `critical` is the inline critical
+// sheet, hashed separately in step 4 (css-only, no js).
+const STANDALONE_ASSETS = [
+  ['css', 'widget', '.css', 'css'],
+  ['js', 'widget', '.js', 'js'],
+];
+const STANDALONE = ['critical',
+  ...STANDALONE_ASSETS.filter(([sub]) => sub === 'css').map(([, name]) => name)];
 const linked = [...new Set(
   [...indexHtml.matchAll(/\/static\/css\/([\w-]+)\.css/g)].map((m) => m[1]),
-)].filter((n) => n !== 'critical');
+)].filter((n) => !STANDALONE.includes(n));
 const unlinked = readdirSync(join(SRC, 'css'))
-  .filter((f) => f.endsWith('.css') && f !== 'critical.css')
+  .filter((f) => f.endsWith('.css') && !STANDALONE.includes(f.replace(/\.css$/, '')))
   .map((f) => f.replace(/\.css$/, ''))
   .filter((n) => !linked.includes(n));
 if (unlinked.length) {
@@ -141,6 +153,18 @@ const NONCRIT = [...linked, ...unlinked];
   const min = (await esbuild.transform(raw, { loader: 'css', minify: true })).code;
   manifest.set('/static/css/critical.css',
     writeHashed('css', 'critical', '.css', rewriteRefs(min)));
+}
+
+// ── 4c. Minify the standalone pages' assets (never part of the app bundle),
+// rewrite refs (wood poster in the CSS), hash. The app resolves the hashed URLs
+// at runtime via the asset manifest written in step 7. Driven by the single
+// STANDALONE_ASSETS declaration above so a new page can't be excluded from the
+// bundle without also being fingerprinted here.
+for (const [sub, name, ext, loader] of STANDALONE_ASSETS) {
+  const raw = readFileSync(join(SRC, sub, `${name}${ext}`), 'utf8');
+  const min = (await esbuild.transform(raw, { loader, minify: true })).code;
+  manifest.set(`/static/${sub}/${name}${ext}`,
+    writeHashed(sub, name, ext, rewriteRefs(min)));
 }
 
 // ── 4b. Rewrite the web-app manifest's icon refs, then hash it ────────────────
@@ -169,6 +193,11 @@ html = html.replace('/static/js/app.js', manifest.get('/static/js/app.js'));
 while (/<!--[\s\S]*?-->/.test(html)) html = html.replace(/<!--[\s\S]*?-->/g, '');
 html = html.split('\n').map((l) => l.trim()).filter(Boolean).join('');
 writeFileSync(join(DIST, 'index.html'), html);
+
+// ── 7. Asset manifest: original URL -> hashed URL, for server-rendered pages
+// outside index.html (e.g. /api/widget) to resolve their assets at runtime.
+writeFileSync(join(DIST, 'manifest.json'),
+  JSON.stringify(Object.fromEntries(manifest), null, 1));
 
 // ── 6. Pre-compress text assets for nginx gzip_static ─────────────────────────
 let gz = 0;
