@@ -2,6 +2,26 @@
 
 Pull up a stool. Newest stuff up top.
 
+## 1.31.0 ("Round Trip")
+
+Saturday, July 18, 2026
+
+- The target number used to jump from six straight back down to one. Now it climbs all the way up and then walks back down the same steps, so the whole run feels like a proper round trip. 🎲
+
+## 1.30.0 ("Second Wind")
+
+Monday, July 13, 2026
+
+- Squashed a mean one. A shaky signal could freeze your board halfway through: your old dice stuck in place, new ones piling on top, and a win that never landed. Now it catches itself up on your very next roll instead of leaving you hanging. 🔌
+- _Behind the scenes: pulled the newest updates for a few of the parts under the hood so things stay quick and safe._
+
+## 1.29.0 ("The Usual")
+
+Saturday, July 11, 2026
+
+- Sign in and Tensies greets you by name now, with a hello that changes with the time of day. The bartender remembers your usual. 👋
+- Gave the Create Game button some room to breathe when you're signed in, so the greeting and the button stop bumping into each other.
+
 ## 1.28.0 ("House Regular")
 
 Friday, July 10, 2026
