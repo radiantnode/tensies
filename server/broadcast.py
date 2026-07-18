@@ -6,7 +6,7 @@ from fastapi import WebSocket
 
 from . import db, db_places, fanout, gamestore, places, state
 from .config import DISCONNECT_GRACE, PAUSE_MAX, ROLL_ACK_TIMEOUT, ROUND_WIN_DELAY, log
-from .game import target_for_round, state_msg
+from .game import state_msg, target_for_round
 from .state import sessions
 from .telemetry import emit, metrics
 
