@@ -120,14 +120,16 @@ return 0
 
 _DROP_LUA = """
 -- KEYS[1]=game key  KEYS[2]=index  KEYS[3]=geo index
--- ARGV: code, pid, grace_ms, now_ms, ttl
+-- ARGV: code, pid, grace_ms, now_ms, ttl, allow_paused
 -- Removes a disconnected player past the grace window. Idempotent: a second
 -- caller (local task vs reaper) finds the player gone and no-ops.
 -- Returns {0}=noop, {1,new_host}=removed (new_host '' if unchanged),
 -- {2}=removed and game deleted (was last player).
 local key, idx, geo, code, pid = KEYS[1], KEYS[2], KEYS[3], ARGV[1], ARGV[2]
 if redis.call('EXISTS', key) == 0 then return {0} end
-if redis.call('HGET', key, 'paused') == '1' then return {0} end   -- never drop while paused
+-- Never drop on a *disconnect* while paused (players are held). A voluntary
+-- leave (allow_paused='1') is explicit intent and removes the slot even paused.
+if redis.call('HGET', key, 'paused') == '1' and ARGV[6] ~= '1' then return {0} end
 local p = 'p:' .. pid .. ':'
 if redis.call('HGET', key, p .. 'disconnected') ~= '1' then return {0} end
 local dat = tonumber(redis.call('HGET', key, p .. 'disconnected_at_ms') or '0')
@@ -488,13 +490,18 @@ async def transfer_host(code: str, new_host: str) -> None:
     await _r.hset(_gkey(code), "host", new_host)
 
 
-async def drop_player(code: str, pid: str, grace_ms: int) -> dict:
+async def drop_player(code: str, pid: str, grace_ms: int,
+                      allow_paused: bool = False) -> dict:
     """Remove a disconnected player past grace (atomic, idempotent).
+
+    `allow_paused` overrides the never-drop-while-paused guard for a voluntary
+    leave (explicit intent), while disconnect/reaper drops stay held when paused.
 
     Returns {"action": "noop"|"removed"|"deleted", "new_host": str|None}.
     """
     res = await _drop(keys=[_gkey(code), INDEX, GEO_INDEX],
-                      args=[code, pid, grace_ms, now_ms(), GAME_TTL])
+                      args=[code, pid, grace_ms, now_ms(), GAME_TTL,
+                            "1" if allow_paused else "0"])
     status = int(res[0])
     if status == 2:
         return {"action": "deleted", "new_host": None}

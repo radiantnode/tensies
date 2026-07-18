@@ -244,7 +244,10 @@ async def do_drop(
     name = player["name"]
     # Snapshot any check-in before the drop, which may delete the whole hash.
     checkin = await gamestore.get_place(code)
-    res = await gamestore.drop_player(code, pid, grace_ms)
+    # A voluntary leave removes the slot even while paused; the Lua otherwise
+    # holds every player during a pause (disconnect/reaper drops stay held).
+    res = await gamestore.drop_player(code, pid, grace_ms,
+                                      allow_paused=(reason == "leave"))
     if res["action"] == "noop":
         return
     local = state.connections.get(code)
@@ -269,6 +272,12 @@ async def do_drop(
             await _emit_checkout(code, pid, checkin, reason="game_ended")
         state.connections.pop(code, None)
         cancel_drop_tasks(code)
+        # A voluntary leave can now delete a *paused* game (last player out), so
+        # cancel its pause watchdog here too — this branch was unreachable while
+        # paused before that change.
+        pt = state.pause_tasks.pop(code, None)
+        if pt:
+            pt.cancel()
         return
 
     if res["new_host"]:
