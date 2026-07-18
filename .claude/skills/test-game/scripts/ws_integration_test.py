@@ -66,8 +66,8 @@ async def main():
     check("create: private reconnect_token frame sent", bool(host_token),
           f"len={len(host_token) if host_token else 0}")
     check("create: token_hash NOT leaked in state", "token_hash" not in json.dumps(state))
-    check("create: not started, target=6, round 1",
-          state["started"] is False and state["target"] == 6 and state["round_num"] == 1)
+    check("create: not started, target=1, round 1",
+          state["started"] is False and state["target"] == 1 and state["round_num"] == 1)
     check("create: host has HOST role", state["host"] == host_pid)
 
     # ── invalid code rejection ───────────────────────────────────────
@@ -144,7 +144,7 @@ async def main():
 
     adv = await recv_until(host, "state", timeout=6.0)
     check("round advance: round_num -> 2", adv["round_num"] == 2, f"round={adv['round_num']}")
-    check("round advance: target cycled 6->5", adv["target"] == 5, f"target={adv['target']}")
+    check("round advance: triangle wave 1->2 (round 2)", adv["target"] == 2, f"target={adv['target']}")
     check("round advance: dice re-dealt, has_rolled reset",
           adv["players"][host_pid]["has_rolled"] is False)
 

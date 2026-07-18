@@ -200,10 +200,10 @@ In **instance #2** (`mcp__playwright-guest__*`), navigate to:
 http://localhost:8888/<GAME_CODE>
 ```
 
-Verify:
-- The join screen (`#join`) is active
-- `#code-input` is pre-filled with `GAME_CODE` (deep-link works — `/<CODE>` is the primary format; the legacy `?join=<CODE>` still works as a fallback)
-- The URL has been cleaned to `/` (no code remains in the address bar)
+Verify (the deep-link now opens the **join sheet on the landing screen** — `openJoinOnLanding` in `static/js/router.js` — not a separate `#join` screen):
+- `#landing` is the active screen and the `#join-sheet` `<dialog>` is **open** (`document.getElementById('join-sheet').open === true`)
+- `#code-input` (inside the sheet) is pre-filled with `GAME_CODE` (deep-link works — `/<CODE>` is the primary format; the legacy `?join=<CODE>` still works as a fallback)
+- The URL is canonicalised to `/<CODE>` (the legacy `?join=` form is rewritten to the path form)
 
 Type `Beta` into `#join-name-input`, then submit the join form (`#join-form button[type="submit"]`).
 
@@ -492,7 +492,7 @@ After the winner overlay appears, wait (up to 4 seconds, less if Step 13 already
 Verify on both tabs:
 - Winner overlay is closed — `document.getElementById('winner-overlay').open === false`
 - `round_num` has incremented by 1
-- `target` has changed and matches the cycle **1→2→3→4→5→6→1** (one step up, wrapping 6→1). This is the live check of `next_target` (`t % 6 + 1` in `server/game.py`); confirm the new `target` is exactly the successor in that cycle.
+- `target` has changed and follows the **triangle wave** over the 1-based round number: `1→2→3→4→5→6→5→4→3→2→1→2→…` (climbs to 6, then descends to 1, then climbs again). This is the live check of `target_for_round(round_num)` in `server/game.py` (`m=(round_num-1)%10; m+1 if m<=5 else 11-m`) — the old `next_target` (`t % 6 + 1`, straight 6→1 wrap) was replaced by the ping-pong in commit 78a03df. Confirm the new `target` equals `target_for_round(new round_num)`.
 - All dice are unlocked (new fresh dice dealt)
 - `has_rolled` is `false` for all players
 - Roll button is enabled on Tab 1
