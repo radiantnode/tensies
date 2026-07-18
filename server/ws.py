@@ -157,6 +157,11 @@ async def handle_create(session: Session, msg: dict) -> None:
     connections[code] = {session.pid: session.ws}
     session.code = code
     session.games_joined += 1
+    # Remember this anon pid's token hash so a later account registration can
+    # prove ownership of its stats (see gamestore.record_claim). Authenticated
+    # sessions are already an account — nothing to claim.
+    if session.user_id is None:
+        await gamestore.record_claim(session.pid, token_hash)
     _ensure_session_started(session)
     log.info("create   game=%s  host=%s", code, name)
     emit("game_created", game_code=code, user_id=session.pid, name=name,
@@ -199,6 +204,10 @@ async def handle_join(session: Session, msg: dict) -> None:
     session.code = join_code
     connections.setdefault(join_code, {})[session.pid] = session.ws
     session.games_joined += 1
+    # Anon pid → token-hash claim, so registration can later prove ownership of
+    # its stats (mirrors handle_create).
+    if session.user_id is None:
+        await gamestore.record_claim(session.pid, token_hash)
     _ensure_session_started(session)
     log.info("join     game=%s  player=%s  players=%d", join_code, name, res)
     emit("player_joined", game_code=join_code, user_id=session.pid, name=name,

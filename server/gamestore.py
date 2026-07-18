@@ -24,6 +24,7 @@ import time
 import redis.asyncio as aioredis
 
 from server.config import (
+    CLAIM_TTL,
     GAME_TTL,
     MAX_GAMES,
     MAX_PLAYERS_PER_GAME,
@@ -659,6 +660,36 @@ async def rate_allow(scope: str, ident: str, limit: int, window: float) -> bool:
     key = f"rl:{scope}:{ident}"
     n = await _rate(keys=[key], args=[int(window) or 1])
     return int(n) <= limit
+
+
+# ─── Stat-claim ownership tokens ───────────────────────────────────────────────
+# An anonymous player's pid leaks to co-players via state_msg, so the pid alone
+# can't authorise transferring that pid's player_stats onto a new account (a
+# co-player could harvest it and claim someone else's stats). The private
+# reconnect token never leaves the owner's client, so we keep its hash keyed by
+# pid — outliving the ephemeral game — and require the token at registration.
+
+def _claim_key(pid: str) -> str:
+    return f"claim:{pid}"
+
+
+async def record_claim(pid: str, token_hash: str) -> None:
+    """Remember an anonymous pid's reconnect-token hash so a later registration
+    can prove ownership of its stats. Self-expiring (CLAIM_TTL)."""
+    await _r.set(_claim_key(pid), token_hash, ex=CLAIM_TTL)
+
+
+async def verify_claim(pid: str, token: str) -> bool:
+    """True if `token` matches the stored claim hash for `pid`."""
+    if not pid or not token:
+        return False
+    from .game import verify_token  # local import avoids an import cycle
+    return verify_token(await _r.get(_claim_key(pid)), token)
+
+
+async def clear_claim(pid: str) -> None:
+    """Drop a claim once its stats have been transferred (single use)."""
+    await _r.delete(_claim_key(pid))
 
 
 async def conn_incr(ip: str) -> int:

@@ -294,6 +294,14 @@ if FRONTEND_DIST and JWT_SECRET == _JWT_SECRET_DEFAULT:
     )
 JWT_EXPIRY_DAYS = _int("JWT_EXPIRY_DAYS", 30)
 
+# How long an anonymous player's reconnect-token hash is kept (Redis, keyed by
+# pid) so a later account registration can prove ownership of that pid's stats.
+# The pid leaks to co-players via state_msg; the token never does — so requiring
+# it at claim time stops a co-player from harvesting a pid and stealing its
+# stats. Generous window so "register a while after playing" still transfers;
+# self-expiring, so no cleanup job is needed.
+CLAIM_TTL = _int("CLAIM_TTL", 7 * 24 * 3600)  # 7 days
+
 # ─── Founding member ("Founding Roller") ──────────────────────────────
 # Accounts created strictly before this instant earn the Founding Roller
 # designation on their profile. Fixed UTC cutoff: through end of Jul 19, 2026.

@@ -140,6 +140,10 @@ class RegisterVerifyRequest(BaseModel):
     username: str
     credential: dict
     legacy_pid: str | None = None
+    # Private reconnect token for legacy_pid. The pid leaks to co-players via
+    # state_msg, so it can't authorise a stat transfer on its own; the token
+    # (never broadcast) proves the registrant actually owns that anon identity.
+    claim_token: str | None = None
 
 class LoginOptionsRequest(BaseModel):
     username: str
@@ -254,7 +258,12 @@ async def register_verify(body: RegisterVerifyRequest, request: Request):
                     "SELECT 1 FROM users WHERE id::text = $1 OR legacy_pid = $1",
                     legacy_pid,
                 )
-                if taken:
+                # Prove ownership: the caller must present the pid's private
+                # reconnect token, not just the (co-player-visible) pid. Without
+                # a valid token the account is still created — just without the
+                # stat transfer.
+                owns = await gamestore.verify_claim(legacy_pid, body.claim_token or "")
+                if taken or not owns:
                     legacy_pid = None
 
             async def _insert_user(lp: str | None) -> None:
@@ -309,6 +318,11 @@ async def register_verify(body: RegisterVerifyRequest, request: Request):
                     user_id_str,
                     legacy_pid,
                 )
+
+    # The claim is single-use: once the stats have moved, drop the token so the
+    # same pid can't be re-claimed. (Outside the DB transaction — a Redis op.)
+    if legacy_pid:
+        await gamestore.clear_claim(legacy_pid)
 
     # Fetch any transferred stats for the onboarding screen
     stats = None
