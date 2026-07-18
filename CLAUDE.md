@@ -314,7 +314,7 @@ This is implemented in `delayed_broadcast()` (`server/broadcast.py`) via an `asy
 1. Host clicks Start → `handle_start` calls `deal_round()` (10 fresh dice each), sets `started=True`
 2. Players roll; `apply_roll()` re-randomises unlocked dice and auto-locks any that match `target`
 3. First player to lock all 10 wins the round → `handle_roll` sets `round_over=True`, sends `round_won` privately and schedules a `delayed_broadcast`
-4. After `ROUND_WIN_DELAY` seconds, `delayed_broadcast` advances `target` (cycles 1→2→3→4→5→6→1), increments `round_num`, calls `deal_round()` again to clear per-round state
+4. After `ROUND_WIN_DELAY` seconds, `delayed_broadcast` advances `target` (a triangle wave over `round_num`: 1→2→3→4→5→6→5→4→3→2→1→2→…), increments `round_num`, calls `deal_round()` again to clear per-round state
 
 When `ENABLE_DRAND_ROLLING` is set (default **off** → local RNG), `handle_roll` derives the unlocked dice from the drand League-of-Entropy beacon (`server/drand.py`) instead of `random`, and records the `drand_round` on the roll — making every roll provably fair and replayable via `/api/game/{code}/verify` and `/api/verify/{code}/{pid}/{roll_count}`. `apply_roll()` stays pure: it takes an optional `dice_values` and otherwise randomises locally. See [`docs/ROLL_TRUST.md`](docs/ROLL_TRUST.md).
 
