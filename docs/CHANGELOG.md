@@ -8,11 +8,10 @@ Saturday, July 18, 2026
 
 - The target number used to jump from six straight back down to one. Now it climbs all the way up and then walks back down the same steps, so the whole run feels like a proper round trip. 🎲
 
-## 1.30.0 ("Window Seat")
+## 1.30.0 ("Second Wind")
 
 Monday, July 13, 2026
 
-- There's a home-screen widget now. Pin the little card to your phone and it keeps an eye on what's live and which games just wrapped.
 - Squashed a mean one. A shaky signal could freeze your board halfway through: your old dice stuck in place, new ones piling on top, and a win that never landed. Now it catches itself up on your very next roll instead of leaving you hanging. 🔌
 - _Behind the scenes: pulled the newest updates for a few of the parts under the hood so things stay quick and safe._
 
