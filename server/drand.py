@@ -60,8 +60,14 @@ def _verify_bls(sig_bytes: bytes, round_num: int) -> bool:
         h = G1Element.from_message(msg, _DST)
         return sig.pair(G2Element.generator()) == h.pair(pk)
     except Exception:
-        log.exception("BLS verification error — skipping")
-        return True
+        # Fail CLOSED: a malformed signature / pairing error means we could not
+        # verify the beacon, so reject it. (It used to return True here, treating
+        # an unverifiable beacon as valid — a party controlling the drand HTTP
+        # response could satisfy the SHA-256 layer and slip a forged beacon past
+        # this one.) The caller then keeps the last good beacon / falls back to
+        # local RNG rather than trusting an unverified value.
+        log.exception("BLS verification error — rejecting beacon")
+        return False
 
 
 # ── Lifecycle (matches reaper/fanout start/stop pattern) ───────────────

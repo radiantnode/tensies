@@ -90,7 +90,12 @@ class SecurityHeadersMiddleware:
     def __init__(self, app) -> None:
         self.app = app
         self.csp = build_csp() if SECURITY_HEADERS else None
-        self.hsts = build_hsts() if SECURITY_HEADERS else None
+        # HSTS is governed solely by HSTS_ENABLED (build_hsts returns None when
+        # off). It is deliberately NOT gated by SECURITY_HEADERS: that switch is
+        # documented as the CSP master switch, so an operator disabling CSP (e.g.
+        # to debug a policy violation) must not silently lose HSTS on an HTTPS
+        # deploy and reopen the SSL-strip/downgrade window.
+        self.hsts = build_hsts()
 
     async def __call__(self, scope, receive, send) -> None:
         if scope["type"] != "http":

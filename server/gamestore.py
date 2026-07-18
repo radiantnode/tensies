@@ -37,7 +37,7 @@ GEO_INDEX = "games:geo"  # GEO sorted set of discoverable lobbies (checked-in ve
 _r: aioredis.Redis | None = None
 
 # Lua scripts, registered on init().
-_create = _join = _finish = _drop = _restamp = _end_paused = None
+_create = _join = _finish = _drop = _restamp = _end_paused = _rate = None
 
 
 def client() -> aioredis.Redis:
@@ -154,14 +154,27 @@ return {1, new_host}
 """
 
 
+_RATE_LUA = """
+local n = redis.call('INCR', KEYS[1])
+-- Guarantee a TTL atomically so a crash between INCR and EXPIRE can't leave a
+-- TTL-less key that throttles an identity forever. TTL < 0 means no expiry
+-- (-1) — set it; also self-heals any pre-existing leaked key.
+if redis.call('TTL', KEYS[1]) < 0 then
+  redis.call('EXPIRE', KEYS[1], tonumber(ARGV[1]))
+end
+return n
+"""
+
+
 def _register_scripts() -> None:
-    global _create, _join, _finish, _drop, _restamp, _end_paused
+    global _create, _join, _finish, _drop, _restamp, _end_paused, _rate
     _create = _r.register_script(_CREATE_LUA)
     _join = _r.register_script(_JOIN_LUA)
     _finish = _r.register_script(_FINISH_LUA)
     _drop = _r.register_script(_DROP_LUA)
     _restamp = _r.register_script(_RESTAMP_LUA)
     _end_paused = _r.register_script(_END_PAUSED_LUA)
+    _rate = _r.register_script(_RATE_LUA)
 
 
 # ─── Code generation (audit L1: secrets, not random) ───────────────────────
@@ -304,6 +317,12 @@ async def snapshot(code: str) -> dict | None:
         if k.startswith("p:"):
             _, pid, field = k.split(":", 2)
             players.setdefault(pid, {})[field] = _coerce_player(field, v)
+        elif k.startswith("drand:"):
+            # Per-roll provable-fairness audit fields — one accumulates per roll.
+            # They are read directly via get_drand_round() (HGET), never through
+            # this snapshot, so keep them out of the rebuilt game dict: otherwise
+            # every broadcast state frame would carry O(total rolls) of them.
+            continue
         elif k != "order":
             game[k] = _coerce_game(k, v)
     game["players"] = players
@@ -633,12 +652,13 @@ async def discovery_card(code: str) -> dict | None:
 # ─── Abuse limits (audit H1) — enforced in Redis so they hold across instances ─
 
 async def rate_allow(scope: str, ident: str, limit: int, window: float) -> bool:
-    """Sliding-ish fixed-window limiter. True if under `limit` per `window`."""
+    """Sliding-ish fixed-window limiter. True if under `limit` per `window`.
+
+    INCR + EXPIRE run in one atomic Lua script so a crash can't split them and
+    strand a TTL-less key that would throttle the identity forever."""
     key = f"rl:{scope}:{ident}"
-    n = await _r.incr(key)
-    if n == 1:
-        await _r.expire(key, int(window) or 1)
-    return n <= limit
+    n = await _rate(keys=[key], args=[int(window) or 1])
+    return int(n) <= limit
 
 
 async def conn_incr(ip: str) -> int:

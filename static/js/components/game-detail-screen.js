@@ -12,6 +12,10 @@ import { state } from '../state.js';
  * Light DOM: the host element *is* `#game-detail.screen`.
  */
 export class GameDetailScreen extends HTMLElement {
+  /** Bumped each time verification (re)starts so a superseded run bails at its
+   *  next await instead of writing into the newly-rendered detail view. */
+  #verifyGen = 0;
+
   connectedCallback() {
     if (this.dataset.rendered) return;
     this.dataset.rendered = 'true';
@@ -151,6 +155,11 @@ export class GameDetailScreen extends HTMLElement {
     const statusEl = document.getElementById('gd-trust-status');
     const boxEl = document.getElementById('gd-trust-box');
     if (!statusEl || !boxEl) return;
+    // Generation guard: quickly switching between two /games/<code> views starts
+    // overlapping verification loops. Capture our generation; a newer run bumps
+    // it, so we bail at the next await instead of writing stale results (e.g.
+    // toggling the other view's scanner class) into the freshly-rendered view.
+    const gen = ++this.#verifyGen;
 
     // Phase 1: scanning animation
     const phases = [
@@ -162,24 +171,28 @@ export class GameDetailScreen extends HTMLElement {
     for (const msg of phases) {
       statusEl.innerHTML = msg;
       await new Promise((r) => setTimeout(r, 600));
+      if (gen !== this.#verifyGen) return;
     }
 
     // Phase 2: actual verification
     statusEl.innerHTML = 'Verifying rolls&hellip;';
     try {
       const res = await fetch(`/api/game/${encodeURIComponent(code)}/verify`);
+      if (gen !== this.#verifyGen) return;
       if (!res.ok) {
         statusEl.innerHTML = 'Verification unavailable';
         boxEl.classList.add('gd-trust-done');
         return;
       }
       const v = await res.json();
+      if (gen !== this.#verifyGen) return;
 
       // Phase 3: reveal per-player results with stagger
       const scannerEl = document.getElementById('gd-trust-scanner');
       if (scannerEl) scannerEl.classList.add('gd-trust-scan-done');
 
       await new Promise((r) => setTimeout(r, 400));
+      if (gen !== this.#verifyGen) return;
 
       // Build results
       const allPassed = v.failed === 0 && v.total > 0;

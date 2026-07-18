@@ -28,10 +28,15 @@ SELECT id::text AS user_id, username
   FROM users
  WHERE id::text = trim(both '''' from :'target_id');
 
+-- Stash the requested id in a real GUC so the abort message can echo it back.
+-- `:'target_id'` is a psql client variable, not a server setting, so
+-- current_setting('target_id') returned NULL and printed a blank id.
+SELECT set_config('tensies.target_id', trim(both '''' from :'target_id'), false);
+
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM _target) THEN
-    RAISE EXCEPTION 'No user found with id %', current_setting('target_id', true);
+    RAISE EXCEPTION 'No user found with id %', current_setting('tensies.target_id', true);
   END IF;
 END $$;
 

@@ -9,6 +9,10 @@ __pycache__/
 venv/
 .playwright-mcp/
 .DS_Store
+# Deploy-time secrets (e.g. ops/secrets/metrics_token) are mounted into the
+# prometheus/web containers at runtime — never bake them into an image layer,
+# where `docker history`/layer extraction would recover them.
+ops/secrets/
 # Frontend build: node_modules is reinstalled (npm ci) and dist is rebuilt
 # inside the `assets` stage; never ship the host copies into the build context.
 node_modules/

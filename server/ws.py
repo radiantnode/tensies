@@ -10,6 +10,7 @@ from . import db, db_places, gamestore, places, qr, state
 from .broadcast import (
     advance_round,
     broadcast,
+    cancel_drop_tasks,
     checkout_game,
     delayed_broadcast,
     do_drop,
@@ -542,6 +543,7 @@ async def handle_end_game(session: Session, msg: dict) -> None:
     t = state.pause_tasks.pop(code, None)
     if t:
         t.cancel()
+    cancel_drop_tasks(code)
 
 
 async def handle_leave(session: Session, msg: dict) -> None:
@@ -621,24 +623,30 @@ async def websocket_endpoint(ws: WebSocket) -> None:
         return
 
     session = Session(ws, str(uuid.uuid4()))
-    sessions[id(ws)] = session
-
-    metrics.ws_connections_active.inc()
-    metrics.ws_connects_total.inc()
-    emit("connection_opened",
-         session_id=session.session_id, peer=session.peer,
-         user_agent=session.user_agent)
-
-    # Pinger: routes through send() so its frames respect the per-session
-    # send_lock and get counted in the outbound metrics.
-    session.pinger = Pinger(session.session_id, lambda m: send(ws, m))
-    session.pinger.start()
-
-    await send(ws, {"type": "welcome", "player_id": session.pid})
-    log.info("connect  pid=%s  session=%s", session.pid[:8], session.session_id[:8])
-
     disconnect_reason = "client"
+    # Everything past conn_incr runs inside the try so the finally always fires.
+    # The initial `welcome` send (and pinger setup) used to sit ABOVE the try;
+    # if that send raised — a client that vanished right after the handshake,
+    # routine on flaky mobile links — the finally never ran, so conn_decr /
+    # sessions.pop / pinger.stop were all skipped and the per-IP counter leaked
+    # (its TTL refreshed on every reconnect), eventually locking the IP and its
+    # NAT peers out for up to an hour.
     try:
+        sessions[id(ws)] = session
+        metrics.ws_connections_active.inc()
+        metrics.ws_connects_total.inc()
+        emit("connection_opened",
+             session_id=session.session_id, peer=session.peer,
+             user_agent=session.user_agent)
+
+        # Pinger: routes through send() so its frames respect the per-session
+        # send_lock and get counted in the outbound metrics.
+        session.pinger = Pinger(session.session_id, lambda m: send(ws, m))
+        session.pinger.start()
+
+        await send(ws, {"type": "welcome", "player_id": session.pid})
+        log.info("connect  pid=%s  session=%s", session.pid[:8], session.session_id[:8])
+
         while True:
             text = await ws.receive_text()
             # Reject oversized frames before parsing (audit L2).

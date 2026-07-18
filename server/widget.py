@@ -154,7 +154,7 @@ async def _db_stats() -> tuple[str, list[dict], bool]:
                      ORDER BY e.game_code, e.user_id, e.ts DESC
                 )
                 SELECT r.game_code, r.ended_ts,
-                       (SELECT json_agg(name) FROM names n
+                       (SELECT json_agg(name ORDER BY name) FROM names n
                          WHERE n.game_code = r.game_code) AS players
                   FROM recent r
                  ORDER BY r.ended_ts DESC
@@ -173,7 +173,9 @@ async def _db_stats() -> tuple[str, list[dict], bool]:
 async def widget_page(key: str = "") -> HTMLResponse:
     if WIDGET_TOKEN is None:
         raise HTTPException(status_code=503, detail="widget disabled")
-    if not secrets.compare_digest(key, WIDGET_TOKEN):
+    # Compare as bytes: secrets.compare_digest raises TypeError (→ 500, not 401)
+    # on a non-ASCII str, which a non-ASCII WIDGET_TOKEN + key would trigger.
+    if not secrets.compare_digest(key.encode("utf-8"), WIDGET_TOKEN.encode("utf-8")):
         raise HTTPException(status_code=401, detail="unauthorized")
 
     active, redis_ok = await _game_stats()

@@ -74,6 +74,13 @@ async def delayed_broadcast(code: str, pid: str, is_win: bool, winner_name: str 
         return
 
     ev = asyncio.Event()
+    # If a previous roll's broadcast is still waiting on this pid's ack, releasing
+    # it now (rather than orphaning it) lets it fan out the latest snapshot at
+    # once instead of stalling the full ROLL_ACK_TIMEOUT — its own `finally`
+    # identity-check keeps it from popping our new event.
+    prev = state.ack_events.get(pid)
+    if prev is not None:
+        prev.set()
     state.ack_events[pid] = ev
     try:
         await asyncio.wait_for(ev.wait(), timeout=ROLL_ACK_TIMEOUT)
@@ -146,6 +153,7 @@ async def end_if_paused_over(code: str) -> None:
                            "msg": "Game ended — it was paused too long."})
     state.connections.pop(code, None)
     state.pause_tasks.pop(code, None)
+    cancel_drop_tasks(code)
 
 
 async def _emit_checkout(code: str, pid: str | None, info: dict, *,
@@ -177,6 +185,16 @@ async def checkout_game(code: str, pid: str | None, *, reason: str,
         await _emit_checkout(code, pid, info, reason=reason, session_id=session_id)
 
 
+def cancel_drop_tasks(code: str) -> None:
+    """Cancel any still-pending grace-drop tasks for a game that's being torn
+    down. They'd otherwise sleep out their grace, then no-op against the deleted
+    game (self-healing, but they hold a reference to the dead code until then)."""
+    for key in [k for k in state.drop_tasks if k[0] == code]:
+        t = state.drop_tasks.pop(key, None)
+        if t:
+            t.cancel()
+
+
 async def drop_player(code: str, pid: str) -> None:
     """Remove a disconnected player after the grace period (local-task path)."""
     await asyncio.sleep(DISCONNECT_GRACE)
@@ -200,11 +218,16 @@ async def do_drop(
     if player is None or not player.get("disconnected"):
         return
 
-    if snap.get("paused"):
-        # While paused, nobody is dropped — the host may have stepped away. But
-        # a paused game must not be held hostage by an absent host: if the host
-        # is the one who's gone, hand the host role (and the resume control) to
-        # a still-connected player so the game stays recoverable.
+    if snap.get("paused") and reason != "leave":
+        # While paused, nobody is dropped *on disconnect* — the host may have
+        # stepped away and will reconnect. A voluntary leave (reason="leave") is
+        # different: the player deliberately quit and their client is gone, so it
+        # falls through to the real drop below and the roster updates for everyone
+        # immediately (otherwise the leaver lingers as a ghost until resume or the
+        # 1-hour pause cap). But a paused game must not be held hostage by an
+        # absent host: if the host is the one who's gone, hand the host role (and
+        # the resume control) to a still-connected player so the game stays
+        # recoverable.
         if snap["host"] == pid:
             new_host = next((q for q, pl in snap["players"].items()
                              if q != pid and not pl.get("disconnected")), None)
@@ -245,6 +268,7 @@ async def do_drop(
         if checkin:
             await _emit_checkout(code, pid, checkin, reason="game_ended")
         state.connections.pop(code, None)
+        cancel_drop_tasks(code)
         return
 
     if res["new_host"]:

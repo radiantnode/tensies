@@ -43,6 +43,14 @@ log = logging.getLogger("tensies.auth")
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+def _require_db() -> None:
+    """Return a clean 503 when Postgres is absent (the no-DB dev wrapper, or a
+    failed db.init()). Without this, db.pool() asserts and the endpoint 500s with
+    a bare AssertionError instead of a meaningful 'accounts unavailable'."""
+    if not db.available():
+        raise HTTPException(503, "Accounts are temporarily unavailable")
+
+
 async def _rate_limit(request: Request) -> None:
     """Per-IP limiter for the auth endpoints. They are unauthenticated and do
     Redis + Postgres work per call, and registration/login options responses
@@ -146,6 +154,7 @@ class LoginVerifyRequest(BaseModel):
 
 @router.post("/register/options")
 async def register_options(body: RegisterOptionsRequest, request: Request):
+    _require_db()
     await _rate_limit(request)
     username = _validate_username(body.username)
 
@@ -208,6 +217,7 @@ async def register_options(body: RegisterOptionsRequest, request: Request):
 
 @router.post("/register/verify")
 async def register_verify(body: RegisterVerifyRequest, request: Request):
+    _require_db()
     await _rate_limit(request)
     username = _validate_username(body.username)
     challenge = await _pop_challenge(body.nonce)
@@ -327,6 +337,7 @@ async def register_verify(body: RegisterVerifyRequest, request: Request):
 
 @router.post("/login/options")
 async def login_options(body: LoginOptionsRequest, request: Request):
+    _require_db()
     await _rate_limit(request)
     username = _validate_username(body.username)
 
@@ -380,6 +391,7 @@ async def login_options(body: LoginOptionsRequest, request: Request):
 
 @router.post("/login/verify")
 async def login_verify(body: LoginVerifyRequest, request: Request):
+    _require_db()
     await _rate_limit(request)
     username = body.username.strip()
     challenge = await _pop_challenge(body.nonce)

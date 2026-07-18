@@ -1,7 +1,7 @@
 // @ts-check
 import { byId } from './dom.js';
 import {
-  RESUME_CLOSE_DELAY_MS, hidePaused, hideWinner, pausedText, showPaused, waitingText,
+  RESUME_CLOSE_DELAY_MS, hidePaused, hidePausedSoon, hideWinner, pausedText, showPaused, waitingText,
 } from './overlays.js';
 import { saveGameCode, hasSession } from './session.js';
 import { state } from './state.js';
@@ -360,7 +360,7 @@ export function showFor(snap) {
     else reveal();
     // Just resumed: drop the pause overlay after the toggle's slide-off.
     const pauseDialog = /** @type {HTMLDialogElement | null} */ (document.getElementById('pause-overlay'));
-    if (pauseDialog?.open) setTimeout(hidePaused, RESUME_CLOSE_DELAY_MS);
+    if (pauseDialog?.open) hidePausedSoon(RESUME_CLOSE_DELAY_MS);
     else hidePaused();
   });
 }

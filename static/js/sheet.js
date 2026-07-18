@@ -35,7 +35,14 @@ export class SheetController {
       this.close();
     });
     // Backdrop tap (a modal dialog reports it as a click on the dialog itself).
+    // Gate on event.target === dialog FIRST: a click on any child (a button, an
+    // input) targets that child, not the dialog. Without this, the touch guard's
+    // synthesized second-tap click — dispatched at (0,0) — bubbles up from a
+    // button inside the sheet and, because (0,0) is geometrically outside this
+    // bottom-anchored dialog, was misread as a backdrop tap and slammed the
+    // sheet shut mid-interaction (e.g. tearing down the mic on the listen sheet).
     dialog.addEventListener('click', (event) => {
+      if (event.target !== dialog) return;
       const r = dialog.getBoundingClientRect();
       const outside = event.clientX < r.left || event.clientX > r.right ||
                       event.clientY < r.top || event.clientY > r.bottom;

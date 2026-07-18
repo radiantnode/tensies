@@ -1,7 +1,7 @@
 // @ts-check
 import { myDiceKey } from './dice.js';
 import { byId } from './dom.js';
-import { renderMyArea, renderPlayersBar } from './game-render.js';
+import { renderMyArea, renderPlayersBar, stopPauseTick, syncPaused } from './game-render.js';
 import { showWinner } from './overlays.js';
 import { landing, showFor, showGameDetail, showLanding } from './router.js';
 import { getAuthToken, isSignedIn, getAuthUser } from './auth.js';
@@ -341,6 +341,7 @@ function handleMessage(msg) {
     }
     case 'game_ended': {
       resetRollState();
+      stopPauseTick();
       // The game screen is a persistent shell element, so its in-game menu
       // (open when you tapped "End Game") would otherwise stay open and show
       // up on the next game's board. Reset it as the game tears down.
@@ -368,6 +369,12 @@ function handleMessage(msg) {
  */
 function handleError(msg) {
   if (msg.fatal) {
+    // The in-game menu is a persistent shell element. A fatal frame (the pause
+    // cap) can arrive with it open — the host pauses with the menu open by
+    // design — so close it here too, or it leaks into the next game's board.
+    // Mirrors the game_ended path above.
+    /** @type {import('./components/game-screen.js').GameScreen} */ (byId('game')).closeMenu();
+    stopPauseTick();
     clearSession();
     state.currentState = null;
     state.reconnecting = false;
@@ -406,5 +413,10 @@ function handleError(msg) {
     resetRollState();
     renderMyArea(state.currentState);
     renderPlayersBar(state.currentState);
+    // renderMyArea rebuilds the roll button in its default (enabled) state, so
+    // re-apply the paused flag — otherwise an error that lands while paused
+    // leaves the button reading "Roll" (harmless, roll() guards on paused, but
+    // visually wrong).
+    syncPaused(state.currentState);
   }
 }
