@@ -41,6 +41,10 @@ export const state = {
   // ── Game board / roll choreography (driven by the game view) ──
   /** @type {string | null} Fingerprint to skip needless my-area re-renders. */
   lastMyDiceKey: null,
+  /** @type {number | null} Round the my-area board was last (re)built for. Lets
+   *  the reveal detect a stale board — a round-advance broadcast we never got —
+   *  and hard-rebuild instead of animating new dice onto the old round. */
+  boardRound: null,
   /** True while the shake animation is running. */
   rolling: false,
   /** True while waiting on the server's roll response. */

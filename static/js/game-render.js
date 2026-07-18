@@ -97,6 +97,9 @@ export function renderPlayersBar(snap) {
 export function renderMyArea(snap) {
   const player = state.myId ? snap.players[state.myId] : undefined;
   if (!player) return;
+  // Record the round this board belongs to so a later reveal can tell whether
+  // the board is still current (see updateDiceInPlace's stale-board guard).
+  state.boardRound = snap.round_num;
 
   const effectiveTarget = player.has_rolled ? snap.target : -1;
   const matched = player.dice.filter((d) => d === effectiveTarget);

@@ -77,7 +77,14 @@ export function updateDiceInPlace(snap, onComplete, winForMe = false) {
   const player = state.myId ? snap.players[state.myId] : undefined;
   const wrappers = /** @type {HTMLElement[]} */ ([...document.querySelectorAll('.zone-unmatched .die-wrapper')]);
 
-  if (!player || wrappers.length === 0) {
+  // If the board on screen was built for a different round, we fell behind the
+  // server — a round-advance broadcast was lost (flaky link) — and are only now
+  // catching up through this roll response. Animating in place would paint the
+  // new round's dice onto the stale board: old locks kept, new target stacking
+  // on top (the dropped-broadcast frankenboard). Hard-rebuild to the round the
+  // snapshot actually describes.
+  const staleBoard = state.boardRound != null && snap.round_num !== state.boardRound;
+  if (!player || wrappers.length === 0 || staleBoard) {
     renderMyArea(snap);
     renderPlayersBar(snap);
     if (onComplete) onComplete();
@@ -161,11 +168,28 @@ export function updateDiceInPlace(snap, onComplete, winForMe = false) {
       return;
     }
 
-    const matchedZone = document.querySelector('.zone-matched');
     if (newlyMatchedCount > 0) {
       const popT = setTimeout(() => {
+        // A pop the round has moved past must not drop its now-stale matched
+        // dice into the next round's fresh zone, so bail once a later snapshot
+        // (a round advance) has replaced ours.
+        if (state.currentState && state.currentState.round_num !== snap.round_num) {
+          if (onComplete) onComplete();
+          return;
+        }
+        // Reconcile the locked zone to exactly this snapshot's matched dice
+        // instead of blindly appending prevMatchedCount→length. Under a
+        // reveal/rebuild race the live zone can already hold a different count
+        // than prevMatchedCount assumed, and a blind append then stacks it past
+        // 10 (the "locked dice keep stacking beyond 10" bug). Re-query the live
+        // zone, trim any excess, then pop in only the genuinely-missing dice so
+        // the animation still plays.
+        const matchedZone = document.querySelector('.zone-matched');
         if (matchedZone) {
-          for (let i = state.prevMatchedCount; i < newMatched.length; i++) {
+          while (matchedZone.children.length > newMatched.length) {
+            matchedZone.lastElementChild?.remove();
+          }
+          for (let i = matchedZone.children.length; i < newMatched.length; i++) {
             const scene = makeDie(newMatched[i], effectiveTarget);
             scene.classList.add('popping');
             matchedZone.appendChild(scene);

@@ -276,6 +276,19 @@ function handleMessage(msg) {
       return;
     case 'state':
       if (msg.qr) state.qr = msg.qr; // re-sent on a lobby reconnect
+      // Authoritative catch-up: a frame for a round AHEAD of the one we're
+      // showing means we missed the round-advance broadcast (dropped on a flaky
+      // link). A newer round supersedes any in-flight roll, so apply it now
+      // rather than stashing it behind a reveal that might never run — otherwise
+      // a client that also stops rolling stays parked on the old round while the
+      // server and everyone else move on.
+      if (msg.started && state.currentState
+          && typeof msg.round_num === 'number'
+          && msg.round_num > (state.currentState.round_num ?? 0)) {
+        resetRollState();
+        showFor(msg);
+        return;
+      }
       // My own roll response (private, pre-broadcast): hold it for tryReveal
       // so the shake/reveal animation drives the change instead of a hard
       // re-render. A newer broadcast landing mid-reveal is stashed separately
