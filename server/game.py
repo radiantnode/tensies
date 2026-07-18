@@ -42,9 +42,13 @@ def fresh_dice() -> list[int]:
     return [random.randint(1, 6) for _ in range(10)]
 
 
-def next_target(t: int) -> int:
-    # cycles 1 → 2 → 3 → 4 → 5 → 6 → 1 → …
-    return t % 6 + 1
+def target_for_round(round_num: int) -> int:
+    # Triangle wave over the 1-based round number: the target climbs 1→6 then
+    # descends 6→1 and back up, so it reads 1,2,3,4,5,6,5,4,3,2,1,2,3,4,5,6,…
+    # The value alone can't encode direction (target 3 could be rising or
+    # falling), so the round number — a monotonic counter — drives it instead.
+    m = (round_num - 1) % 10
+    return m + 1 if m <= 5 else 11 - m
 
 
 def apply_roll(player: dict, target: int, *, dice_values: list[int] | None = None) -> dict:

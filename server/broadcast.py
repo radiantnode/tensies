@@ -6,7 +6,7 @@ from fastapi import WebSocket
 
 from . import db, db_places, fanout, gamestore, places, state
 from .config import DISCONNECT_GRACE, PAUSE_MAX, ROLL_ACK_TIMEOUT, ROUND_WIN_DELAY, log
-from .game import next_target, state_msg
+from .game import target_for_round, state_msg
 from .state import sessions
 from .telemetry import emit, metrics
 
@@ -52,7 +52,7 @@ async def advance_round(code: str) -> None:
     old_round = meta["round_num"]
     old_target = meta["target"]
     emit("round_ended", game_code=code, round_num=old_round, target=old_target)
-    new_target = next_target(old_target)
+    new_target = target_for_round(old_round + 1)
     await gamestore.advance_round(code, new_target)
     snap = await gamestore.snapshot(code)
     if snap is None:
