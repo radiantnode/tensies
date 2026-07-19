@@ -1,4 +1,5 @@
 import asyncio
+import hmac
 import math
 import re
 from pathlib import Path
@@ -78,7 +79,11 @@ def _bearer_guard(expected: str | None):
     async def _dep(authorization: str | None = Header(default=None)) -> None:
         if expected is None:
             return
-        if authorization != f"Bearer {expected}":
+        # Constant-time compare: a plain `!=` short-circuits on the first
+        # differing byte (and leaks length), letting a timing attack recover the
+        # token byte-by-byte.
+        if not (authorization
+                and hmac.compare_digest(authorization, f"Bearer {expected}")):
             raise HTTPException(status_code=401, detail="unauthorized")
     return _dep
 

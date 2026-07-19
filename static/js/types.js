@@ -87,6 +87,7 @@
  * @typedef {object} ReconnectTokenMessage
  * @property {'reconnect_token'} type
  * @property {string} token
+ * @property {string} [player_id] Authoritative pid the server bound this game to (it may have re-adopted the client's durable anonymous pid).
  * @property {string} [qr] Inline invite QR (data URL) sent alongside the token after create/join.
  */
 

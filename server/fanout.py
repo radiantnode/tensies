@@ -11,7 +11,7 @@ import json
 
 import redis.asyncio as aioredis
 
-from server.config import REDIS_URL, log
+from server.config import BROADCAST_SEND_TIMEOUT, REDIS_URL, log
 from server.state import connections
 
 CHANNEL_PREFIX = "bcast:"
@@ -80,13 +80,26 @@ async def _deliver(code: str, message: dict, exclude: str | None) -> None:
     local = connections.get(code)
     if not local:
         return
-    dead = []
-    for pid, ws in list(local.items()):
-        if pid == exclude:
-            continue
+    targets = [(pid, ws) for pid, ws in list(local.items()) if pid != exclude]
+    if not targets:
+        return
+
+    # Deliver to every local socket CONCURRENTLY, each bounded by
+    # BROADCAST_SEND_TIMEOUT. Sequential unbounded awaits here meant a single
+    # backpressured client (a phone that stopped reading its socket) blocked the
+    # one shared fanout subscriber task indefinitely — stalling broadcasts for
+    # EVERY game on the instance (head-of-line blocking). Concurrency + a
+    # per-send timeout bounds the worst case to the timeout and reaps the stuck
+    # socket instead of wedging the loop. Ordering is preserved: _run awaits this
+    # to completion before delivering the next message for any game.
+    async def _one(pid: str, ws) -> str | None:
         try:
-            await send(ws, message)
+            await asyncio.wait_for(send(ws, message), BROADCAST_SEND_TIMEOUT)
         except Exception:
-            dead.append(pid)
-    for pid in dead:
-        local.pop(pid, None)
+            return pid  # dead, errored, or too slow — drop the local socket
+        return None
+
+    results = await asyncio.gather(*(_one(pid, ws) for pid, ws in targets))
+    for pid in results:
+        if pid is not None:
+            local.pop(pid, None)

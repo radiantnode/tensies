@@ -24,6 +24,7 @@ import time
 import redis.asyncio as aioredis
 
 from server.config import (
+    CLAIM_TTL,
     GAME_TTL,
     MAX_GAMES,
     MAX_PLAYERS_PER_GAME,
@@ -37,7 +38,7 @@ GEO_INDEX = "games:geo"  # GEO sorted set of discoverable lobbies (checked-in ve
 _r: aioredis.Redis | None = None
 
 # Lua scripts, registered on init().
-_create = _join = _finish = _drop = _restamp = _end_paused = None
+_create = _join = _finish = _drop = _restamp = _end_paused = _rate = None
 
 
 def client() -> aioredis.Redis:
@@ -119,14 +120,16 @@ return 0
 
 _DROP_LUA = """
 -- KEYS[1]=game key  KEYS[2]=index  KEYS[3]=geo index
--- ARGV: code, pid, grace_ms, now_ms, ttl
+-- ARGV: code, pid, grace_ms, now_ms, ttl, allow_paused
 -- Removes a disconnected player past the grace window. Idempotent: a second
 -- caller (local task vs reaper) finds the player gone and no-ops.
 -- Returns {0}=noop, {1,new_host}=removed (new_host '' if unchanged),
 -- {2}=removed and game deleted (was last player).
 local key, idx, geo, code, pid = KEYS[1], KEYS[2], KEYS[3], ARGV[1], ARGV[2]
 if redis.call('EXISTS', key) == 0 then return {0} end
-if redis.call('HGET', key, 'paused') == '1' then return {0} end   -- never drop while paused
+-- Never drop on a *disconnect* while paused (players are held). A voluntary
+-- leave (allow_paused='1') is explicit intent and removes the slot even paused.
+if redis.call('HGET', key, 'paused') == '1' and ARGV[6] ~= '1' then return {0} end
 local p = 'p:' .. pid .. ':'
 if redis.call('HGET', key, p .. 'disconnected') ~= '1' then return {0} end
 local dat = tonumber(redis.call('HGET', key, p .. 'disconnected_at_ms') or '0')
@@ -154,14 +157,27 @@ return {1, new_host}
 """
 
 
+_RATE_LUA = """
+local n = redis.call('INCR', KEYS[1])
+-- Guarantee a TTL atomically so a crash between INCR and EXPIRE can't leave a
+-- TTL-less key that throttles an identity forever. TTL < 0 means no expiry
+-- (-1) — set it; also self-heals any pre-existing leaked key.
+if redis.call('TTL', KEYS[1]) < 0 then
+  redis.call('EXPIRE', KEYS[1], tonumber(ARGV[1]))
+end
+return n
+"""
+
+
 def _register_scripts() -> None:
-    global _create, _join, _finish, _drop, _restamp, _end_paused
+    global _create, _join, _finish, _drop, _restamp, _end_paused, _rate
     _create = _r.register_script(_CREATE_LUA)
     _join = _r.register_script(_JOIN_LUA)
     _finish = _r.register_script(_FINISH_LUA)
     _drop = _r.register_script(_DROP_LUA)
     _restamp = _r.register_script(_RESTAMP_LUA)
     _end_paused = _r.register_script(_END_PAUSED_LUA)
+    _rate = _r.register_script(_RATE_LUA)
 
 
 # ─── Code generation (audit L1: secrets, not random) ───────────────────────
@@ -304,6 +320,12 @@ async def snapshot(code: str) -> dict | None:
         if k.startswith("p:"):
             _, pid, field = k.split(":", 2)
             players.setdefault(pid, {})[field] = _coerce_player(field, v)
+        elif k.startswith("drand:"):
+            # Per-roll provable-fairness audit fields — one accumulates per roll.
+            # They are read directly via get_drand_round() (HGET), never through
+            # this snapshot, so keep them out of the rebuilt game dict: otherwise
+            # every broadcast state frame would carry O(total rolls) of them.
+            continue
         elif k != "order":
             game[k] = _coerce_game(k, v)
     game["players"] = players
@@ -468,13 +490,18 @@ async def transfer_host(code: str, new_host: str) -> None:
     await _r.hset(_gkey(code), "host", new_host)
 
 
-async def drop_player(code: str, pid: str, grace_ms: int) -> dict:
+async def drop_player(code: str, pid: str, grace_ms: int,
+                      allow_paused: bool = False) -> dict:
     """Remove a disconnected player past grace (atomic, idempotent).
+
+    `allow_paused` overrides the never-drop-while-paused guard for a voluntary
+    leave (explicit intent), while disconnect/reaper drops stay held when paused.
 
     Returns {"action": "noop"|"removed"|"deleted", "new_host": str|None}.
     """
     res = await _drop(keys=[_gkey(code), INDEX, GEO_INDEX],
-                      args=[code, pid, grace_ms, now_ms(), GAME_TTL])
+                      args=[code, pid, grace_ms, now_ms(), GAME_TTL,
+                            "1" if allow_paused else "0"])
     status = int(res[0])
     if status == 2:
         return {"action": "deleted", "new_host": None}
@@ -633,12 +660,43 @@ async def discovery_card(code: str) -> dict | None:
 # ─── Abuse limits (audit H1) — enforced in Redis so they hold across instances ─
 
 async def rate_allow(scope: str, ident: str, limit: int, window: float) -> bool:
-    """Sliding-ish fixed-window limiter. True if under `limit` per `window`."""
+    """Sliding-ish fixed-window limiter. True if under `limit` per `window`.
+
+    INCR + EXPIRE run in one atomic Lua script so a crash can't split them and
+    strand a TTL-less key that would throttle the identity forever."""
     key = f"rl:{scope}:{ident}"
-    n = await _r.incr(key)
-    if n == 1:
-        await _r.expire(key, int(window) or 1)
-    return n <= limit
+    n = await _rate(keys=[key], args=[int(window) or 1])
+    return int(n) <= limit
+
+
+# ─── Stat-claim ownership tokens ───────────────────────────────────────────────
+# An anonymous player's pid leaks to co-players via state_msg, so the pid alone
+# can't authorise transferring that pid's player_stats onto a new account (a
+# co-player could harvest it and claim someone else's stats). The private
+# reconnect token never leaves the owner's client, so we keep its hash keyed by
+# pid — outliving the ephemeral game — and require the token at registration.
+
+def _claim_key(pid: str) -> str:
+    return f"claim:{pid}"
+
+
+async def record_claim(pid: str, token_hash: str) -> None:
+    """Remember an anonymous pid's reconnect-token hash so a later registration
+    can prove ownership of its stats. Self-expiring (CLAIM_TTL)."""
+    await _r.set(_claim_key(pid), token_hash, ex=CLAIM_TTL)
+
+
+async def verify_claim(pid: str, token: str) -> bool:
+    """True if `token` matches the stored claim hash for `pid`."""
+    if not pid or not token:
+        return False
+    from .game import verify_token  # local import avoids an import cycle
+    return verify_token(await _r.get(_claim_key(pid)), token)
+
+
+async def clear_claim(pid: str) -> None:
+    """Drop a claim once its stats have been transferred (single use)."""
+    await _r.delete(_claim_key(pid))
 
 
 async def conn_incr(ip: str) -> int:

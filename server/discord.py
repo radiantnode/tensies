@@ -387,14 +387,22 @@ async def _request(method: str, path: str, body: dict | list) -> httpx.Response 
     return None
 
 
+# Cap the 429 backoff so a hostile or buggy `retry_after` (e.g. a huge value in
+# the body) can't park the notifier task asleep for minutes/hours.
+_MAX_RETRY_AFTER = 30.0
+
+
 def _retry_after(r: httpx.Response) -> float:
     try:
-        return float(r.json().get("retry_after", 1.0))
+        val = float(r.json().get("retry_after", 1.0))
     except Exception:
         try:
-            return float(r.headers.get("Retry-After", "1"))
+            val = float(r.headers.get("Retry-After", "1"))
         except (TypeError, ValueError):
-            return 1.0
+            val = 1.0
+    if val != val or val < 0:  # NaN or negative
+        val = 1.0
+    return min(val, _MAX_RETRY_AFTER)
 
 
 # ─── Slash commands ─────────────────────────────────────────────────────────

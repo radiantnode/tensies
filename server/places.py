@@ -206,11 +206,20 @@ async def search_text(query: str, lat: float, lon: float) -> list[dict]:
     return results
 
 
+# A Google place_id is opaque but always `[A-Za-z0-9_-]`. Validate here, at the
+# single choke point, before it is interpolated into a Google URL path or a
+# Redis cache key — a client-supplied `/`, `?`, `#`, or `..` would otherwise
+# reach unintended API paths/params and seed arbitrary cache keys.
+_PLACE_ID_RE = re.compile(r"^[\w-]{1,256}$")
+
+
 async def resolve(place_id: str) -> dict | None:
     """Authoritative {place_id, name, lat, lon} for a place — from the cache, or
     a Google Place Details call. None if unknown. Deriving coords server-side
     (never trusting client-sent coords) is what stops a game being dropped at an
     arbitrary spot."""
+    if not _PLACE_ID_RE.match(place_id):
+        return None
     cached = await _cache_get(place_id)
     if cached is not None:
         return cached

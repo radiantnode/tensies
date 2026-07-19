@@ -262,10 +262,13 @@ export class ProfileScreen extends HTMLElement {
           }).join('')}
         </div>`;
       recentEl.hidden = false;
-      recentEl.addEventListener('click', (e) => {
+      // Assign (not addEventListener): #profile-recent persists across profile
+      // navigations, so addEventListener stacked a new handler every render.
+      // onclick replaces, keeping exactly one.
+      recentEl.onclick = (e) => {
         const row = /** @type {HTMLElement | null} */ (/** @type {HTMLElement} */ (e.target).closest('.recent-game[data-game-code]'));
         if (row?.dataset.gameCode) showGameDetail(row.dataset.gameCode);
-      });
+      };
     }
 
     // Trigger shimmer animation once

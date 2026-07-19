@@ -129,16 +129,20 @@ class DevAssets:
 
     def __init__(self, app_url: str = "") -> None:
         self._app_url = app_url
-        self._sig: tuple[int, int] | None = None
+        self._sig: tuple[int, int, int] | None = None
         self._tmpl: Template | None = None
         self._defaults: dict[str, str] = {}
         self._js: dict[str, str] = {}
 
-    def _signature(self) -> tuple[int, int]:
+    def _signature(self) -> tuple[int, int, int]:
         css, js, legacy = _collect_assets()
         paths = [*css, *js, *legacy, STATIC_DIR / "index.html"]
-        newest = max((p.stat().st_mtime_ns for p in paths if p.exists()), default=0)
-        return newest, len(paths)
+        mtimes = [p.stat().st_mtime_ns for p in paths if p.exists()]
+        # (newest, count, sum-of-mtimes): a `git checkout` that swaps one module
+        # for another keeps the count and can restore an OLDER mtime than the
+        # current newest — max+count alone would miss it and keep serving the
+        # stale module graph. The mtime sum moves whenever any file's mtime does.
+        return (max(mtimes, default=0), len(mtimes), sum(mtimes))
 
     def _refresh_if_stale(self) -> None:
         sig = self._signature()

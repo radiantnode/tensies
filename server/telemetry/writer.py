@@ -18,25 +18,53 @@ log = logging.getLogger("tensies.writer")
 BATCH_MAX = 500
 BATCH_INTERVAL_S = 0.25
 _task: asyncio.Task | None = None
+_q: asyncio.Queue | None = None
+_stopping = False
 
 
 async def start() -> None:
-    global _task
-    q = bus.subscribe(maxsize=20_000)
-    _task = asyncio.create_task(_run(q), name="telemetry.writer")
+    global _task, _q, _stopping
+    _stopping = False
+    _q = bus.subscribe(maxsize=20_000)
+    _task = asyncio.create_task(_run(_q), name="telemetry.writer")
 
 
 async def stop() -> None:
+    # Graceful stop: signal the loop instead of cancelling, so it finishes its
+    # current flush and drains what it's holding rather than dropping up to a
+    # full batch mid-await. Then flush anything still queued, so a shutdown or
+    # rolling redeploy doesn't silently lose the last batches of telemetry.
+    global _stopping
+    _stopping = True
     if _task is not None:
-        _task.cancel()
         try:
-            await _task
-        except (asyncio.CancelledError, Exception):
-            pass
+            await asyncio.wait_for(_task, timeout=5.0)
+        except (TimeoutError, asyncio.CancelledError):
+            _task.cancel()
+        except Exception:
+            log.exception("telemetry writer task ended with error")
+    if _q is not None:
+        try:
+            leftover = _drain_nowait(_q)
+            while leftover:
+                await _flush(leftover)
+                leftover = _drain_nowait(_q)
+        except Exception:
+            log.exception("final telemetry drain failed")
+
+
+def _drain_nowait(q: asyncio.Queue) -> list[dict]:
+    batch: list[dict] = []
+    while len(batch) < BATCH_MAX:
+        try:
+            batch.append(q.get_nowait())
+        except asyncio.QueueEmpty:
+            break
+    return batch
 
 
 async def _run(q: asyncio.Queue) -> None:
-    while True:
+    while not _stopping:
         try:
             metrics.telemetry_queue_depth.labels(subscriber="writer").set(q.qsize())
             batch = await _drain(q)
@@ -87,11 +115,20 @@ async def _flush(batch: list[dict]) -> None:
         )
         for ev in batch:
             handler = _HANDLERS.get(ev["type"])
-            if handler is not None:
-                try:
+            if handler is None:
+                continue
+            # Each rollup runs in its OWN savepoint (a nested asyncpg
+            # transaction). Without it, a single handler's SQL error aborts the
+            # whole outer transaction — every *later* handler then fails with
+            # InFailedSQLTransactionError and the COMMIT turns into a ROLLBACK,
+            # silently discarding the entire batch INCLUDING the raw events
+            # insert above. The savepoint rolls back only the failed handler so
+            # the events log and every good rollup still commit.
+            try:
+                async with con.transaction():
                     await handler(con, ev)
-                except Exception:
-                    log.exception("rollup handler failed: %s", ev["type"])
+            except Exception:
+                log.exception("rollup handler failed: %s", ev["type"])
 
 
 def _event_row(ev: dict) -> tuple:
@@ -422,7 +459,12 @@ async def _h_roll(con, ev):
                avg_dt_between_rolls_ms = CASE
                    WHEN $6 IS NULL THEN round_player.avg_dt_between_rolls_ms
                    WHEN round_player.avg_dt_between_rolls_ms IS NULL THEN $6
-                   ELSE ((round_player.avg_dt_between_rolls_ms * round_player.rolls) + $6) / (round_player.rolls + 1)
+                   -- Weight by the number of dt SAMPLES, not total rolls. The
+                   -- first roll of a round has dt=NULL (no prior roll), so after
+                   -- N rolls only N-1 dt samples exist; `rolls` over-weights the
+                   -- running mean toward earlier samples. old_sample_count =
+                   -- round_player.rolls - 1, new count = round_player.rolls.
+                   ELSE ((round_player.avg_dt_between_rolls_ms * (round_player.rolls - 1)) + $6) / round_player.rolls
                END,
                fastest_dt_ms = CASE
                    WHEN $6 IS NULL THEN round_player.fastest_dt_ms
@@ -443,8 +485,8 @@ async def _h_roll(con, ev):
            SET rolls_this_round = rolls_this_round + 1,
                total_rolls = total_rolls + 1,
                last_roll_ts = to_timestamp($2 / 1000.0),
-               leader_user_id = CASE WHEN $3 >= leader_matched THEN $4 ELSE leader_user_id END,
-               leader_name    = CASE WHEN $3 >= leader_matched THEN $5 ELSE leader_name END,
+               leader_user_id = CASE WHEN $3 > leader_matched THEN $4 ELSE leader_user_id END,
+               leader_name    = CASE WHEN $3 > leader_matched THEN $5 ELSE leader_name END,
                leader_matched = GREATEST(leader_matched, $3),
                updated_ts = now()
          WHERE game_code = $1

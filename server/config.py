@@ -55,6 +55,10 @@ def _list(name: str) -> list[str]:
 # client path enforces a matching 700ms pacing floor (animations.js).
 MIN_ROLL_INTERVAL = _float("MIN_ROLL_INTERVAL", 0.75)
 ROLL_ACK_TIMEOUT = 2.0       # wait for the roller's reveal ack before broadcasting
+# Upper bound on a single WS frame delivery during fan-out. A backpressured
+# client (a phone that stopped reading its socket) must not wedge the shared
+# fanout subscriber task; past this it is treated as dead and its socket dropped.
+BROADCAST_SEND_TIMEOUT = _float("BROADCAST_SEND_TIMEOUT", 5.0)
 DISCONNECT_GRACE = 60.0      # seconds a dropped player's slot is held for reconnect
 ROUND_WIN_DELAY = 3.0        # winner overlay hold before advancing the round
 
@@ -275,8 +279,28 @@ WEBAUTHN_ORIGIN = [
     for o in os.environ.get("WEBAUTHN_ORIGIN", APP_URL or "http://localhost:8888").split(",")
     if o.strip()
 ]
-JWT_SECRET = os.environ.get("JWT_SECRET", "dev-secret-change-in-prod")
+_JWT_SECRET_DEFAULT = "dev-secret-change-in-prod"
+JWT_SECRET = os.environ.get("JWT_SECRET", _JWT_SECRET_DEFAULT)
+# Fail closed: the JWT signing secret gates account auth (a forged HS256 token
+# rebinds a WebSocket to any account UUID). In prod — signalled by FRONTEND_DIST,
+# which only the built image sets — refuse to boot on the well-known default so a
+# forgotten JWT_SECRET can't ship a deploy where anyone can impersonate any
+# player. Dev (no FRONTEND_DIST) keeps the convenient default.
+if FRONTEND_DIST and JWT_SECRET == _JWT_SECRET_DEFAULT:
+    raise RuntimeError(
+        "JWT_SECRET is unset (using the insecure default) in a production build "
+        "(FRONTEND_DIST is set). Set JWT_SECRET to a strong random value — e.g. "
+        "`openssl rand -hex 32` — before deploying."
+    )
 JWT_EXPIRY_DAYS = _int("JWT_EXPIRY_DAYS", 30)
+
+# How long an anonymous player's reconnect-token hash is kept (Redis, keyed by
+# pid) so a later account registration can prove ownership of that pid's stats.
+# The pid leaks to co-players via state_msg; the token never does — so requiring
+# it at claim time stops a co-player from harvesting a pid and stealing its
+# stats. Generous window so "register a while after playing" still transfers;
+# self-expiring, so no cleanup job is needed.
+CLAIM_TTL = _int("CLAIM_TTL", 7 * 24 * 3600)  # 7 days
 
 # ─── Founding member ("Founding Roller") ──────────────────────────────
 # Accounts created strictly before this instant earn the Founding Roller

@@ -193,7 +193,11 @@ function fmtRemaining(ms) {
 /** @type {ReturnType<typeof setInterval> | null} */
 let pauseTick = null;
 
-function stopPauseTick() {
+/** Stop the host's 1 Hz pause countdown. Exported so the net layer can clear it
+ *  on game teardown — game_ended / a fatal pause-cap error tear the game down
+ *  without another renderMenu() call, so the interval would otherwise keep
+ *  firing forever against the hidden #pause-remaining element. */
+export function stopPauseTick() {
   if (pauseTick) {
     clearInterval(pauseTick);
     pauseTick = null;

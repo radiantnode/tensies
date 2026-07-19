@@ -10,6 +10,7 @@ from . import db, db_places, gamestore, places, qr, state
 from .broadcast import (
     advance_round,
     broadcast,
+    cancel_drop_tasks,
     checkout_game,
     delayed_broadcast,
     do_drop,
@@ -138,7 +139,25 @@ def _invite_qr(session: Session, code: str) -> str:
     return qr.qr_data_url(f"{base}/{code}")
 
 
+async def _adopt_identity(session: Session, msg: dict) -> None:
+    """Anonymous identity continuity: if the client presents its durable pid +
+    that pid's private token, re-adopt the pid so every game the player plays
+    collects under one identity (and a later sign-up claims them all at once).
+
+    The pid leaks to co-players via state_msg, so it can't authorise adoption on
+    its own — the token (never broadcast) proves ownership, exactly as at claim
+    time. Only for anonymous sessions; a signed-in session already IS an account.
+    """
+    if session.user_id is not None:
+        return
+    prev_pid = (msg.get("player_id") or "").strip()
+    token = msg.get("token", "")
+    if prev_pid and prev_pid != session.pid and await gamestore.verify_claim(prev_pid, token):
+        session.pid = prev_pid
+
+
 async def handle_create(session: Session, msg: dict) -> None:
+    await _adopt_identity(session, msg)
     # Signed-in users use their account username as the player name.
     raw_name = session.username or msg.get("name") or "Player"
     name = sanitize_name(raw_name) or "Player"
@@ -156,6 +175,11 @@ async def handle_create(session: Session, msg: dict) -> None:
     connections[code] = {session.pid: session.ws}
     session.code = code
     session.games_joined += 1
+    # Remember this anon pid's token hash so a later account registration can
+    # prove ownership of its stats (see gamestore.record_claim). Authenticated
+    # sessions are already an account — nothing to claim.
+    if session.user_id is None:
+        await gamestore.record_claim(session.pid, token_hash)
     _ensure_session_started(session)
     log.info("create   game=%s  host=%s", code, name)
     emit("game_created", game_code=code, user_id=session.pid, name=name,
@@ -165,6 +189,7 @@ async def handle_create(session: Session, msg: dict) -> None:
     if session.photo:
         await gamestore.set_player_photo(code, session.pid, session.photo)
     await send(session.ws, {"type": "reconnect_token", "token": token,
+                            "player_id": session.pid,
                             "qr": _invite_qr(session, code)})
     snap = await gamestore.snapshot(code)
     if snap:
@@ -172,6 +197,7 @@ async def handle_create(session: Session, msg: dict) -> None:
 
 
 async def handle_join(session: Session, msg: dict) -> None:
+    await _adopt_identity(session, msg)
     join_code = (msg.get("code") or "").upper().strip()
     raw_name = session.username or msg.get("name") or "Player"
     name = sanitize_name(raw_name) or "Player"
@@ -198,6 +224,10 @@ async def handle_join(session: Session, msg: dict) -> None:
     session.code = join_code
     connections.setdefault(join_code, {})[session.pid] = session.ws
     session.games_joined += 1
+    # Anon pid → token-hash claim, so registration can later prove ownership of
+    # its stats (mirrors handle_create).
+    if session.user_id is None:
+        await gamestore.record_claim(session.pid, token_hash)
     _ensure_session_started(session)
     log.info("join     game=%s  player=%s  players=%d", join_code, name, res)
     emit("player_joined", game_code=join_code, user_id=session.pid, name=name,
@@ -205,6 +235,7 @@ async def handle_join(session: Session, msg: dict) -> None:
     if session.photo:
         await gamestore.set_player_photo(join_code, session.pid, session.photo)
     await send(session.ws, {"type": "reconnect_token", "token": token,
+                            "player_id": session.pid,
                             "qr": _invite_qr(session, join_code)})
     snap = await gamestore.snapshot(join_code)
     if snap:
@@ -542,6 +573,7 @@ async def handle_end_game(session: Session, msg: dict) -> None:
     t = state.pause_tasks.pop(code, None)
     if t:
         t.cancel()
+    cancel_drop_tasks(code)
 
 
 async def handle_leave(session: Session, msg: dict) -> None:
@@ -621,24 +653,30 @@ async def websocket_endpoint(ws: WebSocket) -> None:
         return
 
     session = Session(ws, str(uuid.uuid4()))
-    sessions[id(ws)] = session
-
-    metrics.ws_connections_active.inc()
-    metrics.ws_connects_total.inc()
-    emit("connection_opened",
-         session_id=session.session_id, peer=session.peer,
-         user_agent=session.user_agent)
-
-    # Pinger: routes through send() so its frames respect the per-session
-    # send_lock and get counted in the outbound metrics.
-    session.pinger = Pinger(session.session_id, lambda m: send(ws, m))
-    session.pinger.start()
-
-    await send(ws, {"type": "welcome", "player_id": session.pid})
-    log.info("connect  pid=%s  session=%s", session.pid[:8], session.session_id[:8])
-
     disconnect_reason = "client"
+    # Everything past conn_incr runs inside the try so the finally always fires.
+    # The initial `welcome` send (and pinger setup) used to sit ABOVE the try;
+    # if that send raised — a client that vanished right after the handshake,
+    # routine on flaky mobile links — the finally never ran, so conn_decr /
+    # sessions.pop / pinger.stop were all skipped and the per-IP counter leaked
+    # (its TTL refreshed on every reconnect), eventually locking the IP and its
+    # NAT peers out for up to an hour.
     try:
+        sessions[id(ws)] = session
+        metrics.ws_connections_active.inc()
+        metrics.ws_connects_total.inc()
+        emit("connection_opened",
+             session_id=session.session_id, peer=session.peer,
+             user_agent=session.user_agent)
+
+        # Pinger: routes through send() so its frames respect the per-session
+        # send_lock and get counted in the outbound metrics.
+        session.pinger = Pinger(session.session_id, lambda m: send(ws, m))
+        session.pinger.start()
+
+        await send(ws, {"type": "welcome", "player_id": session.pid})
+        log.info("connect  pid=%s  session=%s", session.pid[:8], session.session_id[:8])
+
         while True:
             text = await ws.receive_text()
             # Reject oversized frames before parsing (audit L2).

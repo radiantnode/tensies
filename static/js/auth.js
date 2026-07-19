@@ -105,7 +105,7 @@ export function isWebAuthnAvailable() {
  */
 export async function registerPasskey(username) {
   // 1. Get options from server
-  const legacyPid = readSession().playerId;
+  const { playerId: legacyPid, token: claimToken } = readSession();
   const optRes = await fetch('/auth/register/options', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -162,6 +162,9 @@ export async function registerPasskey(username) {
         user_id,
       },
       legacy_pid: legacyPid,
+      // Private reconnect token proving we own legacyPid's stats (the pid alone
+      // is visible to co-players, so the server won't transfer stats on it).
+      claim_token: claimToken,
     }),
   });
   if (!verifyRes.ok) {

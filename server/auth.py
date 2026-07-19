@@ -43,6 +43,14 @@ log = logging.getLogger("tensies.auth")
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+def _require_db() -> None:
+    """Return a clean 503 when Postgres is absent (the no-DB dev wrapper, or a
+    failed db.init()). Without this, db.pool() asserts and the endpoint 500s with
+    a bare AssertionError instead of a meaningful 'accounts unavailable'."""
+    if not db.available():
+        raise HTTPException(503, "Accounts are temporarily unavailable")
+
+
 async def _rate_limit(request: Request) -> None:
     """Per-IP limiter for the auth endpoints. They are unauthenticated and do
     Redis + Postgres work per call, and registration/login options responses
@@ -132,6 +140,10 @@ class RegisterVerifyRequest(BaseModel):
     username: str
     credential: dict
     legacy_pid: str | None = None
+    # Private reconnect token for legacy_pid. The pid leaks to co-players via
+    # state_msg, so it can't authorise a stat transfer on its own; the token
+    # (never broadcast) proves the registrant actually owns that anon identity.
+    claim_token: str | None = None
 
 class LoginOptionsRequest(BaseModel):
     username: str
@@ -146,6 +158,7 @@ class LoginVerifyRequest(BaseModel):
 
 @router.post("/register/options")
 async def register_options(body: RegisterOptionsRequest, request: Request):
+    _require_db()
     await _rate_limit(request)
     username = _validate_username(body.username)
 
@@ -208,6 +221,7 @@ async def register_options(body: RegisterOptionsRequest, request: Request):
 
 @router.post("/register/verify")
 async def register_verify(body: RegisterVerifyRequest, request: Request):
+    _require_db()
     await _rate_limit(request)
     username = _validate_username(body.username)
     challenge = await _pop_challenge(body.nonce)
@@ -244,7 +258,12 @@ async def register_verify(body: RegisterVerifyRequest, request: Request):
                     "SELECT 1 FROM users WHERE id::text = $1 OR legacy_pid = $1",
                     legacy_pid,
                 )
-                if taken:
+                # Prove ownership: the caller must present the pid's private
+                # reconnect token, not just the (co-player-visible) pid. Without
+                # a valid token the account is still created — just without the
+                # stat transfer.
+                owns = await gamestore.verify_claim(legacy_pid, body.claim_token or "")
+                if taken or not owns:
                     legacy_pid = None
 
             async def _insert_user(lp: str | None) -> None:
@@ -290,15 +309,42 @@ async def register_verify(body: RegisterVerifyRequest, request: Request):
                 transports or None,
             )
 
-            # Data transfer: link old anonymous stats to the new account.
-            # legacy_pid is None here if the pid was already assigned (guard
-            # above) or lost the claim race — the row must not move twice.
+            # Data transfer: re-attribute the anonymous identity's whole history
+            # to the new account. legacy_pid is None here if the pid was already
+            # assigned (guard above) or lost the claim race — nothing must move
+            # twice. Because the client now keeps one durable pid across games
+            # (see ws._adopt_identity), this single pid pulls every game the
+            # player played onto the account — the profile's recent-games list
+            # reads round_player.user_id, so those rows must move too, not just
+            # the player_stats aggregate. Same table set as
+            # scripts/reattribute_user.sql; all user_id columns are plain TEXT
+            # (no FK), and a brand-new account has no rows to collide with.
             if legacy_pid:
                 await con.execute(
                     "UPDATE player_stats SET user_id = $1 WHERE user_id = $2",
-                    user_id_str,
-                    legacy_pid,
+                    user_id_str, legacy_pid,
                 )
+                await con.execute(
+                    "UPDATE round_player SET user_id = $1 WHERE user_id = $2",
+                    user_id_str, legacy_pid,
+                )
+                await con.execute(
+                    "UPDATE sessions SET user_id = $1 WHERE user_id = $2",
+                    user_id_str, legacy_pid,
+                )
+                await con.execute(
+                    "UPDATE events SET user_id = $1 WHERE user_id = $2",
+                    user_id_str, legacy_pid,
+                )
+                await con.execute(
+                    "UPDATE rounds SET winner_user_id = $1 WHERE winner_user_id = $2",
+                    user_id_str, legacy_pid,
+                )
+
+    # The claim is single-use: once the stats have moved, drop the token so the
+    # same pid can't be re-claimed. (Outside the DB transaction — a Redis op.)
+    if legacy_pid:
+        await gamestore.clear_claim(legacy_pid)
 
     # Fetch any transferred stats for the onboarding screen
     stats = None
@@ -327,6 +373,7 @@ async def register_verify(body: RegisterVerifyRequest, request: Request):
 
 @router.post("/login/options")
 async def login_options(body: LoginOptionsRequest, request: Request):
+    _require_db()
     await _rate_limit(request)
     username = _validate_username(body.username)
 
@@ -380,6 +427,7 @@ async def login_options(body: LoginOptionsRequest, request: Request):
 
 @router.post("/login/verify")
 async def login_verify(body: LoginVerifyRequest, request: Request):
+    _require_db()
     await _rate_limit(request)
     username = body.username.strip()
     challenge = await _pop_challenge(body.nonce)

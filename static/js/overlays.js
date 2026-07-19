@@ -24,11 +24,20 @@ export const RESUME_CLOSE_DELAY_MS = 600;
 
 // ── Pause overlay (non-host) ──
 
+/** @type {ReturnType<typeof setTimeout> | undefined} Pending resume-close. */
+let pauseCloseTimer;
+
 /**
  * Open the pause wait dialog with the given message.
  * @param {string} text
  */
 export function showPaused(text) {
+  // Cancel any in-flight resume-close: if the host resumed and then re-paused
+  // within RESUME_CLOSE_DELAY_MS, the stale timer would otherwise fire and
+  // close the dialog we just re-opened, stranding a non-host on a live-but-
+  // paused board with no wait screen.
+  clearTimeout(pauseCloseTimer);
+  pauseCloseTimer = undefined;
   const msg = document.getElementById('pause-overlay-msg');
   if (msg) msg.textContent = text;
   if (pauseOverlay && !pauseOverlay.open) pauseOverlay.showModal();
@@ -36,7 +45,22 @@ export function showPaused(text) {
 
 /** Close the pause wait dialog if it's open. */
 export function hidePaused() {
+  clearTimeout(pauseCloseTimer);
+  pauseCloseTimer = undefined;
   if (pauseOverlay?.open) pauseOverlay.close();
+}
+
+/**
+ * Close the pause dialog after a delay (so the resume toggle's slide-off is
+ * visible), cancellably — a re-pause via showPaused() aborts the pending close.
+ * @param {number} delayMs
+ */
+export function hidePausedSoon(delayMs) {
+  clearTimeout(pauseCloseTimer);
+  pauseCloseTimer = setTimeout(() => {
+    pauseCloseTimer = undefined;
+    hidePaused();
+  }, delayMs);
 }
 
 /**
