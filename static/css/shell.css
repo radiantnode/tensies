@@ -12,8 +12,21 @@
   }
 
   /* Game screen only (not the pre-game app-header): one frosted surface behind
-     the whole top bar — the title row and players bar sit on it transparently. */
-  .game-topbar:not(.app-header) {
+     the whole top bar — the title row and players bar sit on it transparently.
+     The surface lives on a ::before (painted BEHIND the content via z-index:-1)
+     rather than on the topbar element itself, so the topbar never becomes a
+     stacking context. That keeps the title row's z-index:100 permanently above
+     the z-index:50 menu overlay — the hamburger stays tappable AND the overlay
+     never paints over the logo/user pill, so nothing in the header flashes or
+     fades when the menu toggles. Only the players bar (z-auto) drops under the
+     overlay. (Putting the blur on the topbar itself made it a stacking context
+     that trapped the title row under the overlay; toggling it off on menu-open
+     to free the title row is what caused the flash/fade — no toggle now.) */
+  .game-topbar:not(.app-header)::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
     background: var(--color-panel);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -74,19 +87,9 @@
     -webkit-backdrop-filter: blur(8px);
   }
 
-  /* Game screen only: the frosted surface lives on .game-topbar, so the title
-     row sits on it transparently (no double blur). */
+  /* Game screen only: the frosted surface lives on the topbar's ::before, so the
+     title row sits on it transparently (no double blur). */
   .game-topbar:not(.app-header) .topbar-title-row {
-    background: transparent;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-
-  /* Menu open: drop the parent's backdrop-filter so it stops being a stacking
-     context — the title row's z-index:100 re-escapes above the z-index:50 menu
-     (hamburger stays tappable). The header stays transparent, so the dark menu
-     overlay shows straight through it; the players bar drops under the menu. */
-  .game-screen:has(.game-menu.open) .game-topbar:not(.app-header) {
     background: transparent;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
