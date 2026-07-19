@@ -139,7 +139,25 @@ def _invite_qr(session: Session, code: str) -> str:
     return qr.qr_data_url(f"{base}/{code}")
 
 
+async def _adopt_identity(session: Session, msg: dict) -> None:
+    """Anonymous identity continuity: if the client presents its durable pid +
+    that pid's private token, re-adopt the pid so every game the player plays
+    collects under one identity (and a later sign-up claims them all at once).
+
+    The pid leaks to co-players via state_msg, so it can't authorise adoption on
+    its own — the token (never broadcast) proves ownership, exactly as at claim
+    time. Only for anonymous sessions; a signed-in session already IS an account.
+    """
+    if session.user_id is not None:
+        return
+    prev_pid = (msg.get("player_id") or "").strip()
+    token = msg.get("token", "")
+    if prev_pid and prev_pid != session.pid and await gamestore.verify_claim(prev_pid, token):
+        session.pid = prev_pid
+
+
 async def handle_create(session: Session, msg: dict) -> None:
+    await _adopt_identity(session, msg)
     # Signed-in users use their account username as the player name.
     raw_name = session.username or msg.get("name") or "Player"
     name = sanitize_name(raw_name) or "Player"
@@ -171,6 +189,7 @@ async def handle_create(session: Session, msg: dict) -> None:
     if session.photo:
         await gamestore.set_player_photo(code, session.pid, session.photo)
     await send(session.ws, {"type": "reconnect_token", "token": token,
+                            "player_id": session.pid,
                             "qr": _invite_qr(session, code)})
     snap = await gamestore.snapshot(code)
     if snap:
@@ -178,6 +197,7 @@ async def handle_create(session: Session, msg: dict) -> None:
 
 
 async def handle_join(session: Session, msg: dict) -> None:
+    await _adopt_identity(session, msg)
     join_code = (msg.get("code") or "").upper().strip()
     raw_name = session.username or msg.get("name") or "Player"
     name = sanitize_name(raw_name) or "Player"
@@ -215,6 +235,7 @@ async def handle_join(session: Session, msg: dict) -> None:
     if session.photo:
         await gamestore.set_player_photo(join_code, session.pid, session.photo)
     await send(session.ws, {"type": "reconnect_token", "token": token,
+                            "player_id": session.pid,
                             "qr": _invite_qr(session, join_code)})
     snap = await gamestore.snapshot(join_code)
     if snap:

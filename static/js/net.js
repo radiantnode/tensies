@@ -6,7 +6,7 @@ import { showWinner } from './overlays.js';
 import { landing, showFor, showGameDetail, showLanding } from './router.js';
 import { getAuthToken, isSignedIn, getAuthUser } from './auth.js';
 import {
-  savePlayerId, saveReconnectToken, readSession, hasSession, clearSession,
+  savePlayerId, saveReconnectToken, readSession, hasSession, clearGame,
 } from './session.js';
 import { state, resetRollState } from './state.js';
 import { showScreen, showLoading, leaveLoading } from './transitions.js';
@@ -44,7 +44,7 @@ function send(action, extra = {}) {
 /** The saved session is unusable — forget it and land on landing with the reason. */
 function expireSession() {
   state.reconnecting = false;
-  clearSession();
+  clearGame();
   state.currentState = null;
   leaveLoading(() => {
     showScreen('landing');
@@ -149,12 +149,24 @@ function currentName() {
   return input.value.trim() || state.randomNamePlaceholder;
 }
 
+/**
+ * Anonymous identity-continuity payload for create/join: our durable pid + its
+ * private token, so the server re-adopts the same pid (see `verify_claim`) and
+ * every game we play collects under one identity. Empty for a signed-in session
+ * (the account UUID is the identity) or a brand-new client with nothing saved.
+ */
+function identityClaim() {
+  if (isSignedIn()) return {};
+  const { playerId, token } = readSession();
+  return playerId && token ? { player_id: playerId, token } : {};
+}
+
 /** Create a new game as `currentName()`. */
 export function createGame() {
   const name = currentName();
   state.pendingOrigin = 'landing';
   showLoading('Creating game…');
-  connectWs(() => send('create', { name }));
+  connectWs(() => send('create', { name, ...identityClaim() }));
 }
 
 /**
@@ -167,7 +179,7 @@ export function joinWithCode(code, origin = 'join') {
   const name = currentName();
   state.pendingOrigin = origin;
   showLoading('Joining game…');
-  connectWs(() => send('join', { name, code }));
+  connectWs(() => send('join', { name, code, ...identityClaim() }));
 }
 
 /** Join the game whose code is in the join form. */
@@ -208,13 +220,14 @@ export function startGame() {
  * Leave the lobby without playing and return to landing. We send an explicit
  * `leave` frame *before* closing so the server drops us with no grace hold and
  * the roster updates for everyone immediately (a plain close would leave us in
- * the list for the full reconnect grace). Order matters: clearSession() runs
+ * the list for the full reconnect grace). Order matters: clearGame() runs
  * before the close so handleWsClose() doesn't read it as a dropped connection
- * and reconnect us straight back in.
+ * and reconnect us straight back in. (The durable pid/token survive — only the
+ * game pointer is forgotten.)
  */
 export function leaveGame() {
   send('leave'); // ask the server to drop us now, while the socket is still open
-  clearSession();
+  clearGame();
   state.reconnecting = false;
   state.currentState = null;
   state.gameCode = null;
@@ -257,10 +270,20 @@ function handleMessage(msg) {
     case 'ping':
       send('pong', { t: msg.t });
       return;
-    case 'welcome':
-      state.myId = msg.player_id;
-      savePlayerId(msg.player_id);
+    case 'welcome': {
+      // Keep our durable anonymous identity if we hold one — we present it on
+      // create/join for the server to re-adopt (so all our games share one
+      // pid). Only a brand-new client takes the server-assigned pid. The
+      // authoritative pid is confirmed back on `reconnect_token`.
+      const saved = readSession();
+      if (saved.playerId && saved.token) {
+        state.myId = saved.playerId;
+      } else {
+        state.myId = msg.player_id;
+        savePlayerId(msg.player_id);
+      }
       return;
+    }
     case 'auth_ok':
       state.authUsername = msg.username;
       state.authUserId = msg.user_id;
@@ -271,6 +294,13 @@ function handleMessage(msg) {
       }
       return;
     case 'reconnect_token':
+      // The server echoes the authoritative pid it bound this game to — it may
+      // have re-adopted our durable pid, or (token expired) kept a fresh one.
+      // Sync to it so client and server never disagree on who "me" is.
+      if (msg.player_id) {
+        state.myId = msg.player_id;
+        savePlayerId(msg.player_id);
+      }
       saveReconnectToken(msg.token);
       if (msg.qr) state.qr = msg.qr; // inline invite QR — cache for the stamp
       return;
@@ -347,7 +377,7 @@ function handleMessage(msg) {
       // up on the next game's board. Reset it as the game tears down.
       /** @type {import('./components/game-screen.js').GameScreen} */ (byId('game')).closeMenu();
       const code = state.gameCode;
-      clearSession();
+      clearGame();
       state.currentState = null;
       // Brief delay so the telemetry writer can flush to Postgres before
       // the game-detail screen fetches the API.
@@ -375,7 +405,7 @@ function handleError(msg) {
     // Mirrors the game_ended path above.
     /** @type {import('./components/game-screen.js').GameScreen} */ (byId('game')).closeMenu();
     stopPauseTick();
-    clearSession();
+    clearGame();
     state.currentState = null;
     state.reconnecting = false;
     leaveLoading(() => {

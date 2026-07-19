@@ -44,7 +44,19 @@ export function hasSession() {
   return Boolean(playerId && gameCode);
 }
 
-/** Forget the saved session (game ended, or reconnect window expired). */
+/**
+ * Forget the current game but keep the durable anonymous identity
+ * (`pid` + `token`). Called when a game ends / we leave / a reconnect window
+ * lapses: there's no live slot to resume, but the pid must survive so the
+ * player's *next* game shares one identity — and a later sign-up can collect
+ * every game they played under the new account. Re-adoption of the pid on the
+ * next create/join is authenticated by the token (see server `verify_claim`).
+ */
+export function clearGame() {
+  localStorage.removeItem(GAME_CODE_KEY);
+}
+
+/** Forget everything, including the durable identity (e.g. sign-out). */
 export function clearSession() {
   localStorage.removeItem(PLAYER_ID_KEY);
   localStorage.removeItem(GAME_CODE_KEY);

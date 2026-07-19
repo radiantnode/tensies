@@ -309,14 +309,36 @@ async def register_verify(body: RegisterVerifyRequest, request: Request):
                 transports or None,
             )
 
-            # Data transfer: link old anonymous stats to the new account.
-            # legacy_pid is None here if the pid was already assigned (guard
-            # above) or lost the claim race — the row must not move twice.
+            # Data transfer: re-attribute the anonymous identity's whole history
+            # to the new account. legacy_pid is None here if the pid was already
+            # assigned (guard above) or lost the claim race — nothing must move
+            # twice. Because the client now keeps one durable pid across games
+            # (see ws._adopt_identity), this single pid pulls every game the
+            # player played onto the account — the profile's recent-games list
+            # reads round_player.user_id, so those rows must move too, not just
+            # the player_stats aggregate. Same table set as
+            # scripts/reattribute_user.sql; all user_id columns are plain TEXT
+            # (no FK), and a brand-new account has no rows to collide with.
             if legacy_pid:
                 await con.execute(
                     "UPDATE player_stats SET user_id = $1 WHERE user_id = $2",
-                    user_id_str,
-                    legacy_pid,
+                    user_id_str, legacy_pid,
+                )
+                await con.execute(
+                    "UPDATE round_player SET user_id = $1 WHERE user_id = $2",
+                    user_id_str, legacy_pid,
+                )
+                await con.execute(
+                    "UPDATE sessions SET user_id = $1 WHERE user_id = $2",
+                    user_id_str, legacy_pid,
+                )
+                await con.execute(
+                    "UPDATE events SET user_id = $1 WHERE user_id = $2",
+                    user_id_str, legacy_pid,
+                )
+                await con.execute(
+                    "UPDATE rounds SET winner_user_id = $1 WHERE winner_user_id = $2",
+                    user_id_str, legacy_pid,
                 )
 
     # The claim is single-use: once the stats have moved, drop the token so the
