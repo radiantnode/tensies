@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import math
 import re
 from pathlib import Path
@@ -88,9 +89,21 @@ def _require_telemetry() -> None:
         raise HTTPException(status_code=503, detail="telemetry disabled")
 
 
+def _html_response(request: Request, body: str) -> Response:
+    """HTML page response with an ETag, so a repeat load (e.g. reopening an
+    installed PWA at its start_url) can revalidate with a cheap 304 instead of
+    a full re-fetch — the document is always Cache-Control: no-cache (audit:
+    SecurityHeadersMiddleware, to stop a PWA running a version-skewed module
+    graph), so without a validator every load re-sent the whole body."""
+    etag = f'"{hashlib.sha1(body.encode()).hexdigest()[:16]}"'
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers={"ETag": etag})
+    return HTMLResponse(body, headers={"ETag": etag})
+
+
 @router.get("/")
-async def root() -> HTMLResponse:
-    return HTMLResponse(_render_index())
+async def root(request: Request) -> Response:
+    return _html_response(request, _render_index())
 
 
 @router.get("/metrics", dependencies=[Depends(_bearer_guard(METRICS_TOKEN))])
@@ -180,23 +193,23 @@ async def stats_game(game_code: str) -> dict:
 # 404s so this can't shadow favicons or other single-segment asset requests.
 # Declared last so the explicit routes above (/, /metrics, /stats/*) win.
 @router.get("/join")
-async def join_page() -> HTMLResponse:
-    return HTMLResponse(_render_index())
+async def join_page(request: Request) -> Response:
+    return _html_response(request, _render_index())
 
 
 @router.get("/signin")
-async def signin_page() -> HTMLResponse:
-    return HTMLResponse(_render_index())
+async def signin_page(request: Request) -> Response:
+    return _html_response(request, _render_index())
 
 
 @router.get("/welcome")
-async def welcome_page() -> HTMLResponse:
-    return HTMLResponse(_render_index())
+async def welcome_page(request: Request) -> Response:
+    return _html_response(request, _render_index())
 
 
 @router.get("/nearby")
-async def nearby_page() -> HTMLResponse:
-    return HTMLResponse(_render_index())
+async def nearby_page(request: Request) -> Response:
+    return _html_response(request, _render_index())
 
 
 def _valid_coords(lat: float, lon: float) -> bool:
@@ -581,16 +594,16 @@ async def verify_roll(code: str, pid: str, roll_count: int) -> dict:
 
 
 @router.get("/games/{code}")
-async def game_detail_page(code: str) -> HTMLResponse:
-    return HTMLResponse(_render_index())
+async def game_detail_page(code: str, request: Request) -> Response:
+    return _html_response(request, _render_index())
 
 
 # Vanity profile URLs: tensies.app/@username. The @ prefix guarantees no
 # collision with game codes (which are [A-Za-z]{5}).
 @router.get("/@{username}")
-async def profile_vanity(username: str) -> HTMLResponse:
+async def profile_vanity(username: str, request: Request) -> Response:
     if not TELEMETRY_ENABLED:
-        return HTMLResponse(_render_index())
+        return _html_response(request, _render_index())
     try:
         from server.telemetry import store
         async with store.pool().acquire() as con:
@@ -599,7 +612,7 @@ async def profile_vanity(username: str) -> HTMLResponse:
                 username.lower(),
             )
             if user is None:
-                return HTMLResponse(_render_index())
+                return _html_response(request, _render_index())
             stats = await con.fetchrow(
                 "SELECT total_wins, total_games FROM player_stats WHERE user_id = ("
                 "SELECT id::text FROM users WHERE LOWER(username) = $1)",
@@ -621,10 +634,10 @@ async def profile_vanity(username: str) -> HTMLResponse:
             share_description=" ".join(desc_parts),
             canonical_url=f"{base}/@{display}" if base else f"/@{display}",
         )
-        return HTMLResponse(html)
+        return _html_response(request, html)
     except Exception:
         log.exception("profile meta injection failed for @%s", username)
-        return HTMLResponse(_render_index())
+        return _html_response(request, _render_index())
 
 
 # Clean join URLs: GET /<code> serves the SPA, which reads the code from the
