@@ -16,9 +16,9 @@ All of it runs in `scripts/build_assets.mjs`, in the Docker builder stage, befor
 
 2. The 38 JS modules (37 in the runtime import graph — `types.js` is JSDoc-only) get bundled into a single file with esbuild. `minify: true` handles identifier mangling, syntax compression, and whitespace removal, including collapsing the newlines in HTML template strings that esbuild normally leaves alone. Asset references get rewritten, then the whole thing gets content-hashed.
 
-3. The 14 CSS files get concatenated and run through esbuild's CSS transformer. Non-critical styles (everything except `critical.css`) merge into a single `app.css`. Both get content-hashed.
+3. The 14 CSS files get concatenated and run through esbuild's CSS transformer. Non-critical styles (everything except `critical.css`) merge into a single, content-hashed `app.css`. `critical.css` itself is minified but *not* fingerprinted as a file — it's inlined straight into `index.html` (step 4) so first paint (the inline `#loading` screen) doesn't wait on a second network round trip beyond the document itself. Its sha256 is written to `dist/csp.json`.
 
-4. `index.html` gets rewritten: the 13 non-critical `<link>` tags collapse to one, the modulepreload graph (37 entries) drops, every URL swaps to its hashed equivalent, and the HTML gets stripped of comments and collapsed to a single line. The web-app manifest is fingerprinted the same pass (`manifest.webmanifest`, step 4b): its icon refs are rewritten to hashed paths and its `<link rel="manifest">` href updated to match.
+4. `index.html` gets rewritten: the critical.css `<link>` becomes an inline `<style>`, the 13 non-critical `<link>` tags collapse to one, the modulepreload graph (37 entries) drops, every remaining URL swaps to its hashed equivalent, and the HTML gets stripped of comments and collapsed to a single line. The web-app manifest is fingerprinted the same pass (`manifest.webmanifest`, step 4b): its icon refs are rewritten to hashed paths and its `<link rel="manifest">` href updated to match. Since the CSP is `style-src 'self'` with no `unsafe-inline`, the inlined `<style>` only stays policy-compliant because `server/security.py` reads `dist/csp.json` at startup and allows exactly that content via a `'sha256-...'` source — a content-pinned allowance, not a general inline-style exemption.
 
 5. Every text asset (JS, CSS, HTML, SVG, webmanifest) gets a `.gz` sibling at level 9 compression. nginx's `gzip_static` serves the pre-compressed file directly. No CPU cost per request.
 
@@ -78,6 +78,8 @@ Dev's transfer numbers are larger than the decoded bytes because the Performance
 On repeat loads, prod assets serve from disk cache in 0ms. Content-hashed filenames plus `Cache-Control: immutable` mean the browser never rechecks them. Change any source file and the hash changes; the old version stays cached forever, which is fine because nothing will ever request it again.
 
 Dev appends `?v=<hash>` to every URL at server startup, and the app shell plus every dev-served `/static` response now carries `Cache-Control: no-cache` (`server/security.py`, `main.py`), so the browser revalidates rather than trusting a stale copy. That matters for an installed PWA: a cached HTML shell pointing at old hashed asset URLs can boot a version-skewed module graph and hang on the loading screen. Prod is unaffected — nginx serves the content-hashed `/static` bundles with their own far-future `immutable` cache, and this middleware never runs for them.
+
+The app shell document itself (`/`, `/games/{code}`, `/@{username}`, …) always revalidates (`no-cache`), in both dev and prod — but `server/routes.py` sends an `ETag` on every HTML page response, so a repeat load (an installed PWA relaunching at its `start_url`) revalidates with a cheap `304 Not Modified` instead of re-sending the whole document. Without a validator, `no-cache` alone forces a full re-fetch on every load — on a slow connection, that's real, avoidable latency before the browser even discovers the CSS.
 
 ---
 

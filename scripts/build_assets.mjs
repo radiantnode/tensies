@@ -13,9 +13,13 @@
 //     string references (e.g. logo-loser.svg used from JS, the font + poster
 //     url() in critical.css) rewritten to the hashed paths before *their* hash
 //     is taken. esbuild does not rewrite string-literal URLs, so we do it.
-//   * critical.css stays a separate <link> (NOT inlined): the CSP is
-//     `style-src 'self'` with no 'unsafe-inline', so an inline <style> would be
-//     a policy violation.
+//   * critical.css is inlined as a <style> in dist/index.html — first paint (the
+//     inline #loading screen) shouldn't depend on a second network round trip on
+//     top of the document itself. The CSP is `style-src 'self'` with no
+//     'unsafe-inline', so this only stays policy-compliant because we pin the
+//     exact inlined bytes: their sha256 goes to dist/csp.json, and
+//     server/security.py adds it to style-src as 'sha256-<hash>' — a narrow,
+//     content-specific allowance, not a general inline-style exemption.
 import esbuild from 'esbuild';
 import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
@@ -122,8 +126,8 @@ const indexHtml = readFileSync(join(SRC, 'index.html'), 'utf8');
 // @layer): each asset is fingerprinted on its own, never concatenated into
 // app.css. Declared once here so the bundle-exclusion filters below AND the
 // step-4c hashing loop stay in sync — add a page's assets here and they're both
-// excluded from the bundle and fingerprinted. `critical` is the inline critical
-// sheet, hashed separately in step 4 (css-only, no js).
+// excluded from the bundle and fingerprinted. `critical` is handled separately
+// in step 4 — inlined into index.html, not fingerprinted as its own file.
 const STANDALONE_ASSETS = [
   ['css', 'widget', '.css', 'css'],
   ['js', 'widget', '.js', 'js'],
@@ -147,13 +151,21 @@ const NONCRIT = [...linked, ...unlinked];
   manifest.set('/static/css/app.css', writeHashed('css', 'app', '.css', rewriteRefs(min)));
 }
 
-// ── 4. Minify critical.css, rewrite its url() refs (font + poster), hash ──────
+// ── 4. Minify critical.css, rewrite its url() refs (font + poster) ────────────
+// Not written to a hashed file / not added to `manifest`: it's inlined straight
+// into index.html below (step 5), not linked, so there's no URL to rewrite refs
+// to and no fingerprinted file to serve. Its sha256 goes to dist/csp.json so
+// server/security.py can allow exactly this content in the CSP's style-src.
+let criticalCss;
 {
   const raw = readFileSync(join(SRC, 'css', 'critical.css'), 'utf8');
   const min = (await esbuild.transform(raw, { loader: 'css', minify: true })).code;
-  manifest.set('/static/css/critical.css',
-    writeHashed('css', 'critical', '.css', rewriteRefs(min)));
+  // Flattened to one line so the later whole-document `split('\n').map(trim)`
+  // pass (step 5) can't touch anything inside the <style> tag's text — the CSP
+  // hash below is taken over these exact bytes, so nothing may reshape them.
+  criticalCss = rewriteRefs(min).replace(/[ \t]*\n[ \t]*/g, ' ').trim();
 }
+const criticalCssSha256 = createHash('sha256').update(criticalCss, 'utf8').digest('base64');
 
 // ── 4c. Minify the standalone pages' assets (never part of the app bundle),
 // rewrite refs (wood poster in the CSS), hash. The app resolves the hashed URLs
@@ -178,7 +190,20 @@ for (const [sub, name, ext, loader] of STANDALONE_ASSETS) {
 
 // ── 5. Rewrite index.html ─────────────────────────────────────────────────────
 let html = readFileSync(join(SRC, 'index.html'), 'utf8');
-html = rewriteRefs(html); // images, fonts, critical.css link
+html = rewriteRefs(html); // images, fonts, manifest link
+
+// inline critical.css — first paint (the inline #loading screen) shouldn't
+// wait on a second network round trip beyond the document itself. Its CSP
+// hash (dist/csp.json) is what keeps this compliant with style-src 'self'.
+// Anchored on the comment (like the two collapses below) rather than the
+// literal <link> markup, so it isn't broken by an incidental attribute/
+// formatting change to that tag. Lazy `[^]*?` — unlike the greedy `[^]*`
+// below, this one isn't the last `.css">` in the document, so a greedy match
+// would run past it and swallow the non-critical block that follows too.
+html = html.replace(
+  /  <!-- Critical CSS[^]*?critical\.css">\n/,
+  `  <style>${criticalCss}</style>\n`,
+);
 
 // collapse the 9 non-critical stylesheet links into one bundled link
 html = html.replace(
@@ -199,6 +224,11 @@ writeFileSync(join(DIST, 'index.html'), html);
 writeFileSync(join(DIST, 'manifest.json'),
   JSON.stringify(Object.fromEntries(manifest), null, 1));
 
+// ── 7b. CSP hash for the inlined critical.css <style>, for server/security.py
+// to add to style-src (a content-pinned allowance, not a general 'unsafe-inline').
+writeFileSync(join(DIST, 'csp.json'),
+  JSON.stringify({ 'style-src-sha256': criticalCssSha256 }, null, 1));
+
 // ── 6. Pre-compress text assets for nginx gzip_static ─────────────────────────
 let gz = 0;
 for (const file of walk(DIST)) {
@@ -211,4 +241,4 @@ for (const file of walk(DIST)) {
 console.log(`built dist/: ${manifest.size} fingerprinted assets, ${gz} gzipped`);
 console.log(`  js  -> ${manifest.get('/static/js/app.js')}`);
 console.log(`  css -> ${manifest.get('/static/css/app.css')}`);
-console.log(`  crit-> ${manifest.get('/static/css/critical.css')}`);
+console.log(`  crit-> inlined, sha256-${criticalCssSha256}`);

@@ -4,12 +4,19 @@ A tiny pure-ASGI middleware (no BaseHTTPMiddleware buffering) that stamps
 headers onto every HTTP response, including the index page and /static assets.
 
 The CSP is strict same-origin with no 'unsafe-inline': the frontend has no
-inline scripts, styles, or event handlers and loads every asset from /static,
-so this applies cleanly and turns any future inline-script/innerHTML sink into
-a visible CSP violation. `connect-src 'self'` also covers the same-origin
-WebSocket. `upgrade-insecure-requests` is added only when HSTS is on (i.e. a
-real HTTPS deploy), so plain-http dev isn't forced to upgrade to https.
+inline scripts or event handlers and loads every other asset from /static, so
+this applies cleanly and turns any future inline-script/innerHTML sink into a
+visible CSP violation. The one deliberate exception is prod's inlined
+critical.css <style> (scripts/build_assets.mjs) — allowed via a content-pinned
+`'sha256-...'` source (_critical_style_hash below), not a general style
+exemption, since only that exact byte sequence satisfies the hash.
+`connect-src 'self'` also covers the same-origin WebSocket.
+`upgrade-insecure-requests` is added only when HSTS is on (i.e. a real HTTPS
+deploy), so plain-http dev isn't forced to upgrade to https.
 """
+import json
+from pathlib import Path
+
 from starlette.datastructures import MutableHeaders
 from starlette.requests import HTTPConnection
 
@@ -18,6 +25,7 @@ from .config import (
     CSP_EXTRA_IMG_SRC,
     CSP_EXTRA_SCRIPT_SRC,
     CSP_OVERRIDE,
+    FRONTEND_DIST,
     HSTS_ENABLED,
     HSTS_INCLUDE_SUBDOMAINS,
     HSTS_MAX_AGE,
@@ -25,6 +33,7 @@ from .config import (
     SECURITY_HEADERS,
     TRUST_PROXY_HEADERS,
     TRUSTED_PROXY_HOPS,
+    log,
 )
 
 
@@ -52,15 +61,33 @@ def _directive(name: str, *sources: str) -> str:
     return " ".join((name, *sources))
 
 
+def _critical_style_hash() -> str | None:
+    """CSP source for the inlined critical.css <style> in prod's dist/index.html
+    (scripts/build_assets.mjs writes its sha256 to dist/csp.json). A narrow,
+    content-pinned allowance — not a general 'unsafe-inline' exemption, since
+    only that exact byte sequence matches the hash. None in dev, where
+    critical.css stays an external <link> and needs no CSP allowance."""
+    if not FRONTEND_DIST:
+        return None
+    try:
+        digest = json.loads((Path(FRONTEND_DIST) / "csp.json").read_text())["style-src-sha256"]
+    except (OSError, ValueError, KeyError):
+        log.error("dist/csp.json unreadable — inlined critical.css will violate "
+                   "the CSP (rebuild dist/ with scripts/build_assets.mjs)")
+        return None
+    return f"'sha256-{digest}'"
+
+
 def build_csp() -> str:
     if CSP_OVERRIDE:
         return CSP_OVERRIDE
     # script-src / connect-src can be extended with extra hosts (e.g. an
     # analytics beacon) via env, without rewriting the whole policy.
+    style_sources = ["'self'", *filter(None, [_critical_style_hash()])]
     directives = [
         "default-src 'self'",
         _directive("script-src", "'self'", *CSP_EXTRA_SCRIPT_SRC),
-        "style-src 'self'",
+        _directive("style-src", *style_sources),
         _directive("img-src", "'self'", "data:", *CSP_EXTRA_IMG_SRC),
         "font-src 'self'",
         _directive("connect-src", "'self'", *CSP_EXTRA_CONNECT_SRC),

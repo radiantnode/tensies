@@ -3,13 +3,17 @@
 Runs the real build (scripts/build_assets.mjs) into dist/ and asserts the
 properties the prod serving path depends on: every reference is fingerprinted
 and resolvable, the document is bundled (no raw module graph), critical.css is
-a separate <link> (never inlined — the CSP forbids inline styles), and every
-text asset has a .gz sibling that round-trips. nginx serves dist/ verbatim, so
-if these hold the prod frontend is internally consistent.
+inlined as a <style> whose sha256 matches dist/csp.json (so server/security.py
+can allow it in the CSP's style-src without a general 'unsafe-inline'), and
+every text asset has a .gz sibling that round-trips. nginx serves dist/
+verbatim, so if these hold the prod frontend is internally consistent.
 
 Run:  python tests/assets_test.py    (requires node; builds dist/ as a side effect)
 """
+import base64
 import gzip
+import hashlib
+import json
 import re
 import subprocess
 import sys
@@ -62,13 +66,24 @@ def main():
           "index.html points at the hashed JS bundle")
     check(re.search(r"/static/css/app-[0-9a-f]{8}\.css", html) is not None,
           "index.html points at the hashed CSS bundle")
-    check(html.count('rel="stylesheet"') == 2,
-          "exactly two stylesheet links (critical + bundle)")
+    check(html.count('rel="stylesheet"') == 1,
+          "exactly one stylesheet link (the non-critical bundle)")
+    check("/static/css/critical" not in html,
+          "critical.css is not linked as a separate file")
 
-    # ── critical.css stays a separate <link>, never an inline <style> (CSP) ──
-    check("<style" not in html, "no inline <style> (CSP style-src 'self')")
-    check(re.search(r"/static/css/critical-[0-9a-f]{8}\.css", html) is not None,
-          "critical.css served as a fingerprinted <link>")
+    # ── critical.css is inlined as a <style>, pinned by a CSP hash ──
+    style_match = re.search(r"<style>(.*?)</style>", html, re.S)
+    check(style_match is not None, "index.html has an inline <style> (critical.css)")
+    check(html.count("<style>") == 1, "exactly one inline <style> block")
+
+    csp_path = DIST / "csp.json"
+    check(csp_path.is_file(), "dist/csp.json exists")
+    if style_match and csp_path.is_file():
+        csp = json.loads(csp_path.read_text())
+        expected = csp.get("style-src-sha256")
+        actual = base64.b64encode(hashlib.sha256(style_match.group(1).encode()).digest()).decode()
+        check(expected == actual,
+              "dist/csp.json's style-src-sha256 matches the inlined <style> content")
 
     # ── every /static reference (html + bundles) is hashed and resolvable ──
     refs = set(STATIC_REF.findall(html))
