@@ -195,9 +195,14 @@ html = rewriteRefs(html); // images, fonts, manifest link
 // inline critical.css — first paint (the inline #loading screen) shouldn't
 // wait on a second network round trip beyond the document itself. Its CSP
 // hash (dist/csp.json) is what keeps this compliant with style-src 'self'.
+// Anchored on the comment (like the two collapses below) rather than the
+// literal <link> markup, so it isn't broken by an incidental attribute/
+// formatting change to that tag. Lazy `[^]*?` — unlike the greedy `[^]*`
+// below, this one isn't the last `.css">` in the document, so a greedy match
+// would run past it and swallow the non-critical block that follows too.
 html = html.replace(
-  '<link rel="stylesheet" href="/static/css/critical.css">',
-  `<style>${criticalCss}</style>`,
+  /  <!-- Critical CSS[^]*?critical\.css">\n/,
+  `  <style>${criticalCss}</style>\n`,
 );
 
 // collapse the 9 non-critical stylesheet links into one bundled link
