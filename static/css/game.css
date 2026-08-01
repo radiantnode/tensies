@@ -120,7 +120,7 @@
     display: flex;
     flex-wrap: wrap;
     align-content: flex-start;
-    justify-content: flex-end;
+    justify-content: flex-start;
     gap: 14px;
     flex-shrink: 0;
     inline-size: calc(2 * 56px + 14px);
