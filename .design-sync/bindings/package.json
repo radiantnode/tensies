@@ -1,0 +1,22 @@
+{
+  "name": "tensies-ui",
+  "version": "1.0.0",
+  "private": true,
+  "description": "React bindings for the Tensies design language. Thin components that emit the exact markup styled by the app's real static/css stylesheets — the CSS, tokens, and fonts are shipped verbatim from the app; only this JSX glue is new.",
+  "type": "module",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "esbuild": "^0.25.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.8.0"
+  }
+}

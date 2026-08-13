@@ -1,0 +1,23 @@
+{
+  "projectId": "ff56dcca-19c6-4c6f-9dc4-c931abdb5c36",
+  "pkg": "tensies-ui",
+  "globalName": "TensiesUI",
+  "shape": "package",
+  "buildCmd": "node .design-sync/bindings/build.mjs",
+  "entry": ".design-sync/bindings/dist/index.js",
+  "cssEntry": "dist/tensies.css",
+  "guidelinesGlob": [],
+  "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "Die": { "cardMode": "column" },
+    "WinnerOverlay": { "cardMode": "single", "viewport": "390x700" },
+    "PauseOverlay": { "cardMode": "single", "viewport": "390x700" },
+    "Sheet": { "cardMode": "single", "viewport": "390x620" },
+    "GameMenu": { "cardMode": "column" },
+    "TopBar": { "cardMode": "column" },
+    "RollButton": { "cardMode": "column" },
+    "PlayersBar": { "cardMode": "column" },
+    "FormStack": { "cardMode": "column" },
+    "DiceZones": { "cardMode": "column" }
+  }
+}
