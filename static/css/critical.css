@@ -160,6 +160,15 @@
     visibility: hidden;
   }
 
+  /* On the Hubble wall the same still is drawn across roughly 2160 device
+     pixels, where the 640-wide one above is visibly soft. `html[data-hubble]`
+     is stamped by hubble.js at import — long before `body.in-game` reveals this
+     layer, so the swap is never seen. Only background-image is overridden, so
+     the colour, position, sizing and repeat of the shorthand all still stand. */
+  html[data-hubble] .game-bg {
+    background-image: url('/static/video/poster-game-4k.webp');
+  }
+
   body.in-game .game-bg {
     opacity: 1;
     visibility: visible;
