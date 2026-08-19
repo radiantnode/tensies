@@ -58,9 +58,21 @@
     animation: sheet-in 0.24s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
 
+  /* The blur rides the slide: WebKit builds a dialog's backdrop-filter layer
+     a frame or two after the display toggle, so a constant blur snaps in
+     mid-slide on iOS. Ramping it from 0 puts the late layer inside the
+     choreography (see frost-in, critical.css). */
   @keyframes sheet-in {
-    from { transform: translateY(100%); }
-    to   { transform: translateY(0); }
+    from {
+      transform: translateY(100%);
+      backdrop-filter: blur(0) saturate(1);
+      -webkit-backdrop-filter: blur(0) saturate(1);
+    }
+    to {
+      transform: translateY(0);
+      backdrop-filter: blur(14px) saturate(1.04);
+      -webkit-backdrop-filter: blur(14px) saturate(1.04);
+    }
   }
 
   /* Closing: reverse the slide (JS calls .close() on animationend). */
@@ -69,8 +81,16 @@
   }
 
   @keyframes sheet-out {
-    from { transform: translateY(0); }
-    to   { transform: translateY(100%); }
+    from {
+      transform: translateY(0);
+      backdrop-filter: blur(14px) saturate(1.04);
+      -webkit-backdrop-filter: blur(14px) saturate(1.04);
+    }
+    to {
+      transform: translateY(100%);
+      backdrop-filter: blur(0) saturate(1);
+      -webkit-backdrop-filter: blur(0) saturate(1);
+    }
   }
 
   .sheet::backdrop {

@@ -14,11 +14,16 @@
     z-index: var(--z-scrim);
     backdrop-filter: blur(9px) saturate(1.02);
     -webkit-backdrop-filter: blur(9px) saturate(1.02);
+    animation: frost-in 0.22s ease-out both; /* iOS: ramp past the late blur layer */
+    /* Darkened a step from the comped .44/.5/.66/.74 (owner-directed,
+       2026-08-19, with the lobby): text legibility over the live video, and
+       the flashing neon showing through the glass. game-detail is this
+       scrim's twin — keep them identical. */
     background: linear-gradient(to bottom,
-      rgba(8, 4, 1, .44) 0%,
-      rgba(8, 4, 1, .5) 34%,
-      rgba(8, 4, 1, .66) 62%,
-      rgba(8, 4, 1, .74) 100%);
+      rgba(8, 4, 1, .56) 0%,
+      rgba(8, 4, 1, .62) 34%,
+      rgba(8, 4, 1, .76) 62%,
+      rgba(8, 4, 1, .84) 100%);
   }
 
   .profile-card {

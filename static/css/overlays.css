@@ -191,6 +191,7 @@
     text-align: center;
     backdrop-filter: blur(9px) saturate(1.02);
     -webkit-backdrop-filter: blur(9px) saturate(1.02);
+    animation: frost-in 0.22s ease-out both; /* iOS: ramp past the late blur layer */
     background: linear-gradient(to bottom,
       rgba(8, 4, 1, .68) 0%, rgba(8, 4, 1, .64) 44%, rgba(8, 4, 1, .76) 100%);
   }

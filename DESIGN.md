@@ -561,9 +561,11 @@ Rhythm is tight and consistent: 20px screen inline padding on data surfaces,
 rectangular container. The board runs on one variable: `--die-size: 52px` (46px
 under 600px viewport height) sizes table dice, mat dice, and the target die
 alike — table and mat dice are always ONE size (owner-pinned). Landscape phones
-(≤500px tall) get the full-screen rotate lockout, never a reflow. On the Hubble
-wall (`html[data-hubble]`) every backdrop-filter goes flat and its scrim takes a
-step more ink — a performance fallback, not a second design.
+(≤500px tall) get the full-screen rotate lockout, never a reflow. The Hubble
+wall (`html[data-hubble]`) runs the SAME glass as every other client — only the
+background media swaps to the 4K tier. (The build's flat-blur fallbacks were
+overturned by the owner on 2026-08-19 after they read as broken on the wall;
+reintroduce them only with measured frame-rate numbers.)
 
 **The Named Z Rule.** Every stacking layer has one named token on the `--z-*`
 scale in critical.css (scrim −1 → content 1 → chip 6 → chrome 10 → banner 12 →
@@ -677,7 +679,7 @@ dice — same size, same pips — only the contact shadow tightens.
 - **Do** put content on `--ground-*` washes with at most one faint inset hairline; brighten the hairline (not the fill) for state.
 - **Do** set Besley at letter-spacing 0 and widen Archivo legends to 118% stretch at 0.24em; use tabular-nums on every mutable numeral.
 - **Do** take font sizes from the declared rem ramp, radii from the declared radius scale, and colors from the declared palette or an alpha step of a declared family.
-- **Do** mask a backdrop-filter surface that must stop (`mask-image` to transparent), and give every `html[data-hubble]` blur a flat fallback with a step more ink.
+- **Do** mask a backdrop-filter surface that must stop (`mask-image` to transparent). The Hubble wall runs the same glass — no flat fallbacks (owner's call, 2026-08-19); only the background media is hubble-conditional (4K tier).
 - **Do** take z-index only from the named `--z-*` scale, paint screen scrims on `::before` at `--z-scrim`, and check LAYERING.md before adding a stacking context.
 - **Do** use the struck monogram (Besley initial on the seat gradient) whenever a player has no photo — sized in px at ~47% of its disc.
 - **Do** climb the error ladder in order — cream correction, amber refusal, unstruck disc — and reserve vermilion for a Roll Trust failure alone.

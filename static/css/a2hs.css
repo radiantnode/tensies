@@ -19,6 +19,7 @@
     background: linear-gradient(100deg, rgba(40, 24, 12, .97), rgba(24, 13, 6, .97));
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+    animation: frost-in 0.22s ease-out both; /* iOS: ramp past the late blur layer */
     box-shadow: 0 6px 18px rgba(0, 0, 0, .45);
   }
 
@@ -128,6 +129,7 @@
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     background: rgba(8, 4, 1, .88);
+    animation: frost-in 0.22s ease-out both; /* iOS: ramp past the late blur layer */
   }
 
   .a2hs-overlay[open] { display: flex; }

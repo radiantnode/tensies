@@ -5,47 +5,84 @@
 
 @layer components {
   /* Pre-initialize the custom element so when connectedCallback adds
-     .game-menu the computed opacity/visibility don't change. */
+     .game-menu the computed visibility doesn't change. */
   nav-menu {
-    opacity: 0;
     visibility: hidden;
   }
 
+  /* The menu fade is choreographed in PARTS, never as one root opacity fade:
+     WebKit refuses to render a backdrop-filter while it or an ancestor is
+     opacity-animating, so a fading root makes the blur snap in only when the
+     fade ends (the iOS "blur pop"). Instead: the root only flips visibility;
+     the blur ramps on ::before (filter transitions render live); the gradient
+     ground fades on ::after (no filter — safe to fade); the content children
+     fade on the same 0.28s clock. Settled states are byte-identical to the
+     locked scrims. */
   .game-menu {
     position: absolute;
     inset: 0;
     z-index: var(--z-menu);
     display: flex;
     flex-direction: column;
-    opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.28s ease,
-                visibility 0s linear 0.28s;
+    transition: visibility 0s linear 0.28s;
   }
 
   .game-menu.open {
-    opacity: 1;
     visibility: visible;
     pointer-events: all;
-    transition: opacity 0.28s ease,
-                visibility 0s linear 0s;
+    transition: visibility 0s linear 0s;
   }
 
-  /* The graded scrim, on ::before so the menu root never becomes a stacking
-     context. The nav menu sits over the bar-room photograph (.50/.46/.62);
-     the in-game menu sits over a LIVE BOARD, whose near-white dice punch
-     through anything lighter — .68/.64/.76 settles them (scrims.json). */
+  /* The blur layer, on ::before so the menu root never becomes a stacking
+     context. will-change keeps the backdrop layer warm between opens (the
+     root only toggles visibility); ::before is already a stacking context by
+     virtue of backdrop-filter, so the named-z scale is undisturbed
+     (LAYERING.md). */
   .game-menu::before {
     content: '';
     position: absolute;
     inset: 0;
     z-index: var(--z-scrim);
+    backdrop-filter: blur(0) saturate(1);
+    -webkit-backdrop-filter: blur(0) saturate(1);
+    will-change: backdrop-filter, -webkit-backdrop-filter;
+    transition: backdrop-filter 0.28s ease,
+                -webkit-backdrop-filter 0.28s ease;
+  }
+
+  .game-menu.open::before {
     backdrop-filter: blur(9px) saturate(1.02);
     -webkit-backdrop-filter: blur(9px) saturate(1.02);
+  }
+
+  /* The graded scrim ground, on ::after (paints over the ::before blur,
+     under the content). The nav menu sits over the bar-room photograph
+     (.50/.46/.62); the in-game menu sits over a LIVE BOARD, whose near-white
+     dice punch through anything lighter — .68/.64/.76 settles them
+     (scrims.json). */
+  .game-menu::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-scrim);
     background: linear-gradient(to bottom,
       rgba(8, 4, 1, .68) 0%, rgba(8, 4, 1, .64) 44%, rgba(8, 4, 1, .76) 100%);
+    opacity: 0;
+    transition: opacity 0.28s ease;
   }
+
+  .game-menu.open::after { opacity: 1; }
+
+  /* The content, fading on the same clock. Children only — the scrim pseudos
+     above carry their own choreography. */
+  .game-menu > * {
+    opacity: 0;
+    transition: opacity 0.28s ease;
+  }
+
+  .game-menu.open > * { opacity: 1; }
 
   .nav-menu {
     position: fixed;
@@ -53,16 +90,28 @@
 
   /* The menu sits over the PHOTOGRAPH, not over the host screen's own form —
      its scrim weight was judged against the bar room (scrims.json). Fade the
-     screen stack out under the opening menu so the ground is the room. */
+     screen stack out under the opening menu so the ground is the room.
+
+     A subtlety that cost a bug ("the lobby re-blurs", caught on the wall
+     2026-08-19): while main sits at ANY opacity below 1 it is a backdrop
+     root, so a screen's own glass (the lobby scrim) cannot sample the video
+     behind it — the blur cuts out for the whole fade and snaps back the
+     instant opacity returns to 1. The cure is sequencing, not the blur:
+     main comes home FAST (0.12s) so its glass snaps back while the menu's
+     lifting veil still carries ~5px of blur to hide it under, and main's
+     fade-OUT waits 60ms on open so the veil has thickened before the
+     screen's glass cuts out. Transitions take the destination state's
+     timing: the base rule times the close, the open rule times the open. */
   main:not(.intro-fade-out) {
-    transition: opacity 0.28s ease;
+    transition: opacity 0.12s ease;
   }
 
   body.nav-menu-open main {
     opacity: 0;
+    transition: opacity 0.28s ease 0.06s;
   }
 
-  .nav-menu::before {
+  .nav-menu::after {
     background: linear-gradient(to bottom,
       rgba(8, 4, 1, .5) 0%, rgba(8, 4, 1, .46) 44%, rgba(8, 4, 1, .62) 100%);
   }

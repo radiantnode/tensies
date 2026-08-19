@@ -268,6 +268,22 @@
     background-image: url('/static/video/poster-game-4k.webp');
   }
 
+  /* ── TRIAL (owner-directed, 2026-08-19): fill behind Safari's chrome ──
+     Tensies never scrolls the document, so iOS Safari keeps its address bar
+     fully expanded and the app lives in the SMALL viewport — the imagery
+     stopped exactly where the chrome began. Sizing the two media layers to
+     the LARGE viewport (100lvh — the height with the chrome minimized)
+     paints the photograph behind the translucent bar, like scrolling sites
+     do. Interactive content stays in the small viewport untouched; on
+     desktop and the wall lvh equals vh, so this is iOS-Safari-only by
+     construction. inset:0 + block-size is over-constrained: top and height
+     win, bottom is ignored — which is the point.
+     ── DELETE THIS BLOCK TO REVERT. ── */
+  .bg-video,
+  .game-bg {
+    block-size: 100lvh;
+  }
+
   body.in-game .game-bg {
     opacity: 1;
     visibility: visible;
@@ -373,6 +389,36 @@
     backdrop-filter: blur(7px);
     -webkit-backdrop-filter: blur(7px);
     background: linear-gradient(to bottom, rgba(8, 4, 1, .72), rgba(8, 4, 1, .84));
+    animation: frost-in 0.22s ease-out both;
+  }
+
+  /* WebKit builds a backdrop-filter layer a frame or two AFTER a display
+     toggle first paints, so glass that appears with its screen renders clear
+     and then snaps frosted on iOS. Every display-toggled blur surface runs
+     this ramp on entry: the keyframe has no `to`, so each element frosts up
+     to its own locked value, and the late layer lands inside the ramp instead
+     of reading as a pop. (The menus are the other case — an ancestor opacity
+     fade suppresses the filter outright — and are restructured in menu.css.)
+     The Hubble wall runs the same glass and the same ramp — the owner
+     overturned the flat fallbacks on 2026-08-19 (see the utilities layer). */
+  @keyframes frost-in {
+    from {
+      backdrop-filter: blur(0);
+      -webkit-backdrop-filter: blur(0);
+    }
+  }
+
+  /* A view transition shows a flat RASTER of the incoming screen — no live
+     backdrop-filter can render inside a snapshot, so a frost ramp that plays
+     under the raster is already finished (invisibly) by handoff and the blur
+     snaps in anyway. `vt-settling` brackets exactly the transition's lifetime
+     (transitions.js adds it before the swap, removes it on `finished`): hold
+     the ramp at blur(0) until the live DOM is back, then play it. Covers the
+     screen scrims and the A2HS banner — the two frost carriers that ride
+     view-transition navigations. */
+  .screen.vt-settling::before,
+  .screen.vt-settling .a2hs-banner {
+    animation-play-state: paused;
   }
 
   .loading-msg {
@@ -459,69 +505,129 @@
 }
 
 @layer utilities {
-  /* ── the Hubble wall: flat fallbacks for every backdrop-filter ──
-     The kiosk GPU is flat out compositing a rotated 4K framebuffer; twenty
-     backdrop blurs at 2160×3840 is the risk (LAYERING.md). Under
-     html[data-hubble] every blur goes flat and the scrims that relied on it
-     for legibility get a step more ink instead. */
-  html[data-hubble] .loading-screen::before,
-  html[data-hubble] .game-topbar:not(.app-header),
-  html[data-hubble] .lobby-screen::before,
-  html[data-hubble] .nearby-screen::before,
-  html[data-hubble] .radar-face,
-  html[data-hubble] .profile-screen::before,
-  html[data-hubble] .game-detail-screen::before,
-  html[data-hubble] .game-menu::before,
-  html[data-hubble] .pause-overlay,
-  html[data-hubble] .sheet,
-  html[data-hubble] .sheet::backdrop,
-  html[data-hubble] .confirm-dialog,
-  html[data-hubble] .confirm-dialog::backdrop,
-  html[data-hubble] .a2hs-overlay,
-  html[data-hubble] .a2hs-banner,
-  html[data-hubble] .a2hs-ios-bar,
-  html[data-hubble] .a2hs-home::before,
-  html[data-hubble] .places-search {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+  /* ── document-scroll mode (owner-directed, 2026-08-19): the PROFILE
+     scrolls as a normal web page. transitions.js sets html.doc-scroll at
+     screen commit; under it the shell goes static and the profile's content
+     flows in the document, so nothing is clipped by an inner scroller and
+     iOS Safari collapses its chrome on scroll. The scrim rides fixed at
+     100lvh so the veil covers the glass — including behind the bar — at any
+     scroll offset. Every other screen keeps the fixed shell. Lives in the
+     utilities layer so the mode outranks the per-screen components rules.
+     ── DELETE THIS BLOCK (and setDocScroll in transitions.js) TO REVERT. ── */
+  html.doc-scroll {
+    overflow: visible;
+    block-size: auto;
+    overscroll-behavior: auto;
+    /* The CANVAS is the only surface iOS paints into the chrome strips —
+       device-measured 2026-08-19: the collapsed-bar strip sits BEYOND the
+       layout viewport (innerH = 100lvh = 815 on an 852 screen, vvTop=0),
+       where WebKit clips all element painting, fixed or not. So the canvas
+       must be right at every scroll offset: the poster covers both strips at
+       the top of the document (it is taller than one viewport), and past it
+       the deepest ground (#080401, the ground-8-4-1 family) reads as the
+       page's own dark floor — never the old #1a0e08, which is what showed
+       as the brown band. background-attachment: fixed is not an option
+       (still broken on iOS). */
+    background: #080401 url('/static/video/poster-landing.webp') top center / 100vw auto no-repeat;
   }
 
-  html[data-hubble] .loading-screen::before {
-    background: linear-gradient(to bottom, rgba(8, 4, 1, .86), rgba(8, 4, 1, .94));
+  html.doc-scroll body {
+    position: static;
+    overflow: visible;
+    /* NO background on body: it paints ABOVE negative-z positioned
+       descendants (CSS painting order), so an opaque body hides the fixed
+       .bg-video and the profile's glass goes flat (caught on device,
+       2026-08-19). The iOS 26 tint sampler is fed by #chrome-tint-strip
+       instead, which outranks body in its sampling order. */
   }
 
-  /* The blur was doing legibility work on these; without it, more ink. */
-  html[data-hubble] .game-topbar:not(.app-header) {
-    background: linear-gradient(178deg, rgba(20, 11, 5, .8) 0%, rgba(9, 5, 2, .68) 100%);
+  /* The deliberate tint-sampling target (created by setDocScroll): iOS 26
+     extends an edge-hugging fixed element's solid background-color into the
+     collapsed-bar strip. 4px of floor-black peek inside the viewport —
+     invisible over the profile's dark ground. */
+  html.doc-scroll #chrome-tint-strip {
+    position: fixed;
+    inset-inline: 0;
+    inset-block-end: -8px;
+    min-block-size: 12px;
+    background-color: #080401;
+    pointer-events: none;
+    z-index: var(--z-scrim);
   }
 
-  html[data-hubble] .game-menu::before {
-    background: linear-gradient(to bottom,
-      rgba(8, 4, 1, .84) 0%, rgba(8, 4, 1, .8) 44%, rgba(8, 4, 1, .9) 100%);
+  html.doc-scroll main { block-size: auto; }
+
+  html.doc-scroll .profile-screen.active {
+    block-size: auto;
+    overflow: visible;
   }
 
-  html[data-hubble] .pause-overlay {
-    background: linear-gradient(to bottom,
-      rgba(8, 4, 1, .84) 0%, rgba(8, 4, 1, .8) 44%, rgba(8, 4, 1, .9) 100%);
+  /* The header holds the top while the document scrolls (owner-directed,
+     2026-08-19). It keeps its pre-game identity — the amber rule (::after)
+     stays its boundary — but content now passes beneath it, so it gains a
+     frosted ground. The ground lives on ::before, NOT the element: iOS 26
+     samples its top chrome tint from edge-hugging sticky elements'
+     background-color and a backdrop-filter there washes the bars out, while
+     absolutely-positioned children are ignored by the sampler (researched
+     2026-08-19). Safe-area padding is real only in the installed app —
+     tab-mode Safari reports 0. */
+  html.doc-scroll .profile-screen .app-header {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: var(--z-chrome);
+    padding-block-start: env(safe-area-inset-top, 0px);
   }
 
-  html[data-hubble] .lobby-screen::before {
-    background: linear-gradient(to top,
-      rgba(6, 3, 1, .92) 0%, rgba(6, 3, 1, .72) 38%, rgba(6, 3, 1, .5) 72%, rgba(6, 3, 1, .44) 100%);
+  html.doc-scroll .profile-screen .app-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-scrim);
+    background: linear-gradient(to bottom, rgba(8, 4, 1, .78), rgba(8, 4, 1, .64));
+    backdrop-filter: blur(9px) saturate(1.02);
+    -webkit-backdrop-filter: blur(9px) saturate(1.02);
+    animation: frost-in 0.22s ease-out both;
   }
 
-  html[data-hubble] :is(.nearby-screen, .profile-screen, .game-detail-screen)::before {
-    background: linear-gradient(to bottom,
-      rgba(8, 4, 1, .6) 0%, rgba(8, 4, 1, .68) 44%, rgba(8, 4, 1, .84) 100%);
+  html.doc-scroll .profile-screen .screen-body {
+    overflow-y: visible;
+    /* Scroll runway: in-flow pixels past the layout viewport's edge are the
+       ONE thing iOS 26 renders through the liquid-glass pill (fixed layers
+       clip there). The extra ground keeps page pixels, not bare canvas,
+       under the glass at the bottom stop. */
+    padding-block-end: calc(64px + env(safe-area-inset-bottom));
   }
 
-  html[data-hubble] .sheet {
-    background: linear-gradient(180deg, rgba(30, 18, 8, .92), rgba(12, 7, 3, .96));
+  /* iOS anchors fixed layers to the scrolling layout viewport, which
+     excludes the status-bar strip and the collapsed address-bar strip — the
+     html canvas (bar-black) showed through both. Bleed the glass layers past
+     each end by the safe-area insets so the imagery, not the canvas, is what
+     shows behind the chrome. env() is 0 and lvh = vh everywhere without
+     dynamic chrome, so this is inert off iOS Safari. */
+  html.doc-scroll .bg-video,
+  html.doc-scroll .profile-screen::before {
+    inset-block-start: calc(0px - env(safe-area-inset-top));
+    /* --chrome-gap: screen.height − 100lvh, measured by setDocScroll —
+       Safari's large viewport excludes the collapsed-bar strip and its
+       env() insets read 0 in scrolling-tab mode, so JS supplies the reach
+       CSS units cannot (device-measured 2026-08-19). */
+    block-size: calc(100lvh + var(--chrome-gap, 0px) + env(safe-area-inset-top) + env(safe-area-inset-bottom));
   }
 
-  html[data-hubble] .a2hs-overlay {
-    background: rgba(8, 4, 1, .96);
+  html.doc-scroll .profile-screen::before {
+    position: fixed;
   }
+
+  /* ── the Hubble wall runs the SAME glass as every other client ──
+     The build shipped flat `backdrop-filter: none` fallbacks under
+     html[data-hubble] as a GPU precaution (LAYERING.md), never measured.
+     Looked at on the actual wall (2026-08-19) they read as broken —
+     scrims and the board bar lost the frosting that makes them read as
+     solid — and the owner overturned them: "it should be the same css.
+     i want the blur." Only the 4K media swaps (.game-bg above,
+     hubble-media.js) remain hubble-conditional. If the wall's frame rate
+     ever suffers for it, measure first — do not reintroduce the flat
+     fallbacks without numbers. */
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {

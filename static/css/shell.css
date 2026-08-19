@@ -41,6 +41,9 @@
     background: linear-gradient(178deg, rgba(20, 11, 5, .62) 0%, rgba(9, 5, 2, .5) 100%);
     backdrop-filter: blur(4px) saturate(.9);
     -webkit-backdrop-filter: blur(4px) saturate(.9);
+    /* iOS: ramp past the late blur layer. Staged reveals into #game run this
+       while the screen is still hidden, so the bar arrives already frosted. */
+    animation: frost-in 0.22s ease-out both;
     -webkit-mask-image: linear-gradient(to bottom, #000 56%, transparent 100%);
             mask-image: linear-gradient(to bottom, #000 56%, transparent 100%);
   }
