@@ -137,6 +137,12 @@
   /* While the fix is being acquired the dial holds still. */
   .radar.is-locating .radar-sweep { animation-duration: 2s; }
 
+  /* Location refused: the scope is unpowered, not broken. */
+  .radar.is-denied { filter: saturate(.3) brightness(.58); }
+  .radar.is-denied :is(.radar-rings, .radar-sweep, .radar-you, .radar-rlab, .radar-north, .compass-btn) {
+    visibility: hidden;
+  }
+
   .radar-north {
     position: absolute;
     inset-block-start: 8px;

@@ -452,6 +452,70 @@
 }
 
 @layer utilities {
+  /* ── the Hubble wall: flat fallbacks for every backdrop-filter ──
+     The kiosk GPU is flat out compositing a rotated 4K framebuffer; twenty
+     backdrop blurs at 2160×3840 is the risk (LAYERING.md). Under
+     html[data-hubble] every blur goes flat and the scrims that relied on it
+     for legibility get a step more ink instead. */
+  html[data-hubble] .loading-screen::before,
+  html[data-hubble] .game-topbar:not(.app-header),
+  html[data-hubble] .lobby-screen::before,
+  html[data-hubble] .nearby-screen::before,
+  html[data-hubble] .radar-face,
+  html[data-hubble] .profile-screen::before,
+  html[data-hubble] .game-detail-screen::before,
+  html[data-hubble] .game-menu::before,
+  html[data-hubble] .pause-overlay,
+  html[data-hubble] .sheet,
+  html[data-hubble] .sheet::backdrop,
+  html[data-hubble] .confirm-dialog,
+  html[data-hubble] .confirm-dialog::backdrop,
+  html[data-hubble] .a2hs-overlay,
+  html[data-hubble] .a2hs-banner,
+  html[data-hubble] .a2hs-ios-bar,
+  html[data-hubble] .a2hs-home::before,
+  html[data-hubble] .places-search {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html[data-hubble] .loading-screen::before {
+    background: linear-gradient(to bottom, rgba(8, 4, 1, .86), rgba(8, 4, 1, .94));
+  }
+
+  /* The blur was doing legibility work on these; without it, more ink. */
+  html[data-hubble] .game-topbar:not(.app-header) {
+    background: linear-gradient(178deg, rgba(20, 11, 5, .8) 0%, rgba(9, 5, 2, .68) 100%);
+  }
+
+  html[data-hubble] .game-menu::before {
+    background: linear-gradient(to bottom,
+      rgba(8, 4, 1, .84) 0%, rgba(8, 4, 1, .8) 44%, rgba(8, 4, 1, .9) 100%);
+  }
+
+  html[data-hubble] .pause-overlay {
+    background: linear-gradient(to bottom,
+      rgba(8, 4, 1, .84) 0%, rgba(8, 4, 1, .8) 44%, rgba(8, 4, 1, .9) 100%);
+  }
+
+  html[data-hubble] .lobby-screen::before {
+    background: linear-gradient(to top,
+      rgba(6, 3, 1, .92) 0%, rgba(6, 3, 1, .72) 38%, rgba(6, 3, 1, .5) 72%, rgba(6, 3, 1, .44) 100%);
+  }
+
+  html[data-hubble] :is(.nearby-screen, .profile-screen, .game-detail-screen)::before {
+    background: linear-gradient(to bottom,
+      rgba(8, 4, 1, .6) 0%, rgba(8, 4, 1, .68) 44%, rgba(8, 4, 1, .84) 100%);
+  }
+
+  html[data-hubble] .sheet {
+    background: linear-gradient(180deg, rgba(30, 18, 8, .92), rgba(12, 7, 3, .96));
+  }
+
+  html[data-hubble] .a2hs-overlay {
+    background: rgba(8, 4, 1, .96);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.001ms !important;

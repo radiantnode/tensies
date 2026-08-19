@@ -278,6 +278,7 @@ export class NearbyScreen extends HTMLElement {
     this.#blips.clear();
     this.showError('');
     byId('nearby-retry').hidden = true;
+    byId('radar').classList.remove('is-denied');
     this.#setLocating(true);
 
     const token = ++this.#token;
@@ -289,6 +290,8 @@ export class NearbyScreen extends HTMLElement {
       const reason = err instanceof GeoError ? err.reason : 'unavailable';
       this.showError(GEO_ERROR_COPY[reason] ?? GEO_ERROR_COPY.unavailable);
       byId('nearby-retry').hidden = false;
+      // The scope is UNPOWERED, not broken: no rings, no sweep, no centre.
+      byId('radar').classList.add('is-denied');
       return;
     }
     if (token !== this.#token) return;
