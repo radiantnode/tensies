@@ -2,6 +2,7 @@
 import './app-header.js';
 import { AudioShareError, listenForCode } from '../audio-share.js';
 import { byId } from '../dom.js';
+import { setError } from '../error-register.js';
 import { EQ_ICON_HTML } from '../eq-icon.js';
 import { getAuthUser, isSignedIn } from '../auth.js';
 import { syncUsernamePill } from '../account-sync.js';
@@ -339,7 +340,7 @@ export class LandingScreen extends HTMLElement {
    * @param {string} message
    */
   showJoinError(message) {
-    byId('join-error').textContent = message;
+    setError(byId('join-error'), message);
   }
 
   /** @type {number} */
@@ -428,7 +429,7 @@ export class LandingScreen extends HTMLElement {
    * @param {string} message
    */
   showError(message) {
-    byId('landing-error').textContent = message;
+    setError(byId('landing-error'), message);
   }
 }
 

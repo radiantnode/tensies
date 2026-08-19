@@ -3,6 +3,7 @@ import './app-header.js';
 import { avatarSeat } from '../avatars.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
 import { byId } from '../dom.js';
+import { setError } from '../error-register.js';
 import { GeoError, GEO_ERROR_COPY, getPosition } from '../geo.js';
 import { joinWithCode } from '../net.js';
 import { showLanding } from '../router.js';
@@ -519,7 +520,7 @@ export class NearbyScreen extends HTMLElement {
 
   /** @param {string} message */
   showError(message) {
-    byId('nearby-error').textContent = message;
+    setError(byId('nearby-error'), message);
   }
 }
 

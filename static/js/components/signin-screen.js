@@ -2,6 +2,7 @@
 import './app-header.js';
 import { accountCoin } from '../account-coin.js';
 import { byId } from '../dom.js';
+import { setError } from '../error-register.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
 import {
   signInOrUp, validateUsername, isWebAuthnAvailable,
@@ -90,8 +91,7 @@ export class SigninScreen extends HTMLElement {
    * @param {string} message
    */
   showError(message) {
-    const el = document.getElementById('signin-error');
-    if (el) el.textContent = message;
+    setError(document.getElementById('signin-error'), message);
   }
 }
 

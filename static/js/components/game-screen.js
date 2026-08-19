@@ -185,7 +185,7 @@ export class GameScreen extends HTMLElement {
 
     const range = () => bolt.clientWidth - slug.offsetWidth - 8;
 
-    const apply = (travel, animate) => {
+    const apply = (/** @type {number} */ travel, /** @type {boolean} */ animate) => {
       this.#boltTravel = travel;
       slug.classList.toggle('is-springing', animate);
       slug.style.transform = `translateX(${travel * range()}px)`;

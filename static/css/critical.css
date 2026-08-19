@@ -1,3 +1,10 @@
+/* impeccable direction contract: "Brass & Enamel" (seed 92e7aa3d) — the
+   interface is hardware in a bar: brass, dark vitreous enamel, oxblood
+   leather, smoked glass, ON the commissioned imagery, never replacing it.
+   Locked comps: .impeccable/mocks/CANON.md · record:
+   .impeccable/surfaces/static-index-html.md · layering:
+   .impeccable/handoff/LAYERING.md */
+
 /* Critical CSS — everything the first paint needs with no JS in the path:
    the fonts, the cascade-layer order, the Brass & Enamel design tokens, the
    reset, the loading screen, the brass thread, and the view-transition setup.
