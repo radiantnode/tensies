@@ -1,31 +1,40 @@
 /* Critical CSS — everything the first paint needs with no JS in the path:
-   the font, the cascade-layer order, design tokens, the reset, the shared
-   logo, the inline #loading screen, and the view-transition setup.
-   Loaded as the first, render-blocking stylesheet. */
+   the fonts, the cascade-layer order, the Brass & Enamel design tokens, the
+   reset, the loading screen, the brass thread, and the view-transition setup.
+   Loaded as the first, render-blocking stylesheet.
+
+   The system in one paragraph (from the locked design record): brass is ONLY
+   for things you press (plus the struck Roll Trust seal); content is quiet on
+   faint grounds; fields are dark recessed wells with no gold rim; glass shows
+   the bar through; anything transparent has nothing opaque behind it; nothing
+   glows — brass is lit by its edges. */
 
 /* Cascade order for the whole app, fixed before any other sheet is parsed. */
 @layer reset, tokens, elements, components, utilities;
 
+/* Display face: Besley — a Clarendon revival out of the whiskey-label
+   tradition. Display roles ONLY, always at letter-spacing 0. */
 @font-face {
-  font-family: 'Inter';
+  font-family: 'Besley';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('/static/fonts/besley-latin-variable.woff2') format('woff2');
+}
+
+/* Everything else: Archivo — body, buttons, legends, scores, all data.
+   The width axis is the point: legends are WIDENED (118%), not just tracked. */
+@font-face {
+  font-family: 'Archivo';
   font-style: normal;
   font-weight: 100 900;
+  font-stretch: 62% 125%;
   font-display: swap;
-  src: url('/static/fonts/inter-latin-variable.woff2') format('woff2');
+  src: url('/static/fonts/archivo-latin-variable.woff2') format('woff2');
 }
 
-/* Heading face: EB Garamond — a retro Garamond serif (Apple-Garamond feel) for
-   screen/section headings. Body text stays Inter. Variable weight 400–800. */
-@font-face {
-  font-family: 'EB Garamond';
-  font-style: normal;
-  font-weight: 400 800;
-  font-display: swap;
-  src: url('/static/fonts/ebgaramond-latin-variable.woff2') format('woff2');
-}
-
-/* Vintage-stamp display faces (lobby stamp only): Rye for the engraved serial,
-   panels, and banner; Yellowtail for the script watermark. */
+/* Vintage-stamp display faces (lobby stamp + game codes): Rye for the engraved
+   serial, panels, and banner; Yellowtail for the script watermark. */
 @font-face {
   font-family: 'Rye';
   font-style: normal;
@@ -75,16 +84,14 @@
   }
 
   /* Focus ring for keyboard nav only. Suppress the UA outline for pointer/touch
-     and programmatic focus (e.g. a <dialog>'s auto-focus landing on Cancel),
-     where the blue ring is just noise. Keyboard users still get :focus-visible. */
+     and programmatic focus, where the ring is just noise. Keyboard users still
+     get :focus-visible. */
   :focus:not(:focus-visible) {
     outline: none;
   }
 
-  /* A dialog gets initial focus on open (tabindex=-1, so no action button is
-     auto-focused and rings — WebKit paints a focus-visible ring on showModal's
-     auto-focus). The container itself is never a keyboard tab stop, so it never
-     needs a ring; kill it unconditionally so the whole-dialog outline can't show. */
+  /* A dialog gets initial focus on open (tabindex=-1); the container itself is
+     never a keyboard tab stop, so it never needs a ring. */
   dialog:focus {
     outline: none;
   }
@@ -92,26 +99,115 @@
 
 @layer tokens {
   :root {
+    /* ── neon: legitimate ONLY where something is literally neon — the logo
+       mark and the sign in the landing video. Nowhere else. ── */
     --color-accent: #ff4d6d;
-    --color-success: #2ecc71;
+
+    /* ── the keeper gold (locked 2026-08-18, gold.json). The five mottled
+       pools + horizontal hairline grain ride in --brush so every
+       var(--brush), var(--brass) site picks up the whole keeper stack. ── */
+    --brass: linear-gradient(180deg, #f8d379 0%, #e6ba6a 55%, #c69540 100%);
+    --brush:
+      radial-gradient(ellipse 55% 45% at 20% 30%, rgba(255,249,228,.26) 0%, transparent 62%),
+      radial-gradient(ellipse 50% 60% at 74% 24%, rgba(62,40,10,.22) 0%, transparent 62%),
+      radial-gradient(ellipse 60% 50% at 45% 72%, rgba(255,246,222,.22) 0%, transparent 64%),
+      radial-gradient(ellipse 45% 55% at 88% 70%, rgba(70,46,14,.2) 0%, transparent 62%),
+      radial-gradient(ellipse 50% 50% at 60% 46%, rgba(255,250,232,.17) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, rgba(255,250,232,.07) 0 .5px, transparent .5px 2px);
+    /* nearly-there progress: brighter polished gold, never pink */
+    --brass-hot: linear-gradient(180deg, #fff3cf 0%, #f3d489 18%, #d8ab52 52%, #a97e34 100%);
+    /* disabled brass keeps its HUE and loses its LIGHT — never desaturate */
+    --brass-off: linear-gradient(180deg, #7d6136 0%, #6b5230 55%, #57411f 100%);
+
+    /* Alloy and edge move together. The struck edge, at the button scale: */
+    --lip: rgba(255, 247, 220, .9);
+    --lip-dark: rgba(96, 60, 16, .8);
+    --seat: rgba(44, 27, 9, .75);
+    --edge-struck:
+      inset 0 1.5px 0 var(--lip),
+      inset 0 -1.5px 0 var(--lip-dark),
+      0 2px 0 var(--seat),
+      0 8px 20px rgba(0, 0, 0, .6);
+
+    /* dark vitreous enamel (target die, rings, coin centres) */
+    --enamel-face:
+      linear-gradient(180deg, rgba(255,232,190,.13) 0%, rgba(255,232,190,.03) 26%, transparent 46%),
+      radial-gradient(130% 150% at 32% 14%, #33200f 0%, #1b0f07 62%, #100804 100%);
+    --enamel-coin: radial-gradient(130% 150% at 32% 14%, #33200f, #140b05);
+
+    /* the amber closing rule (menus keep it; the board keeps its masked fade) */
+    --rule-amber: linear-gradient(to right,
+      rgba(150, 98, 38, .3), rgba(255, 203, 110, .85) 50%, rgba(150, 98, 38, .3));
+    --hairline: rgba(226, 183, 110, .16);
+
+    /* ── ink ── */
+    --ink-brass: #4a2c08;           /* engraved on gold */
+    --ink-seal: #3d2a09;            /* seal strokes */
     --color-bg: #1a0e08;
-    --color-panel: rgba(8, 4, 1, 0.58);
-    --color-panel-screen: rgba(6, 3, 1, 0.72);
-    --color-field: rgba(20, 10, 5, 0.7);
-    --color-raised: rgba(30, 15, 5, 0.5);
-    --color-raised-hover: rgba(40, 20, 6, 0.6);
-    --color-border: rgba(180, 100, 20, 0.25);
-    --color-border-strong: rgba(170, 115, 45, 0.3);
+    --color-title: #fbf0da;         /* Besley display cream */
+    --color-name-bright: #fdf1d6;   /* winner name */
+    --color-cream: #f2e2c4;         /* row names, control labels */
+    --color-body: #d3bd9a;          /* running prose */
+    --color-body-em: #f2dcb0;       /* bold within prose */
+    --color-legend: #bd9d6f;        /* small-caps legends */
+    --color-muted: #a8906a;         /* metadata, subs */
+    --color-dim: #9c8158;           /* quieter metadata, stat labels */
+    --color-faint: #8d7550;         /* asides, dismiss chrome */
+    --color-faintest: #7d6544;      /* step legends, bolt instruction */
+    --color-wordmark: #f4dfae;      /* TENSIES — solid warm gold, never clipped */
+    --color-burger: #e0c288;
+    --color-chip: #c0a377;          /* back-chip chevron, instrument text */
+    --color-secondary-text: #bda27a;
+    --color-field-text: #f4e7cf;
+    --color-placeholder: #b09a78;
+    --color-stat: #e6c288;          /* gold numerals on stat tiles */
+    --color-tag: #c6a878;           /* embossed tag ink */
+    --color-coin-mark: #c2a476;     /* the drawn person on the account coin */
+
+    /* ── the alarm ladder (locked 2026-08-18, alarm.json) ──
+       correction: cream, text alone · refusal: amber, same form ·
+       unknown: unstruck disc · alarm: vermilion — EXACTLY ONE use in the app,
+       a Roll Trust failure. Never reach for --color-alarm for a bad code,
+       a rate limit, or a full table. */
+    --color-correction: #e2cba3;
+    --color-refusal: #e8cd90;
+    --color-alarm: #e0503a;
+    --color-alarm-deep: #a52d14;
+    --color-tick: #e2b96e;
+
+    /* ── grounds (content is quiet: faint, no rims) ── */
+    --ground-row: rgba(8, 4, 1, .34);
+    --ground-stat: rgba(8, 4, 1, .38);
+    --ground-line: rgba(8, 4, 1, .4);
+    --ground-chip: rgba(10, 5, 2, .42);
+    --ground-secondary: rgba(26, 15, 7, .5);
+    --ground-well: rgba(12, 7, 3, .6);
+
+    /* ── legacy names still consumed by the untouchable stamp.css ── */
     --color-text: #efe3d4;
     --color-text-warm: rgba(235, 215, 195, 0.92);
     --color-text-muted: rgba(214, 188, 158, 0.62);
-    --color-text-label: rgba(220, 200, 180, 0.72);
-    --color-amber: rgba(225, 180, 100, 0.95);
-    --font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
-    --font-family-heading: 'EB Garamond', Georgia, 'Times New Roman', serif;
+
+    /* ── type ── */
+    --font-family-base: 'Archivo', system-ui, -apple-system, sans-serif;
+    --font-family-heading: 'Besley', Georgia, 'Times New Roman', serif;
+
     --shadow-text: 0 1px 4px rgba(0, 0, 0, 0.9);
-    --shadow-text-lg: 0 2px 8px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.8);
+    --shadow-text-lg: 0 2px 10px rgba(0, 0, 0, 0.9);
     --radius-md: 12px;
+
+    /* ── the z scale (see .impeccable/handoff/LAYERING.md). Every layer is
+       named once; ad-hoc z numbers are forbidden. Modal <dialog>s render in
+       the browser top layer and are outside this scale entirely. ── */
+    --z-scrim: -1;            /* screen scrims and background layers (::before) */
+    --z-content: 1;           /* the screen body */
+    --z-chip: 6;              /* back chips over content */
+    --z-chrome: 10;           /* the top bar and its logo lockup */
+    --z-banner: 12;           /* the A2HS banner above the header */
+    --z-menu: 20;             /* the nav menu and the in-game menu */
+    --z-chrome-over-menu: 22; /* the title row while a menu is open (X stays tappable) */
+    --z-dissolve: 60;         /* the outgoing screen during a staged reveal */
+    --z-guard: 1000;          /* the rotate lockout (cannot beat the top layer) */
   }
 }
 
@@ -121,8 +217,7 @@
     overflow: hidden;
     overscroll-behavior: none;
     background: var(--color-bg);
-    /* Stop iOS Safari inflating running text when rotated to landscape (the nav
-       menu about blurb + changelog paragraphs are the wide text blocks it hits);
+    /* Stop iOS Safari inflating running text when rotated to landscape;
        keep the sizes we set at every orientation. */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -161,10 +256,7 @@
   }
 
   /* On the Hubble wall the same still is drawn across roughly 2160 device
-     pixels, where the 640-wide one above is visibly soft. `html[data-hubble]`
-     is stamped by hubble.js at import — long before `body.in-game` reveals this
-     layer, so the swap is never seen. Only background-image is overridden, so
-     the colour, position, sizing and repeat of the shorthand all still stand. */
+     pixels, where the 640-wide one above is visibly soft. */
   html[data-hubble] .game-bg {
     background-image: url('/static/video/poster-game-4k.webp');
   }
@@ -198,7 +290,7 @@
     bottom: calc(0px - env(safe-area-inset-bottom));
     overflow: hidden;
     font-family: var(--font-family-base);
-    color: var(--color-text);
+    color: var(--color-cream);
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
   }
@@ -209,187 +301,104 @@
 }
 
 @layer components {
-  /* Shared logo (loading + landing) */
+  /* Shared logo mark. The mark's neon pink is the one legitimate neon in the
+     interface, but nothing GLOWS: a drop shadow seats it, no halo. */
   .logo-mark {
     display: block;
     position: relative;
     z-index: 2;
-    inline-size: clamp(110px, 32vw, 160px);
+    inline-size: clamp(100px, 30vw, 128px);
     block-size: auto;
-    margin-block-end: -2.5rem;
-    filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.75))
-            drop-shadow(0 0 32px rgba(255, 77, 109, 0.35));
+    filter: drop-shadow(0 12px 26px rgba(0, 0, 0, 0.8));
   }
 
-  .logo {
-    margin-block-end: 0.25rem;
-    font-size: clamp(3rem, 12vw, 6rem);
-    font-weight: 900;
-    letter-spacing: 0.15em;
-    color: var(--color-accent);
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  /* ── the brass thread — this app's one progress mark. Shared by the loading
+     screen, the round-result countdown, the pause cap, and the A2HS steps. ── */
+  .thread {
+    inline-size: 132px;
+    block-size: 3px;
+    border-radius: 2px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #0b0603, #170d06);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, .9);
   }
 
-  /* Loading screen (inline markup in index.html) */
+  .thread i {
+    display: block;
+    block-size: 100%;
+    border-radius: 2px;
+    background: var(--brush), var(--brass);
+  }
+
+  /* Indeterminate: a brass fill sweeping the channel while we wait. */
+  .thread.busy i {
+    inline-size: 46%;
+    animation: thread-sweep 1.4s ease-in-out infinite;
+  }
+
+  @keyframes thread-sweep {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(287px); }
+  }
+
+  /* Loading screen (inline markup in index.html) — the logo, a line, and the
+     brass thread, over the blurred landing. Scrim on ::before at z-index -1 so
+     the screen root never becomes a stacking context (LAYERING.md). */
   .loading-screen {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 26px;
     block-size: 100%;
     padding-block: calc(2rem + env(safe-area-inset-top)) calc(2rem + env(safe-area-inset-bottom));
     padding-inline: 2rem;
     overflow: hidden;
     text-align: center;
-    background: var(--color-panel-screen);
+  }
+
+  .loading-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-scrim);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    background: linear-gradient(to bottom, rgba(8, 4, 1, .72), rgba(8, 4, 1, .84));
   }
 
   .loading-msg {
     max-inline-size: 280px;
-    block-size: 3.5rem;
-    margin-block-start: 1.25rem;
-    font-size: 1rem;
+    font-size: 0.98rem;
     font-weight: 600;
     letter-spacing: 0.02em;
     line-height: 1.5;
-    color: var(--color-text);
+    color: #e6d2ae;
+    text-shadow: var(--shadow-text);
   }
 
-  /* Dice loader (inline .stage markup in #loading and #pause-overlay). Two dice
-     — pink 6 + ivory 4 — hop with squash-and-stretch, resting in the logo.svg
-     pose. Geometry derived from logo.svg (200×200 viewBox): pink center (74,80)
-     size 80 rotate −14°, ivory center (132,130) size 76 rotate 10°. Each die is
-     a 3×3 pip grid of divs (not SVG). Background/veil intentionally dropped —
-     the dice sit on the loading screen / pause overlay background. */
-  .stage {
-    position: relative;
-    inline-size: 200px;
-    block-size: 200px;
-    transform: scale(0.55);
-    transform-origin: center;
-    /* scale() leaves the 200px layout box intact, so the visual dice float in
-       empty space; pull the following message up to sit close under them. */
-    margin-block: -4.5rem;
-    filter: drop-shadow(0 14px 26px rgba(0, 0, 0, 0.7))
-            drop-shadow(0 0 30px rgba(255, 77, 109, 0.32));
-  }
-
-  .die {
-    position: absolute;
-    display: grid;
-    grid-template: repeat(3, 1fr) / repeat(3, 1fr);
-    place-items: center;
-    padding: 13px;
-    transform-origin: center;
-    will-change: transform;
-  }
-
-  .pip {
-    inline-size: 13px;
-    block-size: 13px;
-    border-radius: 50%;
-    opacity: 0;             /* inactive pip */
-  }
-  .pip.on { opacity: 1; }   /* active pip */
-
-  /* Back die: pink, showing 6 */
-  .die--pink {
-    inline-size: 80px;
-    block-size: 80px;
-    top: 40px;
-    left: 34px;
-    border-radius: 15px;
-    background: linear-gradient(#ff6b85, #e63a59);
-    border: 1.5px solid #2a0a14;
-    animation: dice-hop-a 0.92s cubic-bezier(0.5, -0.3, 0.4, 1.3) infinite;
-  }
-  .die--pink .pip { background: #fff; }
-
-  /* Front die: ivory, showing 4 */
-  .die--ivory {
-    inline-size: 76px;
-    block-size: 76px;
-    top: 92px;
-    left: 94px;
-    z-index: 3;
-    border-radius: 14px;
-    background: linear-gradient(#ffffff, #dcd9e8);
-    border: 1.5px solid #1a1a2e;
-    box-shadow: 3px 5px 0 rgba(26, 26, 46, 0.35);
-    animation: dice-hop-b 0.92s cubic-bezier(0.5, -0.3, 0.4, 1.3) 0.12s infinite;
-  }
-  .die--ivory .pip { background: #1a1a2e; }
-
-  /* Ground shadow that pulses in sync with the hop */
-  .die--shadow {
-    display: block;
-    padding: 0;
-    left: 50%;
-    bottom: 2px;
-    inline-size: 120px;
-    block-size: 14px;
-    transform: translateX(-50%);
-    background: radial-gradient(ellipse, rgba(0, 0, 0, 0.55), transparent 70%);
-    animation: dice-shadow 0.92s ease-in-out infinite;
-    z-index: 1;
-  }
-
-  /* The base rotation (−14°/10°) lives inside the keyframes so the logo pose is
-     preserved at every keyframe stop. */
-  @keyframes dice-hop-a {
-    0%, 100% { transform: translateY(0)     rotate(-14deg) scale(1, 1); }
-    18%      { transform: translateY(2px)   rotate(-14deg) scale(1.08, 0.9); }
-    45%      { transform: translateY(-30px) rotate(-26deg) scale(0.94, 1.08); }
-    75%      { transform: translateY(0)     rotate(-8deg)  scale(1.06, 0.94); }
-  }
-
-  @keyframes dice-hop-b {
-    0%, 100% { transform: translateY(0)     rotate(10deg) scale(1, 1); }
-    18%      { transform: translateY(2px)   rotate(10deg) scale(1.08, 0.9); }
-    45%      { transform: translateY(-24px) rotate(22deg) scale(0.94, 1.08); }
-    75%      { transform: translateY(0)     rotate(4deg)  scale(1.06, 0.94); }
-  }
-
-  @keyframes dice-shadow {
-    0%, 100% { transform: translateX(-50%) scale(1);   opacity: 0.55; }
-    45%      { transform: translateX(-50%) scale(0.6); opacity: 0.28; }
-  }
-
-  /* Orientation guard (inline #rotate-overlay in index.html). Hidden by default;
-     the landscape media query below reveals it. Scoped by max-height so it targets
-     phones held sideways (short in landscape) — never desktop/tablet, which are
-     landscape but tall. There is no true web orientation lock on iOS, so this CSS
-     prompt is the cross-browser stand-in; the manifest covers installed PWAs. */
+  /* Orientation guard (inline #rotate-overlay in index.html). Hidden by
+     default; the landscape media query below reveals it. Scoped by max-height
+     so it targets phones held sideways — never desktop/tablet. */
   .rotate-overlay {
     display: none;
     position: fixed;
     inset: 0;
-    z-index: 1000;
+    z-index: var(--z-guard);
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 14px;
     padding: calc(1.25rem + env(safe-area-inset-top)) calc(1.5rem + env(safe-area-inset-right))
              calc(1.25rem + env(safe-area-inset-bottom)) calc(1.5rem + env(safe-area-inset-left));
     text-align: center;
-    background: var(--color-bg);
+    background: #100804;
   }
 
-  .rotate-overlay::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--color-panel-screen);
-  }
-
-  .rotate-overlay > * { position: relative; }
-
-  /* The dice logo-mark IS the brand here (mirrors the loading/pause screens),
-     sized down to vh so it fits the short landscape height. The gentle rotate
-     nudge doubles as the "turn your phone" hint (suppressed under reduced-motion
-     by the utilities layer). */
   .rotate-mark {
-    inline-size: clamp(56px, 22vh, 112px);
-    margin-block-end: 0.35rem;
+    inline-size: clamp(56px, 22vh, 88px);
+    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.8));
     animation: rotate-hint 2.8s ease-in-out infinite;
   }
 
@@ -398,13 +407,21 @@
     78%, 90% { transform: rotate(-16deg); }
   }
 
+  .rotate-legend {
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    font-stretch: 118%;
+    color: var(--color-legend);
+  }
+
   .rotate-msg {
-    max-inline-size: 320px;
-    font-size: 1rem;
+    max-inline-size: 340px;
+    font-size: 1.05rem;
     font-weight: 600;
     line-height: 1.5;
-    color: var(--color-text);
-    text-shadow: var(--shadow-text);
+    color: #f0dfc0;
   }
 
   @media (orientation: landscape) and (max-height: 500px) {
@@ -424,7 +441,7 @@
   .screen.dissolving {
     position: fixed;
     inset: 0;
-    z-index: 200;       /* above the game top bar's z-index: 100 */
+    z-index: var(--z-dissolve);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.5s ease;
@@ -446,10 +463,8 @@
     ::view-transition-old(*),
     ::view-transition-new(*) { animation: none !important; }
 
-    /* The dice loader's base rotation lives inside its keyframes, so with the
-       hop suppressed above the dice must be posed explicitly — otherwise they
-       rest at rotate(0) instead of the logo pose. */
-    .die--pink  { transform: rotate(-14deg); }
-    .die--ivory { transform: rotate(10deg); }
+    /* An indeterminate thread with its sweep suppressed should read as a
+       settled fill, not an empty channel. */
+    .thread.busy i { inline-size: 46%; transform: none; }
   }
 }

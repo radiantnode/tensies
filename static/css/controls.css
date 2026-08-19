@@ -1,4 +1,19 @@
-/* Form controls: buttons, inputs, the code field, error text. */
+/* Form controls: fields, buttons, the round action rings, dividers, and the
+   error registers. Brass is ONLY for things you press; fields are dark
+   recessed wells with NO gold rim; secondary buttons step well back. */
+
+/* Registered so the scroll-fade mask offsets can transition. */
+@property --fade-top {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fade-bottom {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
 
 @layer elements {
   button, input, textarea, select { font-family: inherit; }
@@ -12,113 +27,117 @@
 
   dialog { color: inherit; }
 
+  /* A field reads as a well cut into the surface, not a gold-rimmed object:
+     the depth cue does the work. Text and placeholder carry the legibility. */
   input {
-    padding: 0.85rem 1rem;
-    background: var(--color-field);
-    border: 1px solid var(--color-border-strong);
+    padding: 0.88rem 1rem;
+    background: var(--ground-well);
+    border: none;
     border-radius: var(--radius-md);
-    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(220, 170, 70, 0.06);
-    font-size: 1rem;
-    letter-spacing: 0.05em;
+    box-shadow:
+      inset 0 3px 7px rgba(0, 0, 0, .8),
+      inset 0 0 0 1px rgba(255, 236, 202, .09),
+      0 1px 0 rgba(255, 236, 202, .05);
+    font-size: 1.04rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
     text-align: center;
-    color: var(--color-text);
+    color: var(--color-field-text);
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: box-shadow 0.2s;
   }
 
   input::placeholder {
-    letter-spacing: normal;
-    color: var(--color-text-muted);
+    letter-spacing: 0.02em;
+    color: var(--color-placeholder);
   }
 
+  /* Focus brightens the well's own hairline — never an accent ring. */
   input:focus {
-    border-color: var(--color-accent);
-    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45), 0 0 0 3px rgba(255, 77, 109, 0.18);
+    box-shadow:
+      inset 0 3px 7px rgba(0, 0, 0, .8),
+      inset 0 0 0 1px rgba(255, 236, 202, .22),
+      0 1px 0 rgba(255, 236, 202, .05);
+  }
+
+  /* A field that produced a correction DIMS its own edge — the quietest
+     possible "this one" pointer. It never takes the alarm colour. */
+  input.input-bad {
+    box-shadow:
+      inset 0 3px 7px rgba(0, 0, 0, .8),
+      inset 0 0 0 1px rgba(255, 236, 202, .04),
+      0 1px 0 rgba(255, 236, 202, .02);
   }
 }
 
 @layer components {
   .code-input {
-    font-size: 1.3rem;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 1.5rem;
     font-weight: 700;
-    letter-spacing: 0.3em;
+    letter-spacing: 0.42em;
+    text-indent: 0.42em;
     text-transform: uppercase;
   }
 
   .btn {
-    padding: 0.85rem 1.5rem;
-    border: 1px solid transparent;
+    padding: 0.86rem 1rem;
+    border: none;
     border-radius: var(--radius-md);
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
+    font-size: 0.98rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    font-stretch: 106%;
+    text-align: center;
     text-decoration: none;
     color: inherit;
     cursor: pointer;
     touch-action: manipulation;
-    transition: transform 0.1s ease, box-shadow 0.12s ease,
-                background 0.12s ease, border-color 0.12s ease, opacity 0.15s;
+    transition: transform 0.1s ease, box-shadow 0.12s ease, background 0.12s ease;
   }
 
-  .btn:hover:not(:disabled) { transform: translateY(-1px); }
-  .btn:active:not(:disabled) { transform: translateY(0); }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
 
-  .btn:disabled {
+  /* PRIMARY — the keeper gold (gold.json): the incumbent's bright base and
+     horizontal brushing plus the five mottled pools, on a struck lip and a
+     seated shadow. No outer bloom, no animated sweep: nothing in this world
+     glows — brass is lit by its edges. */
+  .btn-primary {
+    background: var(--brush), var(--brass);
+    color: var(--ink-brass);
+    text-shadow: 0 1px 0 rgba(255, 244, 212, .55);
+    box-shadow: var(--edge-struck);
+  }
+
+  /* Disabled brass keeps its HUE and loses its LIGHT — lit lip gone, seat
+     gone, plate flat in its recess. Never desaturate: that reads as a
+     different metal, not a dimmer one. */
+  .btn-primary:disabled {
+    background: var(--brass-off);
+    color: #3a2a12;
+    text-shadow: none;
+    cursor: not-allowed;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 240, 205, .22),
+      inset 0 -1px 0 rgba(40, 25, 8, .6),
+      inset 0 2px 6px rgba(0, 0, 0, .45);
+  }
+
+  /* SECONDARY — steps well back: no brass rim, sentence weight, muted text.
+     "The other option", never a second primary. */
+  .btn-secondary {
+    background: var(--ground-secondary);
+    color: var(--color-secondary-text);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    font-stretch: 100%;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .8);
+    box-shadow: inset 0 0 0 1px rgba(190, 146, 74, .16);
+  }
+
+  .btn-secondary:disabled {
     opacity: 0.45;
     cursor: not-allowed;
-    box-shadow: none;
-  }
-
-  .btn-primary {
-    background:
-      linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.45) 40%, rgba(255,255,255,0.15) 50%, transparent 65%)
-        120% 0 / 200% 100% no-repeat,
-      radial-gradient(ellipse 55% 45% at 20% 30%, rgba(255,249,228,0.25) 0%, transparent 62%),
-      radial-gradient(ellipse 50% 60% at 74% 24%, rgba(62,40,10,0.25) 0%, transparent 62%),
-      radial-gradient(ellipse 60% 50% at 45% 72%, rgba(255,246,222,0.22) 0%, transparent 64%),
-      radial-gradient(ellipse 45% 55% at 88% 70%, rgba(70,46,14,0.23) 0%, transparent 62%),
-      radial-gradient(ellipse 50% 50% at 60% 46%, rgba(255,250,232,0.16) 0%, transparent 60%),
-      repeating-linear-gradient(0deg, rgba(255,248,228,0.04) 0 0.5px, transparent 0.5px 2px),
-      linear-gradient(180deg, #f6cf72 0%, #e1b464 55%, #c1913f 100%);
-    animation: shimmer 3.5s ease-in-out 2s infinite;
-    border-color: rgba(245, 205, 130, 0.55);
-    color: #4a2c08;
-    text-shadow: 0 1px 0 rgba(255, 240, 205, 0.4);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 240, 210, 0.6),
-      inset 0 5px 9px rgba(255, 226, 176, 0.18),
-      inset 0 -3px 8px rgba(120, 75, 20, 0.32),
-      0 0 20px rgba(230, 180, 90, 0.35),
-      0 4px 14px rgba(0, 0, 0, 0.5);
-  }
-
-  @keyframes shimmer {
-    0% { background-position: 120% 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
-    40%, 100% { background-position: -120% 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
-  }
-
-  .btn-primary:hover:not(:disabled) {
-    box-shadow:
-      inset 0 1px 0 rgba(255, 245, 220, 0.7),
-      inset 0 5px 9px rgba(255, 230, 185, 0.22),
-      inset 0 -3px 8px rgba(120, 75, 20, 0.3),
-      0 0 26px rgba(230, 180, 90, 0.45),
-      0 6px 18px rgba(0, 0, 0, 0.55);
-  }
-
-  .btn-secondary {
-    background: var(--color-raised);
-    border-color: var(--color-border-strong);
-    color: var(--color-text-warm);
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
-    box-shadow:
-      inset 0 1px 0 rgba(220, 170, 70, 0.12),
-      0 4px 14px rgba(0, 0, 0, 0.45);
-  }
-
-  .btn-secondary:hover:not(:disabled) {
-    background: var(--color-raised-hover);
-    border-color: rgba(190, 130, 55, 0.45);
   }
 
   .btn-block {
@@ -127,134 +146,124 @@
     max-inline-size: 400px;
   }
 
-  /* Audio share buttons (lobby "Play", join "Listen") — a live equalizer
-     icon plus directional sonar rings: Play broadcasts (rings expand),
-     Listen receives (rings contract). Shared by both screens. */
-  .btn-audio {
-    position: relative;
+  /* ── the or-divider ── */
+  .or-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    inline-size: 100%;
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    font-stretch: 118%;
+    color: #a2865c;
+  }
+
+  .or-divider::before,
+  .or-divider::after {
+    content: '';
+    flex: 1;
+    block-size: 1px;
+    background: rgba(196, 150, 72, .3);
+  }
+
+  .or-divider span { display: inline; }
+
+  /* ── round action rings (landing + lobby): one fine brass hairline on a
+     dark enamel disc — quick secondary taps, not the primary action. ── */
+  .lobby-action-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-inline-size: 0;
+  }
+
+  .lobby-action {
+    inline-size: 56px;
+    block-size: 56px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.55rem;
+    position: relative;
     overflow: hidden;
-    white-space: nowrap;
-  }
-
-  /* Idle: a slow breathing glow so the feature reads as alive before any
-     tap. Keyframes restate the .btn-share/.btn-secondary resting shadows so
-     animating box-shadow doesn't drop them. */
-  .btn-audio:not(.playing):not(.listening) {
-    animation: audio-breathe 3s ease-in-out infinite;
-  }
-
-  @keyframes audio-breathe {
-    0%, 100% {
-      box-shadow:
-        inset 0 1px 0 rgba(220, 170, 70, 0.12),
-        0 4px 14px rgba(0, 0, 0, 0.45),
-        0 0 14px rgba(255, 77, 109, 0.18);
-    }
-    50% {
-      box-shadow:
-        inset 0 1px 0 rgba(220, 170, 70, 0.12),
-        0 4px 14px rgba(0, 0, 0, 0.45),
-        0 0 28px rgba(255, 77, 109, 0.45);
-    }
-  }
-
-  /* Active surface: the .btn-primary pink rim + a soft highlight sweeping
-     across (same motion family as the loading bar). */
-  .btn-audio:is(.playing, .listening) {
-    border-color: rgba(255, 160, 178, 0.7);
-    /* Custom property so the :hover rule below can restate the gradient —
-       screen-level :hover rules set the background SHORTHAND, which would
-       silently wipe a one-off background-image. */
-    --audio-shimmer: linear-gradient(
-      105deg,
-      transparent 32%,
-      rgba(255, 220, 226, 0.22) 50%,
-      transparent 68%
-    );
-    background-image: var(--audio-shimmer);
-    background-size: 250% 100%;
+    padding: 0;
+    color: #e0bd83;
+    background:
+      linear-gradient(180deg, rgba(255, 232, 190, .09) 0%, transparent 42%),
+      radial-gradient(130% 150% at 32% 16%, #2e1c0d 0%, #180e06 62%, #0e0704 100%);
     box-shadow:
-      inset 0 1px 0 rgba(255, 220, 226, 0.4),
-      inset 0 0 18px rgba(255, 77, 109, 0.12),
-      0 4px 14px rgba(0, 0, 0, 0.45),
-      0 0 32px rgba(255, 77, 109, 0.55);
-    animation: audio-shimmer 1.8s linear infinite;
+      inset 0 0 0 1px rgba(226, 183, 110, .42),
+      inset 0 1px 2px rgba(255, 232, 190, .14),
+      0 4px 12px rgba(0, 0, 0, .6);
+    border: none;
+    cursor: pointer;
   }
 
-  @keyframes audio-shimmer {
-    from { background-position: 120% 0; }
-    to { background-position: -120% 0; }
+  .lobby-action .btn-icon {
+    inline-size: 21px;
+    block-size: 21px;
   }
 
-  /* Keep the active rim/surface stable under the screen-level :hover rules
-     (.btn-share:hover / .btn-secondary:hover would out-specify it). */
-  .btn-audio:is(.playing, .listening):hover:not(:disabled) {
-    border-color: rgba(255, 160, 178, 0.7);
-    background-color: var(--color-raised);
-    background-image: var(--audio-shimmer);
-    background-size: 250% 100%;
+  .lobby-action-label {
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    font-stretch: 106%;
+    text-align: center;
+    line-height: 1.3;
+    color: #c3a679;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
   }
 
-  /* Sonar rings, centred on the button, clipped by the pill. Only Listen
-     animates them now (rings contracting inward); Play's active look is the
-     shimmer sweep + dancing EQ bars, no rings. */
-  .btn-audio::before,
-  .btn-audio::after {
-    content: '';
-    position: absolute;
-    inset-block-start: 50%;
-    inset-inline-start: 50%;
-    inline-size: 34px;
-    block-size: 34px;
-    margin: -17px 0 0 -17px;
-    border: 2px solid var(--color-accent);
-    border-radius: 50%;
-    opacity: 0;
-    pointer-events: none;
+  /* A lit ring (checked in, playing): the rim brightens and the top lip
+     lights. Deliberately NO bloom — a lit state is a brighter edge, never a
+     halo. */
+  .lobby-action.is-on,
+  .lobby-action.playing {
+    color: #f0cd8e;
+    box-shadow:
+      inset 0 0 0 1px rgba(226, 183, 110, .75),
+      inset 0 1px 2px rgba(255, 238, 206, .28),
+      0 4px 12px rgba(0, 0, 0, .6);
   }
 
-  .btn-audio.listening::before { animation: sonar-in 1.8s linear infinite; }
-  .btn-audio.listening::after { animation: sonar-in 1.8s linear 0.9s infinite; }
+  /* ── the equalizer icon (audio share: lobby "Play" ring, join "Listen") ── */
+  .btn-audio { position: relative; }
 
-  @keyframes sonar-in {
-    0% { transform: scale(3.8); opacity: 0; }
-    60% { opacity: 0.65; }
-    100% { transform: scale(0.45); opacity: 0; }
-  }
-
-  /* The equalizer icon: five amber bars at rest, dancing magenta when
-     active — unsynchronised durations, like the dice tumbles. */
   .btn-audio .eq {
     display: flex;
     align-items: stretch;
     gap: 2px;
-    inline-size: 18px;
-    block-size: 16px;
+    inline-size: 16px;
+    block-size: 14px;
     flex-shrink: 0;
   }
 
   .btn-audio .eq i {
     flex: 1;
     border-radius: 1px;
-    background: var(--color-amber);
-    opacity: 0.85;
+    background: var(--color-secondary-text);
     transform-origin: center;
   }
 
+  /* resting pose, sampled mid-dance rather than flatlined */
   .btn-audio .eq i:nth-child(1) { transform: scaleY(0.35); }
   .btn-audio .eq i:nth-child(2) { transform: scaleY(0.65); }
   .btn-audio .eq i:nth-child(3) { transform: scaleY(0.95); }
   .btn-audio .eq i:nth-child(4) { transform: scaleY(0.55); }
   .btn-audio .eq i:nth-child(5) { transform: scaleY(0.3); }
 
+  /* The ring actions carry the eq in warm brass ink. */
+  .lobby-action .eq i { background: #e3c187; }
+
+  /* Live: the bars go bright and dance — the motion says "listening"; the
+     rim (below / .is-on above) says the control is armed. No glow. */
   .btn-audio:is(.playing, .listening) .eq i {
-    background: var(--color-accent);
-    opacity: 1;
-    filter: drop-shadow(0 0 6px var(--color-accent));
+    background: #f0cd8e;
   }
 
   .btn-audio:is(.playing, .listening) .eq i:nth-child(1) { animation: eq-dance 0.5s ease-in-out -0.15s infinite alternate; }
@@ -268,30 +277,25 @@
     to { transform: scaleY(1); }
   }
 
-  /* Gradient-border rim — shared mask-composite base. Each consumer adds its
-     own `padding` (rim width) and `background` (gradient). */
-  .round-label::before,
-  .btn-roll::after,
-  .winner-round-pill::before,
-  .profile-avatar-ring::before,
-  .gd-player-avatar-ring::before,
-  .blip-avatar-ring::before,
-  .nearby-row-avatar-ring::before,
-  .header-username::before,
-  .recent-avatar-winner::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
-    pointer-events: none;
+  /* The join drawer's Listen button (a .btn-secondary carrying the eq). */
+  .btn-listen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    white-space: nowrap;
   }
 
-  /* Scroll-fade edge mask — shared by scrollable regions that fade at the
-     top/bottom when content overflows. JS toggles .can-scroll-up/.can-scroll-down. */
+  .btn-listen.listening {
+    color: #f0dcb4;
+    box-shadow:
+      inset 0 0 0 1px rgba(226, 183, 110, .55),
+      inset 0 1px 0 rgba(255, 238, 206, .16),
+      0 4px 14px rgba(0, 0, 0, .45);
+  }
+
+  /* ── scroll-fade edge mask — shared by scrollable regions that fade at the
+     top/bottom when content overflows. JS toggles .can-scroll-up/-down. ── */
   .player-list,
   .menu-changelog-body,
   .places-list {
@@ -313,11 +317,23 @@
   .menu-changelog-body.can-scroll-down,
   .places-list.can-scroll-down { --fade-bottom: 24px; }
 
+  /* ── the error registers (alarm.json) ──
+     Correction (default): cream, text alone — you mistyped; the barman shakes
+     his head. Refusal: identical form, amber — the house is not serving you
+     right now. That includes the terminal "Tab closed" frame: a house rule,
+     not an alarm. Vermilion never appears here — it has exactly one use in
+     the app (a Roll Trust failure, game-detail.css). */
   .error-msg {
     min-block-size: 1.4rem;
     font-size: 0.9rem;
+    line-height: 1.45;
     text-align: center;
-    color: var(--color-accent);
+    color: var(--color-correction);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .8);
+  }
+
+  .error-msg.is-refusal {
+    color: var(--color-refusal);
   }
 }
 

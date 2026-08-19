@@ -1,6 +1,14 @@
-/* Shared shell chrome: the branded header bar and the centred body used by
-   landing, join, lobby and game — one source of truth, every screen renders
-   the same <app-header>. */
+/* Shared shell chrome: the top bar, the logo lockup, the back chip, and the
+   centred body — one source of truth, every screen renders the same title row.
+
+   The layering contract (LAYERING.md): the top bar never negotiates z with a
+   menu. Menus own their own title row, so nothing inside a blurred bar ever
+   needs to escape above one. Two bar treatments, one reason:
+   — MENUS and pre-game screens: the header ADDS NOTHING. No ground, no blur,
+     no shadow of its own; the screen scrim runs unbroken beneath it, and the
+     amber closing rule is the only boundary.
+   — The BOARD: scrim .62/.5 at blur(4px), no rule — the ELEMENT is masked so
+     the bar dissolves into the table. Do not unify these. */
 
 @layer components {
   .app-header { flex-shrink: 0; }
@@ -8,104 +16,64 @@
   .game-topbar {
     position: relative;
     flex-shrink: 0;
+    z-index: var(--z-chrome);
     padding-block-start: env(safe-area-inset-top);
   }
 
-  /* Game screen only (not the pre-game app-header): one frosted surface behind
-     the whole top bar — the title row and players bar sit on it transparently. */
-  .game-topbar:not(.app-header) {
-    background: var(--color-panel);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-
-  /* Bottom-border glow. By default it sits at the bottom of the whole top bar —
-     under the app header on pre-game screens, under the scoreboard on the game
-     screen. When the game menu is open it slides over the scoreboard (and this
-     glow, which sits below the menu overlay at z-index:50), so the glow moves up
-     to directly under the title row, which its z-index:100 keeps above the menu.
-     One source for the gradient across both positions. */
-  .game-topbar::after,
-  .game-screen:has(.game-menu.open) .topbar-title-row::after,
-  .a2hs-banner::after {
+  /* Pre-game header + menu bars: the amber rule is the only boundary. */
+  .game-topbar.app-header::after,
+  .menu-topbar::after {
     content: '';
     position: absolute;
     inset-inline: 0;
     inset-block-end: 0;
     block-size: 1px;
-    background: linear-gradient(
-      to right,
-      rgba(170, 115, 45, 0.35) 0%,
-      rgba(255, 200, 100, 0.7) 50%,
-      rgba(170, 115, 45, 0.35) 100%
-    );
+    background: var(--rule-amber);
   }
 
-  /* Pre-game headers: lift the glow above the title-row's opaque z-index:100
-     background (which fills the whole header there). */
-  .game-topbar.app-header::after { z-index: 101; }
+  /* Board bar: frosted, and MASKED — backdrop-filter is not clipped by the
+     element's own background, so fading only the colour would leave the blur
+     stopping on a hard seam. The 22px is empty runway below the players bar;
+     the round status reclaims it (game.css). Deeper text shadows ride with
+     the thinner ground (players-bar.css). */
+  .game-topbar:not(.app-header) {
+    padding-block-end: 22px;
+    background: linear-gradient(178deg, rgba(20, 11, 5, .62) 0%, rgba(9, 5, 2, .5) 100%);
+    backdrop-filter: blur(4px) saturate(.9);
+    -webkit-backdrop-filter: blur(4px) saturate(.9);
+    -webkit-mask-image: linear-gradient(to bottom, #000 56%, transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 56%, transparent 100%);
+  }
 
-  /* Game menu open: hand the glow off from the topbar bottom (now under the
-     menu) to the title-row bottom (above it). */
-  .game-screen:has(.game-menu.open) .game-topbar::after { opacity: 0; }
-
-  /* Non-game screens (the pre-game app-header): opaque shield behind the iOS
-     status bar so nothing shows through the clock/signal area. The game screen
-     doesn't need it — its .game-topbar background already fills the safe area. */
-  .game-topbar.app-header::before {
-    content: '';
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline: 0;
-    block-size: env(safe-area-inset-top);
-    background: var(--color-panel);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    z-index: 100;
+  /* Menu bars (nav menu + in-game menu own their title row). Transparent — the
+     menu's own scrim is the ground — closed by the amber rule above. */
+  .menu-topbar {
+    position: relative;
+    flex-shrink: 0;
+    padding-block-start: env(safe-area-inset-top);
   }
 
   .topbar-title-row {
     display: flex;
     align-items: center;
     position: relative;
-    z-index: 100;
-    background: var(--color-panel);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    padding: 0.5rem 0.75rem 0.5rem 0.4rem;
   }
 
-  /* Game screen only: the frosted surface lives on .game-topbar, so the title
-     row sits on it transparently (no double blur). */
-  .game-topbar:not(.app-header) .topbar-title-row {
-    background: transparent;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-
-  /* Menu open: drop the parent's backdrop-filter so it stops being a stacking
-     context — the title row's z-index:100 re-escapes above the z-index:50 menu
-     (hamburger stays tappable). The header stays transparent, so the dark menu
-     overlay shows straight through it; the players bar drops under the menu. */
-  .game-screen:has(.game-menu.open) .game-topbar:not(.app-header) {
-    background: transparent;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-
+  /* The logo lockup — owner-pinned geometry: 40px mark, −10px overlap,
+     z-index 2, 1.2rem/.2em wordmark. Solid warm gold; NO gradient-clipped
+     text anywhere in the app. */
   .game-title {
     display: flex;
     align-items: center;
-    padding: 0.5rem 0.75rem 0.5rem 0.4rem;
+    flex-shrink: 0;
     font-size: 1.2rem;
-    font-weight: 900;
+    font-weight: 800;
     letter-spacing: 0.2em;
+    font-stretch: 118%;
     text-transform: uppercase;
-    color: var(--color-amber);
-    background: linear-gradient(180deg, #fdf3dd 0%, #f6dd97 28%, var(--color-amber) 58%, #c9964b 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 10px rgba(230, 180, 90, 0.45);
+    color: var(--color-wordmark);
+    text-shadow: 0 1px 0 rgba(0, 0, 0, .98), 0 2px 10px rgba(0, 0, 0, .85);
   }
 
   .game-title-mark {
@@ -115,8 +83,7 @@
     inline-size: 40px;
     block-size: 40px;
     margin-inline-end: -10px;
-    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7))
-            drop-shadow(0 0 10px rgba(230, 180, 90, 0.4));
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
   }
 
   /* Hamburger toggle */
@@ -138,49 +105,181 @@
 
   .game-menu-btn span {
     display: block;
-    inline-size: 18px;
-    block-size: 2px;
-    background: rgba(255, 255, 255, 0.65);
-    border-radius: 2px;
+    inline-size: 19px;
+    block-size: 1.5px;
+    background: var(--color-burger);
+    border-radius: 1px;
     transition: transform 0.25s ease, opacity 0.2s ease;
     transform-origin: center;
   }
 
-  /* Signed-in username badge in the app-header (pre-game screens only) */
-  .header-username {
+  .game-menu-btn.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+  .game-menu-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+  .game-menu-btn.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+  /* The menu's own close (X) — same slot and colour as the hamburger. */
+  .menu-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-inline-size: 44px;
+    min-block-size: 44px;
     margin-inline-start: auto;
-    position: relative;
-    padding: 0.25rem 0.7rem;
-    background: rgba(30, 15, 6, 0.22);
-    border-radius: 999px;
-    box-shadow:
-      inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.2),
-      inset 2px -2px 6px rgba(70, 28, 8, 0.25),
-      2px -2px 9px rgba(255, 186, 102, 0.15),
-      0 3px 9px rgba(0, 0, 0, 0.3);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    color: var(--color-text-warm);
-    text-shadow: var(--shadow-text);
-    text-decoration: none;
+    padding: 0.5rem 0.75rem;
+    color: var(--color-burger);
+    background: none;
+    border: none;
+    cursor: pointer;
   }
 
-  .header-username::before {
-    padding: 1px;
-    background: linear-gradient(to bottom left,
-      rgba(252, 200, 126, 0.5) 0%,
-      rgba(216, 148, 80, 0.3) 38%,
-      rgba(150, 96, 46, 0.1) 100%);
+  .menu-close-btn svg {
+    display: block;
+    inline-size: 19px;
+    block-size: 19px;
+  }
+
+  /* ── the username pill (header-signedin.json) ──
+     A link to /@handle — a thing you press, but the wordmark to its left is
+     already the gold in this bar, so it takes the secondary register: dark
+     well, one flat rim, the standard top light. The COIN is the only gold on
+     it, and it is the app's one account mark (96px sign-in, 36px menu, 24px
+     here). The pill is the only flexible item in a row of pinned ones, so it
+     truncates on its own and the lockup cannot be pushed. */
+  .header-username {
+    margin-inline-start: auto;
+    min-inline-size: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 3px 11px 3px 3px;
+    border-radius: 999px;
+    text-decoration: none;
+    background: rgba(8, 4, 1, .42);
+    box-shadow:
+      inset 0 0 0 1px rgba(226, 183, 110, .2),
+      inset 0 1px 0 rgba(255, 238, 206, .06);
+  }
+
+  .header-username b {
+    min-inline-size: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--color-correction);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .header-username + .game-menu-btn {
-    margin-inline-start: 0;
+    margin-inline-start: 6px;
   }
 
-  .game-menu-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-  .game-menu-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
-  .game-menu-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  /* The account coin, header size (24px, 1.5px ring padding). */
+  .account-coin {
+    inline-size: 24px;
+    block-size: 24px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    padding: 1.5px;
+    background: var(--brush), var(--brass);
+    box-shadow:
+      inset 0 .5px 0 rgba(255, 246, 220, .85),
+      inset 0 -.5px 0 rgba(96, 60, 16, .82),
+      0 1px 3px rgba(0, 0, 0, .75);
+  }
+
+  .account-coin > span {
+    display: flex;
+    inline-size: 100%;
+    block-size: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-coin-mark);
+    background: var(--enamel-coin);
+  }
+
+  .account-coin svg {
+    inline-size: 11px;
+    block-size: 11px;
+  }
+
+  .account-coin img {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  /* The board's signed-in state: the mark ALONE, 24px, no handle, not
+     pressable (board-signedin.json — the players bar already names you). */
+  .header-account-mark {
+    margin-inline-start: auto;
+    display: flex;
+  }
+
+  .header-account-mark + .game-menu-btn {
+    margin-inline-start: 6px;
+  }
+
+  /* ── the back chip — navigation, not an action: the quietest thing on the
+     screen. A dark disc, an inset hairline, a muted chevron. ── */
+  .btn-back {
+    position: absolute;
+    inset-inline-start: 16px;
+    inset-block-start: 14px;
+    z-index: var(--z-chip);
+    inline-size: 36px;
+    block-size: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: rgba(10, 5, 2, .42);
+    box-shadow: inset 0 0 0 1px rgba(255, 236, 202, .1);
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-back .back-chevron {
+    inline-size: 17px;
+    block-size: 17px;
+    margin-inline-start: -1px;
+    stroke: var(--color-chip);
+  }
+
+  /* ── the player seat: a photo, or a struck monogram — never a blank disc,
+     never an enlarged silhouette. Consumers set the size (and font-size for
+     the initial, ~47% of the disc). ── */
+  .avatar-seat {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 50%;
+    overflow: hidden;
+    background: radial-gradient(circle at 34% 28%, #6a4a26, #2c1c0c);
+    box-shadow: inset 0 0 0 1px rgba(255, 238, 206, .12);
+  }
+
+  .avatar-seat img {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .avatar-mono {
+    font-family: var(--font-family-heading);
+    font-weight: 700;
+    line-height: 1;
+    color: #caa66f;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .9), 0 1px 0 rgba(255, 238, 206, .12);
+  }
 
   /* Centred screen body beneath the header */
   .screen-body {
@@ -190,8 +289,38 @@
     justify-content: center;
     flex: 1;
     min-block-size: 0;
-    padding: 2rem 2rem calc(2rem + env(safe-area-inset-bottom));
+    position: relative;
+    z-index: var(--z-content);
+    padding: 2rem 1.5rem calc(2rem + env(safe-area-inset-bottom));
     overflow: hidden;
     text-align: center;
+  }
+
+  /* ── shared type roles (type-lock.json — sizes are binding) ── */
+  .screen-title {
+    font-family: var(--font-family-heading);
+    font-size: 1.32rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.16;
+    color: var(--color-title);
+    text-shadow: var(--shadow-text-lg);
+  }
+
+  /* Centred heading sharing its row with the absolute back chip on the left:
+     symmetric inline padding keeps the text optically centred. */
+  .screen-title.has-back {
+    padding-inline: 2.75rem;
+    text-align: center;
+  }
+
+  .section-label {
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    font-stretch: 118%;
+    color: var(--color-legend);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .95);
   }
 }

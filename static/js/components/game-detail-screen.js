@@ -1,11 +1,30 @@
 // @ts-check
 import './app-header.js';
-import { avatarSrc } from '../avatars.js';
+import { avatarSeat } from '../avatars.js';
 import { getAuthUser } from '../auth.js';
+import { syncUsernamePill } from '../account-sync.js';
 import { esc } from '../dom.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
-import { showLanding } from '../router.js';
 import { state } from '../state.js';
+
+/* The assay disc's marks — strokes at one weight and cap, so they read as
+   struck lines in metal rather than filled icons (alarm.json). */
+const SHIELD = `<svg viewBox="0 0 24 24" fill="none" stroke="#3d2a09" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.4 4.4 5.6v5.2c0 4.7 3.2 9.1 7.6 10.2 4.4-1.1 7.6-5.5 7.6-10.2V5.6z"/></svg>`;
+const SHIELD_TICK = `<svg viewBox="0 0 24 24" fill="none" stroke="#3d2a09" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.4 4.4 5.6v5.2c0 4.7 3.2 9.1 7.6 10.2 4.4-1.1 7.6-5.5 7.6-10.2V5.6z"/><path d="m8.7 12.1 2.3 2.3 4.3-4.6"/></svg>`;
+const TICK = `<svg class="gd-trust-tick" viewBox="0 0 24 24" fill="none" stroke="#e2b96e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7"/></svg>`;
+const CROSS = `<svg class="gd-trust-tick" viewBox="0 0 24 24" fill="none" stroke="#e0503a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
+
+/**
+ * The assay seal — one object in three states: struck (passed), unstruck
+ * (verifying / nothing to report), voided (failed). Never a second object.
+ * @param {'struck' | 'unstruck' | 'voided'} mode
+ */
+function seal(mode) {
+  if (mode === 'voided') {
+    return `<span class="gd-seal is-void"><span class="gd-seal-glyph">${SHIELD}</span><span class="gd-seal-bar"></span></span>`;
+  }
+  return `<span class="gd-seal${mode === 'unstruck' ? ' is-unstruck' : ''}">${mode === 'struck' ? SHIELD_TICK : SHIELD}</span>`;
+}
 
 /**
  * <game-detail-screen> — post-game detail view at /games/<code>.
@@ -29,17 +48,7 @@ export class GameDetailScreen extends HTMLElement {
     this.querySelector('#gd-back-btn')?.addEventListener('click', () => history.back());
 
     const header = this.querySelector('app-header');
-    if (header) {
-      const user = getAuthUser();
-      if (user) {
-        const tag = document.createElement('a');
-        tag.className = 'header-username';
-        tag.textContent = `@${user.username}`;
-        tag.href = `/@${user.username}`;
-        const btn = header.querySelector('.game-menu-btn');
-        btn?.parentElement?.insertBefore(tag, btn);
-      }
-    }
+    if (header) syncUsernamePill(header, getAuthUser());
   }
 
   /**
@@ -64,8 +73,7 @@ export class GameDetailScreen extends HTMLElement {
 
   /**
    * Paint the game detail from a {@link load} result. Synchronous so it runs
-   * inside the view transition's update phase — the screen is captured already
-   * populated instead of animating to an empty body and popping in later.
+   * inside the view transition's update phase.
    * @param {string} _code Unused; kept for the shared load/render contract.
    * @param {{ data?: any, error?: string }} result
    */
@@ -88,7 +96,7 @@ export class GameDetailScreen extends HTMLElement {
     if (data.duration_ms) {
       const totalSecs = Math.round(data.duration_ms / 1000);
       if (totalSecs < 60) duration = `${totalSecs}s`;
-      else if (totalSecs < 3600) duration = `${Math.floor(totalSecs / 60)}m ${totalSecs % 60}s`;
+      else if (totalSecs < 3600) duration = `${Math.floor(totalSecs / 60)}m`;
       else duration = `${(totalSecs / 3600).toFixed(1)}h`;
     }
 
@@ -96,54 +104,51 @@ export class GameDetailScreen extends HTMLElement {
     let playedAt = '';
     if (data.started_at) {
       const d = new Date(data.started_at);
-      playedAt = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-        + ' at ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      playedAt = d.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
     }
+    if (data.place_name) playedAt += `${playedAt ? ' · ' : ''}${data.place_name}`;
 
-    // Players
-    const playersHtml = data.players.map((/** @type {any} */ p) => {
-      const photo = avatarSrc(p.photo);
-      return `
+    // Players — standings, most wins first; the seat is a photo or monogram.
+    const playersHtml = data.players.map((/** @type {any} */ p, /** @type {number} */ i) => `
         <div class="gd-player">
-          <span class="gd-player-avatar-ring"><img class="gd-player-avatar" src="${esc(photo)}" alt=""></span>
-          <span class="gd-player-name">${esc(p.name)}</span>
-          <span class="gd-player-wins">${p.wins} win${p.wins !== 1 ? 's' : ''}</span>
-        </div>`;
-    }).join('');
+          ${avatarSeat(p.photo || null, p.name, 'gd-player-seat avatar-seat').outerHTML}
+          <span class="gd-player-name${i === 0 ? ' is-leader' : ''}">${esc(p.name)}</span>
+          <span class="gd-player-wins${i === 0 ? ' is-leader' : ''}">${p.wins} win${p.wins !== 1 ? 's' : ''}</span>
+        </div>`).join('');
 
     const justEnded = state.gameJustEnded;
     state.gameJustEnded = false;
 
     contentEl.innerHTML = `
       ${justEnded ? '<p class="gd-ended">Game ended</p>' : ''}
-      <p class="gd-code">${data.game_code}</p>
-      <p class="gd-time">${playedAt}</p>
+      <p class="gd-code">${esc(data.game_code)}</p>
+      <p class="gd-time">${esc(playedAt)}</p>
       <div class="gd-stats">
         <div class="gd-stat"><span class="gd-stat-value">${data.num_rounds}</span><span class="gd-stat-label">Rounds</span></div>
         <div class="gd-stat"><span class="gd-stat-value">${data.num_players}</span><span class="gd-stat-label">Players</span></div>
         <div class="gd-stat"><span class="gd-stat-value">${duration}</span><span class="gd-stat-label">Duration</span></div>
       </div>
       <div class="gd-section">
-        <p class="gd-section-label">Players</p>
+        <p class="gd-section-label section-label">Players</p>
         <div class="gd-players">${playersHtml}</div>
       </div>
-      <div class="gd-section gd-trust" id="gd-trust">
-        <p class="gd-section-label">Roll Trust</p>
-        <div class="gd-trust-box" id="gd-trust-box">
-          <img class="gd-trust-badge" src="/static/images/roll-trust.svg" alt="" aria-hidden="true">
-          <div class="gd-trust-scanner" id="gd-trust-scanner">
-            <div class="gd-trust-scan-line"></div>
-            <p class="gd-trust-status" id="gd-trust-status">Initializing verification&hellip;</p>
-          </div>
-        </div>
-        <a class="gd-trust-learn" href="https://github.com/radiantnode/tensies/blob/main/docs/ROLL_TRUST.md" target="_blank" rel="noopener">Learn more about Roll Trust</a>
+      <!-- The Roll Trust apparatus: a plain dark bay with the assay seal
+           ABOVE, breaking its top edge — the object announces the area, so
+           it carries no label. The seal is unstruck while verifying. -->
+      <div class="gd-trust" id="gd-trust-box">
+        ${seal('unstruck')}
+        <div class="gd-trust-scanbay" aria-hidden="true"><i></i></div>
+        <p class="gd-trust-status" id="gd-trust-status">Connecting to drand beacon network&hellip;</p>
       </div>`;
 
     this.#runVerification(data.game_code, data.players);
   }
 
   /**
-   * Animate the roll trust verification.
+   * Run the roll trust verification: real phase lines on the unstruck seal,
+   * then the verdict — the seal struck when every roll matches, VOIDED when
+   * any fails (the app's one alarm), unstruck when there is nothing to
+   * report.
    * @param {string} code
    * @param {any[]} players
    */
@@ -152,78 +157,67 @@ export class GameDetailScreen extends HTMLElement {
     const boxEl = document.getElementById('gd-trust-box');
     if (!statusEl || !boxEl) return;
 
-    // Phase 1: scanning animation
+    // Phase 1: the instrument's own status lines.
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const phases = [
-      'Connecting to drand beacon network&hellip;',
       'Fetching cryptographic proofs&hellip;',
       'Re-deriving dice from beacon entropy&hellip;',
       'Comparing roll signatures&hellip;',
     ];
     for (const msg of phases) {
       statusEl.innerHTML = msg;
-      await new Promise((r) => setTimeout(r, 600));
+      if (!reduced) await new Promise((r) => setTimeout(r, 600));
     }
 
-    // Phase 2: actual verification
     statusEl.innerHTML = 'Verifying rolls&hellip;';
     try {
       const res = await fetch(`/api/game/${encodeURIComponent(code)}/verify`);
       if (!res.ok) {
         statusEl.innerHTML = 'Verification unavailable';
-        boxEl.classList.add('gd-trust-done');
         return;
       }
       const v = await res.json();
 
-      // Phase 3: reveal per-player results with stagger
-      const scannerEl = document.getElementById('gd-trust-scanner');
-      if (scannerEl) scannerEl.classList.add('gd-trust-scan-done');
-
-      await new Promise((r) => setTimeout(r, 400));
-
-      // Build results
       const allPassed = v.failed === 0 && v.total > 0;
       const noData = v.total === 0;
       const playerMap = v.players || {};
-      const checkSvg = `<svg class="gd-trust-check" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#166534" stroke="#4ade80" stroke-width="1.2"/><path d="M7 12.5 L10.5 16 L17 9" fill="none" stroke="#4ade80" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-      const failSvg = `<svg class="gd-trust-check" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#7f1d1d" stroke="#f87171" stroke-width="1.2"/><path d="M8 8 L16 16 M16 8 L8 16" fill="none" stroke="#f87171" stroke-width="2.2" stroke-linecap="round"/></svg>`;
-      let resultsHtml = `<img class="gd-trust-badge" src="/static/images/roll-trust.svg" alt="" aria-hidden="true">`;
+      const source = `<div class="gd-trust-hr"></div>
+        <p class="gd-trust-source">Verified against <b>drand</b> League of Entropy beacons.</p>
+        <p><a class="gd-trust-learn" href="https://github.com/radiantnode/tensies/blob/main/docs/ROLL_TRUST.md" target="_blank" rel="noopener">Learn more about Roll Trust</a></p>`;
 
+      // Unknown: the apparatus is present but UNSTRUCK — the instrument has
+      // nothing to report. No verdict colour of any kind.
       if (noData) {
-        resultsHtml += `<div class="gd-trust-result"><span class="gd-trust-verdict">No beacon data for this game</span></div>`;
-        resultsHtml += `<p class="gd-trust-source">Verified against <span class="gd-trust-highlight">drand</span> League of Entropy beacons</p>`;
-        boxEl.innerHTML = resultsHtml;
-        boxEl.classList.add('gd-trust-done');
+        boxEl.innerHTML = `${seal('unstruck')}
+          <p class="gd-trust-unknown">No beacon data for this game</p>
+          ${source}`;
         return;
       }
 
-      resultsHtml += `<div class="gd-trust-result ${allPassed ? 'gd-trust-pass' : 'gd-trust-fail'}">
-        ${allPassed ? checkSvg : failSvg}
-        <span class="gd-trust-verdict">${allPassed ? `All ${v.total} rolls verified` : `${v.failed} of ${v.total} rolls failed`}</span>
-      </div>`;
-
-      resultsHtml += '<div class="gd-trust-players">';
+      let rows = '';
       for (const p of players) {
         const pr = playerMap[p.user_id];
         if (!pr) continue;
         const ok = pr.failed === 0;
-        resultsHtml += `
-          <div class="gd-trust-player-row">
-            ${ok ? checkSvg : failSvg}
-            <span class="gd-trust-player-name">${esc(pr.name)}</span>
-            <span class="gd-trust-player-count">${pr.verified}/${pr.total}</span>
+        rows += `
+          <div class="gd-trust-row">
+            ${ok ? TICK : CROSS}
+            <span class="gd-trust-row-name">${esc(pr.name)}</span>
+            <span class="gd-trust-row-count">${pr.verified}/${pr.total}</span>
           </div>`;
       }
-      resultsHtml += '</div>';
 
-      resultsHtml += `<p class="gd-trust-source">Verified against <span class="gd-trust-highlight">drand</span> League of Entropy beacons</p>`;
-
-      boxEl.innerHTML = resultsHtml;
-      boxEl.classList.add('gd-trust-done');
-
+      boxEl.innerHTML = `${seal(allPassed ? 'struck' : 'voided')}
+        <p class="gd-trust-verdict${allPassed ? '' : ' is-fail'}">${allPassed
+          ? `All ${v.total} rolls verified` : `${v.failed} of ${v.total} rolls failed`}</p>
+        <p class="gd-trust-status">${allPassed
+          ? 'Every roll replayed and matched'
+          : `Replayed against the beacon &mdash; ${v.failed === 1 ? 'one did' : `${v.failed} did`} not match`}</p>
+        <div class="gd-trust-hr"></div>
+        <div class="gd-trust-rows">${rows}</div>
+        ${source}`;
     } catch {
-      statusEl.innerHTML = 'Verification failed';
-      boxEl.classList.add('gd-trust-done');
+      statusEl.innerHTML = 'Verification unavailable';
     }
   }
 }

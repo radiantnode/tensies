@@ -1,6 +1,6 @@
 // @ts-check
 import './app-header.js';
-import { DEFAULT_AVATAR } from '../avatars.js';
+import { accountCoin } from '../account-coin.js';
 import { byId } from '../dom.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
 import {
@@ -26,9 +26,9 @@ export class SigninScreen extends HTMLElement {
       <app-header></app-header>
       <div class="screen-body">
         <button id="signin-back-btn" type="button" class="btn-back">${BACK_BUTTON_HTML}</button>
-        <div class="profile-avatar-ring"><img class="profile-avatar" src="${DEFAULT_AVATAR}" alt="" aria-hidden="true"></div>
-        <h1 id="signin-title" class="screen-title">Sign In</h1>
-        <p class="tagline">Sign in or create an account</p>
+        <span class="signin-coin" aria-hidden="true"></span>
+        <h1 id="signin-title" class="screen-title signin-title">Get your own tab.</h1>
+        <p class="signin-sub">Keep your stats, your name, and your wins. No password &mdash; your phone does the signing.</p>
         ${available ? `
         <form id="signin-form" class="form-stack" autocomplete="off" novalidate>
           <input id="username-input" name="username" type="text"
@@ -42,6 +42,10 @@ export class SigninScreen extends HTMLElement {
         <p class="signin-unavailable">Passkeys are not supported in this browser.</p>
         `}
       </div>`;
+
+    // The account coin at 96px — the same object the nav menu's line carries
+    // at 36px: a bar chit with the person struck into it (the account coin).
+    this.querySelector('.signin-coin')?.replaceWith(accountCoin(null, 'signin-coin account-coin'));
 
     byId('signin-back-btn').addEventListener('click', () => showLanding());
 

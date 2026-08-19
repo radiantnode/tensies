@@ -1,12 +1,11 @@
-/* Menu overlay: the fade-in panel shared by the nav menu (about +
-   changelog, this file's current scope) and the in-game menu (its
-   .menu-item/.menu-switch/.menu-status vocabulary arrives with the game
-   menu). The hamburger button itself — .game-menu-btn — lives in shell.css. */
+/* Menus. Both the nav menu and the in-game menu own their OWN title row
+   (shell.css .menu-topbar) closed by the amber rule — the header adds
+   nothing: the screen scrim runs unbroken beneath it. The board keeps its
+   masked fade; menus keep the rule. Do not unify these (scrims.json). */
 
 @layer components {
   /* Pre-initialize the custom element so when connectedCallback adds
-     .game-menu the computed opacity/visibility don't change — no
-     transition fires on upgrade. */
+     .game-menu the computed opacity/visibility don't change. */
   nav-menu {
     opacity: 0;
     visibility: hidden;
@@ -15,11 +14,10 @@
   .game-menu {
     position: absolute;
     inset: 0;
-    z-index: 50;
-    background: rgba(8, 4, 1, 0.88);
+    z-index: var(--z-menu);
+    display: flex;
+    flex-direction: column;
     opacity: 0;
-    /* visibility delays to hidden after the fade-out so backdrop-filter never
-       runs while the menu is invisible (layout bounds = the full screen) */
     visibility: hidden;
     pointer-events: none;
     transition: opacity 0.28s ease,
@@ -29,240 +27,344 @@
   .game-menu.open {
     opacity: 1;
     visibility: visible;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
     pointer-events: all;
     transition: opacity 0.28s ease,
                 visibility 0s linear 0s;
   }
 
-  /* The shared nav menu (landing/join/lobby) is fixed so it covers the
-     viewport regardless of which screen is active. The safe-area padding
-     lives here (the non-scrolling container) so scrolled content can't
-     slide behind the iOS status bar. */
-  .nav-menu {
-    position: fixed;
-    padding-block-start: env(safe-area-inset-top);
-  }
-
-  /* Opaque shield behind the iOS status bar so scrolled menu content
-     doesn't show through the clock/signal area. */
-  .nav-menu::before {
+  /* The graded scrim, on ::before so the menu root never becomes a stacking
+     context. The nav menu sits over the bar-room photograph (.50/.46/.62);
+     the in-game menu sits over a LIVE BOARD, whose near-white dice punch
+     through anything lighter — .68/.64/.76 settles them (scrims.json). */
+  .game-menu::before {
     content: '';
     position: absolute;
-    inset-block-start: 0;
-    inset-inline: 0;
-    block-size: env(safe-area-inset-top);
-    background: rgba(8, 4, 1, 0.88);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    z-index: 1;
+    inset: 0;
+    z-index: var(--z-scrim);
+    backdrop-filter: blur(9px) saturate(1.02);
+    -webkit-backdrop-filter: blur(9px) saturate(1.02);
+    background: linear-gradient(to bottom,
+      rgba(8, 4, 1, .68) 0%, rgba(8, 4, 1, .64) 44%, rgba(8, 4, 1, .76) 100%);
   }
 
+  .nav-menu {
+    position: fixed;
+  }
+
+  /* The menu sits over the PHOTOGRAPH, not over the host screen's own form —
+     its scrim weight was judged against the bar room (scrims.json). Fade the
+     screen stack out under the opening menu so the ground is the room. */
+  main:not(.intro-fade-out) {
+    transition: opacity 0.28s ease;
+  }
+
+  body.nav-menu-open main {
+    opacity: 0;
+  }
+
+  .nav-menu::before {
+    background: linear-gradient(to bottom,
+      rgba(8, 4, 1, .5) 0%, rgba(8, 4, 1, .46) 44%, rgba(8, 4, 1, .62) 100%);
+  }
+
+  /* ── the nav menu body ── */
   .nav-menu .menu-panel {
-    padding-block: 5rem 2.5rem;
-    padding-inline: 2rem;
-    overflow-y: auto;
-    max-block-size: 100%;
+    flex: 1;
+    min-block-size: 0;
+    overflow: hidden;
+    padding: 14px 24px 0;
+    text-align: start;
   }
 
-  .menu-panel {
+  /* The tab line: first thing under the bar — prominence by POSITION, not
+     weight. Gold appears only as the coin: a seal, never a box. */
+  .menu-tab-line {
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    padding: calc(env(safe-area-inset-top) + 5.5rem) 1.25rem 2rem;
-    min-block-size: 100%;
+    align-items: center;
+    gap: 12px;
+    inline-size: 100%;
+    padding: 10px 13px 11px;
+    margin-block-end: 20px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--ground-line);
+    box-shadow: inset 0 1px 0 rgba(255, 238, 206, .05);
+    text-align: start;
+    cursor: pointer;
   }
 
-  /* About section */
-  .menu-about { padding-block-end: 0.75rem; }
+  .menu-coin {
+    inline-size: 36px;
+    block-size: 36px;
+    padding: 3px;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255, 247, 220, .9),
+      inset 0 -1.5px 0 rgba(96, 60, 16, .8),
+      0 2px 5px rgba(0, 0, 0, .8);
+  }
 
-  /* Font/shadow from the shared .screen-title (EB Garamond); this only carries
-     its own bottom spacing and a touch more leading for the wrapped sentence. */
+  .menu-coin svg {
+    inline-size: 16px;
+    block-size: 16px;
+  }
+
+  .menu-tab-text {
+    flex: 1;
+    min-inline-size: 0;
+  }
+
+  .menu-tab-text b {
+    display: block;
+    font-family: var(--font-family-heading);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: var(--color-title);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .menu-tab-text span {
+    display: block;
+    font-size: 0.68rem;
+    color: var(--color-muted);
+    margin-block-start: 2px;
+  }
+
+  .menu-tab-chev {
+    inline-size: 15px;
+    block-size: 15px;
+    flex-shrink: 0;
+    color: var(--color-muted);
+  }
+
+  /* The owner's heading and copy — verbatim, and staying that way. */
   .menu-about-heading {
-    margin-block-end: 1.5rem;
-    font-size: 2.5rem;
-    line-height: 1.1;
+    font-family: var(--font-family-heading);
+    font-size: 1.72rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.16;
+    color: var(--color-title);
+    text-shadow: var(--shadow-text-lg);
+    margin-block-end: 16px;
   }
 
   .menu-about-body {
-    font-size: 1rem;
-    font-weight: 500;
-    line-height: 1.9;
-    color: rgba(240, 222, 202, 0.95);
+    font-size: 0.94rem;
+    font-weight: 400;
+    line-height: 1.62;
+    color: var(--color-body);
   }
 
-  .menu-about-body + .menu-about-body { margin-block-start: 0.9rem; }
+  .menu-about-body + .menu-about-body { margin-block-start: 0.95rem; }
 
   .menu-about-body strong {
     font-weight: 700;
-    color: rgba(255, 240, 220, 0.95);
+    color: var(--color-body-em);
   }
 
-  .menu-beer-btn {
+  /* The foot: two controls on a gradient landing. */
+  .menu-foot {
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 16px 24px calc(20px + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, transparent, rgba(9, 5, 2, .86) 40%);
+  }
+
+  .menu-beer-btn,
+  .menu-a2hs-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.65rem;
+    gap: 9px;
+  }
+
+  .menu-beer-btn svg,
+  .menu-a2hs-btn svg {
+    inline-size: 17px;
+    block-size: 17px;
+    color: #e3c187;
+  }
+
+  /* Sign out: the quietest thing in the menu — rare, mildly destructive, and
+     never the reason anyone opened this panel. Below a hairline, no box. */
+  .menu-signout-btn {
+    margin-block-start: 5px;
+    padding-block-start: 13px;
     inline-size: 100%;
-    margin-block-start: 1.5rem;
-    padding: 0.9rem 1.25rem;
-    background: linear-gradient(160deg, rgba(160, 90, 10, 0.4) 0%, rgba(100, 55, 5, 0.4) 100%);
-    border: 1px solid rgba(210, 150, 40, 0.5);
-    border-radius: var(--radius-md);
-    box-shadow: inset 0 1px 0 rgba(255, 200, 50, 0.1), 0 2px 8px rgba(0, 0, 0, 0.3);
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-decoration: none;
-    color: rgba(255, 210, 100, 0.95);
-    transition: background 0.15s, border-color 0.15s;
-  }
-
-  .menu-beer-btn:hover {
-    background: linear-gradient(160deg, rgba(180, 110, 20, 0.5) 0%, rgba(120, 70, 10, 0.5) 100%);
-    border-color: rgba(230, 170, 55, 0.7);
-  }
-
-  .menu-auth-btn { inline-size: 100%; }
-
-  .menu-divider {
-    margin-block: 1.5rem;
-    block-size: 1px;
-    background: rgba(180, 180, 220, 0.15);
-  }
-
-  /* "See What's New" button */
-  .menu-whats-new-btn {
-    inline-size: 100%;
-    margin-block-start: 1.5rem;
-    padding: 0.9rem 1.25rem;
-    background: rgba(30, 25, 50, 0.45);
-    border: 1px solid rgba(180, 180, 220, 0.3);
-    border-radius: var(--radius-md);
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    color: rgba(210, 210, 255, 0.9);
+    border: none;
+    border-block-start: 1px solid rgba(226, 183, 110, .12);
+    background: none;
+    text-align: center;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--color-faint);
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
   }
 
-  .menu-whats-new-btn:hover {
-    background: rgba(45, 38, 70, 0.55);
-    border-color: rgba(200, 200, 255, 0.45);
-  }
-
-  /* Changelog sub-panel */
+  /* ── the changelog panel ── */
   .menu-changelog-panel {
     display: none;
     flex-direction: column;
     position: absolute;
     inset: 0;
-    padding: calc(env(safe-area-inset-top) + 5rem) 2rem 2.5rem;
-    overflow-y: auto;
-    max-block-size: 100%;
+    overflow: hidden;
   }
 
-  .game-menu.show-changelog .menu-panel { display: none; }
+  .game-menu.show-changelog .menu-panel,
+  .game-menu.show-changelog > .menu-topbar,
+  .game-menu.show-changelog .menu-foot { display: none; }
   .game-menu.show-changelog .menu-changelog-panel { display: flex; }
 
-  /* Same pattern as the lobby: an absolute back chip on the left with the
-     centred .screen-title.has-back heading (reusing those shared rules). */
   .menu-changelog-header {
     position: relative;
-    margin-block-end: 1.25rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 24px 0;
   }
 
   .menu-changelog-panel .btn-back {
-    position: absolute;
-    inset-inline-start: 0;
-    inset-block-start: 50%;
-    transform: translateY(-50%);
+    position: static;
+    inline-size: 32px;
+    block-size: 32px;
+  }
+  .menu-changelog-panel .btn-back .back-chevron {
+    inline-size: 15px;
+    block-size: 15px;
   }
 
-  /* Row spacing comes from the header's own margin, so drop the heading's
-     default bottom margin — it would otherwise offset the chip's centring. */
-  .menu-changelog-header .screen-title { margin-block: 0; }
+  .menu-changelog-title {
+    font-family: var(--font-family-heading);
+    font-size: 1.42rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: var(--color-title);
+    text-shadow: var(--shadow-text-lg);
+  }
 
+  .menu-changelog-lede {
+    flex-shrink: 0;
+    font-size: 0.9rem;
+    color: #c3a97f;
+  }
+
+  /* The body scrolls; entries fade out at the scroll edge. */
   .menu-changelog-body {
     flex: 1;
-    font-size: 1rem;
-    line-height: 1.7;
-    color: rgba(235, 215, 195, 0.8);
+    min-block-size: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding: 20px 24px calc(16px + env(safe-area-inset-bottom));
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--color-body);
+  }
+  .menu-changelog-body::-webkit-scrollbar { display: none; }
+
+  /* The lede rides inside the body markup, above the first release. */
+  .menu-changelog-body .menu-changelog-lede {
+    margin-block-end: 20px;
   }
 
-  .menu-changelog-body h2 {
-    margin: 1.5rem 0 0.1rem;
-    font-size: 1.1rem;
+  /* The version is METADATA: it joins the date on the legend line. */
+  .menu-rel-legend {
+    margin-block-start: 26px;
+    font-size: 0.5rem;
     font-weight: 800;
-    letter-spacing: 0.03em;
-    color: rgba(255, 220, 130, 0.95);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-stretch: 118%;
+    color: var(--color-dim);
   }
+  .menu-rel-legend:first-of-type,
+  .menu-changelog-lede + .menu-rel-legend { margin-block-start: 0; }
+  .menu-rel-legend b { color: var(--color-legend); font-weight: 800; }
 
-  .menu-changelog-body h2:first-child { margin-block-start: 0; }
-
-  .menu-changelog-body p {
-    margin-block-end: 0.4rem;
-    color: rgba(210, 195, 175, 0.65);
+  /* The release NAME is the heading. */
+  .menu-rel-name {
+    font-family: var(--font-family-heading);
+    font-size: 1.16rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: #f0dcb4;
   }
 
   .menu-changelog-body ul {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    margin: 0.4rem 0 0;
+    gap: 0;
+    margin: 0;
     padding: 0;
     list-style: none;
   }
 
+  /* THE MARKER IS A DIE PIP — the app's own mark, lit rather than cut. */
   .menu-changelog-body li {
     position: relative;
-    padding-inline-start: 0.9rem;
+    padding-inline-start: 20px;
+    margin-block-start: 9px;
   }
 
   .menu-changelog-body li::before {
-    content: "–";
+    content: '';
     position: absolute;
-    inset-inline-start: 0;
-    color: rgba(200, 170, 100, 0.5);
+    inset-inline-start: 4px;
+    inset-block-start: 0.58em;
+    inline-size: 6px;
+    block-size: 6px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 30%, #f6dfae, #c99a44 66%, #8a6423);
+    box-shadow: inset 0 .5px .5px rgba(255, 248, 220, .7), 0 1px 1px rgba(30, 16, 4, .7);
+  }
+
+  /* "Behind the scenes" lines are asides — smaller, dimmer, italic — but they
+     keep the pip: they are still list items. */
+  .menu-changelog-body li:has(> em:only-child) {
+    font-size: 0.82rem;
+    line-height: 1.55;
   }
 
   .menu-changelog-body li em {
     font-style: italic;
-    color: rgba(210, 195, 175, 0.65);
+    color: var(--color-faint);
   }
 
   .menu-changelog-body li a {
-    color: rgba(245, 228, 210, 0.95);
+    color: #dcb87e;
+    font-weight: 700;
     text-decoration: underline;
-    text-decoration-color: rgba(235, 215, 195, 0.4);
+    text-decoration-color: rgba(220, 184, 126, .5);
     text-underline-offset: 2px;
   }
 
-  .menu-changelog-body li a:hover {
-    text-decoration-color: rgba(245, 228, 210, 0.7);
-  }
-
+  /* The still-scrolling footer: a quiet content row, brass-ink link. */
   .menu-changelog-footer {
-    margin-block-start: 1.8rem;
-    padding: 1.05rem 1.15rem 1.2rem;
-    background: rgba(120, 90, 45, 0.08);
-    border: 1px solid rgba(200, 170, 100, 0.16);
+    margin-block-start: 28px;
+    padding: 16px 15px 18px;
+    background: var(--ground-row);
+    box-shadow: inset 0 1px 0 rgba(255, 238, 206, .045);
     border-radius: var(--radius-md);
     text-align: center;
   }
 
   .menu-changelog-footer p {
     margin: 0 0 0.85rem;
-    font-size: 1rem;
-    line-height: 1.7;
-    color: rgba(210, 195, 170, 0.6);
+    font-size: 0.86rem;
+    line-height: 1.6;
+    color: var(--color-muted);
   }
 
   .menu-changelog-footer-lead {
     font-weight: 700;
-    color: rgba(225, 210, 185, 0.78);
+    color: var(--color-body);
   }
 
   .menu-changelog-ghlink {
@@ -270,21 +372,14 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 0.95rem;
-    background: rgba(255, 220, 130, 0.08);
-    border: 1px solid rgba(255, 220, 130, 0.35);
+    background: var(--ground-secondary);
+    box-shadow: inset 0 0 0 1px rgba(190, 146, 74, .16);
     border-radius: 999px;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     font-weight: 700;
     letter-spacing: 0.03em;
     text-decoration: none;
-    color: rgba(255, 226, 150, 0.95);
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
-  }
-
-  .menu-changelog-ghlink:hover {
-    background: rgba(255, 220, 130, 0.14);
-    border-color: rgba(255, 232, 165, 0.55);
-    transform: translateY(-1px);
+    color: var(--color-secondary-text);
   }
 
   .menu-changelog-ghlink svg {
@@ -293,99 +388,235 @@
     block-size: 1rem;
   }
 
-  /* ── In-game menu items (pause toggle + status) ── */
-  .menu-item {
+  /* ── the in-game menu: no boxes — plain rows on the ground, one engraved
+     hairline between them; each row says what it does to everyone else. ── */
+  .gm-list {
+    position: relative;
+    z-index: var(--z-content);
+    padding: 8px 20px 0;
+  }
+
+  .gm-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    inline-size: 100%;
-    padding: 0.9rem 1.1rem;
-    background: rgba(30, 15, 5, 0.5);
-    border: 1px solid rgba(170, 115, 45, 0.3);
-    border-radius: var(--radius-md);
-    font-size: 1.05rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
+    gap: 14px;
+    padding: 19px 2px;
+  }
+
+  .gm-row[hidden] { display: none; }
+
+  .gm-row + .gm-row {
+    border-block-start: 1px solid var(--hairline);
+  }
+
+  .gm-row-end { display: block; }
+  .gm-row-end[hidden] { display: none; }
+
+  .gm-text {
+    flex: 1;
+    min-inline-size: 0;
     text-align: start;
-    color: rgba(235, 215, 195, 0.92);
-    cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease;
   }
 
-  .menu-item:hover { background: rgba(40, 20, 6, 0.6); }
-  .menu-item[hidden] { display: none; }
-
-  /* Danger variant (End Game). */
-  .menu-item--danger {
-    border-color: rgba(180, 70, 50, 0.35);
-    color: rgba(240, 160, 140, 0.92);
-  }
-  .menu-item--danger:hover { background: rgba(80, 20, 10, 0.45); }
-  .menu-item--danger.confirming {
-    background: rgba(140, 35, 20, 0.5);
-    border-color: rgba(220, 80, 50, 0.55);
-    color: rgba(255, 200, 180, 0.95);
+  /* The End Game label is CREAM, never red at rest — the gesture makes it
+     serious; a permanently red row shouts before anything has happened. */
+  .gm-text b {
+    display: block;
+    font-size: 1.06rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--color-cream);
   }
 
-  /* Toggle switch */
-  .menu-switch {
+  .gm-text span {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--color-dim);
+    margin-block-start: 3px;
+  }
+
+  /* ── the pause lever: track and movement unchanged (owner-pinned); the
+     KNOB carries the state — enamel cap at rest, keeper brass once thrown.
+     Finish, not hue, so it reads in greyscale too. ── */
+  .pause-lever {
     position: relative;
+    inline-size: 58px;
+    block-size: 28px;
+    border-radius: 14px;
     flex-shrink: 0;
-    inline-size: 44px;
-    block-size: 24px;
-    background: rgba(255, 255, 255, 0.16);
-    border-radius: 999px;
-    transition: background 0.2s ease;
+    overflow: hidden;
+    padding: 0;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(180deg, #0b0603, #1a0f06);
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, .95),
+      inset 0 -1px 0 rgba(226, 183, 110, .18);
   }
 
-  .menu-switch::after {
-    content: '';
+  .lever-knob {
     position: absolute;
-    inset-block-start: 2px;
-    inset-inline-start: 2px;
-    inline-size: 20px;
-    block-size: 20px;
-    background: #fff;
+    inset-inline-start: 3px;
+    inset-block-start: 3px;
+    inline-size: 22px;
+    block-size: 22px;
     border-radius: 50%;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-    transition: transform 0.2s ease;
+    transition: inset-inline-start 0.2s ease, background 0.2s ease;
+    /* at rest: a dark enamel cap with a brass hairline */
+    background:
+      linear-gradient(180deg, rgba(255, 232, 190, .1) 0%, transparent 44%),
+      radial-gradient(130% 150% at 32% 16%, #33200f, #120a05);
+    box-shadow:
+      inset 0 0 0 1px rgba(226, 183, 110, .45),
+      inset 0 1px 2px rgba(0, 0, 0, .9),
+      0 1px 3px rgba(0, 0, 0, .7);
   }
 
-  .menu-toggle.active .menu-switch { background: var(--color-accent); }
-  .menu-toggle.active .menu-switch::after { transform: translateX(20px); }
+  /* thrown: the metal appears */
+  .pause-lever.on .lever-knob {
+    inset-inline-start: 33px;
+    background: var(--brush), var(--brass);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 247, 220, .92),
+      inset 0 -1px 0 rgba(96, 60, 16, .8),
+      0 1px 0 rgba(44, 27, 9, .7),
+      0 3px 6px rgba(0, 0, 0, .75);
+  }
 
-  /* Pause status (host, while paused) */
-  .menu-status { padding: 0.25rem 1.1rem 0.75rem; }
-  .menu-status[hidden] { display: none; }
+  /* ── End Game: a barrel bolt — slide-to-confirm. The slug carries an
+     engraved travel arrow (it serves the GESTURE); the instruction fades
+     with travel. Vermilion appears in exactly one place on this screen:
+     the track floor at the instant the bolt is home. ── */
+  .bolt {
+    position: relative;
+    block-size: 52px;
+    border-radius: 26px;
+    margin-block-start: 14px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #090502 0%, #150c05 55%, #0c0703 100%);
+    box-shadow:
+      inset 0 3px 6px rgba(0, 0, 0, .95),
+      inset 0 -1px 0 rgba(226, 183, 110, .18),
+      inset 0 0 0 1px rgba(226, 183, 110, .14),
+      0 1px 0 rgba(255, 238, 206, .06);
+  }
 
-  .menu-status-row {
+  .bolt-run {
+    position: absolute;
+    inset: 0;
+    border-radius: 26px;
+    clip-path: inset(0 100% 0 0);
+    background: linear-gradient(90deg, rgba(226, 183, 110, .16), rgba(226, 183, 110, .05));
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, .7);
+  }
+
+  .bolt.done .bolt-run {
+    background: linear-gradient(90deg, rgba(224, 121, 79, .3), rgba(224, 121, 79, .16));
+  }
+
+  .bolt-say {
+    position: absolute;
+    inset: 0;
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.15rem 0;
-  }
-
-  .menu-status-label {
-    font-size: 0.8rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: rgba(220, 200, 180, 0.7);
-  }
-
-  .menu-status-value {
-    font-size: 1.05rem;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding-inline-start: 34px;
+    font-size: 0.66rem;
     font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    color: rgba(235, 215, 195, 0.95);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-stretch: 118%;
+    color: var(--color-faintest);
+    text-shadow: 0 1px 0 rgba(226, 183, 110, .16);
+    pointer-events: none;
   }
 
-  .menu-status-players {
-    margin-block-start: 0.3rem;
-    font-size: 0.88rem;
+  .bolt-say svg {
+    inline-size: 13px;
+    block-size: 13px;
+    opacity: 0.7;
+  }
+
+  .bolt.done .bolt-say {
+    color: #e0a483;
+    padding-inline-start: 0;
+    padding-inline-end: 34px;
+    text-shadow: none;
+  }
+
+  .bolt.done .bolt-say svg { display: none; }
+
+  .bolt-slug {
+    position: absolute;
+    inset-block: 4px;
+    inset-inline-start: 4px;
+    inline-size: 44px;
+    border-radius: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    cursor: grab;
+    touch-action: none;
+    background: var(--brush), var(--brass);
+    box-shadow:
+      inset 0 1.5px 0 rgba(255, 247, 220, .95),
+      inset 0 -1.5px 0 rgba(96, 60, 16, .85),
+      0 2px 0 rgba(40, 24, 8, .75),
+      0 5px 12px rgba(0, 0, 0, .7);
+  }
+
+  .bolt-slug:active { cursor: grabbing; }
+
+  .bolt-slug.is-springing { transition: transform 0.22s ease; }
+
+  .bolt.done .bolt-slug {
+    background: var(--brush), linear-gradient(180deg, #fbe6b0, #d9a94e);
+  }
+
+  .bolt-slug svg {
+    inline-size: 17px;
+    block-size: 17px;
+    color: var(--ink-brass);
+    filter: drop-shadow(0 1px 0 rgba(255, 246, 220, .55));
+  }
+
+  /* ── the in-game menu foot: the round/connected legend, plus the one-hour
+     cap on the brass thread while paused. ── */
+  .gm-foot {
+    position: relative;
+    z-index: var(--z-content);
+    flex-shrink: 0;
+    margin-block-start: auto;
+    padding: 0 20px calc(24px + env(safe-area-inset-bottom));
+    text-align: center;
+  }
+
+  .gm-cap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9px;
+    margin-block-end: 14px;
+  }
+  .gm-cap[hidden] { display: none; }
+
+  .gm-cap-text {
+    font-size: 0.8rem;
     font-weight: 600;
-    line-height: 1.4;
-    color: rgba(235, 215, 195, 0.82);
+    color: var(--color-correction);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .gm-legend {
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-stretch: 118%;
+    color: var(--color-legend);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .95);
   }
 }

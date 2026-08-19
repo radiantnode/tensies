@@ -41,18 +41,29 @@ const GLASSES_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidde
 const CHEV_D = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
 const STAR_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><path d="M12 4l2.3 4.7 5.2.8-3.7 3.6.9 5.1L12 15.8 7.3 18.2l.9-5.1L4.5 9.5l5.2-.8z"/></svg>`;
 
+// The ⋮ drawn INTO the instruction (not the character): at small sizes the
+// glyph's dots are a hair of ink; drawn, it takes the brass with the word so
+// the target reads as ONE mark (a2hs.json).
+const MORE_INLINE = `<svg class="a2hs-morein" viewBox="8.6 2.4 6.8 19.2" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2.1"/><circle cx="12" cy="12" r="2.1"/><circle cx="12" cy="19" r="2.1"/></svg>`;
+
 const STEP_MS = 1900;
 
-// ── iOS status bar (time + signal/wifi/battery) and Dynamic Island ──
+// ── status bar (time + signal/wifi/battery); iOS gets the Dynamic Island,
+// Android a centred hole punch — the cheapest possible tell. ──
 const SB_SIGNAL = `<svg class="a2hs-sb-ic" viewBox="0 0 18 12" fill="currentColor" aria-hidden="true"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="6" width="3" height="6" rx="1"/><rect x="10" y="3.5" width="3" height="8.5" rx="1"/><rect x="15" y="1" width="3" height="11" rx="1"/></svg>`;
 const SB_WIFI = `<svg class="a2hs-sb-ic" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2 4.4a9 9 0 0 1 12 0"/><path d="M4.3 6.8a6 6 0 0 1 7.4 0"/><path d="M6.5 9a3 3 0 0 1 3 0"/><circle cx="8" cy="10.8" r="0.5" fill="currentColor" stroke="none"/></svg>`;
 const SB_BATTERY = `<svg class="a2hs-sb-bat" viewBox="0 0 25 12" fill="none" aria-hidden="true"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="currentColor" stroke-opacity="0.45"/><rect x="2" y="2" width="16" height="8" rx="1.5" fill="currentColor"/><path d="M23 4v4c.9-.4.9-3.6 0-4z" fill="currentColor" fill-opacity="0.45"/></svg>`;
-const IOS_CHROME = `
+const STATUSBAR = `
   <div class="a2hs-statusbar">
     <span class="a2hs-sb-time">9:41</span>
     <span class="a2hs-sb-icons">${SB_SIGNAL}${SB_WIFI}${SB_BATTERY}</span>
-  </div>
-  <span class="a2hs-island"></span>`;
+  </div>`;
+const IOS_CHROME = `${STATUSBAR}<span class="a2hs-island"></span>`;
+/* The Android status strip carries the app's own <meta name="theme-color">
+   because Chrome tints it from the page; it stops when Chrome stops, so the
+   home-screen scene's bar is the launcher's, untinted. */
+const ANDROID_CHROME = `<div class="a2hs-sb-tint">${STATUSBAR}</div><span class="a2hs-hole"></span>`;
+const ANDROID_BARE = `${STATUSBAR}<span class="a2hs-hole"></span>`;
 
 /**
  * The user's current time as "H:MM" in their locale's hour convention
@@ -71,25 +82,37 @@ function currentStatusTime() {
 }
 
 /**
- * A generic home screen with the Tensies app icon. Used as Android's closing
- * "installed" scene and iOS's "launch it" scene (with a tap-to-open cue).
+ * A home screen with the Tensies tile. The generic apps lose their names but
+ * KEEP their label boxes so the row heights stay equal — only Tensies is
+ * named. iOS's closing scene adds a halo AROUND the tile (it is an
+ * instruction: open it); Android's adds nothing (it is a RESULT: installed,
+ * nothing left to press) and its launcher masks tiles to circles.
  * @param {number} scene  which data-scene slot
- * @param {boolean} [tap] add a tap ripple over the icon (launch cue)
+ * @param {'ios'|'android'} platform
+ * @param {boolean} [tap] halo around the tile (iOS launch cue)
  */
-function homeScene(scene, tap = false) {
-  const generic = '<div class="a2hs-home-cell"><span class="a2hs-home-ph"></span><span class="a2hs-home-phlabel"></span></div>'.repeat(6);
+function homeScene(scene, platform, tap = false) {
+  const android = platform === 'android';
+  const rnd = android ? ' a2hs-rnd' : '';
+  const cell = `<div class="a2hs-home-cell"><span class="a2hs-home-ph${rnd}"></span><span class="a2hs-home-phlabel"></span></div>`;
+  const before = cell.repeat(3);
+  const after = cell.repeat(android ? 8 : 3);
   return `
   <div class="a2hs-scene" data-scene="${scene}">
     <div class="a2hs-home">
+      ${android ? ANDROID_BARE : ''}
       <div class="a2hs-home-grid">
-        ${generic}
-        <div class="a2hs-home-cell a2hs-home-tensies${tap ? ' a2hs-ios-target' : ''}">
-          <img class="a2hs-home-icon" src="${APP_ICON}" alt="" width="48" height="48">
+        ${before}
+        <div class="a2hs-home-cell a2hs-home-tensies">
+          <span class="a2hs-home-tile${rnd}"><img class="a2hs-home-icon" src="${APP_ICON}" alt="" width="36" height="36"></span>
           <span class="a2hs-home-label">Tensies</span>
-          ${tap ? '<span class="a2hs-tap"></span>' : ''}
+          ${tap ? '<span class="a2hs-tile-halo"></span>' : ''}
         </div>
+        ${after}
       </div>
-      <div class="a2hs-home-dots"><i></i><i></i></div>
+      ${android
+        ? '<div class="a2hs-pagedots"><i></i><i></i><i></i></div><div class="a2hs-dock"><i></i><i></i><i></i><i></i></div><div class="a2hs-searchpill"></div>'
+        : '<div class="a2hs-home-dots"><i></i><i></i></div>'}
     </div>
   </div>`;
 }
@@ -168,66 +191,83 @@ const IOS_SCENE_3 = `
 function guideBody(platform) {
   const ios = platform === 'ios';
 
+  // Chrome's toolbar: omnibox, tab counter, overflow — Chrome's own dark
+  // greys, never ours. The white tap ripple is the ONLY thing that says
+  // "this one"; the accent was removed by deletion, not substitution.
+  const atool = (/** @type {boolean} */ tap) => `<div class="a2hs-abar">
+    <span class="a2hs-aomni"><span class="a2hs-alock">${EXT_SVG}</span>tensies.app</span>
+    <span class="a2hs-atabs">3</span>
+    <span class="a2hs-amore">${MORE_SVG}${tap ? '<span class="a2hs-tap a2hs-tap-toolbar"></span>' : ''}</span></div>`;
+
   const scenes = ios
-    ? `${IOS_SCENE_1}${IOS_SCENE_2}${IOS_SCENE_3}${homeScene(4, true)}`
+    ? `${IOS_SCENE_1}${IOS_SCENE_2}${IOS_SCENE_3}${homeScene(4, 'ios', true)}`
     : `<div class="a2hs-scene" data-scene="1">
-         <div class="a2hs-browser">
-           <div class="a2hs-url-bar a2hs-url-bar-top">
-             <span class="a2hs-url">tensies.app</span>
-             <span class="a2hs-tool a2hs-tool-active a2hs-tool-more">${MORE_SVG}<span class="a2hs-tap"></span></span>
-           </div>
-           <div class="a2hs-app-canvas"></div>
-         </div>
+         <div class="a2hs-ios-page a2hs-page-under"></div>
+         ${ANDROID_CHROME}${atool(true)}
        </div>
        <div class="a2hs-scene" data-scene="2">
+         <div class="a2hs-ios-page a2hs-page-under"></div>
+         ${ANDROID_CHROME}${atool(false)}
          <div class="a2hs-sheet-dim"></div>
          <div class="a2hs-menu">
+           <div class="a2hs-menu-icons">${CHEV_L}${CHEV_R}${STAR_SVG}${RELOAD_SVG}</div>
            <div class="a2hs-menu-row">New tab</div>
-           <div class="a2hs-menu-row a2hs-menu-row-active">Install app ${INSTALL_SVG}<span class="a2hs-tap"></span></div>
+           <div class="a2hs-menu-row">New Incognito tab</div>
+           <div class="a2hs-menu-row">History</div>
+           <div class="a2hs-menu-row">Downloads</div>
+           <div class="a2hs-menu-row">Bookmarks</div>
+           <div class="a2hs-menu-row a2hs-menu-row-hot">Install app ${INSTALL_SVG}<span class="a2hs-tap a2hs-tap-row"></span></div>
            <div class="a2hs-menu-row">Share…</div>
            <div class="a2hs-menu-row">Settings</div>
          </div>
        </div>
-       ${homeScene(3)}`;
+       ${homeScene(3, 'android')}`;
 
   const stepCount = stepTexts(platform).length;
-  const dots = Array.from(
+  // Progress is the loading screen's brass THREAD in filling segments, not
+  // dots — this walkthrough drives itself, and a thread that fills reads as
+  // progress rather than navigation. Segments stay tappable.
+  const segs = Array.from(
     { length: stepCount },
-    (_, i) => `<button type="button" class="a2hs-dot" data-step="${i + 1}" aria-label="Step ${i + 1}"></button>`,
+    (_, i) => `<button type="button" class="a2hs-seg" data-step="${i + 1}" aria-label="Step ${i + 1}"></button>`,
   ).join('');
 
+  // The native CTA is OURS, so it takes the keeper brass — and that single
+  // material rule carries the hierarchy: with a prompt to fire the BUTTON is
+  // the path and the steps are reassurance. Without one (a2hs.js removes it)
+  // the instruction is loudest again — the iOS lock, unchanged.
   const cta = !ios
     ? `<button type="button" class="btn btn-primary a2hs-install">${INSTALL_SVG}Install Tensies</button>`
     : '';
 
   return `
     <div class="a2hs-phone" data-platform="${platform}" data-step="1">
-      ${ios ? '' : '<span class="a2hs-phone-notch"></span>'}
       <div class="a2hs-phone-screen">${ios ? IOS_CHROME : ''}${scenes}</div>
     </div>
-    <div class="a2hs-dots">${dots}</div>
+    <p class="a2hs-stepno" aria-hidden="true"></p>
+    <div class="a2hs-thread">${segs}</div>
     <p class="a2hs-caption" aria-live="polite"></p>
     ${cta}`;
 }
 
 /**
- * Per-step caption (shown one at a time under the dots). `hint` renders as a
- * separate muted line below the instruction.
+ * Per-step instruction (the loudest thing at the bottom). `hint` renders as a
+ * separate muted line below it.
  * @param {'ios'|'android'} platform
  * @returns {{ html: string, hint?: string }[]}
  */
 function stepTexts(platform) {
   return platform === 'ios'
     ? [
-        { html: `Tap ${SHARE_SVG}<strong>Share</strong>` },
-        { html: `Choose <strong>Add to Home&nbsp;Screen</strong> ${ADD_SVG}`, hint: `Swipe up if you don't see it` },
+        { html: `Tap <strong>Share</strong>` },
+        { html: `Choose <strong>Add to Home&nbsp;Screen</strong>`, hint: `Swipe up if you don't see it` },
         { html: `Tap <strong>Add</strong>`, hint: `Make sure Open as Web App is checked` },
         { html: `Open <strong>Tensies</strong> from your Home Screen` },
       ]
     : [
-        { html: `Tap the ${MORE_SVG}<strong>menu</strong>` },
-        { html: `Choose <strong>Install app</strong> ${INSTALL_SVG}` },
-        { html: `Tap <strong>Install</strong> — you're set` },
+        { html: `Tap the <strong>${MORE_INLINE} menu</strong>` },
+        { html: `Choose <strong>Install app</strong>` },
+        { html: `Tensies lands on your <strong>Home screen</strong>`, hint: `Confirm <strong>Install</strong> if Chrome asks` },
       ];
 }
 
@@ -271,7 +311,7 @@ export class A2hsGuide extends HTMLElement {
     dialog.innerHTML = `
       <button type="button" class="a2hs-close" aria-label="Close">${CLOSE_SVG}</button>
       <div class="a2hs-card">
-        <h2 class="a2hs-title">Add to Home Screen</h2>
+        <h2 class="a2hs-title">Keep Tensies<br>on your phone.</h2>
         <p class="a2hs-sub">One tap to play — full screen, no browser bar.</p>
         ${guideBody(platform)}
       </div>`;
@@ -286,11 +326,11 @@ export class A2hsGuide extends HTMLElement {
     const timeEl = dialog.querySelector('.a2hs-sb-time');
     if (timeEl) timeEl.textContent = currentStatusTime();
 
-    // Tappable dots: jump to a step and hand control to the user (stop auto-play).
-    dialog.querySelectorAll('.a2hs-dot').forEach((dot) => {
-      dot.addEventListener('click', () => {
+    // Tappable thread segments: jump to a step and hand control to the user.
+    dialog.querySelectorAll('.a2hs-seg').forEach((seg) => {
+      seg.addEventListener('click', () => {
         this.#stop();
-        this.#step = Number(dot.getAttribute('data-step'));
+        this.#step = Number(seg.getAttribute('data-step'));
         this.#applyStep();
       });
     });
@@ -327,22 +367,27 @@ export class A2hsGuide extends HTMLElement {
     }, STEP_MS);
   }
 
-  /** Reflect the current step on the phone scene, the dots, and the caption. */
+  /** Reflect the current step on the phone scene, the thread, the legend,
+   *  and the instruction. */
   #applyStep() {
     if (this.#phone) this.#phone.dataset.step = String(this.#step);
 
-    this.querySelectorAll('.a2hs-dot').forEach((dot, i) => {
-      const on = i === this.#step - 1;
-      dot.classList.toggle('active', on);
-      if (on) dot.setAttribute('aria-current', 'step');
-      else dot.removeAttribute('aria-current');
+    // The thread FILLS to the current step.
+    this.querySelectorAll('.a2hs-seg').forEach((seg, i) => {
+      const on = i <= this.#step - 1;
+      seg.classList.toggle('on', on);
+      if (i === this.#step - 1) seg.setAttribute('aria-current', 'step');
+      else seg.removeAttribute('aria-current');
     });
+
+    // The step position is the quietest thing; the instruction the loudest.
+    const stepno = /** @type {HTMLElement | null} */ (this.querySelector('.a2hs-stepno'));
+    if (stepno) stepno.textContent = `Step ${this.#step} of ${this.#stepCount}`;
 
     const caption = /** @type {HTMLElement | null} */ (this.querySelector('.a2hs-caption'));
     if (caption) {
       const item = this.#steps[this.#step - 1] ?? { html: '' };
-      caption.innerHTML =
-        `<span class="a2hs-caption-row"><span class="a2hs-caption-num">${this.#step}</span><span class="a2hs-caption-text">${item.html}</span></span>`
+      caption.innerHTML = item.html
         + (item.hint ? `<span class="a2hs-caption-hint">${item.hint}</span>` : '');
       // Restart the swap animation so the new instruction fades in.
       caption.classList.remove('swap');

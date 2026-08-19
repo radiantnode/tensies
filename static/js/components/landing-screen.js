@@ -4,6 +4,7 @@ import { AudioShareError, listenForCode } from '../audio-share.js';
 import { byId } from '../dom.js';
 import { EQ_ICON_HTML } from '../eq-icon.js';
 import { getAuthUser, isSignedIn } from '../auth.js';
+import { syncUsernamePill } from '../account-sync.js';
 import { shouldOfferInstall, dismissBanner, requestInstall } from '../a2hs.js';
 import { createGame, joinGame } from '../net.js';
 import { showNearby, showSignin } from '../router.js';
@@ -209,7 +210,7 @@ export class LandingScreen extends HTMLElement {
         <form id="join-form" class="form-stack" autocomplete="off" novalidate>
           <input id="join-name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20" autocomplete="off">
           <input id="code-input" name="code" class="code-input" type="text" aria-label="Game code" inputmode="latin" placeholder="ABCDE" maxlength="5" autocapitalize="characters" autocomplete="off">
-          <button id="listen-btn" type="button" class="btn btn-secondary btn-listen btn-audio">${EQ_ICON_HTML}<span>Listen</span></button>
+          <button id="listen-btn" type="button" class="btn btn-secondary btn-listen btn-audio">${EQ_ICON_HTML}<span>Listen for a code</span></button>
           <button type="submit" class="btn btn-primary">Join Game</button>
           <p class="error-msg" id="join-error" role="alert" aria-live="polite"></p>
         </form>
@@ -329,7 +330,7 @@ export class LandingScreen extends HTMLElement {
     } finally {
       this.#listenAbort = null;
       btn.classList.remove('listening');
-      label.textContent = 'Listen';
+      label.textContent = 'Listen for a code';
     }
   }
 
@@ -419,17 +420,7 @@ export class LandingScreen extends HTMLElement {
 
     const header = this.querySelector('app-header');
     if (!header) return;
-    const existing = header.querySelector('.header-username');
-    if (user && !existing) {
-      const tag = document.createElement('a');
-      tag.className = 'header-username';
-      tag.textContent = `@${user.username}`;
-      tag.href = `/@${user.username}`;
-      const btn = header.querySelector('.game-menu-btn');
-      btn?.parentElement?.insertBefore(tag, btn);
-    } else if (!user && existing) {
-      existing.remove();
-    }
+    syncUsernamePill(header, user);
   }
 
   /**

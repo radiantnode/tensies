@@ -1,40 +1,45 @@
+/* Public player profile (/@username). The bar reads through, same as the nav
+   menu: a blurred graded scrim, lighter at the top so the neon sign shows
+   behind the avatar, heavier under the running text below. */
+
 @layer components {
-
-  /* ── Profile screen ────────────────────────────────────────────── */
-
   .profile-screen {
     position: relative;
-    background: rgba(6, 3, 1, 0.93);
   }
 
-  .profile-screen .screen-body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    flex: 1;
-    overflow-y: auto;
-    padding-inline: 1.25rem;
-    padding-block-start: 0;
-    padding-block-end: 2rem;
-    text-align: center;
-    position: relative;
+  .profile-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-scrim);
+    backdrop-filter: blur(9px) saturate(1.02);
+    -webkit-backdrop-filter: blur(9px) saturate(1.02);
+    background: linear-gradient(to bottom,
+      rgba(8, 4, 1, .44) 0%,
+      rgba(8, 4, 1, .5) 34%,
+      rgba(8, 4, 1, .66) 62%,
+      rgba(8, 4, 1, .74) 100%);
   }
 
   .profile-card {
+    position: relative;
+    z-index: var(--z-content);
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0 1.5rem 0;
-    margin-block-start: -12px;
-    text-align: center;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 101;
+    padding-block-start: 20px;
   }
 
-  /* Avatar row — hosts the optional "Founding Roller" designation that
-     flanks the avatar on both sides. */
+  /* The back chip anchors against the screen, above the card. */
+  .profile-screen .screen-body {
+    justify-content: flex-start;
+    padding: 16px 20px calc(20px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .profile-screen .screen-body::-webkit-scrollbar { display: none; }
+
   .profile-avatar-row {
     display: flex;
     align-items: center;
@@ -43,26 +48,19 @@
     inline-size: 100%;
   }
 
-  /* Each side of the designation — a star + wordmark that hug the avatar.
-     Equal flex width on both flanks keeps the avatar horizontally centred;
-     the content aligns toward the avatar so the star bookends the outer edge.
-     Hidden by default; shown for founding members. */
+  /* The founding designation — flanks the avatar. Solid warm gold lettering;
+     no clipped gradients and no glow anywhere in this world. */
   .founding-flank {
     flex: 1 1 0;
     display: flex;
     align-items: center;
     gap: 0.45rem;
-    /* Nudge up to the avatar's optical centre (the ring carries a 0.75rem
-       bottom margin). */
     margin-block-start: -0.75rem;
   }
 
   .founding-flank--left { justify-content: flex-end; }
   .founding-flank--right { justify-content: flex-start; }
 
-  /* Star clusters: nudge the left one 3px toward the edge, and fade each trio
-     out toward the outer (screen) edge so the star nearest the wordmark is
-     brightest. */
   .founding-flank--left .founding-stars {
     transform: translateX(-3px);
     -webkit-mask-image: linear-gradient(to left, #000 20%, transparent 95%);
@@ -73,36 +71,23 @@
             mask-image: linear-gradient(to right, #000 20%, transparent 95%);
   }
 
-  /* Gold-gradient treatment shared by the wordmarks and the stars:
-     metallic cream → gold → deep amber, with a soft warm glow. */
   .founding-word,
   .founding-star {
     font-weight: 800;
     text-transform: uppercase;
-    background: linear-gradient(180deg,
-      #fdeec6 0%,
-      #f3d59f 40%,
-      #e6b877 60%,
-      #c98f4a 100%);
-    -webkit-background-clip: text;
-            background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: #f1cf98; /* fallback where background-clip: text is unsupported */
-    /* Glow via drop-shadow — text-shadow doesn't show through clipped text. */
-    filter:
-      drop-shadow(0 0 5px rgba(255, 186, 102, 0.3))
-      drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+    font-stretch: 118%;
+    color: #e2b96e;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
   }
 
   .founding-word {
-    font-size: 0.72rem;
+    font-size: 0.62rem;
     letter-spacing: 0.14em;
   }
 
   /* Spread "Roller" (6 chars) to match the wider "Founding" (8 chars). */
   .founding-word--roller { letter-spacing: 0.443em; }
 
-  /* Tight cluster of three stars bookending each flank. */
   .founding-stars {
     display: inline-flex;
     align-items: center;
@@ -110,277 +95,206 @@
   }
 
   .founding-star {
-    font-size: 0.68rem;
+    font-size: 0.62rem;
     line-height: 1;
   }
 
+  /* The avatar: a keeper-brass ring; the photo seated in a dark gap so a
+     bright candid doesn't bleed into the metal. */
   .profile-avatar-ring {
-    position: relative;
-    inline-size: 72px;
-    block-size: 72px;
-    /* Never let the flanking designation squeeze the avatar oval on narrow
-       viewports — the stars overflow off-screen instead. */
-    flex-shrink: 0;
+    inline-size: 82px;
+    block-size: 82px;
     border-radius: 50%;
-    margin-block-end: 0.75rem;
+    padding: 3px;
+    margin-block-end: 11px;
+    background: var(--brush), var(--brass);
     box-shadow:
-      inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.35),
-      inset 2px -2px 6px rgba(70, 28, 8, 0.3),
-      2px -2px 9px rgba(255, 186, 102, 0.3),
-      0 3px 12px rgba(0, 0, 0, 0.4),
-      0 0 18px rgba(255, 186, 102, 0.15);
-  }
-
-  .profile-avatar-ring::before {
-    padding: 1.5px;
-    background: linear-gradient(to bottom left,
-      rgba(252, 200, 126, 0.8) 0%,
-      rgba(216, 148, 80, 0.55) 38%,
-      rgba(150, 96, 46, 0.25) 100%);
+      0 3px 0 rgba(40, 24, 8, .85),
+      0 10px 22px rgba(0, 0, 0, .8);
   }
 
   .profile-avatar {
+    display: block;
     inline-size: 100%;
     block-size: 100%;
     border-radius: 50%;
-    display: block;
+    object-fit: cover;
+    /* the dark seat between photo and metal */
+    border: 2px solid #0e0703;
+    background: #0e0703;
   }
 
   .profile-username {
-    font-size: clamp(1.4rem, 5.5vw, 1.75rem);
-    font-weight: 700;
-    letter-spacing: 0.005em;
-    line-height: 1.5;
-    -webkit-text-stroke: 0.5px #f1cf98;
-    background: linear-gradient(180deg, #ffe6b0 0%, #d4a45c 100%);
-    -webkit-background-clip: text;
-            background-clip: text;
-    color: transparent;
-    margin-block-end: 0.35rem;
+    font-size: 1.3rem;
+    font-weight: 800;
+    font-stretch: 104%;
+    color: var(--color-title);
+    text-shadow: var(--shadow-text);
   }
 
   .profile-bio {
-    font-size: 0.85rem;
-    color: var(--color-text-muted);
-    margin-inline: 4rem;
-    margin-block-end: 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #cdb692;
+    margin-block-end: 13px;
+    max-inline-size: 320px;
   }
+  .profile-bio:empty { display: none; }
 
+  /* Pills: quiet content chips with drawn stroke icons. */
   .profile-pills {
     display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
     justify-content: center;
-    margin-block-start: 0.25rem;
-    margin-block-end: 1.75rem;
+    gap: 7px;
+    flex-wrap: wrap;
+    margin-block-end: 20px;
   }
 
   .profile-pill {
     display: inline-flex;
     align-items: center;
-    gap: 0.2rem;
-    font-size: 0.65rem;
-    color: #d4a85c;
-    background: rgba(212 168 92 / 0.1);
-    border: 1px solid rgba(212 168 92 / 0.25);
-    border-radius: 1rem;
-    padding: 0.15rem 0.5rem;
+    gap: 5px;
+    padding: 4px 10px 5px 8px;
+    border-radius: var(--radius-md);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #c0a67e;
+    background: var(--ground-line);
+    box-shadow: inset 0 1px 0 rgba(255, 238, 206, .06);
   }
 
   .profile-pill-icon {
-    width: 0.65rem;
-    height: 0.65rem;
+    inline-size: 12px;
+    block-size: 12px;
     flex-shrink: 0;
   }
 
+  /* Stats: dark tile, gold numeral, faint gold hairline (auth.css owns
+     .stat-card; this grid places them). */
   .profile-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 0.6rem;
-    width: 100%;
-    max-width: 400px;
-    margin-block-end: 2.5rem;
+    gap: 8px;
+    inline-size: 100%;
+    margin-block-end: 22px;
+  }
+  .profile-stats:empty { display: none; }
+
+  .profile-empty {
+    font-size: 0.9rem;
+    color: var(--color-muted);
   }
 
-  body.nav-menu-open .profile-card {
-    visibility: hidden;
-  }
-
-  /* ── Recent rounds ──────────────────────────────────────────────── */
-
+  /* ── recent games ── */
   .profile-recent {
-    width: 100%;
-    max-width: 400px;
-    margin-block-end: 1.5rem;
+    inline-size: 100%;
+    text-align: start;
   }
 
   .recent-label {
-    font-size: 0.7rem;
-    color: var(--color-text-muted);
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.24em;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    text-align: center;
-    margin-block-end: 0.5rem;
+    font-stretch: 118%;
+    color: var(--color-legend);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .95);
+    margin-block-end: 10px;
   }
 
   .recent-rows {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 7px;
   }
 
   .recent-game {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    background: var(--color-raised);
+    gap: 11px;
+    padding: 9px 11px;
     border-radius: var(--radius-md);
-    padding: 0.6rem 0.75rem;
+    background: var(--ground-row);
+    box-shadow: inset 0 1px 0 rgba(255, 238, 206, .045);
     cursor: pointer;
+  }
+
+  /* The score wears the embossed tag: brass ink for a won game, dim for a
+     loss — one tag, two temperatures. */
+  .recent-score {
+    flex-shrink: 0;
+    padding: 3px 7px 4px;
+    border-radius: 3px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-tag);
+    background: linear-gradient(180deg, rgba(56, 35, 16, .5), rgba(28, 17, 8, .5));
+    box-shadow: inset 0 1px 0 rgba(232, 196, 130, .2);
+  }
+
+  .recent-score-loss {
+    color: var(--color-dim);
+    background: rgba(8, 4, 1, .42);
+    box-shadow: inset 0 1px 0 rgba(255, 238, 206, .05);
   }
 
   .recent-game-body {
     flex: 1;
-    min-width: 0;
-    text-align: center;
-  }
-
-  .recent-row {
+    min-inline-size: 0;
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.8rem;
-  }
-
-  .recent-details {
-    font-size: 0.7rem;
-    color: var(--color-text-muted);
-    opacity: 0.5;
-    margin-block-start: 0.15rem;
-    text-align: center;
+    flex-direction: column;
+    gap: 2px;
   }
 
   .recent-avatars {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-block-end: 0.25rem;
-  }
-
-  .recent-avatars .recent-avatar-ring + .recent-avatar-ring {
-    margin-inline-start: -0.5rem;
   }
 
   .recent-avatar-ring {
-    position: relative;
-    display: inline-block;
-    width: 1.85rem;
-    height: 1.85rem;
-    border-radius: 50%;
+    inline-size: 22px;
+    block-size: 22px;
+    font-size: 10.3px;
+    box-shadow:
+      0 0 0 1.5px #0e0703,
+      0 0 0 2.5px rgba(255, 238, 206, .14);
   }
 
-  .recent-avatars .recent-avatar-ring:nth-child(1) { z-index: 6; }
-  .recent-avatars .recent-avatar-ring:nth-child(2) { z-index: 5; }
-  .recent-avatars .recent-avatar-ring:nth-child(3) { z-index: 4; }
-  .recent-avatars .recent-avatar-ring:nth-child(4) { z-index: 3; }
-  .recent-avatars .recent-avatar-ring:nth-child(5) { z-index: 2; }
-  .recent-avatars .recent-avatar-ring:nth-child(6) { z-index: 1; }
+  .recent-avatar-ring + .recent-avatar-ring { margin-inline-start: -7px; }
 
+  /* The round's biggest winner gets the brighter hairline. */
   .recent-avatar-winner {
     box-shadow:
-      inset -1px 1px 3px rgba(255, 200, 122, 0.35),
-      inset 1px -1px 4px rgba(70, 28, 8, 0.3),
-      1px -1px 6px rgba(255, 186, 102, 0.3),
-      0 2px 8px rgba(0, 0, 0, 0.4),
-      0 0 12px rgba(255, 186, 102, 0.15);
-  }
-
-  .recent-avatar-winner::before {
-    padding: 1.5px;
-    background: linear-gradient(to bottom left,
-      rgba(252, 200, 126, 1) 0%,
-      rgba(216, 148, 80, 0.85) 38%,
-      rgba(150, 96, 46, 0.5) 100%);
+      0 0 0 1.5px #0e0703,
+      0 0 0 2.5px rgba(255, 238, 206, .34);
   }
 
   .recent-avatar {
-    width: 100%;
-    height: 100%;
+    inline-size: 100%;
+    block-size: 100%;
     border-radius: 50%;
     object-fit: cover;
-    display: block;
-  }
-
-  .recent-avatar-ring:not(.recent-avatar-winner) {
-    width: 1.5rem;
-    height: 1.5rem;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
-  }
-
-  .recent-score {
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: #d4a45c;
-    text-shadow: 0 0 8px rgba(212, 164, 92, 0.4);
-    flex-shrink: 0;
-    width: 3rem;
-    text-align: center;
-  }
-
-  .recent-score-loss {
-    color: var(--color-text-muted);
-    text-shadow: none;
   }
 
   .recent-vs {
-    flex: 1;
-    color: var(--color-text);
-    white-space: nowrap;
+    font-size: 0.82rem;
+    color: #e6d1ac;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .recent-details {
+    font-size: 0.66rem;
+    color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
   }
 
   .recent-time {
-    color: var(--color-text);
-    font-size: 0.75rem;
     flex-shrink: 0;
-    width: 3rem;
-    text-align: center;
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-muted);
   }
-
-  .profile-empty {
-    color: var(--color-text-muted);
-    font-size: 0.9rem;
-  }
-
-  /* ── Profile load shimmer ───────────────────────────────────────── */
-
-  @keyframes profile-shimmer {
-    0%   { background-position: 200% center; }
-    100% { background-position: -200% center; }
-  }
-
-  .profile-shimmer .stat-card {
-    background-image: linear-gradient(
-      105deg,
-      transparent 30%,
-      rgba(212, 164, 92, 0.03) 45%,
-      rgba(212, 164, 92, 0.07) 50%,
-      rgba(212, 164, 92, 0.03) 55%,
-      transparent 70%
-    );
-    background-size: 200% 100%;
-    background-repeat: no-repeat;
-    animation: profile-shimmer 1s ease-in-out both;
-  }
-
-  .profile-shimmer .stat-card:nth-child(1) { animation-delay: 0s; }
-  .profile-shimmer .stat-card:nth-child(2) { animation-delay: 0.05s; }
-  .profile-shimmer .stat-card:nth-child(3) { animation-delay: 0.1s; }
-  .profile-shimmer .stat-card:nth-child(4) { animation-delay: 0.15s; }
-  .profile-shimmer .stat-card:nth-child(5) { animation-delay: 0.2s; }
-  .profile-shimmer .stat-card:nth-child(6) { animation-delay: 0.25s; }
-  .profile-shimmer .stat-card:nth-child(7) { animation-delay: 0.3s; }
-  .profile-shimmer .stat-card:nth-child(8) { animation-delay: 0.35s; }
-
 }

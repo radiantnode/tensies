@@ -1,13 +1,19 @@
 // @ts-check
 import { isSignedIn, getAuthUser, signOut } from '../auth.js';
 import { getPlatform, openGuide } from '../a2hs.js';
+import { accountCoin } from '../account-coin.js';
+import { cachedProfile, loadProfile } from '../account-sync.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
 import { makeMenuToggle } from '../menu-toggle.js';
-import { showSignin } from '../router.js';
+import { showProfile, showSignin } from '../router.js';
 import { updateScrollFades } from '../scroll-fades.js';
 
 // Phone-with-plus glyph for the "Add to Home Screen" entry.
 const A2HS_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 7.5v5M9.5 10h5"/></svg>`;
+// The pint (redrawn: the old handled mug read as coffee at 17px).
+const BEER_ICON = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.4 6.2h9.2l-1 13.4a2.3 2.3 0 0 1-2.3 2.1h-2.6a2.3 2.3 0 0 1-2.3-2.1z"/><path d="M7.6 9.9h8.8"/><path d="M8.6 6.2a2 2 0 0 1 2.1-2.4 2.1 2.1 0 0 1 3.4-.5 1.9 1.9 0 0 1 1.3 2.9"/></svg>`;
+const CHEV_ICON = `<svg class="menu-tab-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>`;
+const X_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
 
 // Baked changelog HTML — content, not code; the changelog skill regenerates it.
 const CHANGELOG = `<p>Pull up a stool. Newest stuff up top.</p>
@@ -293,57 +299,70 @@ export class NavMenu extends HTMLElement {
     this.className = 'game-menu nav-menu';
     this.setAttribute('aria-hidden', 'true');
     this.innerHTML = `
-      <nav class="menu-panel" aria-label="Menu">
-        <div class="menu-about">
-          <h2 class="screen-title menu-about-heading">Built at the bar because you don't have to go home but you can't stay there.</h2>
-          <p class="menu-about-body">My name's Michael. Over 20 years of making computers do things for businesses, people, and fun, and <strong>Tensies</strong> is squarely in the fun column. I wanted to build something cool while I picked up a few new tricks and passed along what I learned (usually by breaking it first). The real game gets played at the bar, with real dice, the good heavy kind. This is the version for when you forget yours, or the bar closes and reminds you that you do, in fact, have a home to go to: ten dice each, one target number, everybody rolling at once and racing to lock all ten first.</p>
-          <p class="menu-about-body">For a bar game, it's wildly over-engineered, in the best way. I built it to be secure and to hold up under anything, using the same industry standards I'd trust for serious work. I work on it in my spare time, a little at home, a little at the bar, a little in Cap Cana with a drink in reach. The code's all out in the open, if you want to see how it works. Pull up a stool.</p>
-          <button type="button" class="menu-whats-new-btn">See What's New</button>
-          <a href="https://buymeacoffee.com/radiantnode" target="_blank" rel="noopener noreferrer" class="menu-beer-btn">
-            <svg viewBox="0 3 26 26" width="30" height="30" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="7" cy="9.5" r="2.5" fill="currentColor" stroke="none"/>
-              <circle cx="12" cy="7.5" r="3" fill="currentColor" stroke="none"/>
-              <circle cx="16.5" cy="9.5" r="2.2" fill="currentColor" stroke="none"/>
-              <circle cx="4.5" cy="11" r="1.5" fill="currentColor" stroke="none"/>
-              <path d="M4 11h14l-2 16H6L4 11z" fill="none" stroke-width="2"/>
-              <path d="M18 15h1a2.5 4.5 0 0 1 0 9H18" fill="none" stroke-width="2"/>
-            </svg>
-            Buy me a beer
-          </a>
-          <div class="menu-divider"></div>
-          <button type="button" class="btn btn-secondary menu-auth-btn"></button>
+      <div class="menu-topbar">
+        <div class="topbar-title-row">
+          <div class="game-title">
+            <img src="/static/images/logo.svg" class="game-title-mark" alt="">
+            <span>Tensies</span>
+          </div>
+          <button type="button" class="menu-close-btn nav-menu-close" aria-label="Close menu">${X_ICON}</button>
         </div>
+      </div>
+      <nav class="menu-panel" aria-label="Menu">
+        <button type="button" class="menu-tab-line" id="menu-tab-line"></button>
+        <h2 class="menu-about-heading">Built at the bar because you don't have to go home but you can't stay there.</h2>
+        <p class="menu-about-body">My name's Michael. Over 20 years of making computers do things for businesses, people, and fun, and <strong>Tensies</strong> is squarely in the fun column. I wanted to build something cool while I picked up a few new tricks and passed along what I learned (usually by breaking it first).</p>
+        <p class="menu-about-body">The real game gets played at the bar, with real dice, the good heavy kind. This is the version for when you forget yours, or the bar closes and reminds you that you do, in fact, have a home to go to: ten dice each, one target number, everybody rolling at once and racing to lock all ten first.</p>
       </nav>
+      <div class="menu-foot">
+        <button type="button" class="btn btn-primary menu-whats-new-btn">See What's New</button>
+        <a href="https://buymeacoffee.com/radiantnode" target="_blank" rel="noopener noreferrer" class="btn btn-secondary menu-beer-btn">${BEER_ICON}Buy me a beer</a>
+        <button type="button" class="menu-signout-btn" hidden>Sign out</button>
+      </div>
       <div class="menu-changelog-panel">
+        <div class="menu-topbar">
+          <div class="topbar-title-row">
+            <div class="game-title">
+              <img src="/static/images/logo.svg" class="game-title-mark" alt="">
+              <span>Tensies</span>
+            </div>
+            <button type="button" class="menu-close-btn nav-menu-close" aria-label="Close menu">${X_ICON}</button>
+          </div>
+        </div>
         <div class="menu-changelog-header">
           <button type="button" class="menu-changelog-back-btn btn-back">${BACK_BUTTON_HTML}</button>
-          <h2 class="screen-title has-back">What's New on Tensies</h2>
+          <h2 class="menu-changelog-title">What&rsquo;s New</h2>
         </div>
         <div class="menu-changelog-body">${CHANGELOG}</div>
       </div>`;
 
     this.#body = /** @type {HTMLElement} */ (this.querySelector('.menu-changelog-body'));
     this.#body.addEventListener('scroll', () => this.#updateFades(), { passive: true });
+    this.#reshapeChangelog();
 
     document.addEventListener('menu-toggle', this.#onMenuToggle);
     document.addEventListener('keydown', this.#onKeydown);
 
     this._updateAuthButton();
-    /** @type {HTMLElement} */ (this.querySelector('.menu-auth-btn'))
+    this.querySelectorAll('.nav-menu-close').forEach((btn) =>
+      btn.addEventListener('click', () => this.close()));
+    /** @type {HTMLElement} */ (this.querySelector('#menu-tab-line'))
       .addEventListener('click', () => {
-        if (isSignedIn()) {
-          signOut();
-          this._updateAuthButton();
-          // Remove header username badges from all app-headers
-          document.querySelectorAll('.header-username').forEach((el) => el.remove());
-          // Refresh landing screen auth state if it exists
-          const landing = /** @type {any} */ (document.getElementById('landing'));
-          if (landing?.refreshAuth) landing.refreshAuth();
-          this.close();
-        } else {
-          this.close();
-          showSignin();
-        }
+        const user = getAuthUser();
+        this.close();
+        if (user) showProfile(user.username);
+        else showSignin();
+      });
+    /** @type {HTMLElement} */ (this.querySelector('.menu-signout-btn'))
+      .addEventListener('click', () => {
+        signOut();
+        this._updateAuthButton();
+        // Remove header account chrome from every header
+        document.querySelectorAll('.header-username, .header-account-mark').forEach((el) => el.remove());
+        // Refresh landing screen auth state if it exists
+        const landing = /** @type {any} */ (document.getElementById('landing'));
+        if (landing?.refreshAuth) landing.refreshAuth();
+        this.close();
       });
     /** @type {HTMLElement} */ (this.querySelector('.menu-whats-new-btn'))
       .addEventListener('click', () => {
@@ -360,22 +379,51 @@ export class NavMenu extends HTMLElement {
   }
 
   /**
+   * Restructure the baked changelog HTML onto the locked system: the version
+   * is NOT a heading — it joins the date on the legend line where metadata
+   * belongs; the release NAME is the heading (changelog.json). The generator
+   * keeps emitting `<h2>1.31.0 ("Round Trip")</h2><p>date</p>` and this
+   * reshapes it, so the changelog skill needs no change.
+   */
+  #reshapeChangelog() {
+    if (!this.#body) return;
+    for (const h2 of Array.from(this.#body.querySelectorAll('h2'))) {
+      const m = (h2.textContent ?? '').match(/^([\d.]+)\s*\("?(.+?)"?\)$/);
+      const dateP = h2.nextElementSibling;
+      if (!m || !dateP || dateP.tagName !== 'P') continue;
+      const legend = document.createElement('p');
+      legend.className = 'menu-rel-legend';
+      const v = document.createElement('b');
+      v.textContent = m[1];
+      legend.append(v, ` · ${dateP.textContent}`);
+      const name = document.createElement('p');
+      name.className = 'menu-rel-name';
+      name.textContent = m[2];
+      h2.replaceWith(legend);
+      dateP.replaceWith(name);
+      legend.after(name);
+    }
+    // The intro line is the lede.
+    const first = this.#body.querySelector('p');
+    if (first && !first.className) first.className = 'menu-changelog-lede';
+  }
+
+  /**
    * Add the "Add to Home Screen" entry — only when an install flow applies
-   * (mobile, not already installed). Stays out of the DOM otherwise, so the
-   * desktop pixel baseline of the menu is untouched.
+   * (mobile, not already installed). Stays out of the DOM otherwise.
    */
   #mountInstallEntry() {
     if (!getPlatform()) return;
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'menu-whats-new-btn menu-a2hs-btn';
+    btn.className = 'btn btn-secondary menu-a2hs-btn';
     btn.innerHTML = `${A2HS_ICON}Add to Home Screen`;
     btn.addEventListener('click', () => {
       this.close();
       openGuide();
     });
-    const divider = this.querySelector('.menu-about .menu-divider');
-    divider?.parentElement?.insertBefore(btn, divider);
+    const beer = this.querySelector('.menu-beer-btn');
+    beer?.parentElement?.insertBefore(btn, beer);
   }
 
   disconnectedCallback() {
@@ -430,12 +478,46 @@ export class NavMenu extends HTMLElement {
     });
   }
 
-  /** Update the auth button label based on sign-in state. */
+  /**
+   * The tab line at the top of the menu. Signed out it is the pitch — "Get
+   * your own tab." with the struck coin. Signed in it becomes YOUR tab: the
+   * photo in the same ring, @handle, and the real stats as the sub — a door
+   * to your profile. Sign out appears in the foot, the quietest thing in the
+   * menu (header-signedin.json).
+   */
   _updateAuthButton() {
-    const btn = /** @type {HTMLElement | null} */ (this.querySelector('.menu-auth-btn'));
-    if (!btn) return;
+    const line = /** @type {HTMLElement | null} */ (this.querySelector('#menu-tab-line'));
+    const signoutBtn = /** @type {HTMLElement | null} */ (this.querySelector('.menu-signout-btn'));
+    if (!line) return;
     const user = getAuthUser();
-    btn.textContent = user ? 'Sign out' : 'Sign in or Sign up';
+    if (signoutBtn) signoutBtn.hidden = !user;
+
+    const text = document.createElement('span');
+    text.className = 'menu-tab-text';
+    const title = document.createElement('b');
+    const sub = document.createElement('span');
+    if (user) {
+      const cached = cachedProfile(user.username);
+      title.textContent = `@${user.username}`;
+      if (cached) {
+        sub.textContent = `${cached.total_games} game${cached.total_games === 1 ? '' : 's'} · ${cached.total_rounds} rounds won`;
+      } else {
+        sub.textContent = 'See your stats and games';
+        // Fill the real figures in when the profile lands.
+        loadProfile(user.username).then(() => {
+          if (getAuthUser()?.username === user.username) this._updateAuthButton();
+        });
+      }
+      text.append(title, sub);
+      line.replaceChildren(
+        accountCoin(cached?.photo_url ?? null, 'menu-coin account-coin'), text);
+    } else {
+      title.textContent = 'Get your own tab.';
+      sub.textContent = 'Keep your stats, your name and your wins';
+      text.append(title, sub);
+      line.replaceChildren(accountCoin(null, 'menu-coin account-coin'), text);
+    }
+    line.insertAdjacentHTML('beforeend', CHEV_ICON);
   }
 
   #updateFades() {

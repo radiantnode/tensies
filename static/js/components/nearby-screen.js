@@ -1,6 +1,6 @@
 // @ts-check
 import './app-header.js';
-import { avatarImg } from '../avatars.js';
+import { avatarSeat } from '../avatars.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
 import { byId } from '../dom.js';
 import { GeoError, GEO_ERROR_COPY, getPosition } from '../geo.js';
@@ -83,12 +83,12 @@ export class NearbyScreen extends HTMLElement {
       <app-header></app-header>
       <div class="screen-body nearby-body">
         <button id="nearby-back-btn" type="button" class="btn-back">${BACK_BUTTON_HTML}</button>
-        <h1 id="nearby-title" class="screen-title has-back">Finding Nearby Games</h1>
+        <h1 id="nearby-title" class="screen-title has-back">Games Nearby</h1>
         <div class="radar" id="radar" role="group" aria-label="Nearby games radar">
           <div class="radar-face" aria-hidden="true">
-            <span class="radar-ring radar-ring-1"></span>
-            <span class="radar-ring radar-ring-2"></span>
-            <span class="radar-ring radar-ring-3"></span>
+            <span class="radar-rings"></span>
+            <span class="radar-rlab radar-rlab-1" id="radar-rlab-1"></span>
+            <span class="radar-rlab radar-rlab-3" id="radar-rlab-3"></span>
             <span class="radar-sweep"></span>
             <span class="radar-north">N</span>
             <span class="radar-you"></span>
@@ -99,7 +99,10 @@ export class NearbyScreen extends HTMLElement {
           </button>
         </div>
         <div class="nearby-list" id="nearby-list" role="list" aria-label="Nearby games"></div>
-        <p class="nearby-empty" id="nearby-empty" hidden>No games nearby yet — ask a host to check in.</p>
+        <div class="nearby-empty" id="nearby-empty" hidden>
+          <p class="nearby-empty-head" id="nearby-empty-head">Nothing in range.</p>
+          <p class="nearby-empty-sub">Nobody nearby has a game open yet. Start one and check in &mdash; anyone in the bar will see it.</p>
+        </div>
         <p class="error-msg nearby-error" id="nearby-error" role="alert" aria-live="polite"></p>
         <button id="nearby-retry" type="button" class="btn btn-secondary nearby-retry" hidden>Try again</button>
       </div>`;
@@ -338,6 +341,14 @@ export class NearbyScreen extends HTMLElement {
     const radius = data.radius_m || 1;
     const games = data.games || [];
 
+    // Label the range rings so "220 m away" in the list has something to read
+    // against; the rings sit at the equal-area positions for radius/3 and
+    // radius. The empty state names the real radius too.
+    const fmt = (/** @type {number} */ m) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`);
+    byId('radar-rlab-1').textContent = fmt(radius / 3);
+    byId('radar-rlab-3').textContent = fmt(radius);
+    byId('nearby-empty-head').textContent = `Nothing within ${fmt(radius)}.`;
+
     // Drop a selection whose game is gone.
     if (this.#selected && !games.some((g) => g.code === this.#selected)) {
       this.#selected = null;
@@ -352,8 +363,11 @@ export class NearbyScreen extends HTMLElement {
       // Perceptual radial spread: sqrt curve + a minimum inset so nearby games
       // fan out instead of piling on the centre (see MIN_FRAC). Clamped so a
       // rounding overshoot can't escape the scope.
+      // Equal-area scale: r = R·√(d/max) — a linear scope buries everything
+      // close to you in a knot at the centre, which is exactly the range that
+      // matters in a bar (the pinned radar constraint).
       const raw = Math.min(1, g.distance_m / radius);
-      const frac = MIN_FRAC + (1 - MIN_FRAC) * Math.sqrt(raw);
+      const frac = Math.max(MIN_FRAC, Math.sqrt(raw));
       const rad = (g.bearing_deg * Math.PI) / 180;
       const x = 50 + Math.sin(rad) * frac * 50;
       const y = 50 - Math.cos(rad) * frac * 50;
@@ -370,7 +384,7 @@ export class NearbyScreen extends HTMLElement {
         inner.className = 'blip-inner';
         const ring = document.createElement('span');
         ring.className = 'blip-avatar-ring';
-        ring.append(avatarImg(g.photo, 'blip-avatar'));
+        ring.append(avatarSeat(g.photo || null, g.host_name, 'blip-avatar avatar-seat'));
         const name = document.createElement('span');
         name.className = 'blip-name';
         inner.append(ring, name);
@@ -437,7 +451,7 @@ export class NearbyScreen extends HTMLElement {
         row.append(bg);
         const ring = document.createElement('span');
         ring.className = 'nearby-row-avatar-ring';
-        ring.append(avatarImg(g.photo, 'nearby-row-avatar'));
+        ring.append(avatarSeat(g.photo || null, g.host_name, 'nearby-row-avatar avatar-seat'));
         const info = document.createElement('div');
         info.className = 'nearby-row-info';
         info.innerHTML =

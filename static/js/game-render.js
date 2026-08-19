@@ -4,6 +4,7 @@ import './components/round-target.js';
 import { makeDie, myDiceKey, placeGrid } from './dice.js';
 import { loadDicePositions, saveDicePositions } from './dice-positions.js';
 import { byId } from './dom.js';
+import { rollMarkSVG } from './roll-mark.js';
 import { state } from './state.js';
 
 /** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
@@ -18,11 +19,6 @@ import { state } from './state.js';
 
 /** Keyed <player-card> registry (pid → card), reused across renders. */
 const barCards = new Map();
-
-/** @param {GameSnapshot} snap */
-function maxWins(snap) {
-  return Math.max(0, ...Object.values(snap.players).map((p) => p.wins));
-}
 
 /**
  * Add or remove a boolean attribute without churning the DOM.
@@ -43,7 +39,6 @@ function setAttr(el, name, present) {
  * @param {GameSnapshot} snap
  */
 export function renderPlayersBar(snap) {
-  const top = maxWins(snap);
   const bar = byId('players-bar');
 
   // Drop cards for players who left before reconciling positions, so a stale
@@ -77,7 +72,6 @@ export function renderPlayersBar(snap) {
     card.setAttribute('wins', String(player.wins));
     card.setAttribute('matched', String(matched));
     setAttr(card, 'is-me', isMe);
-    setAttr(card, 'leading', player.wins > 0 && player.wins === top);
     setAttr(card, 'hot', hot);
     setAttr(card, 'disconnected', Boolean(player.disconnected));
 
@@ -139,7 +133,7 @@ export function renderMyArea(snap) {
       requestAnimationFrame(place);
       return;
     }
-    const sz = window.innerWidth <= 480 ? 50 : 56;
+    const sz = window.innerWidth <= 480 ? 52 : 56;
     const stored = loadDicePositions(snap.code, snap.round_num);
     const positions = stored && stored.length === diceToPlace.length
       ? stored
@@ -165,13 +159,15 @@ export function renderMyArea(snap) {
   zones.appendChild(matchedZone);
   area.appendChild(zones);
 
+  // The ROLL coin: the engraved mark at 46% of the 88px coin, the word raised.
   const rollArea = document.createElement('div');
   rollArea.className = 'roll-area';
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'btn-roll';
   btn.id = 'roll-btn';
-  btn.textContent = 'Roll';
+  btn.setAttribute('aria-label', 'Roll');
+  btn.innerHTML = `${rollMarkSVG(41)}<span class="roll-word">Roll</span>`;
   rollArea.appendChild(btn);
   area.appendChild(rollArea);
 
@@ -200,58 +196,63 @@ function stopPauseTick() {
   }
 }
 
+/** The server's PAUSE_MAX — the one-hour cap the thread measures against. */
+const PAUSE_MAX_MS = 60 * 60 * 1000;
+
 /**
- * Host-only pause controls (Pause/Resume toggle + countdown). Kept separate
- * from renderMyArea so a pause toggle refreshes the button without
- * re-scattering dice.
+ * The in-game menu: the pause lever, the End Game bolt (host-only), and the
+ * foot — the round/connected legend, plus the one-hour cap on the brass
+ * thread while paused. Kept separate from renderMyArea so a pause toggle
+ * refreshes the controls without re-scattering dice.
  * @param {GameSnapshot} snap
  */
 export function renderMenu(snap) {
-  const btn = document.getElementById('menu-pause-btn');
-  if (!btn) return;
+  const lever = document.getElementById('menu-pause-btn');
+  if (!lever) return;
   const isHost = snap.host === state.myId;
   const paused = Boolean(snap.paused);
 
-  // End Game button — host-only, reset confirm state on each render.
-  const endBtn = document.getElementById('menu-end-btn');
-  if (endBtn) {
-    endBtn.hidden = !isHost;
-    endBtn.classList.remove('confirming');
-    const endLabel = endBtn.querySelector('.menu-item-label');
-    if (endLabel) endLabel.textContent = 'End Game';
-  }
+  const pauseRow = document.getElementById('menu-pause-row');
+  const endRow = document.getElementById('menu-end-row');
+  if (pauseRow) pauseRow.hidden = !isHost;
+  if (endRow) endRow.hidden = !isHost;
 
-  btn.hidden = !isHost;
-  btn.classList.toggle('active', paused);
-  btn.setAttribute('aria-pressed', String(paused));
-  const label = btn.querySelector('.menu-item-label');
-  if (label) label.textContent = paused ? 'Resume Game' : 'Pause Game';
+  // The lever: the knob carries the state — enamel cap at rest, keeper brass
+  // once thrown. The label never changes; the sub says what it does.
+  lever.classList.toggle('on', paused);
+  lever.setAttribute('aria-checked', String(paused));
+  const sub = document.getElementById('menu-pause-sub');
+  if (sub) sub.textContent = paused ? 'Rolling is frozen for everyone' : 'Freeze rolling for everyone';
+
+  // Foot legend: round + who is at the table.
+  const legend = document.getElementById('menu-foot-legend');
+  if (legend) {
+    const players = Object.values(snap.players);
+    const connected = players.filter((p) => !p.disconnected).length;
+    legend.textContent = paused
+      ? `Round ${snap.round_num}  ·  ${connected} of ${players.length} connected`
+      : `Round ${snap.round_num}  ·  ${players.length} player${players.length === 1 ? '' : 's'} connected`;
+  }
 
   const status = document.getElementById('menu-pause-status');
   if (!status) return;
-  if (!(isHost && paused)) {
+  if (!paused) {
     status.hidden = true;
     stopPauseTick();
     return;
   }
   status.hidden = false;
 
-  const downNames = Object.values(snap.players)
-    .filter((p) => p.disconnected)
-    .map((p) => p.name);
-  const playersEl = document.getElementById('pause-players');
-  if (playersEl) {
-    if (downNames.length === 0) playersEl.textContent = "Everyone is here! Let's go!";
-    else if (downNames.length === 1) playersEl.textContent = `Waiting on ${downNames[0]}…`;
-    else if (downNames.length === 2) playersEl.textContent = `Waiting on ${downNames[0]} and ${downNames[1]}…`;
-    else playersEl.textContent = `Waiting on ${downNames.slice(0, -1).join(', ')}, and ${downNames.at(-1)}…`;
-  }
-
+  // The cap: "Table closes on its own in MM:SS" — pause_timeout ENDS the game
+  // at PAUSE_MAX. The thread carries the remaining fraction.
   const remainingEl = document.getElementById('pause-remaining');
+  const fill = document.getElementById('pause-cap-fill');
   if (remainingEl && typeof snap.pause_remaining_ms === 'number') {
     const deadline = Date.now() + snap.pause_remaining_ms;
     const tick = () => {
-      remainingEl.textContent = fmtRemaining(deadline - Date.now());
+      const left = deadline - Date.now();
+      remainingEl.textContent = fmtRemaining(left);
+      if (fill) fill.style.width = `${Math.max(0, Math.min(100, (left / PAUSE_MAX_MS) * 100))}%`;
     };
     tick();
     stopPauseTick();
@@ -266,12 +267,13 @@ export function renderMenu(snap) {
 export function syncPaused(snap) {
   const btn = /** @type {HTMLButtonElement | null} */ (document.getElementById('roll-btn'));
   if (!btn) return;
+  const word = btn.querySelector('.roll-word');
   if (snap.paused) {
     btn.disabled = true;
-    btn.textContent = 'Paused';
+    if (word) word.textContent = 'Paused';
   } else if (!state.rolling && !state.awaitingAck) {
     btn.disabled = false;
-    btn.textContent = 'Roll';
+    if (word) word.textContent = 'Roll';
   }
 }
 

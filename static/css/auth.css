@@ -1,31 +1,86 @@
+/* Sign-in + onboarding (the passkey flow). Both sit over the bar exterior on
+   a bottom-heavy scrim; both headers hide the lockup (like the landing they
+   came from) and add no rule. */
+
 @layer components {
 
-  /* ── Sign-in screen ──────────────────────────────────────────────── */
+  /* ── Sign-in ── */
 
-  .signin-screen {
+  .signin-screen,
+  .onboarding-screen {
     position: relative;
-    background: var(--color-panel-screen);
   }
+
+  .signin-screen::before,
+  .onboarding-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-scrim);
+    background: linear-gradient(to top,
+      rgba(6, 3, 1, .97) 0%,
+      rgba(6, 3, 1, .9) 34%,
+      rgba(6, 3, 1, .55) 68%,
+      rgba(6, 3, 1, .3) 100%);
+  }
+
+  .signin-screen .game-title,
+  .onboarding-screen .game-title { visibility: hidden; }
+
+  .signin-screen .app-header::after,
+  .onboarding-screen .app-header::after { content: none; }
 
   .signin-screen .screen-body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    padding-inline: 2rem;
-    text-align: center;
-    position: relative;
+    justify-content: flex-end;
+    padding: 0 24px calc(30px + env(safe-area-inset-bottom));
   }
 
-  .signin-screen .tagline {
-    margin-block-end: 1.5rem;
+  /* The account coin at 96px: your token at this bar. */
+  .signin-coin.account-coin {
+    align-self: center;
+    inline-size: 96px;
+    block-size: 96px;
+    padding: 8px;
+    margin-block-end: 22px;
+    box-shadow:
+      inset 0 2px 0 rgba(255, 247, 220, .9),
+      inset 0 -2px 0 rgba(96, 60, 16, .8),
+      0 2px 0 var(--seat),
+      0 12px 28px rgba(0, 0, 0, .85);
+  }
+
+  .signin-coin.account-coin svg {
+    inline-size: 44px;
+    block-size: 44px;
+  }
+
+  .signin-coin.account-coin > span {
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, .75);
+  }
+
+  .signin-title {
+    font-size: 1.72rem;
+    margin-block-end: 0.4rem;
+  }
+
+  .signin-sub {
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: #d0b791;
+    text-shadow: var(--shadow-text);
+    margin-block-end: 1.2rem;
+  }
+
+  .signin-screen .form-stack {
+    align-items: stretch;
+    gap: 0.6rem;
   }
 
   .signin-unavailable {
-    color: var(--color-text-muted);
+    color: var(--color-muted);
     font-size: 0.85rem;
     max-width: 280px;
+    align-self: center;
   }
 
   .btn-loading {
@@ -33,84 +88,90 @@
     pointer-events: none;
   }
 
-  /* ── Onboarding screen ───────────────────────────────────────────── */
-
-  .onboarding-screen {
-    position: relative;
-    background: var(--color-panel-screen);
-  }
+  /* ── Onboarding ── */
 
   .onboarding-screen .screen-body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
-    flex: 1;
-    padding-inline: 2rem;
-    text-align: center;
+    padding-inline: 24px;
   }
 
-  .onboarding-screen .tagline {
-    margin-block-end: 1.5rem;
+  .onboarding-legend {
+    margin-block-end: 12px;
   }
 
+  .onboarding-title {
+    font-size: 1.95rem;
+    line-height: 1.14;
+    margin-block-end: 1.4rem;
+  }
+
+  /* The chit, carrying the account it stands for. */
   .onboarding-card {
-    background: var(--color-raised);
+    inline-size: 100%;
+    padding: 18px 16px;
     border-radius: var(--radius-md);
-    padding: 1.25rem 1.5rem;
-    margin-block-end: 1.5rem;
-    min-width: 240px;
+    margin-block-end: 1.4rem;
+    background: rgba(12, 7, 3, .55);
+    box-shadow: inset 0 0 0 1px rgba(255, 236, 202, .1);
   }
 
   .onboarding-username {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: var(--color-accent);
-    letter-spacing: 0.02em;
-    margin-block-end: 0.35rem;
-    text-shadow: var(--shadow-text);
+    font-size: 1.24rem;
+    font-weight: 800;
+    font-stretch: 104%;
+    color: var(--color-title);
+    margin-block-end: 4px;
   }
 
   .onboarding-vanity {
-    font-size: 0.85rem;
-    color: var(--color-text-muted);
-    font-family: monospace;
-    letter-spacing: 0.03em;
+    font-size: 0.78rem;
+    color: var(--color-placeholder);
+    font-family: ui-monospace, Menlo, monospace;
   }
 
-  /* ── Onboarding stats grid ─────────────────────────────────────── */
-
+  /* Transferred stats: dark tile, gold numeral, faint gold hairline. */
   .onboarding-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 0.6rem;
-    width: 100%;
-    max-width: 320px;
-    margin-block-end: 2.5rem;
+    gap: 8px;
+    inline-size: 100%;
+    margin-block-end: 1.6rem;
   }
 
+  .onboarding-stats:empty { display: none; }
+
   .stat-card {
-    background: var(--color-raised);
+    padding: 12px 6px 11px;
+    text-align: center;
     border-radius: var(--radius-md);
-    padding: 0.75rem 0.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.15rem;
+    gap: 6px;
+    background: var(--ground-stat);
+    box-shadow:
+      inset 0 0 0 1px rgba(226, 183, 110, .16),
+      inset 0 1px 0 rgba(255, 238, 206, .06);
   }
 
   .stat-value {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: var(--color-text);
-    line-height: 1.1;
+    font-size: 1.4rem;
+    font-weight: 800;
+    line-height: 1;
+    font-stretch: 112%;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-stat);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .85);
   }
 
   .stat-label {
-    font-size: 0.65rem;
-    color: var(--color-text-muted);
+    font-size: 0.46rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-stretch: 112%;
+    color: var(--color-dim);
   }
 
+  .onboarding-screen .btn-primary { inline-size: 100%; }
 }
