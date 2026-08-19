@@ -67,14 +67,18 @@
       rgba(8, 4, 1, .5) 0%, rgba(8, 4, 1, .46) 44%, rgba(8, 4, 1, .62) 100%);
   }
 
-  /* ── the nav menu body ── */
+  /* ── the nav menu body. Scrolls: the owner's copy runs three paragraphs,
+     which is taller than one screen behind the tab line. ── */
   .nav-menu .menu-panel {
     flex: 1;
     min-block-size: 0;
-    overflow: hidden;
-    padding: 14px 24px 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding: 14px 24px 16px;
     text-align: start;
   }
+
+  .nav-menu .menu-panel::-webkit-scrollbar { display: none; }
 
   /* The tab line: first thing under the bar — prominence by POSITION, not
      weight. Gold appears only as the coin: a seal, never a box. */
