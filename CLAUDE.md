@@ -136,6 +136,15 @@ paint is the inline `#loading` *markup*, styled by `css/critical.css` (tokens +
 reset + logo + the `#loading` screen), which `index.html` loads as the first,
 render-blocking stylesheet — so the loading screen paints with no JS in the path.
 
+**The frontend was redesigned 2026-08-19 ("Brass & Enamel").** The design
+system is recorded in **`DESIGN.md`** (repo root — tokens, ramps, the binding
+rules: brass only for things you press, nothing glows, no gradient text, the
+error ladder, the named z scale). The approved comps and the full decision
+record live under `.impeccable/` (untracked): start at
+`.impeccable/mocks/CANON.md`, and see `.impeccable/handoff/BUILD-REPORT.md`
+for the as-built state. `stamp.css`/`lobby-stamp.js` are owner-pinned and
+untouchable; `widget.css` is still on the old system (uncomped surface).
+
 **Tensies is mobile-only — always test the frontend at a mobile resolution.**
 When driving the app in a browser (Playwright/manual), set the viewport to
 **390×844 CSS px @2× dpr** *first* — the same resolution the pixel-regression
@@ -145,11 +154,12 @@ change at desktop width.
 
 ```
 static/
-  index.html             thin shell: the inline #loading markup (pure-CSS dice
-                         loader), the stylesheet <link>s (critical.css first),
-                         the modulepreload graph, the bg-video + intro-video
+  index.html             thin shell: the inline #loading markup (logo mark +
+                         brass thread — the app's one progress mark), the
+                         stylesheet <link>s (critical.css first), the
+                         modulepreload graph, the bg-video + intro-video
                          elements, all eight <*-screen> component tags, and the
-                         <a2hs-guide> + pause/winner <dialog> overlays.
+                         <a2hs-guide> + pause/round-result <dialog> overlays.
   css/                   ALL rules live in explicit cascade layers
                          (@layer reset, tokens, elements, components, utilities
                          — declared once at the top of critical.css, the first
@@ -157,22 +167,39 @@ static/
                          element IDs exist only as JS/test hooks, never for
                          styling. The rest download in parallel as separate
                          <link>s.
-    critical.css         @font-face, the @layer order, semantic tokens
-                         (--color-*/--shadow-*/--radius-*), reset, shared logo,
-                         the loading screen + its pure-CSS dice-hop loader
-                         (pink 6 + ivory 4), view-transition setup, and the
-                         .staging/.dissolving screen states (staged reveals)
-    controls.css         inputs, .btn variants, .error-msg
-    shell.css            shared .game-topbar / app-header / .screen-body
-    landing.css          landing + join screens, logo, tagline, form-stack
-    lobby.css            lobby screen, code display, SMS button, player list,
-                         badges; @property registrations for the scroll fades
-    game.css             board layout, round header, my-area, dice zones, roll
-                         button, the vt-settling dice guard
-    players-bar.css      top-bar mini cards (.player-mini-*)
-    dice.css             .die-scene / .die-3d / .face / tumble + pop animations
-    menu.css             game menu + nav menu (about / changelog) + pause status
-    overlays.css         winner + pause <dialog> styling
+    critical.css         the direction contract, @font-face (Besley/Archivo/
+                         Rye/Yellowtail), the @layer order, ALL design tokens
+                         (keeper gold --brass/--brush, --edge-struck, the error
+                         ladder, the named --z-* scale), reset, the loading
+                         screen + shared brass .thread, the rotate lockout,
+                         .staging/.dissolving (staged reveals), and the
+                         html[data-hubble] flat-blur fallbacks
+    controls.css         wells (inputs), .btn-primary keeper gold /
+                         .btn-secondary, action rings, eq icon, scroll fades,
+                         .error-msg registers (cream correction / amber
+                         .is-refusal — set by js/error-register.js)
+    shell.css            .game-topbar (masked board bar vs ruled menu bars),
+                         logo lockup, .menu-topbar, .header-username pill,
+                         .account-coin, .avatar-seat/.avatar-mono, back chip,
+                         .screen-body, .screen-title, .section-label
+    landing.css          landing screen + join-drawer form spacing, radar ring
+    lobby.css            lobby, roster rows, places picker (venue-photo rows),
+                         confirm dialog
+    game.css             board: round status lettered on wood, enamel target
+                         die, dice zones, the oxblood mat (.zone-matched), the
+                         88px ROLL coin, the vt-settling dice guard
+    players-bar.css      top-bar mini cards: name line, brass channel, count +
+                         embossed WON tag (.player-mini-*)
+    dice.css             .die-scene / .die-3d / .face (size via --die-size) /
+                         tumble + pop animations; mat dice contact shadows
+    menu.css             nav menu (tab line, about, changelog, foot, sign out)
+                         + in-game menu (pause lever, End Game barrel bolt,
+                         cap thread foot); menus own their title rows
+    overlays.css         the round-result takeover (medallion/monogram/thread)
+                         + the non-host pause <dialog>
+    nearby.css           the radar scope (true brass ring, equal-area blips),
+                         venue rows, empty/denied states
+    sheet.css            the shared bottom-sheet chrome (join + places)
     auth.css             sign-in + onboarding screens (passkey flow)
     profile.css          public player profile screen (/@username)
     game-detail.css      per-game detail screen (opened from a profile)
@@ -212,7 +239,15 @@ static/
                          renderMenu; owns the keyed <player-card> registry
     animations.js        startShake, updateDiceInPlace, tryReveal
     roll.js              roll() — send intent, shake, schedule reveal
-    overlays.js          winner + pause dialogs (showWinner / showPaused / …)
+    roll-mark.js         the ROLL coin's engraved dice mark (logo.svg geometry
+                         as cut outlines; stroke re-weighted per size)
+    overlays.js          the round result (ALWAYS the winner — name + photo/
+                         monogram, brass vs dark ring) + pause dialog
+    account-coin.js      the one account mark (coin at 96/36/24px), the
+                         header pill, the board's bare mark
+    account-sync.js      signed-in header sync + cached profile (photo, stats)
+    error-register.js    setError() — classifies refusals (amber) vs
+                         corrections (cream); vermilion is Roll Trust's alone
     title-row.js         shared top-bar title row markup (app-header + game header)
     back-button.js       shared back-chip markup (join screen + changelog)
     scroll-fades.js      can-scroll-up/down edge-fade toggler (lobby list +
@@ -257,7 +292,11 @@ History: the original single-file modules were replaced in the component
 rewrite, and the whole tree was then rebuilt blank-canvas in **rewrite-v2**
 (branch `frontend-rewrite-v2`, 2026-06-10) — @layer CSS, strict checkJs,
 concern-per-module — pixel-verified against the harness baselines at
-maxDiffPixels:0; behaviour is unchanged except documented fixes.)
+maxDiffPixels:0. The **Brass & Enamel redesign** (branch `brass-and-enamel`,
+2026-08-19) then rewrote every stylesheet on the locked comp system and
+retired the winner overlay for the round-result takeover; **the harness
+baselines and TESTS.md still show the pre-redesign app** and need re-capture
+once the redesign is accepted.)
 
 ### WebSocket message protocol
 
