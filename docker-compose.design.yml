@@ -1,0 +1,60 @@
+# Isolated design-review dev instance. Runs alongside the live prod stack:
+# its own project name, its own redis/postgres, one published port (8890).
+# Bind-mounts the repo so CSS/JS edits are live with no rebuild.
+# The project name is pinned HERE, not left to a -p flag: without it compose
+# defaults to the directory name ("tensies"), which is the LIVE PROD project —
+# so a bare `docker compose -f docker-compose.design.yml restart web` restarts
+# the prod container serving the Hubble wall. That happened on 2026-08-20.
+name: tensies-design
+
+services:
+  web:
+    build: .
+    ports:
+      - "127.0.0.1:8890:8000"
+    volumes:
+      - .:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      REDIS_URL: redis://:devpassword@redis:6379/0
+      POSTGRES_DSN: postgresql://tensies:tensies@postgres:5432/tensies
+      TELEMETRY_ENABLED: "0"
+      METRICS_TOKEN: devmetrics
+      STATS_TOKEN: devstats
+      WIDGET_TOKEN: devwidget
+      CREATE_RATE_MAX: "200"
+      JOIN_RATE_MAX: "200"
+      JWT_SECRET: dev-jwt-secret-do-not-use-in-prod
+      WEBAUTHN_RP_ID: localhost
+      WEBAUTHN_ORIGIN: http://localhost:8890
+      CSP_EXTRA_IMG_SRC: https://cdn1.simmons.cloud
+      APP_URL: http://localhost:8890
+      ENABLE_DRAND_ROLLING: "0"
+      PLACES_ENABLED: "1"
+      DISCOVERY_ENABLED: "1"
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--requirepass", "devpassword", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "devpassword", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tensies
+      POSTGRES_PASSWORD: tensies
+      POSTGRES_DB: tensies
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tensies"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
