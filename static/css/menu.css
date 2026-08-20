@@ -260,19 +260,35 @@
     cursor: pointer;
   }
 
-  /* ── the changelog panel ── */
-  .menu-changelog-panel {
-    display: none;
-    flex-direction: column;
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
+  /* ── the changelog PAGE (/changelog — its own routed screen since
+     2026-08-20; formerly a panel inside this menu, which needed the overlay
+     to impersonate a page. The chrome is the locked comp's: the nav scrim
+     over the photograph, the back chip, the Besley title.) ── */
+  /* Positioned so the ::before glass spans the SCREEN (the full document),
+     not the initial containing block. */
+  .changelog-screen { position: relative; }
+
+  .changelog-screen .screen-body {
+    justify-content: flex-start;
+    align-items: stretch;
+    text-align: start;
+    padding: 0;
   }
 
-  .game-menu.show-changelog .menu-panel,
-  .game-menu.show-changelog > .menu-topbar,
-  .game-menu.show-changelog .menu-foot { display: none; }
-  .game-menu.show-changelog .menu-changelog-panel { display: flex; }
+  /* The page's glass, part of the scrolled surface with a bleed past both
+     ends — never viewport-fixed (iOS lags fixed+blur layers during scroll;
+     same treatment as the menu's glass above). */
+  .changelog-screen::before {
+    content: '';
+    position: absolute;
+    inset: -25vh 0;
+    z-index: var(--z-scrim);
+    backdrop-filter: blur(9px) saturate(1.02);
+    -webkit-backdrop-filter: blur(9px) saturate(1.02);
+    animation: frost-in 0.22s ease-out both;
+    background: linear-gradient(to bottom,
+      rgba(8, 4, 1, .5) 0%, rgba(8, 4, 1, .46) 44%, rgba(8, 4, 1, .62) 100%);
+  }
 
   .menu-changelog-header {
     position: relative;
@@ -283,12 +299,12 @@
     padding: 18px 24px 0;
   }
 
-  .menu-changelog-panel .btn-back {
+  .menu-changelog-header .btn-back {
     position: static;
     inline-size: 32px;
     block-size: 32px;
   }
-  .menu-changelog-panel .btn-back .back-chevron {
+  .menu-changelog-header .btn-back .back-chevron {
     inline-size: 15px;
     block-size: 15px;
   }
@@ -310,12 +326,9 @@
 
   /* The body scrolls; entries fade out at the scroll edge. */
   .menu-changelog-body {
-    flex: 1;
-    min-block-size: 0;
-    overflow-y: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    padding: 20px 24px calc(16px + env(safe-area-inset-bottom));
+    /* In flow on the page — the document is the scroller. The extra bottom
+       padding is the iOS scroll runway (in-flow pixels under the glass). */
+    padding: 20px 24px calc(64px + env(safe-area-inset-bottom));
     font-size: 0.9rem;
     line-height: 1.6;
     color: var(--color-body);

@@ -639,19 +639,10 @@
     overflow: hidden;
   }
 
-  html.doc-scroll .nav-menu .menu-panel,
-  html.doc-scroll .nav-menu .menu-changelog-body {
+  html.doc-scroll .nav-menu .menu-panel {
     overflow: visible;
     -webkit-mask-image: none;
             mask-image: none;
-  }
-
-  html.doc-scroll .nav-menu .menu-changelog-panel {
-    position: static;
-    min-block-size: 100dvh;
-    /* overflow: hidden would make the panel the sticky containing scroller
-       and the changelog header would never stick to the document. */
-    overflow: visible;
   }
 
   /* iOS anchors fixed layers to the scrolling layout viewport, which

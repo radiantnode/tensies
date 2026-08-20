@@ -199,6 +199,11 @@ async def nearby_page() -> HTMLResponse:
     return HTMLResponse(_render_index())
 
 
+@router.get("/changelog")
+async def changelog_page() -> HTMLResponse:
+    return HTMLResponse(_render_index())
+
+
 def _valid_coords(lat: float, lon: float) -> bool:
     """True when (lat, lon) is a real, in-range WGS84 point (rejects NaN/inf)."""
     return (math.isfinite(lat) and math.isfinite(lon)
