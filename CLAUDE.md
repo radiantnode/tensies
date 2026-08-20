@@ -294,9 +294,17 @@ rewrite, and the whole tree was then rebuilt blank-canvas in **rewrite-v2**
 concern-per-module — pixel-verified against the harness baselines at
 maxDiffPixels:0. The **Brass & Enamel redesign** (branch `brass-and-enamel`,
 2026-08-19) then rewrote every stylesheet on the locked comp system and
-retired the winner overlay for the round-result takeover; **the harness
-baselines and TESTS.md still show the pre-redesign app** and need re-capture
-once the redesign is accepted.)
+retired the winner overlay for the round-result takeover. It was accepted and
+merged to `main` on 2026-08-20 (PR #93), and **the harness baselines and
+TESTS.md were re-captured from it the same day** — all 54 pass at
+maxDiffPixels:0. Repairing the harness for that capture needed real spec
+updates, since the redesign moved what the tests drive: sign-in is the nav
+menu's tab line (`#menu-tab-line`, no auth button), the changelog is a routed
+screen (`#changelog`, not a nav-menu panel state), the game menu owns its own
+`#game-menu-close` (the hamburger no longer toggles it shut), the a2hs dots
+became `.a2hs-seg`, the trust apparatus signals completion with `.gd-seal`
+(not `.gd-trust-done`), and the board carries the bare account mark rather
+than the `@handle` pill.)
 
 ### WebSocket message protocol
 

@@ -294,8 +294,9 @@ test('game-ended', async ({ page }) => {
   // The game_ended handler redirects to /games/AYBD after a 1s delay.
   await page.waitForSelector('#game-detail.active', { timeout: 10000 });
   await page.waitForSelector('.gd-ended');
-  await page.waitForFunction(() =>
-    document.querySelector('.gd-trust-done') !== null, { timeout: 15000 });
+  // The seal is struck/voided/unstruck only once verification resolves — it
+  // replaced the old .gd-trust-done marker.
+  await page.waitForSelector('.gd-seal', { timeout: 15000 });
   await settle(page);
   await expect(page).toHaveScreenshot('game-ended.png');
 });
@@ -363,7 +364,7 @@ test('players-bar-variants', async ({ page }) => {
       g_disc: mk('Delta', [], { wins: 0, disconnected: true }),               // disconnected
     },
   }), '#game.active', async (p) => {
-    if (await p.isVisible('#game-menu.open')) await p.click('#game-menu-btn');
+    if (await p.isVisible('#game-menu.open')) await p.click('#game-menu-close');
     await menuClosed(p);
   });
   await settle(page);
@@ -382,7 +383,7 @@ test('paused-board', async ({ page }) => {
       cosmo: [1, 1, 1, 1, 1, 1, 1, 1, 2, 3],
     }),
   }), '#game.active', async (p) => {
-    if (await p.isVisible('#game-menu.open')) await p.click('#game-menu-btn'); // close auto-opened menu
+    if (await p.isVisible('#game-menu.open')) await p.click('#game-menu-close'); // close auto-opened menu (the menu owns its X)
     await menuClosed(p);
     await p.waitForFunction(() => document.getElementById('roll-btn')?.textContent?.trim() === 'Paused');
   });

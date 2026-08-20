@@ -16,17 +16,25 @@ npx playwright install chromium
 
 If the environment cannot download a browser (sandbox / blocked CDN), point at
 an already-installed copy of the **exact** pinned build instead — Chromium
-`140.0.7339.16` (Playwright browser build 1187), the version `browser-guard.js`
-enforces. A different build trips the guard (and at `maxDiffPixels:0` would
+`149.0.7827.55` (shipped by @playwright/test 1.61.0), the version
+`browser-guard.js` enforces. (This paragraph named 140.0.7339.16 until
+2026-08-20; that was stale and disagreed with both the guard and
+CAPTURE-ENV.txt.) A different build trips the guard (and at `maxDiffPixels:0` would
 produce false diffs):
 
 ```bash
-export PW_EXECUTABLE_PATH=/opt/pw-browsers/chromium-1187/chrome-linux/chrome
+export PW_EXECUTABLE_PATH=/path/to/chromium-149.0.7827.55/chrome-linux/chrome
 ```
 
 ## Running the app to capture against
 
 **Normal:** `docker compose up -d` (web on :8888), then use `TENSIES_URL=http://localhost:8888`.
+
+> **On elite01, do NOT use :8888.** That port is the live prod stack serving the
+> Hubble wall. Use the isolated design stack instead:
+> `docker compose -f docker-compose.design.yml up -d` (web on :8890, its own
+> redis/postgres, project name pinned in the file), then
+> `TENSIES_URL=http://localhost:8890`.
 
 **No Docker / blocked image registry:** run the real app without the
 Postgres+Grafana stack via the bundled wrapper (telemetry's DB boot is stubbed;
