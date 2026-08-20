@@ -24,6 +24,8 @@ let loadingShownAt = Date.now();
  */
 const DISSOLVE_NAV = true;
 
+const FIXED_SHELL_SCREENS = new Set(['game', 'loading', 'landing', 'lobby']);
+
 /**
  * Document-scroll mode (owner-directed, 2026-08-19): every screen reads as a
  * normal web page — the document itself scrolls, so content is never clipped
@@ -39,7 +41,6 @@ const DISSOLVE_NAV = true;
  * critical.css under `html.doc-scroll`.
  * @param {string} id the screen being committed
  */
-const FIXED_SHELL_SCREENS = new Set(['game', 'loading', 'landing', 'lobby']);
 function setDocScroll(id) {
   const on = !FIXED_SHELL_SCREENS.has(id);
   document.documentElement.classList.toggle('doc-scroll', on);
