@@ -557,28 +557,51 @@
 
   html.doc-scroll main { block-size: auto; }
 
-  html.doc-scroll .profile-screen.active {
+  /* Every screen grows with its content and still fills the glass when
+     short; the document is the scroller. */
+  html.doc-scroll .screen.active {
     block-size: auto;
+    min-block-size: 100dvh;
     overflow: visible;
   }
 
-  /* The header holds the top while the document scrolls (owner-directed,
-     2026-08-19). It keeps its pre-game identity — the amber rule (::after)
-     stays its boundary — but content now passes beneath it, so it gains a
-     frosted ground. The ground lives on ::before, NOT the element: iOS 26
-     samples its top chrome tint from edge-hugging sticky elements'
-     background-color and a backdrop-filter there washes the bars out, while
-     absolutely-positioned children are ignored by the sampler (researched
-     2026-08-19). Safe-area padding is real only in the installed app —
-     tab-mode Safari reports 0. */
-  html.doc-scroll .profile-screen .app-header {
+  /* Inner scrollers flow into the document — nothing is clipped. */
+  html.doc-scroll .screen .screen-body,
+  html.doc-scroll .screen .player-list {
+    overflow: visible;
+  }
+
+  /* Scroll runway on the data screens: in-flow pixels past the layout
+     viewport's edge are the ONE thing iOS 26 renders through the
+     liquid-glass pill (fixed layers clip there). The extra ground keeps
+     page pixels, not bare canvas, under the glass at the bottom stop. */
+  html.doc-scroll :is(.profile-screen, .game-detail-screen) .screen-body {
+    padding-block-end: calc(64px + env(safe-area-inset-bottom));
+  }
+
+  /* Headers hold the top while the document scrolls (owner-directed,
+     2026-08-19) — every screen but the landing, whose header floats over
+     the video with no rule by design. The header keeps its pre-game
+     identity (the amber rule ::after stays its boundary), but content now
+     passes beneath it, so it gains a frosted ground. The ground lives on
+     ::before, NOT the element: iOS 26 samples its top chrome tint from
+     edge-hugging sticky elements' background-color and a backdrop-filter
+     there washes the bars out, while absolutely-positioned children are
+     ignored by the sampler. Safe-area padding is real only in the
+     installed app — tab-mode Safari reports 0. */
+  html.doc-scroll .screen.active:not(.landing-screen) app-header,
+  html.doc-scroll .nav-menu .menu-topbar {
     position: sticky;
     inset-block-start: 0;
     z-index: var(--z-chrome);
     padding-block-start: env(safe-area-inset-top, 0px);
   }
 
-  html.doc-scroll .profile-screen .app-header::before {
+  /* Only the TOPBAR sticks in the changelog — it carries the close X. The
+     "What's New" header row scrolls away with the page like any page
+     title; two stacked sticky bars ghost through each other's grounds. */
+  html.doc-scroll .screen.active:not(.landing-screen) app-header::before,
+  html.doc-scroll .nav-menu .menu-topbar::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -589,33 +612,81 @@
     animation: frost-in 0.22s ease-out both;
   }
 
-  html.doc-scroll .profile-screen .screen-body {
-    overflow-y: visible;
-    /* Scroll runway: in-flow pixels past the layout viewport's edge are the
-       ONE thing iOS 26 renders through the liquid-glass pill (fixed layers
-       clip there). The extra ground keeps page pixels, not bare canvas,
-       under the glass at the bottom stop. */
-    padding-block-end: calc(64px + env(safe-area-inset-bottom));
+  /* The nav menu joins the flow and OWNS the document scroller while open
+     (nav-menu.js parks and restores the host screen's offset). Its glass —
+     the blur ::before and the graded ground ::after — stays pinned to the
+     viewport while the copy scrolls. The changelog panel leaves its
+     absolute overlay for the same flow, and the scroll-edge masks come off
+     the panels: the page edge is the scroll edge now. */
+  html.doc-scroll .nav-menu {
+    position: absolute;
+    inset: 0 0 auto 0;
+    block-size: auto;
+    min-block-size: 100dvh;
+  }
+
+  /* While the menu owns the scroller, the (invisible, faded) host screen
+     must not contribute document height: a landing taller than one viewport
+     (the install banner) left a dead scrollable tail past the menu's foot,
+     with the canvas peeking through. Cap it; its own scroll offset is
+     parked and restored by nav-menu.js. (Do NOT also clamp overscroll:
+     killing the rubber-band makes a barely-overflowing panel — the about
+     copy — feel choppy on iOS, every gesture slamming the hard ends. The
+     bounce is fine: the glass is viewport-fixed, so it stays under the
+     bouncing copy.) */
+  html.doc-scroll body.nav-menu-open .screen.active {
+    max-block-size: 100dvh;
+    overflow: hidden;
+  }
+
+  html.doc-scroll .nav-menu .menu-panel,
+  html.doc-scroll .nav-menu .menu-changelog-body {
+    overflow: visible;
+    -webkit-mask-image: none;
+            mask-image: none;
+  }
+
+  html.doc-scroll .nav-menu .menu-changelog-panel {
+    position: static;
+    min-block-size: 100dvh;
+    /* overflow: hidden would make the panel the sticky containing scroller
+       and the changelog header would never stick to the document. */
+    overflow: visible;
   }
 
   /* iOS anchors fixed layers to the scrolling layout viewport, which
      excludes the status-bar strip and the collapsed address-bar strip — the
-     html canvas (bar-black) showed through both. Bleed the glass layers past
-     each end by the safe-area insets so the imagery, not the canvas, is what
-     shows behind the chrome. env() is 0 and lvh = vh everywhere without
-     dynamic chrome, so this is inert off iOS Safari. */
+     html canvas (bar-black) showed through both. Pin every screen scrim and
+     the menu glass to the viewport and bleed them past each end so the
+     imagery, not the canvas, is what shows behind the chrome. env() is 0
+     and lvh = vh everywhere without dynamic chrome, so the bleed is inert
+     off iOS Safari. --chrome-gap: screen.height − 100lvh, measured by
+     setDocScroll — Safari's large viewport excludes the collapsed-bar strip
+     and its env() insets read 0 in scrolling-tab mode, so JS supplies the
+     reach CSS units cannot (device-measured 2026-08-19). */
   html.doc-scroll .bg-video,
-  html.doc-scroll .profile-screen::before {
+  html.doc-scroll :is(.lobby-screen, .nearby-screen, .profile-screen, .game-detail-screen).active::before {
     inset-block-start: calc(0px - env(safe-area-inset-top));
-    /* --chrome-gap: screen.height − 100lvh, measured by setDocScroll —
-       Safari's large viewport excludes the collapsed-bar strip and its
-       env() insets read 0 in scrolling-tab mode, so JS supplies the reach
-       CSS units cannot (device-measured 2026-08-19). */
     block-size: calc(100lvh + var(--chrome-gap, 0px) + env(safe-area-inset-top) + env(safe-area-inset-bottom));
   }
 
-  html.doc-scroll .profile-screen::before {
+  html.doc-scroll :is(.lobby-screen, .nearby-screen, .profile-screen, .game-detail-screen).active::before {
     position: fixed;
+  }
+
+  /* The MENU's glass is NOT viewport-fixed: iOS repositions fixed +
+     backdrop-filter layers late during scrolls and rubber-bands, so a
+     pinned veil visibly lags and slides off the copy ("the scrim moves",
+     caught on device 2026-08-20). Instead the glass is part of the
+     scrolled surface — absolute over the whole menu with a 25vh bleed past
+     both ends, so no bounce or scroll can ever separate veil from content.
+     Offscreen backdrop-filter regions are culled, so the tall changelog
+     stays cheap. */
+  html.doc-scroll .nav-menu::before,
+  html.doc-scroll .nav-menu::after {
+    position: absolute;
+    inset: -25vh 0;
+    block-size: auto;
   }
 
   /* ── the Hubble wall runs the SAME glass as every other client ──

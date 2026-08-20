@@ -547,11 +547,17 @@ Two sanctioned px exceptions, both device-scoped:
 
 ## Layout
 
-Mobile-only, one column, thumb-first — validated at 390×844 @2×. `<body>` is
-`position: fixed; inset: 0` with all scrolling internal to screens; every screen
-is a full-height flex column (`.screen.active`) with `overflow: hidden`, and
-scrollable regions (player list, changelog, places list) wear the 24px
-scroll-fade edge mask (controls.css) instead of showing scrollbars. Safe-area
+Mobile-only, one column, thumb-first — validated at 390×844 @2×. **Every
+screen scrolls as a normal document** (`html.doc-scroll`, set at screen commit
+by transitions.js): the page is the scroller, headers hold the top as sticky
+frosted bars, and the nav menu/changelog join the flow and own the scroller
+while open. The ONLY fixed-shell screens are the **game board** (the table is
+bolted down), the **landing** and the **lobby** (composed one-viewport rooms —
+they must not move), and the transient loading splash; the nav menu force-enables the mode while open so it
+flows as a page even over the landing — there, `<body>` is
+`position: fixed; inset: 0` with internal scrolling and the 24px scroll-fade
+edge masks (controls.css). (Owner-directed 2026-08-19; the original
+all-fixed-shell model is what the comps were drawn against.) Safe-area
 insets are added *outside* design paddings — e.g. the board's roll area keeps one
 20px inset on both edges with `env(safe-area-inset-bottom)` added below it,
 never folded in (owner-pinned, board.json).

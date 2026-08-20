@@ -369,11 +369,13 @@ export class NavMenu extends HTMLElement {
       .addEventListener('click', () => {
         this.classList.add('show-changelog');
         if (this.#body) this.#body.scrollTop = 0;
+        window.scrollTo(0, 0); // doc-scroll: the panel swap starts at its top
         requestAnimationFrame(() => this.#updateFades());
       });
     /** @type {HTMLElement} */ (this.querySelector('.menu-changelog-back-btn'))
       .addEventListener('click', () => {
         this.classList.remove('show-changelog');
+        window.scrollTo(0, 0); // doc-scroll: back to the about panel's top
       });
 
     this.#mountInstallEntry();
@@ -450,8 +452,29 @@ export class NavMenu extends HTMLElement {
     this.#guardedToggle();
   }
 
+  /** The host screen's document scroll offset while the menu owns the
+   *  scroller (doc-scroll mode; restored on close). */
+  #savedScrollY = 0;
+
+  /** Whether this menu enabled doc-scroll itself (host screen was on the
+   *  fixed shell — the landing) and must take it back down on close. */
+  #forcedDocScroll = false;
+
   /** Slide the menu in and reflect the open state on body + hamburgers. */
   open() {
+    // The menu flows as a page even over fixed-shell hosts (the landing):
+    // force doc-scroll on for the menu's lifetime and restore on close.
+    this.#forcedDocScroll = !document.documentElement.classList.contains('doc-scroll');
+    if (this.#forcedDocScroll) {
+      document.documentElement.classList.add('doc-scroll');
+      this.#savedScrollY = 0;
+      window.scrollTo(0, 0);
+    } else {
+      // The host already owns the document scroller — park its offset and
+      // start the menu at its top.
+      this.#savedScrollY = window.scrollY;
+      window.scrollTo(0, 0);
+    }
     this.classList.add('open');
     this.setAttribute('aria-hidden', 'false');
     document.body.classList.add('nav-menu-open');
@@ -465,6 +488,15 @@ export class NavMenu extends HTMLElement {
     this.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('nav-menu-open');
     this.#syncButtons(false);
+    // Hand the document scroller back to the host screen where it was —
+    // or take doc-scroll back down if the host is on the fixed shell.
+    if (this.#forcedDocScroll) {
+      window.scrollTo(0, 0);
+      document.documentElement.classList.remove('doc-scroll');
+      this.#forcedDocScroll = false;
+    } else if (document.documentElement.classList.contains('doc-scroll')) {
+      window.scrollTo(0, this.#savedScrollY);
+    }
   }
 
   /**

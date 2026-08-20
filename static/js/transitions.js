@@ -25,17 +25,23 @@ let loadingShownAt = Date.now();
 const DISSOLVE_NAV = true;
 
 /**
- * Document-scroll mode (owner-directed, 2026-08-19): the PROFILE reads as a
- * normal web page — the document itself scrolls, so long content is never
- * clipped by an inner scroller and iOS Safari collapses its chrome on
- * scroll. Every other screen keeps the fixed app shell. Applied at screen
- * COMMIT (never earlier): flipping the shell to static mid-swap would
- * collapse the outgoing screen's 100% height for a frame. The CSS half
- * lives in critical.css under `html.doc-scroll`.
+ * Document-scroll mode (owner-directed, 2026-08-19): every screen reads as a
+ * normal web page — the document itself scrolls, so content is never clipped
+ * by an inner scroller and iOS Safari collapses its chrome on scroll. The
+ * screens on the fixed shell are the GAME BOARD (the table is bolted down:
+ * dice geometry, the mat, the roll coin), the LANDING and the LOBBY (both
+ * composed one-viewport rooms — they must not move; owner-directed
+ * 2026-08-20), and the transient loading splash. The nav menu force-enables
+ * the mode while it is open so the menu and changelog flow as pages even
+ * over fixed-shell hosts (nav-menu.js). Applied at screen COMMIT (never
+ * earlier): flipping the shell to static mid-swap would collapse the
+ * outgoing screen's 100% height for a frame. The CSS half lives in
+ * critical.css under `html.doc-scroll`.
  * @param {string} id the screen being committed
  */
+const FIXED_SHELL_SCREENS = new Set(['game', 'loading', 'landing', 'lobby']);
 function setDocScroll(id) {
-  const on = id === 'profile';
+  const on = !FIXED_SHELL_SCREENS.has(id);
   document.documentElement.classList.toggle('doc-scroll', on);
   // iOS 26 Safari ignores theme-color entirely (researched 2026-08-19) and
   // samples its liquid-glass tint from an edge-hugging fixed element's
