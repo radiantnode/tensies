@@ -43,6 +43,19 @@ docker compose down           # stop
 
 The volume mount in `docker-compose.yml` means edits to any file are live immediately — no rebuild needed unless `requirements.txt` changes. **`docker-compose.yml` is local-dev-only** (default creds, published admin ports, bind mount, `--reload`). For any shared/public deploy use **`docker-compose.prod.yml`** (built image, non-root, internal network, secrets from env, gated `/metrics`+`/stats`). See `.env.prod.example`.
 
+**`docker-compose.design.yml` is a third stack, for running the app beside a
+live one.** Same dev-mode asset serving and repo bind-mount as
+`docker-compose.yml`, but its own redis + postgres and a single published port
+(`127.0.0.1:8890`), so it cannot collide with — or read the data of — anything
+already running. This is what the pixel harness should be captured against on a
+host where port 8888 is taken.
+
+Its project name is pinned in the file as `name: tensies-design`, and that line
+is load-bearing: without it compose falls back to the directory name
+(`tensies`), so a bare `docker compose -f docker-compose.design.yml restart web`
+resolves to whatever project already owns that name and restarts *its*
+containers instead. Keep the key.
+
 **Redis is required** — game state and cross-instance fan-out live in Redis (`REDIS_URL`), so the app can run as multiple instances behind a plain round-robin load balancer (no sticky sessions). Postgres/Grafana telemetry is **optional**: set `TELEMETRY_ENABLED=0` for a lightweight run (Prometheus `/metrics` still works in-process).
 
 ```bash
