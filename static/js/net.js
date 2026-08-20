@@ -308,13 +308,20 @@ function handleMessage(msg) {
       }
       return;
     case 'round_won': {
-      const me = state.myId ? msg.players[state.myId] : undefined;
-      const myName = me ? me.name : (msg.winner_name ?? '?');
-      const iWon = Boolean(me) && Boolean(me?.dice.every((d) => d === msg.target));
+      // The result screen ALWAYS shows the winner — never the loser's own
+      // name (result2.json). The winner is the player with all dice on target;
+      // their photo rides in the snapshot.
+      const winnerEntry = Object.entries(msg.players).find(
+        ([, p]) => p.dice.length > 0 && p.dice.every((d) => d === msg.target),
+      );
+      const winnerName = msg.winner_name ?? winnerEntry?.[1].name ?? '?';
+      const winnerPhoto = winnerEntry?.[1].photo ?? null;
+      const iWon = winnerEntry?.[0] === state.myId;
       if (state.awaitingAck && myDiceKey(msg) !== state.lastMyDiceKey) {
         // Mid-roll win: animate my reveal first; tryReveal shows the overlay.
         state.pendingRollState = msg;
-        state.pendingWinName = myName;
+        state.pendingWinName = winnerName;
+        state.pendingWinPhoto = winnerPhoto;
         state.pendingWinTarget = msg.target;
         state.pendingWinRound = msg.round_num;
         state.pendingWinIsLoser = !iWon;
@@ -335,7 +342,7 @@ function handleMessage(msg) {
             renderMyArea(msg);
           },
         });
-        showWinner(myName, msg.target, msg.round_num, !iWon);
+        showWinner(winnerName, winnerPhoto, msg.round_num, iWon);
       }
       return;
     }

@@ -21,7 +21,7 @@ import { playIntro } from './video-intro.js';
  */
 
 /** @type {Record<string, string>} */
-const ROUTES = { '/': 'landing', '/nearby': 'nearby', '/signin': 'signin', '/welcome': 'onboarding', '/profile': 'profile', '/games': 'game-detail' };
+const ROUTES = { '/': 'landing', '/nearby': 'nearby', '/signin': 'signin', '/welcome': 'onboarding', '/profile': 'profile', '/games': 'game-detail', '/changelog': 'changelog' };
 
 // Monotonic navigation counter. enterFetched() defers its swap behind a fetch +
 // the loading-gate, so a later navigation can start before an earlier one

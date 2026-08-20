@@ -58,10 +58,13 @@ export function waitingText(names) {
   return `Waiting for ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} to reconnect…`;
 }
 
-// ── Winner / loser overlay ──
+// ── Round result (win / lose) ──
+// Full takeover; ALWAYS shows the winner. Win and lose differ by one material
+// fact — the medallion's ring is brass when you took it, a dark rim when
+// somebody else did. Nothing is ever labelled "Loser". (result2.json)
 
 // The server holds the overlay for ROUND_WIN_DELAY (server/config.py) before
-// advancing the round — mirror it here to drive the countdown.
+// advancing the round — mirror it here to drive the countdown thread.
 const WIN_OVERLAY_MS = 3000;
 
 /** @type {ReturnType<typeof setInterval> | undefined} */
@@ -69,16 +72,11 @@ let winTimer;
 
 function startWinTimer() {
   const fill = document.getElementById('winner-timer-fill');
-  const secs = document.getElementById('winner-timer-secs');
   const end = Date.now() + WIN_OVERLAY_MS;
   clearInterval(winTimer);
   const tick = () => {
     const remaining = Math.max(0, end - Date.now());
     if (fill) fill.style.width = `${(remaining / WIN_OVERLAY_MS) * 100}%`;
-    if (secs) {
-      const s = String(Math.ceil(remaining / 1000)).padStart(2, '0');
-      secs.textContent = `Next round starts in: ${s}s`;
-    }
     if (remaining <= 0) clearInterval(winTimer);
   };
   tick();
@@ -86,26 +84,65 @@ function startWinTimer() {
 }
 
 /**
- * Show the round result overlay. `name` is shown under the dice (the winner's
- * name to the winner; the viewer's own name to everyone else); `isLoser`
- * flips the banner suffix + logo.
+ * Show the round result. `name` is the WINNER's name, whoever is looking;
+ * `mine` sets the one material difference (brass vs dark ring).
  * @param {string} name
- * @param {number} target
+ * @param {string | null} photo the winner's profile photo URL, if any
  * @param {number} round
- * @param {boolean} [isLoser]
+ * @param {boolean} mine did the viewer take the round
  */
-export function showWinner(name, target, round, isLoser = false) {
-  void target; // part of the protocol payload; the next target shows in the round header
+export function showWinner(name, photo, round, mine) {
   const pill = document.getElementById('winner-round');
   if (pill) pill.textContent = String(round);
   const suffix = document.getElementById('winner-banner-suffix');
-  if (suffix) suffix.textContent = isLoser ? 'Loser' : 'Winner';
-  const logo = /** @type {HTMLImageElement | null} */ (document.querySelector('.winner-logo'));
-  if (logo) logo.src = isLoser ? '/static/images/logo-loser.svg' : '/static/images/logo-winner.svg';
+  if (suffix) suffix.textContent = mine ? 'you took it' : 'taken by';
+
+  const medallion = document.getElementById('result-medallion');
+  if (medallion) medallion.className = `result-medallion ${mine ? 'is-brass' : 'is-dark'}`;
+
+  // The photo seats in a dark gap inside the ring. No photo is the COMMON
+  // case: a struck monogram carrying the winner's initial — the disc stays
+  // about a person, not about the absence of a photo.
+  const seat = document.getElementById('result-seat');
+  if (seat) {
+    if (photo) {
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = photo;
+      img.addEventListener('error', () => {
+        seat.innerHTML = monogramHTML(name);
+      }, { once: true });
+      seat.replaceChildren(img);
+    } else {
+      seat.innerHTML = monogramHTML(name);
+    }
+  }
+
   const nameEl = document.getElementById('winner-name');
-  if (nameEl) nameEl.textContent = name;
+  if (nameEl) {
+    nameEl.textContent = name;
+    // Names cap at 20 chars server-side, which 2.5rem cannot hold at 390px:
+    // step the size down by length band, and break a spaceless 20-char name.
+    const band = name.length <= 10 ? '' : name.length <= 15 ? ' n-mid' : ' n-long';
+    const brk = !name.includes(' ') && name.length > 12 ? ' n-break' : '';
+    nameEl.className = `result-name${band}${brk}`;
+  }
   startWinTimer();
   if (winner && !winner.open) winner.showModal();
+}
+
+/**
+ * The struck-monogram seat markup for a winner with no photo.
+ * @param {string} name
+ */
+function monogramHTML(name) {
+  const initial = (name.trim()[0] || '?').toUpperCase();
+  const span = document.createElement('span');
+  span.className = 'result-mono';
+  const inner = document.createElement('span');
+  inner.textContent = initial;
+  span.appendChild(inner);
+  return span.outerHTML;
 }
 
 /** Close the winner overlay (and its countdown) if open. */

@@ -1,31 +1,47 @@
+/* impeccable direction contract: "Brass & Enamel" (seed 92e7aa3d) — the
+   interface is hardware in a bar: brass, dark vitreous enamel, oxblood
+   leather, smoked glass, ON the commissioned imagery, never replacing it.
+   Locked comps: .impeccable/mocks/CANON.md · record:
+   .impeccable/surfaces/static-index-html.md · layering:
+   .impeccable/handoff/LAYERING.md */
+
 /* Critical CSS — everything the first paint needs with no JS in the path:
-   the font, the cascade-layer order, design tokens, the reset, the shared
-   logo, the inline #loading screen, and the view-transition setup.
-   Loaded as the first, render-blocking stylesheet. */
+   the fonts, the cascade-layer order, the Brass & Enamel design tokens, the
+   reset, the loading screen, the brass thread, and the view-transition setup.
+   Loaded as the first, render-blocking stylesheet.
+
+   The system in one paragraph (from the locked design record): brass is ONLY
+   for things you press (plus the struck Roll Trust seal); content is quiet on
+   faint grounds; fields are dark recessed wells with no gold rim; glass shows
+   the bar through; anything transparent has nothing opaque behind it; nothing
+   glows — brass is lit by its edges. */
 
 /* Cascade order for the whole app, fixed before any other sheet is parsed. */
 @layer reset, tokens, elements, components, utilities;
 
+/* Display face: Besley — a Clarendon revival out of the whiskey-label
+   tradition. Display roles ONLY, always at letter-spacing 0. */
 @font-face {
-  font-family: 'Inter';
+  font-family: 'Besley';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('/static/fonts/besley-latin-variable.woff2') format('woff2');
+}
+
+/* Everything else: Archivo — body, buttons, legends, scores, all data.
+   The width axis is the point: legends are WIDENED (118%), not just tracked. */
+@font-face {
+  font-family: 'Archivo';
   font-style: normal;
   font-weight: 100 900;
+  font-stretch: 62% 125%;
   font-display: swap;
-  src: url('/static/fonts/inter-latin-variable.woff2') format('woff2');
+  src: url('/static/fonts/archivo-latin-variable.woff2') format('woff2');
 }
 
-/* Heading face: EB Garamond — a retro Garamond serif (Apple-Garamond feel) for
-   screen/section headings. Body text stays Inter. Variable weight 400–800. */
-@font-face {
-  font-family: 'EB Garamond';
-  font-style: normal;
-  font-weight: 400 800;
-  font-display: swap;
-  src: url('/static/fonts/ebgaramond-latin-variable.woff2') format('woff2');
-}
-
-/* Vintage-stamp display faces (lobby stamp only): Rye for the engraved serial,
-   panels, and banner; Yellowtail for the script watermark. */
+/* Vintage-stamp display faces (lobby stamp + game codes): Rye for the engraved
+   serial, panels, and banner; Yellowtail for the script watermark. */
 @font-face {
   font-family: 'Rye';
   font-style: normal;
@@ -75,16 +91,14 @@
   }
 
   /* Focus ring for keyboard nav only. Suppress the UA outline for pointer/touch
-     and programmatic focus (e.g. a <dialog>'s auto-focus landing on Cancel),
-     where the blue ring is just noise. Keyboard users still get :focus-visible. */
+     and programmatic focus, where the ring is just noise. Keyboard users still
+     get :focus-visible. */
   :focus:not(:focus-visible) {
     outline: none;
   }
 
-  /* A dialog gets initial focus on open (tabindex=-1, so no action button is
-     auto-focused and rings — WebKit paints a focus-visible ring on showModal's
-     auto-focus). The container itself is never a keyboard tab stop, so it never
-     needs a ring; kill it unconditionally so the whole-dialog outline can't show. */
+  /* A dialog gets initial focus on open (tabindex=-1); the container itself is
+     never a keyboard tab stop, so it never needs a ring. */
   dialog:focus {
     outline: none;
   }
@@ -92,26 +106,115 @@
 
 @layer tokens {
   :root {
+    /* ── neon: legitimate ONLY where something is literally neon — the logo
+       mark and the sign in the landing video. Nowhere else. ── */
     --color-accent: #ff4d6d;
-    --color-success: #2ecc71;
+
+    /* ── the keeper gold (locked 2026-08-18, gold.json). The five mottled
+       pools + horizontal hairline grain ride in --brush so every
+       var(--brush), var(--brass) site picks up the whole keeper stack. ── */
+    --brass: linear-gradient(180deg, #f8d379 0%, #e6ba6a 55%, #c69540 100%);
+    --brush:
+      radial-gradient(ellipse 55% 45% at 20% 30%, rgba(255,249,228,.26) 0%, transparent 62%),
+      radial-gradient(ellipse 50% 60% at 74% 24%, rgba(62,40,10,.22) 0%, transparent 62%),
+      radial-gradient(ellipse 60% 50% at 45% 72%, rgba(255,246,222,.22) 0%, transparent 64%),
+      radial-gradient(ellipse 45% 55% at 88% 70%, rgba(70,46,14,.2) 0%, transparent 62%),
+      radial-gradient(ellipse 50% 50% at 60% 46%, rgba(255,250,232,.17) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, rgba(255,250,232,.07) 0 .5px, transparent .5px 2px);
+    /* nearly-there progress: brighter polished gold, never pink */
+    --brass-hot: linear-gradient(180deg, #fff3cf 0%, #f3d489 18%, #d8ab52 52%, #a97e34 100%);
+    /* disabled brass keeps its HUE and loses its LIGHT — never desaturate */
+    --brass-off: linear-gradient(180deg, #7d6136 0%, #6b5230 55%, #57411f 100%);
+
+    /* Alloy and edge move together. The struck edge, at the button scale: */
+    --lip: rgba(255, 247, 220, .9);
+    --lip-dark: rgba(96, 60, 16, .8);
+    --seat: rgba(44, 27, 9, .75);
+    --edge-struck:
+      inset 0 1.5px 0 var(--lip),
+      inset 0 -1.5px 0 var(--lip-dark),
+      0 2px 0 var(--seat),
+      0 8px 20px rgba(0, 0, 0, .6);
+
+    /* dark vitreous enamel (target die, rings, coin centres) */
+    --enamel-face:
+      linear-gradient(180deg, rgba(255,232,190,.13) 0%, rgba(255,232,190,.03) 26%, transparent 46%),
+      radial-gradient(130% 150% at 32% 14%, #33200f 0%, #1b0f07 62%, #100804 100%);
+    --enamel-coin: radial-gradient(130% 150% at 32% 14%, #33200f, #140b05);
+
+    /* the amber closing rule (menus keep it; the board keeps its masked fade) */
+    --rule-amber: linear-gradient(to right,
+      rgba(150, 98, 38, .3), rgba(255, 203, 110, .85) 50%, rgba(150, 98, 38, .3));
+    --hairline: rgba(226, 183, 110, .16);
+
+    /* ── ink ── */
+    --ink-brass: #4a2c08;           /* engraved on gold */
+    --ink-seal: #3d2a09;            /* seal strokes */
     --color-bg: #1a0e08;
-    --color-panel: rgba(8, 4, 1, 0.58);
-    --color-panel-screen: rgba(6, 3, 1, 0.72);
-    --color-field: rgba(20, 10, 5, 0.7);
-    --color-raised: rgba(30, 15, 5, 0.5);
-    --color-raised-hover: rgba(40, 20, 6, 0.6);
-    --color-border: rgba(180, 100, 20, 0.25);
-    --color-border-strong: rgba(170, 115, 45, 0.3);
+    --color-title: #fbf0da;         /* Besley display cream */
+    --color-name-bright: #fdf1d6;   /* winner name */
+    --color-cream: #f2e2c4;         /* row names, control labels */
+    --color-body: #d3bd9a;          /* running prose */
+    --color-body-em: #f2dcb0;       /* bold within prose */
+    --color-legend: #bd9d6f;        /* small-caps legends */
+    --color-muted: #a8906a;         /* metadata, subs */
+    --color-dim: #9c8158;           /* quieter metadata, stat labels */
+    --color-faint: #8d7550;         /* asides, dismiss chrome */
+    --color-faintest: #7d6544;      /* step legends, bolt instruction */
+    --color-wordmark: #f4dfae;      /* TENSIES — solid warm gold, never clipped */
+    --color-burger: #e0c288;
+    --color-chip: #c0a377;          /* back-chip chevron, instrument text */
+    --color-secondary-text: #bda27a;
+    --color-field-text: #f4e7cf;
+    --color-placeholder: #b09a78;
+    --color-stat: #e6c288;          /* gold numerals on stat tiles */
+    --color-tag: #c6a878;           /* embossed tag ink */
+    --color-coin-mark: #c2a476;     /* the drawn person on the account coin */
+
+    /* ── the alarm ladder (locked 2026-08-18, alarm.json) ──
+       correction: cream, text alone · refusal: amber, same form ·
+       unknown: unstruck disc · alarm: vermilion — EXACTLY ONE use in the app,
+       a Roll Trust failure. Never reach for --color-alarm for a bad code,
+       a rate limit, or a full table. */
+    --color-correction: #e2cba3;
+    --color-refusal: #e8cd90;
+    --color-alarm: #e0503a;
+    --color-alarm-deep: #a52d14;
+    --color-tick: #e2b96e;
+
+    /* ── grounds (content is quiet: faint, no rims) ── */
+    --ground-row: rgba(8, 4, 1, .34);
+    --ground-stat: rgba(8, 4, 1, .38);
+    --ground-line: rgba(8, 4, 1, .4);
+    --ground-chip: rgba(10, 5, 2, .42);
+    --ground-secondary: rgba(26, 15, 7, .5);
+    --ground-well: rgba(12, 7, 3, .6);
+
+    /* ── legacy names still consumed by the untouchable stamp.css ── */
     --color-text: #efe3d4;
     --color-text-warm: rgba(235, 215, 195, 0.92);
     --color-text-muted: rgba(214, 188, 158, 0.62);
-    --color-text-label: rgba(220, 200, 180, 0.72);
-    --color-amber: rgba(225, 180, 100, 0.95);
-    --font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
-    --font-family-heading: 'EB Garamond', Georgia, 'Times New Roman', serif;
+
+    /* ── type ── */
+    --font-family-base: 'Archivo', system-ui, -apple-system, sans-serif;
+    --font-family-heading: 'Besley', Georgia, 'Times New Roman', serif;
+
     --shadow-text: 0 1px 4px rgba(0, 0, 0, 0.9);
-    --shadow-text-lg: 0 2px 8px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.8);
+    --shadow-text-lg: 0 2px 10px rgba(0, 0, 0, 0.9);
     --radius-md: 12px;
+
+    /* ── the z scale (see .impeccable/handoff/LAYERING.md). Every layer is
+       named once; ad-hoc z numbers are forbidden. Modal <dialog>s render in
+       the browser top layer and are outside this scale entirely. ── */
+    --z-scrim: -1;            /* screen scrims and background layers (::before) */
+    --z-content: 1;           /* the screen body */
+    --z-chip: 6;              /* back chips over content */
+    --z-chrome: 10;           /* the top bar and its logo lockup */
+    --z-banner: 12;           /* the A2HS banner above the header */
+    --z-menu: 20;             /* the nav menu and the in-game menu */
+    --z-chrome-over-menu: 22; /* the title row while a menu is open (X stays tappable) */
+    --z-dissolve: 60;         /* the outgoing screen during a staged reveal */
+    --z-guard: 1000;          /* the rotate lockout (cannot beat the top layer) */
   }
 }
 
@@ -121,8 +224,7 @@
     overflow: hidden;
     overscroll-behavior: none;
     background: var(--color-bg);
-    /* Stop iOS Safari inflating running text when rotated to landscape (the nav
-       menu about blurb + changelog paragraphs are the wide text blocks it hits);
+    /* Stop iOS Safari inflating running text when rotated to landscape;
        keep the sizes we set at every orientation. */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -161,12 +263,25 @@
   }
 
   /* On the Hubble wall the same still is drawn across roughly 2160 device
-     pixels, where the 640-wide one above is visibly soft. `html[data-hubble]`
-     is stamped by hubble.js at import — long before `body.in-game` reveals this
-     layer, so the swap is never seen. Only background-image is overridden, so
-     the colour, position, sizing and repeat of the shorthand all still stand. */
+     pixels, where the 640-wide one above is visibly soft. */
   html[data-hubble] .game-bg {
     background-image: url('/static/video/poster-game-4k.webp');
+  }
+
+  /* ── TRIAL (owner-directed, 2026-08-19): fill behind Safari's chrome ──
+     Tensies never scrolls the document, so iOS Safari keeps its address bar
+     fully expanded and the app lives in the SMALL viewport — the imagery
+     stopped exactly where the chrome began. Sizing the two media layers to
+     the LARGE viewport (100lvh — the height with the chrome minimized)
+     paints the photograph behind the translucent bar, like scrolling sites
+     do. Interactive content stays in the small viewport untouched; on
+     desktop and the wall lvh equals vh, so this is iOS-Safari-only by
+     construction. inset:0 + block-size is over-constrained: top and height
+     win, bottom is ignored — which is the point.
+     ── DELETE THIS BLOCK TO REVERT. ── */
+  .bg-video,
+  .game-bg {
+    block-size: 100lvh;
   }
 
   body.in-game .game-bg {
@@ -198,7 +313,7 @@
     bottom: calc(0px - env(safe-area-inset-bottom));
     overflow: hidden;
     font-family: var(--font-family-base);
-    color: var(--color-text);
+    color: var(--color-cream);
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
   }
@@ -209,187 +324,134 @@
 }
 
 @layer components {
-  /* Shared logo (loading + landing) */
+  /* Shared logo mark. The mark's neon pink is the one legitimate neon in the
+     interface, but nothing GLOWS: a drop shadow seats it, no halo. */
   .logo-mark {
     display: block;
     position: relative;
     z-index: 2;
-    inline-size: clamp(110px, 32vw, 160px);
+    inline-size: clamp(100px, 30vw, 128px);
     block-size: auto;
-    margin-block-end: -2.5rem;
-    filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.75))
-            drop-shadow(0 0 32px rgba(255, 77, 109, 0.35));
+    filter: drop-shadow(0 12px 26px rgba(0, 0, 0, 0.8));
   }
 
-  .logo {
-    margin-block-end: 0.25rem;
-    font-size: clamp(3rem, 12vw, 6rem);
-    font-weight: 900;
-    letter-spacing: 0.15em;
-    color: var(--color-accent);
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  /* ── the brass thread — this app's one progress mark. Shared by the loading
+     screen, the round-result countdown, the pause cap, and the A2HS steps. ── */
+  .thread {
+    inline-size: 132px;
+    block-size: 3px;
+    border-radius: 2px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #0b0603, #170d06);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, .9);
   }
 
-  /* Loading screen (inline markup in index.html) */
+  .thread i {
+    display: block;
+    block-size: 100%;
+    border-radius: 2px;
+    background: var(--brush), var(--brass);
+  }
+
+  /* Indeterminate: a brass fill sweeping the channel while we wait. */
+  .thread.busy i {
+    inline-size: 46%;
+    animation: thread-sweep 1.4s ease-in-out infinite;
+  }
+
+  @keyframes thread-sweep {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(287px); }
+  }
+
+  /* Loading screen (inline markup in index.html) — the logo, a line, and the
+     brass thread, over the blurred landing. Scrim on ::before at z-index -1 so
+     the screen root never becomes a stacking context (LAYERING.md). */
   .loading-screen {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 26px;
     block-size: 100%;
     padding-block: calc(2rem + env(safe-area-inset-top)) calc(2rem + env(safe-area-inset-bottom));
     padding-inline: 2rem;
     overflow: hidden;
     text-align: center;
-    background: var(--color-panel-screen);
+  }
+
+  .loading-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-scrim);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    background: linear-gradient(to bottom, rgba(8, 4, 1, .72), rgba(8, 4, 1, .84));
+    animation: frost-in 0.22s ease-out both;
+  }
+
+  /* WebKit builds a backdrop-filter layer a frame or two AFTER a display
+     toggle first paints, so glass that appears with its screen renders clear
+     and then snaps frosted on iOS. Every display-toggled blur surface runs
+     this ramp on entry: the keyframe has no `to`, so each element frosts up
+     to its own locked value, and the late layer lands inside the ramp instead
+     of reading as a pop. (The menus are the other case — an ancestor opacity
+     fade suppresses the filter outright — and are restructured in menu.css.)
+     The Hubble wall runs the same glass and the same ramp — the owner
+     overturned the flat fallbacks on 2026-08-19 (see the utilities layer). */
+  @keyframes frost-in {
+    from {
+      backdrop-filter: blur(0);
+      -webkit-backdrop-filter: blur(0);
+    }
+  }
+
+  /* A view transition shows a flat RASTER of the incoming screen — no live
+     backdrop-filter can render inside a snapshot, so a frost ramp that plays
+     under the raster is already finished (invisibly) by handoff and the blur
+     snaps in anyway. `vt-settling` brackets exactly the transition's lifetime
+     (transitions.js adds it before the swap, removes it on `finished`): hold
+     the ramp at blur(0) until the live DOM is back, then play it. Covers the
+     screen scrims and the A2HS banner — the two frost carriers that ride
+     view-transition navigations. */
+  .screen.vt-settling::before,
+  .screen.vt-settling .a2hs-banner {
+    animation-play-state: paused;
   }
 
   .loading-msg {
     max-inline-size: 280px;
-    block-size: 3.5rem;
-    margin-block-start: 1.25rem;
-    font-size: 1rem;
+    font-size: 0.98rem;
     font-weight: 600;
     letter-spacing: 0.02em;
     line-height: 1.5;
-    color: var(--color-text);
+    color: #e6d2ae;
+    text-shadow: var(--shadow-text);
   }
 
-  /* Dice loader (inline .stage markup in #loading and #pause-overlay). Two dice
-     — pink 6 + ivory 4 — hop with squash-and-stretch, resting in the logo.svg
-     pose. Geometry derived from logo.svg (200×200 viewBox): pink center (74,80)
-     size 80 rotate −14°, ivory center (132,130) size 76 rotate 10°. Each die is
-     a 3×3 pip grid of divs (not SVG). Background/veil intentionally dropped —
-     the dice sit on the loading screen / pause overlay background. */
-  .stage {
-    position: relative;
-    inline-size: 200px;
-    block-size: 200px;
-    transform: scale(0.55);
-    transform-origin: center;
-    /* scale() leaves the 200px layout box intact, so the visual dice float in
-       empty space; pull the following message up to sit close under them. */
-    margin-block: -4.5rem;
-    filter: drop-shadow(0 14px 26px rgba(0, 0, 0, 0.7))
-            drop-shadow(0 0 30px rgba(255, 77, 109, 0.32));
-  }
-
-  .die {
-    position: absolute;
-    display: grid;
-    grid-template: repeat(3, 1fr) / repeat(3, 1fr);
-    place-items: center;
-    padding: 13px;
-    transform-origin: center;
-    will-change: transform;
-  }
-
-  .pip {
-    inline-size: 13px;
-    block-size: 13px;
-    border-radius: 50%;
-    opacity: 0;             /* inactive pip */
-  }
-  .pip.on { opacity: 1; }   /* active pip */
-
-  /* Back die: pink, showing 6 */
-  .die--pink {
-    inline-size: 80px;
-    block-size: 80px;
-    top: 40px;
-    left: 34px;
-    border-radius: 15px;
-    background: linear-gradient(#ff6b85, #e63a59);
-    border: 1.5px solid #2a0a14;
-    animation: dice-hop-a 0.92s cubic-bezier(0.5, -0.3, 0.4, 1.3) infinite;
-  }
-  .die--pink .pip { background: #fff; }
-
-  /* Front die: ivory, showing 4 */
-  .die--ivory {
-    inline-size: 76px;
-    block-size: 76px;
-    top: 92px;
-    left: 94px;
-    z-index: 3;
-    border-radius: 14px;
-    background: linear-gradient(#ffffff, #dcd9e8);
-    border: 1.5px solid #1a1a2e;
-    box-shadow: 3px 5px 0 rgba(26, 26, 46, 0.35);
-    animation: dice-hop-b 0.92s cubic-bezier(0.5, -0.3, 0.4, 1.3) 0.12s infinite;
-  }
-  .die--ivory .pip { background: #1a1a2e; }
-
-  /* Ground shadow that pulses in sync with the hop */
-  .die--shadow {
-    display: block;
-    padding: 0;
-    left: 50%;
-    bottom: 2px;
-    inline-size: 120px;
-    block-size: 14px;
-    transform: translateX(-50%);
-    background: radial-gradient(ellipse, rgba(0, 0, 0, 0.55), transparent 70%);
-    animation: dice-shadow 0.92s ease-in-out infinite;
-    z-index: 1;
-  }
-
-  /* The base rotation (−14°/10°) lives inside the keyframes so the logo pose is
-     preserved at every keyframe stop. */
-  @keyframes dice-hop-a {
-    0%, 100% { transform: translateY(0)     rotate(-14deg) scale(1, 1); }
-    18%      { transform: translateY(2px)   rotate(-14deg) scale(1.08, 0.9); }
-    45%      { transform: translateY(-30px) rotate(-26deg) scale(0.94, 1.08); }
-    75%      { transform: translateY(0)     rotate(-8deg)  scale(1.06, 0.94); }
-  }
-
-  @keyframes dice-hop-b {
-    0%, 100% { transform: translateY(0)     rotate(10deg) scale(1, 1); }
-    18%      { transform: translateY(2px)   rotate(10deg) scale(1.08, 0.9); }
-    45%      { transform: translateY(-24px) rotate(22deg) scale(0.94, 1.08); }
-    75%      { transform: translateY(0)     rotate(4deg)  scale(1.06, 0.94); }
-  }
-
-  @keyframes dice-shadow {
-    0%, 100% { transform: translateX(-50%) scale(1);   opacity: 0.55; }
-    45%      { transform: translateX(-50%) scale(0.6); opacity: 0.28; }
-  }
-
-  /* Orientation guard (inline #rotate-overlay in index.html). Hidden by default;
-     the landscape media query below reveals it. Scoped by max-height so it targets
-     phones held sideways (short in landscape) — never desktop/tablet, which are
-     landscape but tall. There is no true web orientation lock on iOS, so this CSS
-     prompt is the cross-browser stand-in; the manifest covers installed PWAs. */
+  /* Orientation guard (inline #rotate-overlay in index.html). Hidden by
+     default; the landscape media query below reveals it. Scoped by max-height
+     so it targets phones held sideways — never desktop/tablet. */
   .rotate-overlay {
     display: none;
     position: fixed;
     inset: 0;
-    z-index: 1000;
+    z-index: var(--z-guard);
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 14px;
     padding: calc(1.25rem + env(safe-area-inset-top)) calc(1.5rem + env(safe-area-inset-right))
              calc(1.25rem + env(safe-area-inset-bottom)) calc(1.5rem + env(safe-area-inset-left));
     text-align: center;
-    background: var(--color-bg);
+    background: #100804;
   }
 
-  .rotate-overlay::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--color-panel-screen);
-  }
-
-  .rotate-overlay > * { position: relative; }
-
-  /* The dice logo-mark IS the brand here (mirrors the loading/pause screens),
-     sized down to vh so it fits the short landscape height. The gentle rotate
-     nudge doubles as the "turn your phone" hint (suppressed under reduced-motion
-     by the utilities layer). */
   .rotate-mark {
-    inline-size: clamp(56px, 22vh, 112px);
-    margin-block-end: 0.35rem;
+    inline-size: clamp(56px, 22vh, 88px);
+    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.8));
     animation: rotate-hint 2.8s ease-in-out infinite;
   }
 
@@ -398,13 +460,21 @@
     78%, 90% { transform: rotate(-16deg); }
   }
 
+  .rotate-legend {
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    font-stretch: 118%;
+    color: var(--color-legend);
+  }
+
   .rotate-msg {
-    max-inline-size: 320px;
-    font-size: 1rem;
+    max-inline-size: 340px;
+    font-size: 1.05rem;
     font-weight: 600;
     line-height: 1.5;
-    color: var(--color-text);
-    text-shadow: var(--shadow-text);
+    color: #f0dfc0;
   }
 
   @media (orientation: landscape) and (max-height: 500px) {
@@ -424,7 +494,7 @@
   .screen.dissolving {
     position: fixed;
     inset: 0;
-    z-index: 200;       /* above the game top bar's z-index: 100 */
+    z-index: var(--z-dissolve);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.5s ease;
@@ -435,6 +505,249 @@
 }
 
 @layer utilities {
+  /* ── document-scroll mode (owner-directed, 2026-08-19): the PROFILE
+     scrolls as a normal web page. transitions.js sets html.doc-scroll at
+     screen commit; under it the shell goes static and the profile's content
+     flows in the document, so nothing is clipped by an inner scroller and
+     iOS Safari collapses its chrome on scroll. The scrim rides fixed at
+     100lvh so the veil covers the glass — including behind the bar — at any
+     scroll offset. Every other screen keeps the fixed shell. Lives in the
+     utilities layer so the mode outranks the per-screen components rules.
+     ── DELETE THIS BLOCK (and setDocScroll in transitions.js) TO REVERT. ── */
+  html.doc-scroll {
+    overflow: visible;
+    block-size: auto;
+    /* Firm ends on scrolling screens (owner's call, 2026-08-20, reinstated
+       after the elastic experiments): the rubber-band region accepts no
+       page paint except viewport-glued layers, so the exposure is removed
+       by removing the bounce — the menu included (owner's call: the
+       exposure beats the elasticity). */
+    overscroll-behavior-y: none;
+    /* The CANVAS is the only surface iOS paints into the chrome strips —
+       device-measured 2026-08-19: the collapsed-bar strip sits BEYOND the
+       layout viewport (innerH = 100lvh = 815 on an 852 screen, vvTop=0),
+       where WebKit clips all element painting, fixed or not. So the canvas
+       must be right at every scroll offset: the poster covers both strips at
+       the top of the document (it is taller than one viewport), and past it
+       the deepest ground (#080401, the ground-8-4-1 family) reads as the
+       page's own dark floor — never the old #1a0e08, which is what showed
+       as the brown band. background-attachment: fixed is not an option
+       (still broken on iOS). */
+    /* The veil is LAYERED INTO THE CANVAS: iOS synthesizes rubber-band
+       overscroll regions from the canvas alone — no element box, shadow, or
+       blur layer can paint there (three mechanisms tried and clipped,
+       2026-08-20; the "unveiled" overscroll imagery was this very poster).
+       With the ink baked into the stack, whatever Safari shows beyond the
+       document — strips or bounce — is already veiled. */
+    background:
+      linear-gradient(rgba(8, 4, 1, .72), rgba(8, 4, 1, .72)),
+      #080401 url('/static/video/poster-landing.webp') top center / 100vw auto no-repeat;
+  }
+
+  html.doc-scroll body {
+    position: static;
+    overflow: visible;
+    /* NO background on body: it paints ABOVE negative-z positioned
+       descendants (CSS painting order), so an opaque body hides the fixed
+       .bg-video and the profile's glass goes flat (caught on device,
+       2026-08-19). The iOS 26 tint sampler is fed by #chrome-tint-strip
+       instead, which outranks body in its sampling order. */
+  }
+
+  /* The deliberate tint-sampling target (created by setDocScroll): iOS 26
+     extends an edge-hugging fixed element's solid background-color into the
+     collapsed-bar strip. 4px of floor-black peek inside the viewport —
+     invisible over the profile's dark ground. */
+  html.doc-scroll #chrome-tint-strip {
+    position: fixed;
+    inset-inline: 0;
+    inset-block-end: -8px;
+    min-block-size: 12px;
+    background-color: #080401;
+    pointer-events: none;
+    z-index: var(--z-scrim);
+  }
+
+  html.doc-scroll main { block-size: auto; }
+
+  /* Every screen grows with its content and still fills the glass when
+     short; the document is the scroller. */
+  html.doc-scroll .screen.active {
+    position: relative; /* the containing block for the full-height scrims */
+    block-size: auto;
+    min-block-size: 100dvh;
+    overflow: visible;
+  }
+
+  /* Inner scrollers flow into the document — nothing is clipped. */
+  html.doc-scroll .screen .screen-body,
+  html.doc-scroll .screen .player-list {
+    overflow: visible;
+  }
+
+  /* Scroll runway on the data screens: in-flow pixels past the layout
+     viewport's edge are the ONE thing iOS 26 renders through the
+     liquid-glass pill (fixed layers clip there). The extra ground keeps
+     page pixels, not bare canvas, under the glass at the bottom stop. */
+  html.doc-scroll :is(.profile-screen, .game-detail-screen) .screen-body {
+    padding-block-end: calc(64px + env(safe-area-inset-bottom));
+  }
+
+  /* Headers hold the top while the document scrolls (owner-directed,
+     2026-08-19) — every screen but the landing, whose header floats over
+     the video with no rule by design. The header keeps its pre-game
+     identity (the amber rule ::after stays its boundary), but content now
+     passes beneath it, so it gains a frosted ground. The ground lives on
+     ::before, NOT the element: iOS 26 samples its top chrome tint from
+     edge-hugging sticky elements' background-color and a backdrop-filter
+     there washes the bars out, while absolutely-positioned children are
+     ignored by the sampler. Safe-area padding is real only in the
+     installed app — tab-mode Safari reports 0. */
+  html.doc-scroll .screen.active:not(.landing-screen) app-header,
+  html.doc-scroll .nav-menu .menu-topbar {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: var(--z-chrome);
+    padding-block-start: env(safe-area-inset-top, 0px);
+  }
+
+  /* Only the TOPBAR sticks in the changelog — it carries the close X. The
+     "What's New" header row scrolls away with the page like any page
+     title; two stacked sticky bars ghost through each other's grounds. */
+  html.doc-scroll .screen.active:not(.landing-screen) app-header::before,
+  html.doc-scroll .nav-menu .menu-topbar::before {
+    content: '';
+    position: absolute;
+    /* Extended 100vh UPWARD (owner's fix, 2026-08-20): the top-overscroll
+       region is covered by the header ground's own box — element geometry
+       always renders (WebKit clips ink-overflow shadows on blur layers),
+       a top overhang adds no scroll length, and the sticky header rides
+       the rubber-band. The gradient is pinned so the visible band keeps
+       its grade and the extension stays flat at the top stop. */
+    inset: -300vh 0 0 0;
+    z-index: var(--z-scrim);
+    background: linear-gradient(to bottom,
+      rgba(8, 4, 1, .78) calc(100% - 60px), rgba(8, 4, 1, .64) 100%);
+    backdrop-filter: blur(9px) saturate(1.02);
+    -webkit-backdrop-filter: blur(9px) saturate(1.02);
+    animation: frost-in 0.22s ease-out both;
+  }
+
+  /* The nav menu joins the flow and OWNS the document scroller while open
+     (nav-menu.js parks and restores the host screen's offset). Its glass —
+     the blur ::before and the graded ground ::after — stays pinned to the
+     viewport while the copy scrolls. The changelog panel leaves its
+     absolute overlay for the same flow, and the scroll-edge masks come off
+     the panels: the page edge is the scroll edge now. */
+  /* OPEN only: a closed menu parked absolute at its content height would
+     overhang every page by its overflow and add phantom scroll length
+     (hidden boxes still create scrollable overflow — caught 2026-08-20).
+     Closed, it keeps the base fixed positioning, which adds none. */
+  html.doc-scroll .nav-menu.open {
+    position: absolute;
+    inset: 0 0 auto 0;
+    block-size: auto;
+    min-block-size: 100dvh;
+  }
+
+  /* While the menu owns the scroller, the (invisible, faded) host screen
+     must not contribute document height: a landing taller than one viewport
+     (the install banner) left a dead scrollable tail past the menu's foot,
+     with the canvas peeking through. Cap it; its own scroll offset is
+     parked and restored by nav-menu.js. (Do NOT also clamp overscroll:
+     killing the rubber-band makes a barely-overflowing panel — the about
+     copy — feel choppy on iOS, every gesture slamming the hard ends. The
+     bounce is fine: the glass is viewport-fixed, so it stays under the
+     bouncing copy.) */
+  html.doc-scroll body.nav-menu-open .screen.active {
+    max-block-size: 100dvh;
+    overflow: hidden;
+  }
+
+  html.doc-scroll .nav-menu .menu-panel {
+    overflow: visible;
+    -webkit-mask-image: none;
+            mask-image: none;
+  }
+
+  /* iOS anchors fixed layers to the scrolling layout viewport, which
+     excludes the status-bar strip and the collapsed address-bar strip — the
+     html canvas (bar-black) showed through both. Pin every screen scrim and
+     the menu glass to the viewport and bleed them past each end so the
+     imagery, not the canvas, is what shows behind the chrome. env() is 0
+     and lvh = vh everywhere without dynamic chrome, so the bleed is inert
+     off iOS Safari. --chrome-gap: screen.height − 100lvh, measured by
+     setDocScroll — Safari's large viewport excludes the collapsed-bar strip
+     and its env() insets read 0 in scrolling-tab mode, so JS supplies the
+     reach CSS units cannot (device-measured 2026-08-19). */
+  /* (A sticky-video experiment lived here for one deploy on 2026-08-20 and
+     was reverted on device evidence: pulling .bg-video into the flow broke
+     the intro-video's hidden-playback arrangement and the scrim stack.
+     .bg-video stays FIXED; the overscroll question is handled elsewhere.) */
+  html.doc-scroll .bg-video {
+    inset-block-start: calc(0px - env(safe-area-inset-top));
+    block-size: calc(100lvh + var(--chrome-gap, 0px) + env(safe-area-inset-top) + env(safe-area-inset-bottom));
+  }
+
+  /* Screen scrims are part of the SCROLLED SURFACE, never viewport-fixed —
+     the same lesson as the menu and changelog glass: iOS repositions fixed +
+     backdrop-filter layers late, so a pinned veil slides and the document
+     visibly scrolls past it (caught on device 2026-08-20). Absolute over the
+     whole screen with a 25vh bleed past both ends; the screen roots are
+     positioned by the .screen.active rule above. */
+  html.doc-scroll :is(.lobby-screen, .nearby-screen, .profile-screen, .game-detail-screen).active::before {
+    position: absolute;
+    inset: 0;
+    block-size: auto;
+  }
+
+  /* The overscroll veil: a zero-blur SPREAD shadow paints a 100vh solid ink
+     ring around the screen in every direction. Shadows are ink overflow —
+     they never add scroll length — and they ride the document through
+     rubber-bands. It lives on the UNFILTERED ::after: WebKit clips outset
+     shadows from backdrop-filter layers, which is why the same ring on the
+     blurred scrim never rendered on iOS (caught on device 2026-08-20). */
+  html.doc-scroll :is(.lobby-screen, .nearby-screen, .profile-screen, .game-detail-screen, .changelog-screen).active::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-scrim);
+    pointer-events: none;
+    box-shadow: 0 0 0 100vh rgba(8, 4, 1, .8);
+  }
+
+  /* The MENU's glass is NOT viewport-fixed: iOS repositions fixed +
+     backdrop-filter layers late during scrolls and rubber-bands, so a
+     pinned veil visibly lags and slides off the copy ("the scrim moves",
+     caught on device 2026-08-20). Instead the glass is part of the
+     scrolled surface — absolute over the whole menu with a 25vh bleed past
+     both ends, so no bounce or scroll can ever separate veil from content.
+     Offscreen backdrop-filter regions are culled, so the tall changelog
+     stays cheap. */
+  html.doc-scroll .nav-menu::before,
+  html.doc-scroll .nav-menu::after {
+    position: absolute;
+    inset: 0;
+    block-size: auto;
+  }
+
+  /* The menu's overscroll veil rides its GROUND (::after — it fades with
+     the menu's own choreography); same ink-ring trick as the screens. */
+  html.doc-scroll .nav-menu::after {
+    box-shadow: 0 0 0 100vh rgba(8, 4, 1, .7);
+  }
+
+  /* ── the Hubble wall runs the SAME glass as every other client ──
+     The build shipped flat `backdrop-filter: none` fallbacks under
+     html[data-hubble] as a GPU precaution (LAYERING.md), never measured.
+     Looked at on the actual wall (2026-08-19) they read as broken —
+     scrims and the board bar lost the frosting that makes them read as
+     solid — and the owner overturned them: "it should be the same css.
+     i want the blur." Only the 4K media swaps (.game-bg above,
+     hubble-media.js) remain hubble-conditional. If the wall's frame rate
+     ever suffers for it, measure first — do not reintroduce the flat
+     fallbacks without numbers. */
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.001ms !important;
@@ -446,10 +759,8 @@
     ::view-transition-old(*),
     ::view-transition-new(*) { animation: none !important; }
 
-    /* The dice loader's base rotation lives inside its keyframes, so with the
-       hop suppressed above the dice must be posed explicitly — otherwise they
-       rest at rotate(0) instead of the logo pose. */
-    .die--pink  { transform: rotate(-14deg); }
-    .die--ivory { transform: rotate(10deg); }
+    /* An indeterminate thread with its sweep suppressed should read as a
+       settled fill, not an empty channel. */
+    .thread.busy i { inline-size: 46%; transform: none; }
   }
 }

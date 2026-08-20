@@ -58,8 +58,12 @@ export const state = {
   /** Matched dice before the in-flight roll (to find the newly locked ones). */
   prevMatchedCount: 0,
   rollShakeEnd: 0,
-  /** @type {string | null} Winner overlay payload, held until the reveal completes. */
+  /** @type {string | null} Round-result payload (the WINNER's name — the
+   *  result screen never shows the loser their own name), held until the
+   *  reveal completes. */
   pendingWinName: null,
+  /** @type {string | null} the winner's profile photo URL, if any */
+  pendingWinPhoto: null,
   /** @type {number | null} */
   pendingWinTarget: null,
   /** @type {number | null} */
@@ -83,6 +87,7 @@ export function resetRollState() {
   state.pendingRollState = null;
   state.postRevealState = null;
   state.pendingWinName = null;
+  state.pendingWinPhoto = null;
   state.pendingWinTarget = null;
   state.pendingWinRound = null;
   state.pendingWinIsLoser = false;

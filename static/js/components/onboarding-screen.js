@@ -20,8 +20,8 @@ export class OnboardingScreen extends HTMLElement {
     this.innerHTML = `
       <app-header></app-header>
       <div class="screen-body">
-        <h1 id="onboarding-title" class="screen-title">You're All Set</h1>
-        <p class="tagline" id="onboarding-tagline">Your account is ready</p>
+        <p class="section-label onboarding-legend" id="onboarding-tagline">Your tab is open</p>
+        <h1 id="onboarding-title" class="screen-title onboarding-title">You're all set.</h1>
         <div class="onboarding-card">
           <p class="onboarding-username" id="onboarding-username"></p>
           <p class="onboarding-vanity" id="onboarding-vanity"></p>
@@ -73,6 +73,8 @@ export class OnboardingScreen extends HTMLElement {
    * @param {import('../types.js').PlayerStats | null} stats
    */
   #render(username, stats) {
+    const title = document.getElementById('onboarding-title');
+    if (title) title.textContent = `You're all set, ${username}.`;
     const nameEl = document.getElementById('onboarding-username');
     const vanityEl = document.getElementById('onboarding-vanity');
     if (nameEl) nameEl.textContent = `@${username}`;
@@ -88,7 +90,7 @@ export class OnboardingScreen extends HTMLElement {
 
     if (!stats) {
       statsEl.innerHTML = '';
-      if (tagline) tagline.textContent = 'Your account is ready';
+      if (tagline) tagline.textContent = 'Your tab is open';
       return;
     }
 

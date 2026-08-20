@@ -18,6 +18,7 @@ import './components/signin-screen.js';
 import './components/onboarding-screen.js';
 import './components/profile-screen.js';
 import './components/game-detail-screen.js';
+import './components/changelog-screen.js';
 import './components/nav-menu.js';
 import './components/a2hs-guide.js';
 

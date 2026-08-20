@@ -252,10 +252,11 @@ export function tryReveal() {
     }
     if (state.pendingWinName) {
       const name = state.pendingWinName;
-      const target = state.pendingWinTarget ?? 0;
+      const photo = state.pendingWinPhoto;
       const round = state.pendingWinRound ?? 0;
       const isLoser = state.pendingWinIsLoser;
       state.pendingWinName = null;
+      state.pendingWinPhoto = null;
       state.pendingWinTarget = null;
       state.pendingWinRound = null;
       state.pendingWinIsLoser = false;
@@ -264,7 +265,7 @@ export function tryReveal() {
       // overlay. The authoritative next-round state arrives after
       // ROUND_WIN_DELAY. (The 2026-06-07 winner-flash fix.)
       state.postRevealState = null;
-      showWinner(name, target, round, isLoser);
+      showWinner(name, photo, round, !isLoser);
     } else {
       hideWinner();
       if (state.postRevealState) {
