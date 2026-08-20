@@ -281,7 +281,7 @@
   .changelog-screen::before {
     content: '';
     position: absolute;
-    inset: -25vh 0;
+    inset: 0;
     z-index: var(--z-scrim);
     backdrop-filter: blur(9px) saturate(1.02);
     -webkit-backdrop-filter: blur(9px) saturate(1.02);
