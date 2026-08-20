@@ -39,7 +39,9 @@ test('nav-menu-changelog', async ({ page }) => {
   await page.click('#landing-menu-btn');
   await page.waitForSelector('#nav-menu.open');
   await page.click('.menu-whats-new-btn');
-  await page.waitForSelector('#nav-menu.show-changelog');
+  // Brass & Enamel gave the changelog its own door: it is a routed screen at
+  // /changelog now, not a slide-over state on the nav menu panel.
+  await page.waitForSelector('#changelog.active');
   await settle(page);
   // The changelog prose is regenerated over time; masking the body keeps this
   // baseline about the panel chrome (header, Back button) and avoids a false

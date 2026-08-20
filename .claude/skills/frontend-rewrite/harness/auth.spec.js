@@ -16,11 +16,27 @@ const FAKE_JWT = [
   'ZmFrZQ', // fake signature — client never checks
 ].join('.');
 
-/** Inject the JWT into localStorage before any page script runs. */
+// The signed-in account's own public profile. account-sync.js fetches this on
+// every signed-in screen to fill the header coin. The app degrades silently
+// when it 503s (TELEMETRY_ENABLED=0 deployments), but Chrome still logs the
+// failed request and fixtures.js fails a capture on any console.error — so
+// every signed-in state stubs it, exactly as the profile screens below do.
+// photo null → the monogram coin, which depends on no asset.
+const PROFILE_SIGNED_IN = {
+  username: 'TestUser',
+  member_since: '2026-01-15T00:00:00',
+  founding_member: false,
+  profile_photo_url: null,
+  stats: null,
+};
+
+/** Inject the JWT into localStorage before any page script runs, and stub the
+ *  account's own profile fetch (see PROFILE_SIGNED_IN). */
 async function seedAuth(page) {
   await page.addInitScript((token) => {
     localStorage.setItem('tensies_auth_token', token);
   }, FAKE_JWT);
+  await stubProfile(page, PROFILE_SIGNED_IN);
 }
 
 test('signin', async ({ page }) => {
@@ -30,7 +46,10 @@ test('signin', async ({ page }) => {
   await page.waitForSelector('#landing.active');
   await page.click('#landing-menu-btn');
   await page.waitForSelector('#nav-menu.open');
-  await page.click('.menu-auth-btn');
+  // Brass & Enamel moved the sign-in entry point: the menu has no auth button,
+  // the tab line itself is the control (nav-menu.js — profile when signed in,
+  // sign-in when signed out).
+  await page.click('#menu-tab-line');
   await page.waitForSelector('#signin.active');
   await settle(page);
   await expect(page).toHaveScreenshot('signin.png');
@@ -148,8 +167,9 @@ test('game-board-signed-in', async ({ page }) => {
   await seedPage(page);
   await seedAuth(page);
   await hostGame(page, (msg, myPid) => ({ ...msg, ...gameBoardState(myPid, 'TestUser') }), '#game.active', { authed: true });
-  await page.waitForFunction(() =>
-    document.querySelector('.game-screen .header-username')?.textContent === '@TestUser');
+  // The board shows the bare account mark, not the @handle pill — the players
+  // bar already names you (account-sync.js: syncAccountMark).
+  await page.waitForSelector('.game-screen .header-account-mark');
   await settle(page);
   await expect(page).toHaveScreenshot('game-board-signed-in.png');
 });
@@ -320,8 +340,9 @@ test('game-detail-verified', async ({ page }) => {
   await page.goto('/games/HTVEC');
   await page.waitForSelector('#game-detail.active');
   // Wait for the verification animation to complete
-  await page.waitForFunction(() =>
-    document.querySelector('.gd-trust-done') !== null, { timeout: 15000 });
+  // The seal is struck/voided/unstruck only once verification resolves — it
+  // replaced the old .gd-trust-done marker.
+  await page.waitForSelector('.gd-seal', { timeout: 15000 });
   await page.waitForFunction(() =>
     document.querySelector('.gd-trust-verdict')?.textContent?.includes('rolls verified'));
   await settle(page);
@@ -335,10 +356,11 @@ test('game-detail-no-data', async ({ page }) => {
   await stubGameDetail(page, oldGame, GAME_VERIFY_NO_DATA);
   await page.goto('/games/OLDGM');
   await page.waitForSelector('#game-detail.active');
+  // The seal is struck/voided/unstruck only once verification resolves — it
+  // replaced the old .gd-trust-done marker.
+  await page.waitForSelector('.gd-seal', { timeout: 15000 });
   await page.waitForFunction(() =>
-    document.querySelector('.gd-trust-done') !== null, { timeout: 15000 });
-  await page.waitForFunction(() =>
-    document.querySelector('.gd-trust-verdict')?.textContent?.includes('No beacon data'));
+    document.querySelector('.gd-trust-unknown')?.textContent?.includes('No beacon data'));
   await settle(page);
   await expect(page).toHaveScreenshot('game-detail-no-data.png');
 });
