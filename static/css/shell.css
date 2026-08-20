@@ -38,14 +38,24 @@
      the thinner ground (players-bar.css). */
   .game-topbar:not(.app-header) {
     padding-block-end: 22px;
-    background: linear-gradient(178deg, rgba(20, 11, 5, .62) 0%, rgba(9, 5, 2, .5) 100%);
-    backdrop-filter: blur(4px) saturate(.9);
-    -webkit-backdrop-filter: blur(4px) saturate(.9);
+    /* Tuned from the locked .62/.5 @ blur(4px) over two owner passes
+       (2026-08-20): first to .72/.62 @ blur(7) ("too transparent" — though
+       the real culprit was the mask, below), then the ink eased in two
+       steps to .56/.44 with the frost kept ("more transparent"). The blur
+       does the solidity work; the ink lets the wood through. */
+    background: linear-gradient(178deg, rgba(20, 11, 5, .56) 0%, rgba(9, 5, 2, .44) 100%);
+    backdrop-filter: blur(7px) saturate(.9);
+    -webkit-backdrop-filter: blur(7px) saturate(.9);
     /* iOS: ramp past the late blur layer. Staged reveals into #game run this
        while the screen is still hidden, so the bar arrives already frosted. */
     animation: frost-in 0.22s ease-out both;
-    -webkit-mask-image: linear-gradient(to bottom, #000 56%, transparent 100%);
-            mask-image: linear-gradient(to bottom, #000 56%, transparent 100%);
+    /* Solid to 78% (was the locked 56%): at 56% the whole score line sat
+       inside the fade ramp and read transparent however heavy the scrim —
+       owner-directed 2026-08-20. The dissolve now lives in the empty 22px
+       runway only; the record's caution stands (masking too high starves
+       the scores — this moves the other way). */
+    -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
   }
 
   /* Menu bars (nav menu + in-game menu own their title row). Transparent — the
