@@ -18,8 +18,30 @@ function seedScript() {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
   // Pin time-derived UI (countdowns, "now") to a fixed instant.
+  //
+  // Stubbing Date.now() ALONE is not enough, and the gap was live for a while:
+  // `new Date()` with no arguments reads the system clock directly and does not
+  // consult Date.now, so anything built that way stayed un-pinned. The lobby
+  // stamp's date (stampDate() in components/lobby-stamp.js) is exactly that, so
+  // the baselines silently encoded whatever day they were captured on. The
+  // failure is indirect and easy to misread: the spec masks `.stamp-date`, but a
+  // date whose glyphs have different widths resizes the element, which resizes
+  // the MASK, and the mask edge is the diff. Seen 2026-08-21 — five lobby tests
+  // failing on 40 pixels because "20" became "21".
+  //
+  // So pin the constructor too. Argument-taking forms are left alone; only the
+  // no-arg "now" case is redirected.
   const FIXED = 1767225600000; // 2026-01-01T00:00:00Z
-  Date.now = () => FIXED;
+  const RealDate = Date;
+  // eslint-disable-next-line no-global-assign
+  Date = class extends RealDate {
+    constructor(...args) {
+      if (args.length === 0) super(FIXED);
+      else super(...args);
+    }
+    static now() { return FIXED; }
+  };
+  // Date.parse / Date.UTC come along via static inheritance.
   if (typeof performance !== 'undefined') {
     const realNow = performance.now.bind(performance);
     let base = null;
