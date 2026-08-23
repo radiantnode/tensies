@@ -60,25 +60,28 @@ export function makeDie(value, target) {
  */
 const BG_IMAGE = { w: 640, h: 1248 };
 const GLASS_IN_IMAGE = { x: 0, y: 150, w: 143, h: 235 };
-/* Padding around the glass, in viewport px. Covers the few px by which iOS
-   shifts the picture (the layer is sized to 100lvh plus a chrome gap, not
-   the small viewport) and the 4K poster's slightly different framing. */
+/* Padding around the glass, in viewport px. Covers the 4K poster's slightly
+   different framing and the coaster's soft edge. */
 const GLASS_PAD = 16;
 /* A die's front face projects ~6px past its layout box on each side
    (translateZ under the scene's perspective); count that as part of it. */
 const DIE_OVERHANG = 6;
 
 /**
- * Where the glass sits in viewport px for a `center / cover` fit of the
- * board still into `vw`×`vh`.
- * @param {number} vw
- * @param {number} vh
+ * Where the glass sits in viewport px, given the box the board still is
+ * painted `center / cover` into. Pass the `.game-bg` layer's own rect, not
+ * the window: the layer is `100lvh` tall, and on iOS Safari with its bars
+ * showing `innerHeight` is the small viewport, 60-80px shorter. Fitting the
+ * picture to the window put the keep-out box that far above the real glass
+ * and set dice down on the coaster.
+ * @param {{ left: number, top: number, width: number, height: number }} layer
  * @returns {{ left: number, top: number, right: number, bottom: number }}
  */
-export function glassRect(vw, vh) {
+export function glassRect(layer) {
+  const { width: vw, height: vh } = layer;
   const scale = Math.max(vw / BG_IMAGE.w, vh / BG_IMAGE.h);
-  const offX = (BG_IMAGE.w * scale - vw) / 2;
-  const offY = (BG_IMAGE.h * scale - vh) / 2;
+  const offX = (BG_IMAGE.w * scale - vw) / 2 - layer.left;
+  const offY = (BG_IMAGE.h * scale - vh) / 2 - layer.top;
   const g = GLASS_IN_IMAGE;
   return {
     left: g.x * scale - offX - GLASS_PAD,
@@ -105,9 +108,12 @@ export function placeGrid(zoneRect, count, sz) {
   const w = zoneRect.width - pad * 2;
   const h = zoneRect.height - pad * 2;
   /* Viewport-space boxes a die must not be set down on: the glass in the
-     background still, the mat, and the ROLL coin (the latter two read off
-     the DOM — both are rendered before the scatter is placed). */
-  const keepClear = [glassRect(window.innerWidth, window.innerHeight)];
+     background still, the mat, and the ROLL coin. All three are read off the
+     DOM — the background layer for the glass, since its box is not the
+     window's — and all are rendered before the scatter is placed. */
+  const bgLayer = document.querySelector('.game-bg')?.getBoundingClientRect()
+    ?? { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+  const keepClear = [glassRect(bgLayer)];
   /** @type {Array<[string, number]>} */
   const fixtures = [['.zone-matched', 6], ['#roll-btn', 10]];
   for (const [sel, pad] of fixtures) {
