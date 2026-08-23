@@ -106,8 +106,15 @@
 
   /* ── the mat: oxblood leather, stitched, recessed. Dice set aside are the
      same dice — same size and pips — only their contact shadow tightens
-     (dice.css). 2×5, filling top-down, no label. ── */
+     (dice.css). The mat itself is shoved past the right edge and set down at
+     a slight angle, so the open table gets the room. The shove (-52px) and
+     the angle (-6° about the bottom-right corner) are tuned so every locked
+     die's face stays inside a 390px viewport; pushing further clips the
+     right column. 2×5, filling top-down, no label. ── */
   .zone-matched {
+    margin-inline-end: -52px;
+    transform: rotate(-6deg);
+    transform-origin: right bottom;
     display: flex;
     flex-wrap: wrap;
     align-content: flex-start;
