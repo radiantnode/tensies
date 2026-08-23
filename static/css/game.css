@@ -77,9 +77,10 @@
   /* Dice zones: the open table on the left, the mat in the original
      right-hand slot. */
   .dice-zones {
+    position: relative;
     display: flex;
+    justify-content: flex-end;
     align-items: flex-start;
-    gap: 10px;
     flex: 1;
     min-block-size: 0;
     padding: 14px 12px 0;
@@ -87,11 +88,15 @@
     -webkit-user-select: none;
   }
 
+  /* The open table is a layer over the WHOLE board — edge to edge, and down
+     through the roll strip to the bottom of the viewport (minus the
+     safe-area inset). The mat and the ROLL coin sit on top of it; placeGrid
+     (dice.js) reads their boxes and keeps the scatter clear of them, the
+     same way it keeps clear of the glass in the background still. So the
+     strip under the mat and beside the coin is scatter area too. */
   .zone-unmatched {
-    position: relative;
-    flex: 1;
-    align-self: stretch;
-    margin-block-end: 3rem;
+    position: absolute;
+    inset: 0 0 calc(-1 * (88px + 20px)) 0;
   }
 
   .die-wrapper {
