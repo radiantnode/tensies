@@ -1,66 +1,55 @@
-/* Reusable bottom-sheet chrome — a native <dialog> (via showModal → top-layer +
-   focus trap) anchored to the screen bottom, sliding up over a dimmed/blurred
-   backdrop. Driven by server/state-agnostic behaviour in js/sheet.js
-   (SheetController). Consumers add `.sheet` to the dialog and their own content;
-   the lobby check-in picker and the landing join sheet both build on it. */
+/* Reusable bottom-sheet chrome — a native <dialog> (showModal → top layer)
+   anchored to the screen bottom: smoked glass over the room. Driven by
+   js/sheet.js (SheetController). Consumers add `.sheet` and their content —
+   the join drawer and the check-in picker both build on it.
+   A top-layer dialog escapes the page flow, so the backdrop-filter here can't
+   trap anyone's stacking context (LAYERING.md). */
 @layer components {
   .sheet {
     position: fixed;
     /* Pull the sheet's bottom edge down past the safe-area line to the true
        screen bottom so its background fills under the home indicator; the
-       matching padding-bottom below keeps content up off the indicator. */
+       matching padding-bottom keeps content up off the indicator. */
     inset: auto 0 calc(env(safe-area-inset-bottom) * -1) 0;
     inline-size: 100%;
     max-inline-size: none;
     max-block-size: 78dvh;
     margin: 0;
-    padding: 1.25rem 1.25rem env(safe-area-inset-bottom);
-    background: var(--color-panel-screen);
+    padding: 28px 22px calc(24px + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, rgba(30, 18, 8, .62), rgba(12, 7, 3, .72));
     border: 0;
-    /* Top edge is a gradient "glow" line — see .sheet::before. */
-    border-start-start-radius: var(--radius-lg, 20px);
-    border-start-end-radius: var(--radius-lg, 20px);
-    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.55);
-    color: var(--color-text);
-    /* The UA gives <dialog> overflow:auto, so the sheet itself grows a
-       scrollbar whenever content transiently overflows (e.g. results landing
-       mid slide-up). Scrolling belongs to the inner content. */
+    border-start-start-radius: 20px;
+    border-start-end-radius: 20px;
+    box-shadow:
+      inset 0 1px 0 rgba(236, 196, 124, .5),
+      0 -14px 40px rgba(0, 0, 0, .8);
+    color: var(--color-cream);
+    /* The UA gives <dialog> overflow:auto; scrolling belongs to the inner
+       content. */
     overflow: hidden;
-    /* Backdrop-filter here would trap the sheet's own stacking context, but a
-       top-layer dialog already escapes the page flow, so it's safe. */
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(14px) saturate(1.04);
+    backdrop-filter: blur(14px) saturate(1.04);
   }
 
-  /* Docked above the iOS soft keyboard (JS sets --kb-lift + this class). The raw
-     lift is measured against the full-screen innerHeight, so subtract the top
-     safe-area — otherwise the sheet overshoots by the status-bar height (top
-     slides under the status bar, an equal gap opens above the keyboard). */
-  .sheet.is-kb-docked {
-    bottom: calc(var(--kb-lift, 0px) - env(safe-area-inset-top));
-  }
-
-  /* Gradient top border that follows the rounded top corners: a full-box ring
-     inheriting the sheet's radius, masked down to just the 1px top edge (padding
-     on the top only, xor/exclude punches out the interior). The gradient glows
-     amber toward the centre and dims to the edges. A gradient border — not a
-     shadow or halo. */
+  /* The grabber. */
   .sheet::before {
     content: '';
     position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding-block-start: 1px;
-    background: linear-gradient(to right,
-      rgba(220, 170, 70, 0.2),
-      rgba(255, 216, 150, 0.8) 50%,
-      rgba(220, 170, 70, 0.2));
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
+    inset-block-start: 12px;
+    inset-inline-start: 50%;
+    translate: -50% 0;
+    inline-size: 40px;
+    block-size: 4px;
+    border-radius: 2px;
+    background: rgba(226, 183, 110, .28);
     pointer-events: none;
+  }
+
+  /* Docked above the iOS soft keyboard (JS sets --kb-lift + this class). The
+     raw lift is measured against the full-screen innerHeight, so subtract the
+     top safe-area. */
+  .sheet.is-kb-docked {
+    bottom: calc(var(--kb-lift, 0px) - env(safe-area-inset-top));
   }
 
   .sheet[open] {
@@ -69,32 +58,46 @@
     animation: sheet-in 0.24s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
 
+  /* The blur rides the slide: WebKit builds a dialog's backdrop-filter layer
+     a frame or two after the display toggle, so a constant blur snaps in
+     mid-slide on iOS. Ramping it from 0 puts the late layer inside the
+     choreography (see frost-in, critical.css). */
   @keyframes sheet-in {
-    from { transform: translateY(100%); }
-    to   { transform: translateY(0); }
+    from {
+      transform: translateY(100%);
+      backdrop-filter: blur(0) saturate(1);
+      -webkit-backdrop-filter: blur(0) saturate(1);
+    }
+    to {
+      transform: translateY(0);
+      backdrop-filter: blur(14px) saturate(1.04);
+      -webkit-backdrop-filter: blur(14px) saturate(1.04);
+    }
   }
 
-  /* Closing: reverse the slide so the sheet drops back off the bottom edge.
-     More specific than [open] alone, so it overrides the in-animation while the
-     dialog is still open (JS calls .close() on animationend). */
+  /* Closing: reverse the slide (JS calls .close() on animationend). */
   .sheet[open].is-closing {
     animation: sheet-out 0.2s cubic-bezier(0.4, 0, 1, 1) both;
   }
 
   @keyframes sheet-out {
-    from { transform: translateY(0); }
-    to   { transform: translateY(100%); }
+    from {
+      transform: translateY(0);
+      backdrop-filter: blur(14px) saturate(1.04);
+      -webkit-backdrop-filter: blur(14px) saturate(1.04);
+    }
+    to {
+      transform: translateY(100%);
+      backdrop-filter: blur(0) saturate(1);
+      -webkit-backdrop-filter: blur(0) saturate(1);
+    }
   }
 
   .sheet::backdrop {
-    background: rgba(6, 3, 1, 0.62);
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
+    background: rgba(4, 2, 1, .66);
   }
 
-  /* Fade the tint + blur in lockstep with the sheet slide — same durations and
-     easings — so the backdrop doesn't snap on at open or linger through the
-     slide-down at close. Opacity fades the tint and the blur together. */
+  /* Fade the backdrop in lockstep with the slide. */
   .sheet[open]::backdrop {
     animation: sheet-backdrop-in 0.24s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
@@ -111,23 +114,22 @@
     to   { opacity: 0; }
   }
 
-  /* Head row: title on the left, close chip on the right. */
+  /* Head row: the drawer title on the left, close on the right. */
   .sheet-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    margin-block-end: 1rem;
+    margin-block-end: 16px;
   }
 
   .sheet-title {
     margin: 0;
     font-family: var(--font-family-heading);
-    font-size: 1.45rem;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    color: var(--color-text);
-    text-shadow: var(--shadow-text);
+    font-size: 1.28rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: var(--color-title);
   }
 
   .sheet-close {
@@ -140,17 +142,13 @@
     padding: 0;
     background: none;
     border: 0;
-    color: var(--color-text);
+    color: #b39a72;
     cursor: pointer;
-    transition: color 0.12s;
   }
-  /* An SVG X centres perfectly (no glyph-metric drift). */
+
   .sheet-close svg {
-    inline-size: 1.5rem;
-    block-size: 1.5rem;
+    inline-size: 19px;
+    block-size: 19px;
     display: block;
-  }
-  .sheet-close:hover {
-    color: #fff;
   }
 }

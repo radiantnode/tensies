@@ -23,30 +23,44 @@ export class PlayerCard extends HTMLElement {
 
   /** @type {HTMLDivElement} */ #nameEl = document.createElement('div');
   /** @type {HTMLSpanElement} */ #youEl = document.createElement('span');
-  /** @type {HTMLDivElement} */ #winsEl = document.createElement('div');
   /** @type {HTMLDivElement} */ #fillEl = document.createElement('div');
   /** @type {HTMLDivElement} */ #countEl = document.createElement('div');
+  /** @type {HTMLSpanElement} */ #wonEl = document.createElement('span');
+  /** @type {HTMLSpanElement} */ #wonV = document.createElement('span');
 
   connectedCallback() {
     if (this.#built) return;
     this.#built = true;
     this.className = 'player-mini';
 
+    // Name owns its own line at full card width — nothing competes with it.
     const top = document.createElement('div');
     top.className = 'player-mini-top';
     this.#nameEl.className = 'player-mini-name';
     this.#youEl.className = 'player-mini-you';
-    this.#youEl.textContent = 'you';
+    this.#youEl.textContent = 'You';
     this.#youEl.hidden = true;
-    top.append(this.#nameEl, this.#youEl, this.#winsEl);
+    top.append(this.#nameEl, this.#youEl);
     this.appendChild(top);
 
+    // The brass channel.
     const progress = document.createElement('div');
     progress.className = 'player-mini-progress';
     progress.appendChild(this.#fillEl);
     this.appendChild(progress);
 
-    this.appendChild(this.#countEl);
+    // Score + the embossed N WON tag share the line under the bar.
+    const foot = document.createElement('div');
+    foot.className = 'player-mini-foot';
+    this.#wonEl.className = 'player-mini-won';
+    this.#wonV.className = 'v';
+    const wonL = document.createElement('span');
+    wonL.className = 'l';
+    wonL.textContent = 'won';
+    this.#wonEl.append(this.#wonV, wonL);
+    foot.append(this.#countEl, this.#wonEl);
+    this.appendChild(foot);
+
     this.#render();
   }
 
@@ -60,22 +74,21 @@ export class PlayerCard extends HTMLElement {
     const matched = Number(this.getAttribute('matched')) || 0;
     const total = Number(this.getAttribute('total')) || 10;
     const isMe = this.hasAttribute('is-me');
-    const leading = this.hasAttribute('leading');
     const hot = this.hasAttribute('hot');
     const disconnected = this.hasAttribute('disconnected');
 
     this.#nameEl.textContent = name;
     this.#youEl.hidden = !isMe;
-    this.#winsEl.className = leading ? 'player-mini-wins leading' : 'player-mini-wins';
-    this.#winsEl.textContent = `${wins}W`;
-    let fillVariant = '';
-    if (isMe) fillVariant = ' me';
-    else if (hot) fillVariant = ' hot';
-    this.#fillEl.className = `player-mini-fill${fillVariant}`;
+    // Nearly there brightens to polished gold — never pink.
+    this.#fillEl.className = hot ? 'player-mini-fill hot' : 'player-mini-fill';
     this.#fillEl.style.width = `${(matched / total) * 100}%`;
     this.#countEl.className = hot ? 'player-mini-count hot' : 'player-mini-count';
-    this.#countEl.textContent = `${matched}/${total}`;
-    this.className = disconnected ? 'player-mini disconnected' : 'player-mini';
+    this.#countEl.textContent = `${matched} of ${total}`;
+    this.#wonV.textContent = String(wins);
+    let cls = 'player-mini';
+    if (isMe) cls += ' is-me';
+    if (disconnected) cls += ' disconnected';
+    this.className = cls;
   }
 }
 

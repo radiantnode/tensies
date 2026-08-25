@@ -4,7 +4,7 @@ import { saveDicePositions } from './dice-positions.js';
 import { renderMyArea, renderPlayersBar } from './game-render.js';
 import { hideWinner, showWinner } from './overlays.js';
 import { showFor } from './router.js';
-import { state } from './state.js';
+import { dispatch, state } from './state.js';
 
 /** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
 
@@ -15,7 +15,11 @@ import { state } from './state.js';
  * sequence is preserved exactly.
  */
 
-/** Begin the gather + tumble phase of a roll (skipped under reduced motion). */
+/**
+ * Begin the gather + tumble phase of a roll (skipped under reduced motion).
+ * @returns {number} epoch ms at which the shake ends — the caller puts it in
+ *   the phase, so it exists only while a shake is actually running.
+ */
 export function startShake() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     // No motion, same pace. Skipping the wait entirely made reduced motion a
@@ -23,12 +27,11 @@ export function startShake() {
     // default-animation opponent. 700ms is the midpoint of the normal
     // gather+shake window (500–900ms), so the cadence matches; it also keeps
     // the cycle above the server's MIN_ROLL_INTERVAL floor.
-    state.rollShakeEnd = Date.now() + 700;
-    return;
+    return Date.now() + 700;
   }
   const gatherMs = 200;
   const shakeMs = 300 + Math.random() * 400;
-  state.rollShakeEnd = Date.now() + gatherMs + shakeMs;
+  const shakeEnd = Date.now() + gatherMs + shakeMs;
 
   const wrappers = /** @type {HTMLElement[]} */ ([...document.querySelectorAll('.zone-unmatched .die-wrapper')]);
   const zone = document.querySelector('.zone-unmatched');
@@ -59,17 +62,21 @@ export function startShake() {
     }
   }, gatherMs);
   state.pendingRollTimeouts.push(gatherT);
+  return shakeEnd;
 }
 
 /**
  * Animate my dice from tumbling to the new snapshot: scatter to fresh
  * positions, reveal faces, lift newly matched dice into the locked zone.
  * @param {GameSnapshot} snap
+ * @param {number} matchedBefore matched dice as of the roll being revealed —
+ *   supplied by the phase rather than read off the shared bag, so it cannot be
+ *   stale from an earlier roll.
  * @param {() => void} [onComplete]
  * @param {boolean} [winForMe] skip the move-to-locked choreography — the
  *   winner overlay takes over as the dice land.
  */
-export function updateDiceInPlace(snap, onComplete, winForMe = false) {
+export function updateDiceInPlace(snap, matchedBefore, onComplete, winForMe = false) {
   for (const timeout of state.pendingRollTimeouts) clearTimeout(timeout);
   state.pendingRollTimeouts = [];
   document.querySelectorAll('.zone-unmatched .die-wrapper.lifting').forEach((w) => w.remove());
@@ -94,7 +101,7 @@ export function updateDiceInPlace(snap, onComplete, winForMe = false) {
   const effectiveTarget = player.has_rolled ? snap.target : -1;
   const newMatched = player.dice.filter((d) => d === effectiveTarget);
   const newUnmatched = player.dice.filter((d) => d !== effectiveTarget);
-  const newlyMatchedCount = Math.max(0, newMatched.length - state.prevMatchedCount);
+  const newlyMatchedCount = Math.max(0, newMatched.length - matchedBefore);
 
   const zone = document.querySelector('.zone-unmatched');
   const sz = window.innerWidth <= 480 ? 50 : 56;
@@ -146,7 +153,7 @@ export function updateDiceInPlace(snap, onComplete, winForMe = false) {
       const wrapper = wrappers[newUnmatched.length + i];
       if (!wrapper) continue;
       const cube = /** @type {HTMLElement | null} */ (wrapper.querySelector('.die-3d'));
-      const value = newMatched[state.prevMatchedCount + i];
+      const value = newMatched[matchedBefore + i];
       if (cube) settleCube(cube, value, true);
       // The winner doesn't watch their final dice fly into the locked zone —
       // the overlay takes over. Everyone else's progress lifts as usual.
@@ -178,9 +185,9 @@ export function updateDiceInPlace(snap, onComplete, winForMe = false) {
           return;
         }
         // Reconcile the locked zone to exactly this snapshot's matched dice
-        // instead of blindly appending prevMatchedCount→length. Under a
+        // instead of blindly appending matchedBefore→length. Under a
         // reveal/rebuild race the live zone can already hold a different count
-        // than prevMatchedCount assumed, and a blind append then stacks it past
+        // than matchedBefore assumed, and a blind append then stacks it past
         // 10 (the "locked dice keep stacking beyond 10" bug). Re-query the live
         // zone, trim any excess, then pop in only the genuinely-missing dice so
         // the animation still plays.
@@ -214,64 +221,95 @@ export function updateDiceInPlace(snap, onComplete, winForMe = false) {
 // cap the button stays disabled forever (the roll-ack hang, client side).
 const REVEAL_WAIT_MS = 2500;
 
-/** Wait for the server's roll response, then animate the reveal. */
-export function tryReveal() {
-  if (!state.pendingRollState) {
-    if (Date.now() > state.rollShakeEnd + REVEAL_WAIT_MS) {
-      // Bail: unstick the machine and re-render the last known state so the
-      // roll button re-enables. A rejected roll (e.g. "Slow down") also lands
-      // here — handleError surfaces the reason; this just clears the spinner.
-      state.rolling = false;
-      state.awaitingAck = false;
-      const btn = /** @type {HTMLButtonElement | null} */ (document.getElementById('roll-btn'));
-      if (btn) btn.disabled = false;
-      if (state.currentState) {
-        renderMyArea(state.currentState);
-        renderPlayersBar(state.currentState);
-      }
+/** Re-enable the roll button and repaint the board from the last known state. */
+function unstick() {
+  const btn = /** @type {HTMLButtonElement | null} */ (document.getElementById('roll-btn'));
+  if (btn) btn.disabled = false;
+  if (state.currentState) {
+    renderMyArea(state.currentState);
+    renderPlayersBar(state.currentState);
+  }
+}
+
+/**
+ * Drive the machine forward from wherever it is. Called when the shake timer
+ * fires and then on its own 50ms tick while the server still owes us a frame.
+ *
+ * This replaces tryReveal's poll-and-branch. The difference that matters: the
+ * give-up deadline belongs to `awaitingServer` and to nothing else, so "the
+ * server owes me a roll frame" and "I am mid-reveal" can no longer be the same
+ * bit pattern told apart by a Date.now() comparison.
+ */
+export function pumpRoll() {
+  const phase = state.phase;
+
+  // The shake finished before the server answered: enter the bounded wait.
+  if (phase.kind === 'shaking') {
+    dispatch({ t: 'SHAKE_DONE', deadline: phase.shakeEnd + REVEAL_WAIT_MS });
+    pumpRoll();
+    return;
+  }
+
+  // The frame is in hand and the shake has just ended: reveal it.
+  if (phase.kind === 'settling') {
+    dispatch({ t: 'SHAKE_DONE', deadline: 0 });
+    pumpRoll();
+    return;
+  }
+
+  if (phase.kind === 'awaitingServer') {
+    if (Date.now() > phase.deadline) {
+      // A rejected roll (e.g. "Slow down") also lands here — handleError
+      // surfaces the reason; this just clears the spinner.
+      dispatch({ t: 'GIVE_UP' });
+      unstick();
       return;
     }
-    const t = setTimeout(tryReveal, 50);
+    const t = setTimeout(pumpRoll, 50);
     state.pendingRollTimeouts.push(t);
     return;
   }
-  const snap = state.pendingRollState;
-  state.pendingRollState = null;
-  state.awaitingAck = false;
+
+  if (phase.kind === 'revealing') runReveal(phase);
+}
+
+/**
+ * Animate the held roll frame, then hand off to the celebration or back to
+ * idle. Everything it needs rides in the phase.
+ * @param {Extract<import('./roll-phase.js').Phase, {kind: 'revealing'}>} phase
+ */
+function runReveal(phase) {
+  const snap = phase.snap;
   state.currentState = snap;
   state.lastMyDiceKey = myDiceKey(snap);
   // The completing roll is mine: skip the move-to-locked choreography and pop
-  // the winner overlay as the dice land — you don't watch your own win migrate.
-  const winForMe = Boolean(state.pendingWinName) && !state.pendingWinIsLoser;
-  updateDiceInPlace(snap, () => {
-    state.rolling = false;
+  // the result overlay as the dice land — you don't watch your own win migrate.
+  const winForMe = Boolean(phase.result?.iWon);
+
+  updateDiceInPlace(snap, phase.matchedBefore, () => {
+    // Re-read: a BROADCAST may have stashed a newer frame while we animated.
+    const current = state.phase;
+    const result = current.kind === 'revealing' ? current.result : null;
+    const stashed = current.kind === 'revealing' ? current.stashed : null;
+
+    dispatch({ t: 'REVEAL_DONE' });
+
     const btn = /** @type {HTMLButtonElement | null} */ (document.getElementById('roll-btn'));
     if (btn) btn.disabled = false;
     if (state.ws && state.ws.readyState === WebSocket.OPEN) {
       state.ws.send(JSON.stringify({ action: 'roll_done' }));
     }
-    if (state.pendingWinName) {
-      const name = state.pendingWinName;
-      const target = state.pendingWinTarget ?? 0;
-      const round = state.pendingWinRound ?? 0;
-      const isLoser = state.pendingWinIsLoser;
-      state.pendingWinName = null;
-      state.pendingWinTarget = null;
-      state.pendingWinRound = null;
-      state.pendingWinIsLoser = false;
-      // Drop any mid-reveal broadcast stashed in postRevealState — it's a
-      // same-round snapshot that would call hideWinner() and close the
-      // overlay. The authoritative next-round state arrives after
-      // ROUND_WIN_DELAY. (The 2026-06-07 winner-flash fix.)
-      state.postRevealState = null;
-      showWinner(name, target, round, isLoser);
+
+    if (result) {
+      // The stash is dropped, not routed: it is a same-round snapshot that
+      // would call hideWinner() and close the overlay we are about to open.
+      // The authoritative next-round state arrives after ROUND_WIN_DELAY.
+      // (The 2026-06-07 winner-flash fix — now a property of the transition
+      // itself, see roll-phase.js.)
+      showWinner(result.name, result.photo, result.round, result.iWon);
     } else {
       hideWinner();
-      if (state.postRevealState) {
-        const stashed = state.postRevealState;
-        state.postRevealState = null;
-        showFor(stashed);
-      }
+      if (stashed) showFor(stashed);
     }
   }, winForMe);
 }

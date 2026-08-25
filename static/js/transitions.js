@@ -12,6 +12,76 @@ const MIN_LOADING_MS = 600;
 let loadingShownAt = Date.now();
 
 /**
+ * TRIAL (design stack, 2026-08-19, awaiting the owner's call): route every
+ * non-instant swap through the staged/dissolve path instead of a view
+ * transition. A VT shows a flat raster of the incoming screen, and a raster
+ * cannot run a live backdrop-filter — so on iOS the glass can only frost
+ * AFTER the cross-fade lands (content first, blur second). The staged path
+ * keeps the incoming screen live from frame one: ground, content, and the
+ * frost ramp arrive together under the old screen's dissolve, and the whole
+ * class of VT raster artifacts (flattened dice, the radar-sweep jump, the
+ * late frost) can't occur. Set false to restore view transitions.
+ */
+const DISSOLVE_NAV = true;
+
+const FIXED_SHELL_SCREENS = new Set(['game', 'loading', 'landing', 'lobby']);
+
+/**
+ * Document-scroll mode (owner-directed, 2026-08-19): every screen reads as a
+ * normal web page — the document itself scrolls, so content is never clipped
+ * by an inner scroller and iOS Safari collapses its chrome on scroll. The
+ * screens on the fixed shell are the GAME BOARD (the table is bolted down:
+ * dice geometry, the mat, the roll coin), the LANDING and the LOBBY (both
+ * composed one-viewport rooms — they must not move; owner-directed
+ * 2026-08-20), and the transient loading splash. The nav menu force-enables
+ * the mode while it is open so the menu and changelog flow as pages even
+ * over fixed-shell hosts (nav-menu.js). Applied at screen COMMIT (never
+ * earlier): flipping the shell to static mid-swap would collapse the
+ * outgoing screen's 100% height for a frame. The CSS half lives in
+ * critical.css under `html.doc-scroll`.
+ * @param {string} id the screen being committed
+ */
+function setDocScroll(id) {
+  const on = !FIXED_SHELL_SCREENS.has(id);
+  document.documentElement.classList.toggle('doc-scroll', on);
+  // iOS 26 Safari ignores theme-color entirely (researched 2026-08-19) and
+  // samples its liquid-glass tint from an edge-hugging fixed element's
+  // background-color, falling back to body's. Give it a deliberate target —
+  // the page's own floor — so the pill's tint belongs to the imagery. The
+  // strip shows ~4px of floor-black at the screen's very bottom edge, which
+  // is invisible over the profile's dark ground. (theme-color stays in the
+  // document untouched: iOS ≤18 and Android still read it.)
+  let strip = document.getElementById('chrome-tint-strip');
+  if (on && !strip) {
+    strip = document.createElement('div');
+    strip.id = 'chrome-tint-strip';
+    strip.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(strip);
+  } else if (!on) {
+    strip?.remove();
+  }
+  // iOS Safari's LARGE viewport still excludes the collapsed-address-bar
+  // strip, and it reports safe-area insets of 0 in scrolling-tab mode
+  // (measured on device, 2026-08-19: sat=0 sab=0, 100lvh=815 on a taller
+  // screen) — so no CSS unit can reach the bottom band. JS can: the gap is
+  // screen.height − 100lvh, fed to the bleed rule as --chrome-gap. Guarded
+  // to phone-chrome-sized gaps so desktop windows and the wall (where
+  // screen.height has nothing to do with the viewport) never apply it.
+  if (on) {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;top:0;left:-10px;width:1px;height:100lvh;visibility:hidden;pointer-events:none';
+    document.body.appendChild(probe);
+    const gap = screen.height - probe.offsetHeight;
+    probe.remove();
+    const apply = gap > 0 && gap <= 80 ? gap : 0;
+    document.documentElement.style.setProperty('--chrome-gap', apply + 'px');
+  }
+  // Entering: start at the top. Leaving: shed any scroll offset before the
+  // fixed shell (overflow: hidden) comes back and would trap it.
+  window.scrollTo(0, 0);
+}
+
+/**
  * A resolved stand-in for a ViewTransition, returned when no document-wide
  * transition runs (target already active, or the API is unsupported).
  * @returns {{ finished: Promise<void>, updateCallbackDone: Promise<void>, ready: Promise<void> }}
@@ -70,7 +140,7 @@ export function showScreen(id, { force = false, staged = false, instant = false,
     onSwap?.();
     return settledTransition();
   }
-  if (staged) {
+  if (staged || (DISSOLVE_NAV && !instant)) {
     target.classList.add('staging');
     onSwap?.();
     // Commit a frame later: the staged content is laid out (and the dice
@@ -83,6 +153,7 @@ export function showScreen(id, { force = false, staged = false, instant = false,
       document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
       target.classList.remove('staging');
       target.classList.add('active');
+      setDocScroll(id);
       if (previous && previous !== target) {
         previous.classList.add('dissolving');
         const settle = () => {
@@ -106,6 +177,7 @@ export function showScreen(id, { force = false, staged = false, instant = false,
     if (previous && previous !== target) /** @type {any} */ (previous).leave?.();
     document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
     target.classList.add('active');
+    setDocScroll(id);
     onSwap?.();
   };
   if (!instant && document.startViewTransition) {

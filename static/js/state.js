@@ -1,7 +1,12 @@
 // @ts-check
 import { makeName } from './names.js';
+import {
+  IDLE, transition, legacyRolling, legacyAwaitingAck, legacyPendingRollState,
+} from './roll-phase.js';
 
 /** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
+/** @typedef {import('./roll-phase.js').Phase} Phase */
+/** @typedef {import('./roll-phase.js').RollEvent} RollEvent */
 
 /**
  * Single mutable state bag shared across modules.
@@ -45,27 +50,39 @@ export const state = {
    *  the reveal detect a stale board — a round-advance broadcast we never got —
    *  and hard-rebuild instead of animating new dice onto the old round. */
   boardRound: null,
-  /** True while the shake animation is running. */
-  rolling: false,
-  /** True while waiting on the server's roll response. */
-  awaitingAck: false,
-  /** @type {GameSnapshot | null} Roll response held until the shake finishes. */
-  pendingRollState: null,
-  /** @type {GameSnapshot | null} Newer broadcast that arrived mid-reveal. */
-  postRevealState: null,
-  /** @type {ReturnType<typeof setTimeout>[]} */
+  /**
+   * The roll/reveal/celebrate lifecycle. One discriminated phase in place of
+   * the nine flags this bag used to carry (rolling, awaitingAck,
+   * pendingRollState, postRevealState, rollShakeEnd, prevMatchedCount and the
+   * five pendingWin* fields). Only ever written through dispatch() below.
+   * @type {Phase}
+   */
+  phase: IDLE,
+
+  /** @type {ReturnType<typeof setTimeout>[]} Live roll-animation timers. */
   pendingRollTimeouts: [],
-  /** Matched dice before the in-flight roll (to find the newly locked ones). */
-  prevMatchedCount: 0,
-  rollShakeEnd: 0,
-  /** @type {string | null} Winner overlay payload, held until the reveal completes. */
-  pendingWinName: null,
-  /** @type {number | null} */
-  pendingWinTarget: null,
-  /** @type {number | null} */
-  pendingWinRound: null,
-  pendingWinIsLoser: false,
+
+  // ── Read-only compatibility seam ──
+  // The game-harness / test-game / test-telemetry suites poll these three by
+  // name (`_state.rolling`, `_state.awaitingAck`, `_state.pendingRollState`).
+  // Derived, so they cannot drift from the phase; get-only, so tsc rejects any
+  // code that tries to end a roll by assigning a flag.
+  /** @returns {boolean} */
+  get rolling() { return legacyRolling(this.phase); },
+  /** @returns {boolean} */
+  get awaitingAck() { return legacyAwaitingAck(this.phase); },
+  /** @returns {GameSnapshot | null} */
+  get pendingRollState() { return legacyPendingRollState(this.phase); },
 };
+
+/**
+ * The single write site for the roll machine. Every phase change in the app
+ * goes through here.
+ * @param {RollEvent} ev
+ */
+export function dispatch(ev) {
+  state.phase = transition(state.phase, ev);
+}
 
 // Test seam: expose the bag as window._state for the game-harness / test-game
 // suites' evaluate() snippets. Localhost only — present in local dev and the
@@ -74,16 +91,14 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
   /** @type {any} */ (window)._state = state;
 }
 
-/** Clear every in-flight roll/overlay field and cancel pending roll timers. */
+/**
+ * Collapse the roll machine to idle and cancel its timers. Unlike the nine
+ * assignments this replaces, it cannot leave a field behind: `rollShakeEnd`
+ * and `prevMatchedCount` used to survive a reset because they were never in
+ * the list, and now they live inside the phase that is being discarded.
+ */
 export function resetRollState() {
   for (const timeout of state.pendingRollTimeouts) clearTimeout(timeout);
   state.pendingRollTimeouts = [];
-  state.rolling = false;
-  state.awaitingAck = false;
-  state.pendingRollState = null;
-  state.postRevealState = null;
-  state.pendingWinName = null;
-  state.pendingWinTarget = null;
-  state.pendingWinRound = null;
-  state.pendingWinIsLoser = false;
+  dispatch({ t: 'RESET' });
 }

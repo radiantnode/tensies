@@ -1,5 +1,6 @@
 // @ts-check
 import { getAuthUser } from '../auth.js';
+import { syncAccountMark } from '../account-sync.js';
 import { byId } from '../dom.js';
 import { renderGame } from '../game-render.js';
 import { makeMenuToggle } from '../menu-toggle.js';
@@ -51,22 +52,50 @@ export class GameScreen extends HTMLElement {
         <div class="players-bar" id="players-bar" role="list" aria-label="Players"></div>
       </header>
       <div id="game-menu" class="game-menu" aria-hidden="true">
-        <nav class="menu-panel" aria-label="Game menu">
-          <button id="menu-pause-btn" type="button" class="menu-item menu-toggle" aria-pressed="false" hidden>
-            <span class="menu-item-label">Pause Game</span>
-            <span class="menu-switch" aria-hidden="true"></span>
-          </button>
-          <div id="menu-pause-status" class="menu-status" aria-live="polite" hidden>
-            <div class="menu-status-row">
-              <span class="menu-status-label">Time remaining</span>
-              <span class="menu-status-value" id="pause-remaining">—</span>
+        <div class="menu-topbar">
+          <div class="topbar-title-row">
+            <div class="game-title">
+              <img src="/static/images/logo.svg" class="game-title-mark" alt="">
+              <span>Tensies</span>
             </div>
-            <p id="pause-players" class="menu-status-players"></p>
+            <button id="game-menu-close" type="button" class="menu-close-btn" aria-label="Close menu">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
           </div>
-          <button id="menu-end-btn" type="button" class="menu-item menu-item--danger" hidden>
-            <span class="menu-item-label">End Game</span>
-          </button>
+        </div>
+        <nav class="gm-list" aria-label="Game menu">
+          <div class="gm-row" id="menu-pause-row" hidden>
+            <span class="gm-text">
+              <b>Pause Game</b>
+              <span id="menu-pause-sub">Freeze rolling for everyone</span>
+            </span>
+            <button id="menu-pause-btn" type="button" class="pause-lever" role="switch" aria-checked="false" aria-label="Pause game">
+              <span class="lever-knob" aria-hidden="true"></span>
+            </button>
+          </div>
+          <div class="gm-row gm-row-end" id="menu-end-row" hidden>
+            <span class="gm-text">
+              <b>End Game</b>
+              <span>Closes the table for everybody</span>
+            </span>
+            <div class="bolt" id="end-bolt">
+              <span class="bolt-run" aria-hidden="true"></span>
+              <span class="bolt-say" aria-hidden="true"><span id="bolt-say-text">Slide to end the game</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13"/><path d="m13 6 6 6-6 6"/></svg>
+              </span>
+              <button id="menu-end-btn" type="button" class="bolt-slug" aria-label="Slide to end the game">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 12h11"/><path d="m12.5 6.5 6 5.5-6 5.5"/></svg>
+              </button>
+            </div>
+          </div>
         </nav>
+        <div class="gm-foot">
+          <div class="gm-cap" id="menu-pause-status" aria-live="polite" hidden>
+            <div class="thread" aria-hidden="true"><i id="pause-cap-fill"></i></div>
+            <p class="gm-cap-text">Table closes on its own in <span id="pause-remaining">—</span></p>
+          </div>
+          <p class="gm-legend" id="menu-foot-legend"></p>
+        </div>
       </div>
       <div class="my-area" id="my-area"></div>`;
 
@@ -77,31 +106,21 @@ export class GameScreen extends HTMLElement {
     this.#menuBtn.id = 'game-menu-btn';
     this.#menuBtn.setAttribute('aria-controls', 'game-menu');
 
-    // Hamburger toggles the GAME menu (not the nav menu), rapid-tap-guarded the
-    // same way (see makeMenuToggle).
+    // Hamburger opens the GAME menu; the menu's own X closes it (the menu owns
+    // its title row, so nothing has to escape above it — LAYERING.md).
     this.#menuBtn.addEventListener('click', makeMenuToggle({
       isOpen: () => this.menuOpen(),
       open: () => this.openMenu(),
       close: () => this.closeMenu(),
     }));
+    byId('game-menu-close').addEventListener('click', () => this.closeMenu());
 
-    // End Game — tap-to-confirm: first tap swaps the label, second tap sends.
-    // Resets when the menu closes.
-    const endBtn = byId('menu-end-btn');
-    endBtn.addEventListener('click', () => {
-      if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
-      if (endBtn.classList.contains('confirming')) {
-        state.ws.send(JSON.stringify({ action: 'end_game' }));
-        endBtn.classList.remove('confirming');
-      } else {
-        endBtn.classList.add('confirming');
-        const label = endBtn.querySelector('.menu-item-label');
-        if (label) label.textContent = 'Tap to confirm';
-      }
-    });
+    // End Game — a barrel bolt: slide-to-confirm, the one deliberate gesture
+    // for the one irreversible thing a host can do.
+    this.#wireBolt();
 
     // Pause/Resume — send intent; the broadcast flips the flag and renderMenu
-    // reflects it. Resuming closes the menu after a beat (toggle slide-off).
+    // reflects it. Resuming closes the menu after a beat (lever slide-off).
     byId('menu-pause-btn').addEventListener('click', () => {
       if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
       const resuming = Boolean(state.currentState?.paused);
@@ -143,13 +162,111 @@ export class GameScreen extends HTMLElement {
     this.#menuBtn?.classList.remove('open');
     this.#menuBtn?.setAttribute('aria-expanded', 'false');
     this.#menuBtn?.setAttribute('aria-label', 'Open menu');
-    // Reset end-game confirm state so re-opening starts fresh.
-    const endBtn = document.getElementById('menu-end-btn');
-    if (endBtn) {
-      endBtn.classList.remove('confirming');
-      const label = endBtn.querySelector('.menu-item-label');
-      if (label) label.textContent = 'End Game';
-    }
+    // Return the bolt to rest so re-opening starts fresh.
+    this.#resetBolt();
+  }
+
+  /** @type {number} bolt travel 0–1 */
+  #boltTravel = 0;
+
+  /** @type {boolean} the bolt has been shot (End Game sent) */
+  #boltDone = false;
+
+  /**
+   * The barrel bolt: drag the brass slug across the track. The instruction
+   * fades with travel; vermilion appears only on the track floor at the
+   * instant the bolt is home. Releasing early springs it back.
+   */
+  #wireBolt() {
+    const bolt = byId('end-bolt');
+    const slug = /** @type {HTMLButtonElement} */ (byId('menu-end-btn'));
+    let startX = 0;
+    let dragging = false;
+
+    const range = () => bolt.clientWidth - slug.offsetWidth - 8;
+
+    const apply = (/** @type {number} */ travel, /** @type {boolean} */ animate) => {
+      this.#boltTravel = travel;
+      slug.classList.toggle('is-springing', animate);
+      slug.style.transform = `translateX(${travel * range()}px)`;
+      const run = /** @type {HTMLElement} */ (bolt.querySelector('.bolt-run'));
+      const say = /** @type {HTMLElement} */ (bolt.querySelector('.bolt-say'));
+      run.style.clipPath = `inset(0 ${Math.round((1 - travel) * 100)}% 0 0)`;
+      say.style.opacity = String(Math.max(0, 1 - travel / 0.7));
+    };
+
+    slug.addEventListener('pointerdown', (e) => {
+      if (this.#boltDone) return;
+      dragging = true;
+      startX = e.clientX - this.#boltTravel * range();
+      slug.setPointerCapture(e.pointerId);
+    });
+    slug.addEventListener('pointermove', (e) => {
+      if (!dragging || this.#boltDone) return;
+      const travel = Math.min(1, Math.max(0, (e.clientX - startX) / range()));
+      apply(travel, false);
+    });
+    const release = () => {
+      if (!dragging || this.#boltDone) return;
+      dragging = false;
+      if (this.#boltTravel >= 0.92) this.#shootBolt();
+      else apply(0, true);
+    };
+    slug.addEventListener('pointerup', release);
+    slug.addEventListener('pointercancel', release);
+
+    // Keyboard path for the same irreversible action: Enter/Space arms it,
+    // a second press within 3s commits — the deliberate two-step, keyboardly.
+    let armed = 0;
+    slug.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      if (this.#boltDone) return;
+      const now = Date.now();
+      if (now - armed < 3000) {
+        this.#shootBolt();
+      } else {
+        armed = now;
+        apply(0.5, true);
+        setTimeout(() => { if (!this.#boltDone && Date.now() - armed >= 2900) apply(0, true); }, 3000);
+      }
+    });
+  }
+
+  /** The bolt is home: commit End Game. */
+  #shootBolt() {
+    if (this.#boltDone) return;
+    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+    this.#boltDone = true;
+    const bolt = byId('end-bolt');
+    const slug = /** @type {HTMLElement} */ (byId('menu-end-btn'));
+    bolt.classList.add('done');
+    slug.classList.add('is-springing');
+    slug.style.transform = `translateX(${bolt.clientWidth - slug.offsetWidth - 8}px)`;
+    /** @type {HTMLElement} */ (bolt.querySelector('.bolt-run')).style.clipPath = 'inset(0 0 0 0)';
+    const say = /** @type {HTMLElement} */ (bolt.querySelector('.bolt-say'));
+    const sayText = byId('bolt-say-text');
+    sayText.textContent = 'Table closed';
+    say.style.opacity = '1';
+    state.ws.send(JSON.stringify({ action: 'end_game' }));
+  }
+
+  /** Return the bolt to rest (menu closed / new game). */
+  #resetBolt() {
+    this.#boltDone = false;
+    this.#boltTravel = 0;
+    const bolt = document.getElementById('end-bolt');
+    const slug = document.getElementById('menu-end-btn');
+    if (!bolt || !slug) return;
+    bolt.classList.remove('done');
+    slug.classList.remove('is-springing');
+    slug.style.transform = '';
+    const run = /** @type {HTMLElement | null} */ (bolt.querySelector('.bolt-run'));
+    if (run) run.style.clipPath = 'inset(0 100% 0 0)';
+    const say = /** @type {HTMLElement | null} */ (bolt.querySelector('.bolt-say'));
+    if (say) say.style.opacity = '1';
+    const sayText = document.getElementById('bolt-say-text');
+    if (sayText) sayText.textContent = 'Slide to end the game';
   }
 
   /**
@@ -157,17 +274,11 @@ export class GameScreen extends HTMLElement {
    * @param {GameSnapshot} snap
    */
   render(snap) {
-    // Sync the username pill (auth may have changed since connectedCallback).
-    const existing = this.querySelector('.header-username');
-    const user = getAuthUser();
-    if (user && !existing) {
-      const tag = document.createElement('span');
-      tag.className = 'header-username';
-      tag.textContent = `@${user.username}`;
-      this.#menuBtn?.parentElement?.insertBefore(tag, this.#menuBtn);
-    } else if (!user && existing) {
-      existing.remove();
-    }
+    // Sync the account mark (auth may have changed since connectedCallback).
+    // The board carries the MARK ALONE — no handle, not pressable: the
+    // players bar already names you (board-signedin.json).
+    const titleRow = this.querySelector('.game-topbar .topbar-title-row');
+    if (titleRow) syncAccountMark(titleRow, getAuthUser());
     renderGame(snap);
   }
 }

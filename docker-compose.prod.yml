@@ -64,6 +64,11 @@ services:
       CSP_EXTRA_SCRIPT_SRC: "${CSP_EXTRA_SCRIPT_SRC:-}"
       CSP_EXTRA_CONNECT_SRC: "${CSP_EXTRA_CONNECT_SRC:-}"
       CSP_EXTRA_IMG_SRC: "${CSP_EXTRA_IMG_SRC:-}"
+      # Full-policy escape hatch, for the directives the CSP_EXTRA_* knobs above
+      # can't reach — frame-ancestors is the only one today. Replaces the built
+      # policy wholesale (and so ignores the three extras), so anything set here
+      # must restate them. Unset on a normal deploy.
+      CONTENT_SECURITY_POLICY: "${CONTENT_SECURITY_POLICY:-}"
       # Signs JWT auth tokens. Generate with: openssl rand -hex 32
       JWT_SECRET: "${JWT_SECRET:?set JWT_SECRET}"
       # WebAuthn relying party ID — the bare domain users register passkeys on

@@ -8,7 +8,10 @@ import { getAuthToken, isSignedIn, getAuthUser } from './auth.js';
 import {
   savePlayerId, saveReconnectToken, readSession, hasSession, clearSession,
 } from './session.js';
-import { state, resetRollState } from './state.js';
+import {
+  awaitsRollFrame, holdsRollFrame, isCelebrationEcho, legacyAwaitingAck,
+} from './roll-phase.js';
+import { dispatch, state, resetRollState } from './state.js';
 import { showScreen, showLoading, leaveLoading } from './transitions.js';
 
 /** @typedef {import('./types.js').ServerMessage} ServerMessage */
@@ -230,25 +233,6 @@ export function leaveGame() {
 }
 
 /**
- * Whether a `state` frame is a same-round opponent-roll echo arriving while
- * the win celebration is on screen. Such frames carry nothing the viewer can
- * see (the board is under the overlay scrim) but would route through
- * showFor() → hideWinner() and cut the celebration short (observed at 1153ms
- * and 759ms instead of the full ~3s). Pause and disconnect transitions are
- * NOT echoes — interrupting the celebration is correct for them — and the
- * next-round frame (round_num + 1) must keep closing the overlay as before.
- * @param {import('./types.js').GameSnapshot} snap
- */
-function isCelebrationEcho(snap) {
-  const overlay = /** @type {HTMLDialogElement | null} */ (document.getElementById('winner-overlay'));
-  return Boolean(overlay?.open)
-    && snap.started
-    && !snap.paused
-    && snap.round_num === state.currentState?.round_num
-    && !Object.values(snap.players).some((p) => p.disconnected);
-}
-
-/**
  * Inbound dispatch.
  * @param {ServerMessage} msg
  */
@@ -289,15 +273,15 @@ function handleMessage(msg) {
         showFor(msg);
         return;
       }
-      // My own roll response (private, pre-broadcast): hold it for tryReveal
+      // My own roll response (private, pre-broadcast): hold it in the phase for the reveal
       // so the shake/reveal animation drives the change instead of a hard
       // re-render. A newer broadcast landing mid-reveal is stashed separately
       // and applied after the reveal completes.
-      if (state.awaitingAck && msg.started && myDiceKey(msg) !== state.lastMyDiceKey && !state.pendingRollState) {
-        state.pendingRollState = msg;
-      } else if (state.awaitingAck && state.pendingRollState) {
-        state.postRevealState = msg;
-      } else if (isCelebrationEcho(msg)) {
+      if (awaitsRollFrame(state.phase) && msg.started && myDiceKey(msg) !== state.lastMyDiceKey) {
+        dispatch({ t: 'SERVER_ROLL', snap: msg, result: null });
+      } else if (holdsRollFrame(state.phase)) {
+        dispatch({ t: 'BROADCAST', snap: msg });
+      } else if (isCelebrationEcho(state.phase, msg)) {
         // Absorb the data (state bag + players bar stay fresh) but skip the
         // screen routing so the overlay holds its full window. My own dice
         // can't differ in an opponent echo, so no my-area render is needed.
@@ -308,22 +292,28 @@ function handleMessage(msg) {
       }
       return;
     case 'round_won': {
-      const me = state.myId ? msg.players[state.myId] : undefined;
-      const myName = me ? me.name : (msg.winner_name ?? '?');
-      const iWon = Boolean(me) && Boolean(me?.dice.every((d) => d === msg.target));
-      if (state.awaitingAck && myDiceKey(msg) !== state.lastMyDiceKey) {
-        // Mid-roll win: animate my reveal first; tryReveal shows the overlay.
-        state.pendingRollState = msg;
-        state.pendingWinName = myName;
-        state.pendingWinTarget = msg.target;
-        state.pendingWinRound = msg.round_num;
-        state.pendingWinIsLoser = !iWon;
+      // The result screen ALWAYS shows the winner — never the loser's own
+      // name (result2.json). The winner is the player with all dice on target;
+      // their photo rides in the snapshot.
+      const winnerEntry = Object.entries(msg.players).find(
+        ([, p]) => p.dice.length > 0 && p.dice.every((d) => d === msg.target),
+      );
+      const winnerName = msg.winner_name ?? winnerEntry?.[1].name ?? '?';
+      const winnerPhoto = winnerEntry?.[1].photo ?? null;
+      const iWon = winnerEntry?.[0] === state.myId;
+      /** @type {import('./roll-phase.js').RoundResult} */
+      const result = {
+        name: winnerName, photo: winnerPhoto, round: msg.round_num, target: msg.target, iWon,
+      };
+      if (legacyAwaitingAck(state.phase) && myDiceKey(msg) !== state.lastMyDiceKey) {
+        // Mid-roll win: animate my reveal first — runReveal shows the overlay
+        // as the dice land. The result rides in the phase, so it cannot be
+        // read (or half-cleared) outside the reveal that owns it.
+        dispatch({ t: 'SERVER_ROLL', snap: msg, result });
       } else {
         for (const timeout of state.pendingRollTimeouts) clearTimeout(timeout);
         state.pendingRollTimeouts = [];
-        state.awaitingAck = false;
-        state.rolling = false;
-        state.pendingRollState = null;
+        dispatch({ t: 'SHOW_RESULT', result });
         state.currentState = msg;
         state.lastMyDiceKey = myDiceKey(msg);
         // The renders ride onSwap so the dice scatter sees a displayed,
@@ -335,7 +325,7 @@ function handleMessage(msg) {
             renderMyArea(msg);
           },
         });
-        showWinner(myName, msg.target, msg.round_num, !iWon);
+        showWinner(winnerName, winnerPhoto, msg.round_num, iWon);
       }
       return;
     }
@@ -401,7 +391,7 @@ function handleError(msg) {
   } else if (state.currentState) {
     // In-game, non-fatal error (e.g. a rejected roll: "Slow down", "Game is
     // paused"). Previously dropped silently, which — paired with the reveal
-    // wait in tryReveal — left the roll button spinning. Unstick the roll
+    // wait in pumpRoll — left the roll button spinning. Unstick the roll
     // machine and re-render so the button re-enables.
     resetRollState();
     renderMyArea(state.currentState);
