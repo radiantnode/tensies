@@ -1,4 +1,9 @@
-Baselines in this directory were captured with the EXACT environment below.
+Baselines in this directory were RE-CAPTURED on 2026-08-20 from the Brass &
+Enamel redesign (main @ dc20ad7, PR #93). They previously showed the
+pre-redesign app. The Chromium build is unchanged from the original capture, so
+browser-guard.js needed no edit — only the pixels moved.
+
+Captured with the EXACT environment below.
 Pixel verification at maxDiffPixels:0 is only valid against the same Chromium
 build: sub-pixel font hinting differs across builds and will cause false diffs.
 browser-guard.js enforces the Chromium version at run time.
@@ -9,7 +14,13 @@ Viewports:         mobile  390x844  deviceScaleFactor 2  (isMobile)
 Launch flags:      --font-render-hinting=none --disable-skia-runtime-opts
 Compare:           maxDiffPixels 0, animations disabled, caret hidden, scale css
 App under test:    served at TENSIES_URL (default http://localhost:8888),
-                   production "/" route + assets.py cache-busting
+                   production "/" route + assets.py cache-busting.
+                   NOTE on elite01: :8888 is the LIVE PROD stack that feeds the
+                   Hubble wall. Capture against the isolated design stack on
+                   :8890 instead —
+                   `docker compose -f docker-compose.design.yml up -d`
+                   (its project name is pinned in the file), then
+                   TENSIES_URL=http://localhost:8890.
 
 To verify on another machine: install the matching browser
 (`npx playwright install chromium` with @playwright/test 1.61.0) or point

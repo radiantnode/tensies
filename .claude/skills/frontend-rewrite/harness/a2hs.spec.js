@@ -45,7 +45,7 @@ for (const n of [1, 2, 3, 4]) {
     await page.waitForSelector('#landing.active');
     await page.click('.a2hs-banner-main');
     await page.waitForSelector('.a2hs-overlay[open]');
-    await page.click(`.a2hs-dot[data-step="${n}"]`);
+    await page.click(`.a2hs-seg[data-step="${n}"]`);
     await page.waitForSelector(`.a2hs-phone[data-step="${n}"]`);
     await settle(page);
     await expect(page).toHaveScreenshot(`a2hs-step${n}.png`);

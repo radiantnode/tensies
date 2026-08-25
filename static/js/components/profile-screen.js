@@ -2,6 +2,7 @@
 import './app-header.js';
 import { attachAvatarFallback, avatarSrc, DEFAULT_AVATAR } from '../avatars.js';
 import { getAuthUser } from '../auth.js';
+import { syncUsernamePill } from '../account-sync.js';
 import { esc } from '../dom.js';
 import { showLanding, showGameDetail } from '../router.js';
 
@@ -57,17 +58,7 @@ export class ProfileScreen extends HTMLElement {
 
     // Sync signed-in username pill
     const header = this.querySelector('app-header');
-    if (header) {
-      const user = getAuthUser();
-      if (user) {
-        const tag = document.createElement('a');
-        tag.className = 'header-username';
-        tag.textContent = `@${user.username}`;
-        tag.href = `/@${user.username}`;
-        const btn = header.querySelector('.game-menu-btn');
-        btn?.parentElement?.insertBefore(tag, btn);
-      }
-    }
+    if (header) syncUsernamePill(header, getAuthUser());
   }
 
   /**
@@ -141,14 +132,15 @@ export class ProfileScreen extends HTMLElement {
     // Pills (location, etc.)
     const pillsEl = document.getElementById('profile-pills');
     if (pillsEl) {
+      // Drawn 1.7-stroke icons (shield / dice / pin) — never filled, no emoji.
       const pills = [];
-      if (data.admin) pills.push(`<span class="profile-pill profile-pill-admin"><svg class="profile-pill-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12v4.7c0 4.83-3.4 9.36-7 10.5-3.6-1.14-7-5.67-7-10.5V6.3l7-3.12z"/></svg>Barkeep</span>`);
+      if (data.admin) pills.push(`<span class="profile-pill profile-pill-admin"><svg class="profile-pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.6 4.6 5.7v5.1c0 4.6 3.2 8.9 7.4 10 4.2-1.1 7.4-5.4 7.4-10V5.7z"/></svg>Barkeep</span>`);
       if (data.member_since) {
         const d = new Date(data.member_since);
-        const since = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        pills.push(`<span class="profile-pill"><svg class="profile-pill-icon" viewBox="0 0 24 24" aria-hidden="true"><g transform="translate(7 8) rotate(-12)"><rect x="-6" y="-6" width="12" height="12" rx="2.5" fill="currentColor"/><circle cx="-2.5" cy="-2.5" r="1" fill="var(--color-bg, #1a1a1a)"/><circle cx="2.5" cy="-2.5" r="1" fill="var(--color-bg, #1a1a1a)"/><circle cx="-2.5" cy="2.5" r="1" fill="var(--color-bg, #1a1a1a)"/><circle cx="2.5" cy="2.5" r="1" fill="var(--color-bg, #1a1a1a)"/></g><g transform="translate(16 15) rotate(10)"><rect x="-6" y="-6" width="12" height="12" rx="2.5" fill="currentColor" opacity="0.6"/><circle cx="-2.5" cy="-2.5" r="1" fill="var(--color-bg, #1a1a1a)"/><circle cx="2.5" cy="2.5" r="1" fill="var(--color-bg, #1a1a1a)"/></g></svg>${since}</span>`);
+        const since = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        pills.push(`<span class="profile-pill"><svg class="profile-pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><rect x="2.6" y="8.4" width="12" height="12" rx="2.6"/><circle cx="6.2" cy="12" r=".9" fill="currentColor" stroke="none"/><circle cx="11" cy="16.8" r=".9" fill="currentColor" stroke="none"/><path d="M9.4 6.6 15.4 3.2a2.6 2.6 0 0 1 3.6 1l2.4 4.2a2.6 2.6 0 0 1-1 3.5l-2.8 1.6"/><circle cx="16.4" cy="7.4" r=".9" fill="currentColor" stroke="none"/></svg>Rolling since ${since}</span>`);
       }
-      if (data.location) pills.push(`<span class="profile-pill"><svg class="profile-pill-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>${esc(data.location)}</span>`);
+      if (data.location) pills.push(`<span class="profile-pill"><svg class="profile-pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21.2s6.6-6.1 6.6-10.5a6.6 6.6 0 1 0-13.2 0c0 4.4 6.6 10.5 6.6 10.5z"/><circle cx="12" cy="10.4" r="2.3"/></svg>${esc(data.location)}</span>`);
       if (pills.length) {
         pillsEl.innerHTML = pills.join('');
         pillsEl.hidden = false;
@@ -217,19 +209,23 @@ export class ProfileScreen extends HTMLElement {
               (/** @type {any} */ a, /** @type {any} */ b) => (b.wins || 0) - (a.wins || 0)
             );
             const unknownCount = Math.max(0, (r.player_count || 1) - 1 - opps.length);
-            const userPhoto = avatarSrc(data.profile_photo_url);
-            const mkAvatar = (/** @type {string} */ src, /** @type {string} */ name, /** @type {boolean} */ winner) =>
-              `<span class="recent-avatar-ring${winner ? ' recent-avatar-winner' : ''}"><img class="recent-avatar" src="${esc(src)}" alt="${esc(name)}"></span>`;
+            // A photo seats in the ring; no photo is a struck MONOGRAM — the
+            // seat stays about a person, never a silhouette.
+            const mkAvatar = (/** @type {string | null} */ src, /** @type {string} */ name, /** @type {boolean} */ winner) =>
+              `<span class="recent-avatar-ring avatar-seat${winner ? ' recent-avatar-winner' : ''}">${
+                src ? `<img class="recent-avatar" src="${esc(src)}" alt="${esc(name)}">`
+                    : `<span class="avatar-mono">${esc((name.trim()[0] || '?').toUpperCase())}</span>`
+              }</span>`;
             // Top opponent is the one with the most wins
             const topOppWins = opps.length > 0 ? (opps[0].wins || 0) : 0;
             const userWins = r.wins || 0;
-            const userAv = mkAvatar(userPhoto, data.username, userWins >= topOppWins);
+            const userAv = mkAvatar(data.profile_photo_url || null, data.username, userWins >= topOppWins);
             const oppAvs = opps.map((/** @type {any} */ o, /** @type {number} */ i) =>
-              mkAvatar(avatarSrc(o.photo), o.name, i === 0 && (o.wins || 0) >= userWins)
+              mkAvatar(o.photo || null, o.name, i === 0 && (o.wins || 0) >= userWins)
             );
-            // Add placeholder avatars for opponents who never rolled
+            // Add placeholder seats for opponents who never rolled
             for (let i = 0; i < unknownCount; i++) {
-              oppAvs.push(mkAvatar(DEFAULT_AVATAR, 'opponent', false));
+              oppAvs.push(mkAvatar(null, '?', false));
             }
             // Most wins first
             const allAvatars = userWins >= topOppWins

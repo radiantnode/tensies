@@ -1,6 +1,7 @@
 // @ts-check
 import './app-header.js';
-import { attachAvatarFallback, avatarSrc } from '../avatars.js';
+import { avatarSeat } from '../avatars.js';
+import { syncUsernamePill } from '../account-sync.js';
 import { getAuthUser } from '../auth.js';
 import { playCode } from '../audio-share.js';
 import { BACK_BUTTON_HTML } from '../back-button.js';
@@ -255,20 +256,7 @@ export class LobbyScreen extends HTMLElement {
   render(snap) {
     // Sync the username pill in the header.
     const header = this.querySelector('app-header');
-    if (header) {
-      const existing = header.querySelector('.header-username');
-      const user = getAuthUser();
-      if (user && !existing) {
-        const tag = document.createElement('a');
-        tag.className = 'header-username';
-        tag.textContent = `@${user.username}`;
-        tag.href = `/@${user.username}`;
-        const btn = header.querySelector('.game-menu-btn');
-        btn?.parentElement?.insertBefore(tag, btn);
-      } else if (!user && existing) {
-        existing.remove();
-      }
-    }
+    if (header) syncUsernamePill(header, getAuthUser());
 
     state.gameCode = snap.code;
     // Fill the stamp's serial, QR, and date from the join code, plus the
@@ -286,13 +274,12 @@ export class LobbyScreen extends HTMLElement {
         // narrowing (the outer `let row` widens back to | undefined in a closure).
         const el = document.createElement('li');
         el.className = 'player-list-item';
-        // Built once; name/avatar/badge are patched in place below so a
+        // Built once; the seat/name/badge are patched in place below so a
         // roster change doesn't reload avatars or reset the row.
-        el.innerHTML =
-          '<span class="lobby-avatar-ring"><img class="lobby-avatar" alt=""></span>' +
-          '<span class="lobby-player-name"></span>';
-        // Wire the broken-photo fallback once (the img is patched, not rebuilt).
-        attachAvatarFallback(/** @type {HTMLImageElement} */ (el.querySelector('.lobby-avatar')));
+        el.appendChild(avatarSeat(player.photo, player.name, 'lobby-avatar-seat avatar-seat'));
+        const nameEl = document.createElement('span');
+        nameEl.className = 'lobby-player-name';
+        el.appendChild(nameEl);
         // Fade+slide the row in as the player joins. One-shot: added only on
         // creation (keyed rows are built once) and cleared when it finishes, so
         // re-renders never replay it.
@@ -306,9 +293,15 @@ export class LobbyScreen extends HTMLElement {
       // mid-entrance (every join triggers a render) would kill the fade-in.
       const slot = others.findIndex(([p]) => p === pid);
       if (list.children[slot] !== row) list.insertBefore(row, list.children[slot] ?? null);
-      const img = /** @type {HTMLImageElement} */ (row.querySelector('.lobby-avatar'));
-      const src = avatarSrc(player.photo);
-      if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+      // Rebuild the seat only when the photo (or the initial it carries)
+      // actually changes, so re-renders never reload an image.
+      const seat = /** @type {HTMLElement} */ (row.querySelector('.avatar-seat'));
+      const seatKey = `${player.photo ?? ''}|${player.name[0] ?? ''}`;
+      if (seat.dataset.key !== seatKey) {
+        const fresh = avatarSeat(player.photo, player.name, 'lobby-avatar-seat avatar-seat');
+        fresh.dataset.key = seatKey;
+        seat.replaceWith(fresh);
+      }
       /** @type {HTMLElement} */ (row.querySelector('.lobby-player-name')).textContent = player.name;
       const badge = row.querySelector('.host-badge');
       if (pid === snap.host && !badge) row.appendChild(this.#badge('host-badge', 'HOST'));

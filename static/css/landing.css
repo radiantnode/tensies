@@ -1,207 +1,121 @@
-/* Landing + Join: two full-screen scrims over the bar photo. They share the
-   logo/heading/form vocabulary; the landing header chrome is hidden until the
-   nav menu opens (the hamburger itself stays clickable). */
+/* Landing: the bar exterior reads through; the form lives at the bottom where
+   the thumb is. The neon sign in the photograph IS the wordmark here, so the
+   header hides the lockup and keeps only the hamburger (and, signed in, the
+   account pill). */
 
 @layer components {
   .landing-screen {
     position: relative;
-    background: linear-gradient(
-      to top,
-      rgba(6, 3, 1, 0.96) 0%,
-      transparent 95%
-    );
   }
 
-  /* The hero (logo + form) lives in the lower half of the screen so the bar
-     photo/video reads through the top: the content box starts at the vertical
-     midpoint and its content is centred within that bottom half. */
-  .landing-screen .screen-body {
-    justify-content: center;
-    padding-block-start: 35vh;
-    overflow: visible;
+  /* Landing scrim: the sign stays legible up top, the form gets a ground.
+     On ::before at z-index -1 so the screen root never becomes a stacking
+     context (LAYERING.md). */
+  .landing-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-scrim);
+    background: linear-gradient(to top,
+      rgba(6, 3, 1, .97) 0%,
+      rgba(6, 3, 1, .88) 26%,
+      rgba(6, 3, 1, .35) 52%,
+      transparent 76%);
   }
 
-  /* Landing header floats out of flow; only its chrome hides until the menu
-     opens. `nav-menu-open` is toggled on <body> by the nav menu. */
+  /* Landing header floats out of flow; the lockup is hidden — the sign is the
+     wordmark — and no closing rule marks a boundary on a screen with no
+     content stack. The hamburger (and pill) stay. */
   .landing-screen .app-header {
     position: absolute;
     inset-block-start: 0;
     inset-inline: 0;
-    z-index: 100;
   }
 
-  .landing-screen .game-topbar::after { opacity: 0; }
-
-  .landing-screen .topbar-title-row {
-    background: transparent;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
+  .landing-screen .app-header::after { content: none; }
 
   .landing-screen .game-title { visibility: hidden; }
 
-  .landing-screen .game-menu-btn span {
-    background: rgba(255, 255, 255, 0.9);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  /* The form column: bottom-anchored, left-set like a letterhead. */
+  .landing-screen .screen-body {
+    justify-content: flex-end;
+    align-items: stretch;
+    text-align: start;
+    padding: 0 24px calc(26px + env(safe-area-inset-bottom));
   }
 
-  body.nav-menu-open .landing-screen .game-topbar::after {
-    opacity: 1;
-  }
-
-  body.nav-menu-open .landing-screen .topbar-title-row {
-    background: rgba(8, 4, 1, 0.58);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-
-  body.nav-menu-open .landing-screen .game-title { visibility: visible; }
-
-  /* Per-screen heading (e.g. "Join a Game") — warm white, NOT the brand wordmark. */
-  .screen-title {
-    margin-block-end: 0.5rem;
-    font-family: var(--font-family-heading);
-    font-size: 1.7rem;
-    font-weight: 500;
-    color: var(--color-text);
-    text-shadow: var(--shadow-text-lg);
-  }
-
-  /* Centered heading that shares its row with the absolute .btn-back chip on the
-     left: symmetric inline padding keeps the text optically centred against the
-     chip. Shared by the lobby heading and the changelog panel — one source. */
-  .screen-title.has-back {
-    padding-inline: 2.75rem;
-    text-align: center;
-  }
-
-  /* Landing greeting: large display heading (matches the About heading), with
-     extra room before the form. */
   .landing-greeting {
-    font-size: 2.5rem;
-    line-height: 1.1;
-    margin-block-end: 0.75rem;
+    font-size: 1.95rem;
+    font-weight: 700;
+    line-height: 1.14;
+    margin-block-end: 0.5rem;
   }
 
-  .tagline {
-    margin-block-end: 3rem;
-    font-size: 0.95rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-text-label);
-    text-shadow: var(--shadow-text);
-  }
-
-  /* Join sheet = the shared .sheet chrome (css/sheet.css) + these join tweaks:
-     a touch more breathing room around the form than the base sheet gives. */
-  .join-sheet { padding-inline: 1.75rem; }
-
-  .join-sheet .form-stack {
-    gap: 0.75rem;
-    margin-inline: auto;
-    padding-block: 3rem;
+  /* Signed in: the hint + name field are hidden, so give the greeting room
+     before the primary action. */
+  .landing-screen .field-hint[hidden] ~ .btn-primary {
+    margin-block-start: 1rem;
   }
 
   .form-stack {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
     inline-size: 100%;
-    max-inline-size: 320px;
   }
 
-  .or-divider {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-    margin-block: 0.15rem;
-    font-size: 0.82rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-text-muted);
-    text-shadow: var(--shadow-text);
-  }
-
-  .or-divider::before,
-  .or-divider::after {
-    content: '';
-    flex: 1;
-    block-size: 1px;
-    background: var(--color-border-strong);
-  }
-
-  .or-divider::before { background: linear-gradient(90deg, transparent, var(--color-border-strong)); }
-  .or-divider::after { background: linear-gradient(90deg, var(--color-border-strong), transparent); }
-
-  /* Matches the nav-menu About paragraph (.menu-about-body). */
   .field-hint {
-    margin-block-end: 0.4rem;
-    font-size: 1rem;
-    font-weight: 500;
-    line-height: 1.4;
-    color: rgba(240, 222, 202, 0.95);
+    margin-block-end: 1.15rem;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: #d9c19c;
     text-shadow: var(--shadow-text);
   }
 
   .field-hint-link {
-    color: var(--color-amber);
+    color: #f0cd8e;
     font-weight: 700;
     text-decoration: underline;
     text-underline-offset: 2px;
   }
 
-  .field-hint-link:hover { color: rgba(240, 205, 145, 0.98); }
+  .landing-screen #name-input { margin-block-end: 0.6rem; }
+  .landing-screen .btn-primary { margin-block-end: 1.05rem; }
+  .landing-screen .or-divider { margin-block-end: 1.05rem; }
 
-  /* Signed-in landing hides the name field + hint paragraph, collapsing the
-     greeting almost onto the Create Game button (flex gap skips display:none
-     siblings). Restore a comfortable gap so heading and primary action aren't
-     crowded. Signed-out landing keeps the input visible, so this never matches
-     there and the baseline is unaffected. */
-  .landing-screen #name-input[hidden] + .btn-primary {
-    margin-block-start: 1.5rem;
+  .landing-actions {
+    display: flex;
+    gap: 22px;
+    padding-inline: 18px;
   }
 
-  /* Landing reuses the lobby's round action buttons (.lobby-action). Hold the
-     glyphs still — the share-idle breathe is a lobby-only cue — and drop the
-     row's trailing margin since the form-stack gap already spaces it. */
-  .landing-actions { margin-block-end: 0; }
-  .landing-actions .lobby-action .btn-icon { animation: none; }
+  .landing-screen .error-msg { margin-block-start: 14px; }
 
-  /* Join with Code: a live, scrambling 5-letter game code in monospace. */
+  /* Join drawer form: the shared .sheet chrome + this stack. The error line
+     lives between the primary and the safe-area edge and must fit without
+     shoving the button off it. */
+  .join-sheet .form-stack { gap: 0.55rem; }
+  .join-sheet .error-msg {
+    min-block-size: 1.5rem;
+    padding-block-start: 9px;
+  }
+
+  /* Join with Code: a live, scrambling 5-letter game code on the enamel disc. */
   .join-code {
     font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-    font-size: 1rem;
+    font-size: 0.68rem;
     font-weight: 700;
-    letter-spacing: 0.045em;
+    letter-spacing: 0.04em;
     white-space: nowrap;
-    /* Fade the two ends (left/right) of the code out. */
-    -webkit-mask-image: linear-gradient(to right, transparent 5%, #000 50%, transparent 95%);
-            mask-image: linear-gradient(to right, transparent 5%, #000 50%, transparent 95%);
-    color: var(--color-text-warm);
-    opacity: 0.92;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    color: #ddbd88;
   }
 
-  /* Find Nearby Games: the whole button IS the radar scope — its .lobby-action
-     border is the rim, .landing-radar-sweep is the rotating conic wedge filling
-     it, ::after is the centre blip (reusing @keyframes radar-spin). */
+  /* Find Nearby Games: the ring IS the scope — a rotating conic sweep and the
+     you-dot, on the shared enamel disc. */
   .landing-radar {
     position: absolute;
     inset: 0;
     border-radius: 50%;
     overflow: hidden;
-    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.75);
-    /* Static crosshairs + concentric range rings (under the rotating sweep). */
-    background:
-      linear-gradient(color-mix(in srgb, currentColor 10%, transparent) 0 0) center / 100% 1px no-repeat,
-      linear-gradient(color-mix(in srgb, currentColor 10%, transparent) 0 0) center / 1px 100% no-repeat,
-      radial-gradient(circle at center,
-        transparent 0 8.3px,
-        color-mix(in srgb, currentColor 9%, transparent) 8.3px 9.3px,
-        transparent 9.3px 17.6px,
-        color-mix(in srgb, currentColor 9%, transparent) 17.6px 18.6px,
-        transparent 18.6px);
   }
 
   .landing-radar::after {
@@ -209,12 +123,11 @@
     position: absolute;
     inset-block-start: 50%;
     inset-inline-start: 50%;
-    inline-size: 6px;
-    block-size: 6px;
-    margin: -3px 0 0 -3px;
+    inline-size: 5px;
+    block-size: 5px;
+    margin: -2.5px 0 0 -2.5px;
     border-radius: 50%;
-    background: currentColor;
-    opacity: 0.85;
+    background: #f0cd8e;
   }
 
   .landing-radar-sweep {
@@ -223,71 +136,31 @@
     border-radius: 50%;
     background: conic-gradient(
       from 0deg,
-      color-mix(in srgb, currentColor 55%, transparent) 0deg,
-      color-mix(in srgb, currentColor 14%, transparent) 26deg,
+      rgba(226, 183, 110, .55) 0deg,
+      rgba(226, 183, 110, .12) 26deg,
       transparent 60deg,
       transparent 360deg);
     animation: radar-spin 4s linear infinite;
+  }
+
+  @keyframes radar-spin {
+    to { transform: rotate(360deg); }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .landing-radar-sweep { animation: none; }
   }
 
-  /* Round, chevron-only back button — one canonical top-left position shared by
-     every screen that has one (per-screen overrides only reposition it). */
-  .btn-back {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    inset-block-start: 1.45rem;
-    inset-inline-start: calc(2rem - 5px);
-    inline-size: 2.5rem;
-    block-size: 2.5rem;
-    padding: 0;
-    background: var(--color-raised);
-    border: 1px solid var(--color-border-strong);
-    border-radius: 50%;
-    box-shadow: inset 0 1px 0 rgba(220, 170, 70, 0.12), 0 2px 8px rgba(0, 0, 0, 0.45);
-    color: var(--color-text-warm);
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-  }
-
-  .btn-back:hover {
-    background: var(--color-raised-hover);
-    border-color: rgba(190, 130, 55, 0.45);
-    color: #fff;
-  }
-
-  .back-chevron {
-    flex-shrink: 0;
-    inline-size: 18px;
-    block-size: 18px;
-    /* optical nudge — the chevron's mass sits right of centre */
-    margin-inline-start: -1px;
-  }
-
-  @media (max-height: 700px) {
-    .tagline { margin-block-end: 1.5rem; }
-  }
-
   /* Short viewports (Safari chrome eats height, small phones): the landing's
-     centred form has a fixed vertical budget (3 buttons + input + gaps) in an
-     overflow:hidden body, so it crowds/clips. Tighten the buttons + gaps in
-     steps so it stays comfortable. Scoped to the landing only. */
-  @media (max-height: 800px) {
-    .landing-screen .form-stack { gap: 0.6rem; }
-    .landing-screen .or-divider { margin-block: 0.05rem; }
-  }
+     bottom-anchored form has a fixed vertical budget; tighten in steps. */
   @media (max-height: 720px) {
-    .landing-screen .form-stack { gap: 0.5rem; }
     .landing-screen .btn { padding-block: 0.72rem; }
-    .landing-screen .field-hint { margin-block-end: 0.25rem; }
+    .landing-screen .field-hint { margin-block-end: 0.8rem; }
+    .landing-screen .btn-primary,
+    .landing-screen .or-divider { margin-block-end: 0.8rem; }
   }
   @media (max-height: 640px) {
-    .landing-screen .form-stack { gap: 0.4rem; }
     .landing-screen .btn { padding-block: 0.62rem; font-size: 0.95rem; }
+    .landing-greeting { font-size: 1.72rem; }
   }
 }

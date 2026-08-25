@@ -71,6 +71,16 @@ if TELEMETRY_ENABLED and STATS_TOKEN is None:
     log.warning("/stats/* is UNAUTHENTICATED (set STATS_TOKEN to require a bearer token)")
 
 
+def _shell(html: str | None = None) -> HTMLResponse:
+    """An SPA shell response. The shell is the ONE non-fingerprinted file the
+    client loads — without an explicit Cache-Control, Safari's heuristic cache
+    happily pairs a stale shell with immutable-cached old assets and renders a
+    build from hours ago (caught on device 2026-08-20, thirteen deploys deep).
+    no-cache = always revalidate, never reuse blind."""
+    return HTMLResponse(html if html is not None else _render_index(),
+                        headers={"Cache-Control": "no-cache"})
+
+
 def _bearer_guard(expected: str | None):
     """Dependency factory (audit M2). When `expected` is set, require
     `Authorization: Bearer <expected>`. When unset, the endpoint stays open —
@@ -90,7 +100,7 @@ def _require_telemetry() -> None:
 
 @router.get("/")
 async def root() -> HTMLResponse:
-    return HTMLResponse(_render_index())
+    return _shell()
 
 
 @router.get("/metrics", dependencies=[Depends(_bearer_guard(METRICS_TOKEN))])
@@ -181,22 +191,27 @@ async def stats_game(game_code: str) -> dict:
 # Declared last so the explicit routes above (/, /metrics, /stats/*) win.
 @router.get("/join")
 async def join_page() -> HTMLResponse:
-    return HTMLResponse(_render_index())
+    return _shell()
 
 
 @router.get("/signin")
 async def signin_page() -> HTMLResponse:
-    return HTMLResponse(_render_index())
+    return _shell()
 
 
 @router.get("/welcome")
 async def welcome_page() -> HTMLResponse:
-    return HTMLResponse(_render_index())
+    return _shell()
 
 
 @router.get("/nearby")
 async def nearby_page() -> HTMLResponse:
-    return HTMLResponse(_render_index())
+    return _shell()
+
+
+@router.get("/changelog")
+async def changelog_page() -> HTMLResponse:
+    return _shell()
 
 
 def _valid_coords(lat: float, lon: float) -> bool:
@@ -582,7 +597,7 @@ async def verify_roll(code: str, pid: str, roll_count: int) -> dict:
 
 @router.get("/games/{code}")
 async def game_detail_page(code: str) -> HTMLResponse:
-    return HTMLResponse(_render_index())
+    return _shell()
 
 
 # Vanity profile URLs: tensies.app/@username. The @ prefix guarantees no
@@ -590,7 +605,7 @@ async def game_detail_page(code: str) -> HTMLResponse:
 @router.get("/@{username}")
 async def profile_vanity(username: str) -> HTMLResponse:
     if not TELEMETRY_ENABLED:
-        return HTMLResponse(_render_index())
+        return _shell()
     try:
         from server.telemetry import store
         async with store.pool().acquire() as con:
@@ -599,7 +614,7 @@ async def profile_vanity(username: str) -> HTMLResponse:
                 username.lower(),
             )
             if user is None:
-                return HTMLResponse(_render_index())
+                return _shell()
             stats = await con.fetchrow(
                 "SELECT total_wins, total_games FROM player_stats WHERE user_id = ("
                 "SELECT id::text FROM users WHERE LOWER(username) = $1)",
@@ -621,10 +636,10 @@ async def profile_vanity(username: str) -> HTMLResponse:
             share_description=" ".join(desc_parts),
             canonical_url=f"{base}/@{display}" if base else f"/@{display}",
         )
-        return HTMLResponse(html)
+        return _shell(html)
     except Exception:
         log.exception("profile meta injection failed for @%s", username)
-        return HTMLResponse(_render_index())
+        return _shell()
 
 
 # Clean join URLs: GET /<code> serves the SPA, which reads the code from the
@@ -639,4 +654,4 @@ _GAME_CODE_RE = re.compile(r"[A-Za-z]{5}")
 async def join_deeplink(code: str) -> HTMLResponse:
     if not _GAME_CODE_RE.fullmatch(code):
         raise HTTPException(status_code=404)
-    return HTMLResponse(_render_index())
+    return _shell()

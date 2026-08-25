@@ -1,58 +1,43 @@
-/* Game board. (The top bar — .game-topbar/.topbar-title-row/.game-title —
-   lives in shell.css, shared with the pre-game screens.) */
+/* Game board (board.json). The top bar lives in shell.css; the players bar in
+   players-bar.css; the in-game menu in menu.css. Background is the fixed
+   #game-bg still (critical.css) — the commissioned video is only the intro. */
 
 @layer components {
   .game-screen {
     position: relative;
     max-block-size: 100%;
-    /* Background lives on the fixed #game-bg layer (critical.css) so it shares
-       the intro video's geometry and doesn't shift on the intro→board handoff. */
+    /* One die size for the whole board — table and mat (owner-pinned). */
+    --die-size: 52px;
+    --mat-gap: 16px;
   }
 
-  /* Round status card */
+  /* ── round status: lettered straight onto the wood. No container, no plate;
+     the label is a legend and the die is the only object. The -6px lift
+     reclaims the top bar's 22px fade runway so the play area is unmoved. ── */
   .round-status {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.55rem;
+    gap: 9px;
     flex-shrink: 0;
-    inline-size: min(240px, 76%);
-    margin: 1.6rem auto 0.4rem;
+    margin: -6px auto 0;
     text-align: center;
   }
 
   .round-label {
-    display: inline-block;
-    position: relative;
-    padding: 0.34rem 0.9rem;
-    background: rgba(30, 15, 6, 0.22);
-    border-radius: 999px;
-    box-shadow:
-      inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.42),
-      inset 2px -2px 6px rgba(70, 28, 8, 0.4),
-      2px -2px 9px rgba(255, 186, 102, 0.42),
-      5px -5px 22px rgba(246, 152, 62, 0.3),
-      0 3px 9px rgba(0, 0, 0, 0.45);
-    font-size: 0.76rem;
+    font-size: 0.56rem;
     font-weight: 800;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.26em;
     text-transform: uppercase;
-    color: var(--color-text-warm);
-    text-shadow: var(--shadow-text);
+    font-stretch: 118%;
+    color: var(--color-legend);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .95);
   }
 
-  .round-label::before {
-    padding: 1px;
-    background: linear-gradient(to bottom left,
-      rgba(252, 200, 126, 0.95) 0%,
-      rgba(216, 148, 80, 0.55) 38%,
-      rgba(150, 96, 46, 0.2) 100%);
-  }
-
-  .round-status .round-target-die { margin: 0; }
-
+  /* The target die: dark vitreous enamel, gold pips, set down at a slight
+     angle as a die on a table is. */
   .round-target-die {
-    --sz: 56px;
+    --sz: 52px;
     display: grid;
     grid-template: repeat(3, 1fr) / repeat(3, 1fr);
     gap: 3px;
@@ -60,48 +45,58 @@
     block-size: var(--sz);
     margin: 0 auto;
     padding: 8px;
-    background: radial-gradient(130% 130% at 30% 26%, #ff7e95 0%, #ff4d6d 55%, #e23457 100%);
-    border-radius: 13px;
+    border-radius: 10px;
+    background: var(--enamel-face);
     box-shadow:
-      inset 0 1px 2px rgba(255, 255, 255, 0.42),
-      inset 0 -3px 6px rgba(150, 12, 42, 0.42),
-      0 0 24px rgba(255, 77, 109, 0.45);
-    filter: drop-shadow(4px 7px 12px rgba(0, 0, 0, 0.95)) drop-shadow(2px 3px 4px rgba(0, 0, 0, 0.8));
+      inset 0 0 0 1px rgba(224, 178, 96, .5),
+      inset 0 2px 5px rgba(0, 0, 0, .85),
+      0 1px 0 rgba(255, 230, 175, .22),
+      0 5px 14px rgba(0, 0, 0, .7);
     transform: rotate(-8deg);
   }
 
   .round-target-die .dot { border-radius: 50%; }
 
   .round-target-die .dot.active {
-    background: radial-gradient(circle at 42% 34%, #ffffff 0%, #ffe6ec 80%);
-    box-shadow: inset 0 1px 1.5px rgba(130, 12, 38, 0.5), inset 0 -1px 1px rgba(255, 255, 255, 0.5);
+    background: radial-gradient(circle at 38% 28%, #fff0cc 0%, #e8bd76 52%, #a97e34 100%);
+    box-shadow:
+      inset 0 1px 1px rgba(255, 250, 228, .8),
+      inset 0 -1px 1.5px rgba(96, 62, 14, .7),
+      0 1px 2px rgba(0, 0, 0, .85);
   }
 
-  /* My area */
+  /* My area. Overflow stays visible: the round status is lifted -6px into
+     the top bar's fade runway (board.json) and must not be clipped. */
   .my-area {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-block-size: 0;
-    padding: 0 1rem 0;
-    overflow: hidden;
   }
 
-  /* Dice zones */
+  /* Dice zones: the open table on the left, the mat in the original
+     right-hand slot. */
   .dice-zones {
+    position: relative;
     display: flex;
-    align-items: stretch;
-    gap: 0.75rem;
+    justify-content: flex-end;
+    align-items: flex-start;
     flex: 1;
     min-block-size: 0;
+    padding: 14px 12px 0;
     user-select: none;
     -webkit-user-select: none;
   }
 
+  /* The open table is a layer over the WHOLE board — edge to edge, and down
+     through the roll strip to the bottom of the viewport (minus the
+     safe-area inset). The mat and the ROLL coin sit on top of it; placeGrid
+     (dice.js) reads their boxes and keeps the scatter clear of them, the
+     same way it keeps clear of the glass in the background still. So the
+     strip under the mat and beside the coin is scatter area too. */
   .zone-unmatched {
-    position: relative;
-    flex: 1;
-    margin-block-end: 3rem;
+    position: absolute;
+    inset: 0 0 calc(-1 * (88px + 20px)) 0;
   }
 
   .die-wrapper {
@@ -111,183 +106,171 @@
 
   /* While a view transition into the board is animating, the 3-D dice are
      held invisible so the transition never rasterizes them (WebKit flattens
-     preserve-3d in the capture — dice mis-render as 6s or vanish edge-on).
-     transitions.js adds/removes the class around the swap; the flat 2-D
-     round-target die is unaffected and stays visible. */
+     preserve-3d in the capture). transitions.js adds/removes the class. */
   .game-screen.vt-settling .die-scene { visibility: hidden; }
 
+  /* ── the mat: oxblood leather, stitched, recessed. Dice set aside are the
+     same dice — same size and pips — only their contact shadow tightens
+     (dice.css). The mat itself is shoved past the right edge and set down at
+     a slight angle, so the open table gets the room. The shove (-52px) and
+     the angle (-6° about the bottom-right corner) are tuned so every locked
+     die's face stays inside a 390px viewport; pushing further clips the
+     right column. 2×5, filling top-down, no label. ── */
   .zone-matched {
+    margin-inline-end: -52px;
+    transform: rotate(-6deg);
+    transform-origin: right bottom;
     display: flex;
     flex-wrap: wrap;
     align-content: flex-start;
-    justify-content: flex-end;
-    gap: 14px;
+    justify-content: flex-start;
+    gap: var(--mat-gap);
     flex-shrink: 0;
-    inline-size: calc(2 * 56px + 14px);
-    padding-block-start: 1rem;
-  }
-
-  .zone-matched .die-scene:nth-child(3n) { transform: rotate(3.5deg); }
-  .zone-matched .die-scene:nth-child(3n+1) { transform: rotate(-2.5deg); }
-  .zone-matched .die-scene:nth-child(3n+2) { transform: rotate(1.5deg); }
-
-  /* Roll button */
-  .roll-area {
+    padding: var(--mat-gap);
+    inline-size: calc(2 * var(--die-size) + 3 * var(--mat-gap));
+    block-size: calc(5 * var(--die-size) + 6 * var(--mat-gap));
     position: relative;
-    flex-shrink: 0;
-    margin-inline: -1rem;
-    padding-block-start: 0;
-    padding-block-end: env(safe-area-inset-bottom);
-    padding-inline: 1rem;
-    text-align: center;
-    background: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    background-image: linear-gradient(
-      to right,
-      rgba(170, 115, 45, 0.35) 0%,
-      rgba(255, 200, 100, 0.7) calc(50% - 5rem),
-      rgba(170, 115, 45, 0.35) calc(50% - 3rem),
-      transparent calc(50% - 3rem),
-      transparent calc(50% + 3rem),
-      rgba(170, 115, 45, 0.35) calc(50% + 3rem),
-      rgba(255, 200, 100, 0.7) calc(50% + 5rem),
-      rgba(170, 115, 45, 0.35) 100%
-    );
-    background-size: 100% 1px;
-    background-repeat: no-repeat;
-    background-position: top;
+    border-radius: 8px;
+    background:
+      repeating-linear-gradient(64deg, rgba(255, 220, 180, .02) 0 2px, transparent 2px 5px),
+      repeating-linear-gradient(-32deg, rgba(0, 0, 0, .05) 0 3px, transparent 3px 7px),
+      radial-gradient(120% 150% at 32% 12%, #4a2117 0%, #341510 48%, #230d0a 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(122, 58, 36, .85),
+      inset 0 1px 0 rgba(196, 116, 78, .42),
+      inset 0 -9px 18px rgba(0, 0, 0, .5),
+      inset 0 9px 15px rgba(0, 0, 0, .32),
+      0 2px 0 rgba(14, 6, 3, .8),
+      0 10px 22px rgba(0, 0, 0, .7);
   }
 
-  .roll-area::before {
+  /* The stitch line inside the leather edge. */
+  .zone-matched::before {
     content: '';
     position: absolute;
-    bottom: 100%;
-    left: 50%;
-    translate: -50% 0;
-    width: 6rem;
-    height: 3rem;
-    background: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    border-radius: 3rem 3rem 0 0;
-    border-block-start: 1px solid rgba(200, 150, 70, 0.65);
-    border-inline: 1px solid rgba(200, 150, 70, 0.65);
+    inset: 5px;
+    border-radius: 5px;
+    pointer-events: none;
+    background:
+      repeating-linear-gradient(90deg, rgba(216, 152, 98, .34) 0 4px, transparent 4px 9px) top / 100% 1px no-repeat,
+      repeating-linear-gradient(90deg, rgba(216, 152, 98, .34) 0 4px, transparent 4px 9px) bottom / 100% 1px no-repeat,
+      repeating-linear-gradient(0deg, rgba(216, 152, 98, .34) 0 4px, transparent 4px 9px) left / 1px 100% no-repeat,
+      repeating-linear-gradient(0deg, rgba(216, 152, 98, .34) 0 4px, transparent 4px 9px) right / 1px 100% no-repeat;
+  }
+
+  /* Set-down jitter so the mat reads as dice put down by hand, not a grid. */
+  .zone-matched .die-scene:nth-child(10n+1) { transform: translate(1px, -1px) rotate(-2.5deg); }
+  .zone-matched .die-scene:nth-child(10n+2) { transform: translate(-1px, 1px) rotate(2deg); }
+  .zone-matched .die-scene:nth-child(10n+3) { transform: translate(0, -1px) rotate(-1deg); }
+  .zone-matched .die-scene:nth-child(10n+4) { transform: translate(1px, 0) rotate(3deg); }
+  .zone-matched .die-scene:nth-child(10n+5) { transform: translate(-1px, 1px) rotate(-2deg); }
+  .zone-matched .die-scene:nth-child(10n+6) { transform: translate(0, 1px) rotate(1.5deg); }
+  .zone-matched .die-scene:nth-child(10n+7) { transform: translate(1px, -1px) rotate(-3deg); }
+  .zone-matched .die-scene:nth-child(10n+8) { transform: translate(-1px, 0) rotate(1deg); }
+  .zone-matched .die-scene:nth-child(10n+9) { transform: translate(1px, 1px) rotate(2.5deg); }
+  .zone-matched .die-scene:nth-child(10n) { transform: translate(0, -1px) rotate(-1.5deg); }
+
+  /* ── THE ROLL COIN: one solid piece of keeper brass at 88px, everything
+     struck into it. One 20px inset on BOTH edges; the safe-area allowance is
+     added BELOW the inset, not folded into it. ── */
+  .roll-area {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 20px calc(20px + env(safe-area-inset-bottom));
   }
 
   .btn-roll {
     position: relative;
-    z-index: 1;
-    transform: translateY(-2.3rem);
-    background: rgba(30, 15, 6, 0.22);
-    border: none;
+    inline-size: 88px;
+    block-size: 88px;
     border-radius: 50%;
-    aspect-ratio: 1;
-    padding: 0;
-    width: 4.5rem;
-    box-shadow:
-      inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.2),
-      inset 2px -2px 6px rgba(70, 28, 8, 0.2),
-      2px -2px 9px rgba(255, 186, 102, 0.15),
-      0 3px 12px rgba(0, 0, 0, 0.3),
-      0 0 18px rgba(255, 186, 102, 0.08);
-    font-size: 1.25rem;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    color: rgba(240, 200, 140, 0.9);
-    text-shadow: 0 0 6px rgba(255, 186, 102, 0.4), 0 1px 2px rgba(0, 0, 0, 0.85);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 0 4px;
+    border: none;
     cursor: pointer;
-    touch-action: manipulation;
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
-    transition: transform 0.07s ease, box-shadow 0.07s ease, background 0.07s ease;
+    background: var(--brush), var(--brass);
+    box-shadow:
+      inset 0 2px 0 rgba(255, 247, 220, .95),
+      inset 0 -2px 0 rgba(96, 60, 16, .85),
+      0 3px 0 var(--seat),
+      0 10px 26px rgba(0, 0, 0, .85);
+    transition: transform 0.07s ease, box-shadow 0.07s ease;
   }
 
+  .btn-roll:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow:
+      inset 0 2px 0 rgba(255, 247, 220, .95),
+      inset 0 -2px 0 rgba(96, 60, 16, .85),
+      0 1px 0 var(--seat),
+      0 6px 16px rgba(0, 0, 0, .8);
+  }
+
+  /* the turned line inside the edge, as a struck coin has */
   .btn-roll::before {
     content: '';
     position: absolute;
-    inset: -2rem;
+    inset: 6px;
     border-radius: 50%;
-  }
-
-  .btn-roll::after {
-    padding: 1.5px;
-    background: linear-gradient(to bottom left,
-      rgba(252, 200, 126, 0.8) 0%,
-      rgba(216, 148, 80, 0.55) 38%,
-      rgba(150, 96, 46, 0.25) 100%);
-  }
-
-  @property --glow-angle {
-    syntax: "<angle>";
-    initial-value: 0deg;
-    inherits: false;
-  }
-
-  .btn-roll:disabled::after {
-    background: conic-gradient(
-      from var(--glow-angle),
-      rgba(150, 96, 46, 0.3) 0deg,
-      rgba(255, 220, 140, 0.9) 30deg,
-      rgba(255, 240, 180, 1) 60deg,
-      rgba(255, 220, 140, 0.9) 90deg,
-      rgba(150, 96, 46, 0.3) 120deg,
-      rgba(150, 96, 46, 0.3) 360deg
-    );
-    animation: border-rotate 0.8s linear infinite;
-  }
-
-  .btn-roll:disabled {
-    color: rgba(215, 180, 130, 0.2);
-    text-shadow: none;
+    pointer-events: none;
     box-shadow:
-      inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.2),
-      inset 2px -2px 6px rgba(70, 28, 8, 0.2),
-      2px -2px 9px rgba(255, 186, 102, 0.15),
-      0 3px 12px rgba(0, 0, 0, 0.3),
-      0 0 24px rgba(255, 186, 102, 0.18);
+      inset 0 0 0 1px rgba(96, 60, 16, .32),
+      inset 0 1px 0 rgba(255, 250, 230, .42);
+  }
+
+  .btn-roll .roll-mark {
+    display: block;
+    pointer-events: none;
+  }
+
+  /* ROLL is RAISED, not cut. */
+  .btn-roll .roll-word {
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.19em;
+    font-stretch: 118%;
+    text-transform: uppercase;
+    color: #5c3a0c;
+    text-shadow: 0 -1px 0 rgba(120, 76, 18, .5), 0 1px 0 rgba(255, 250, 230, .85);
+  }
+
+  /* Disabled (mid-roll, paused): the brass keeps its hue and loses its light —
+     flat in its recess, no lit lip, no seat. */
+  .btn-roll:disabled {
+    background: var(--brass-off);
     cursor: not-allowed;
-    animation: orb-pulse 1.5s ease-in-out infinite;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 240, 205, .22),
+      inset 0 -1px 0 rgba(40, 25, 8, .6),
+      inset 0 2px 6px rgba(0, 0, 0, .45);
   }
 
-  @keyframes orb-pulse {
-    0%, 100% {
-      box-shadow:
-        inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.2),
-        inset 2px -2px 6px rgba(70, 28, 8, 0.2),
-        0 0 12px rgba(255, 186, 102, 0.1),
-        0 0 24px rgba(255, 170, 60, 0.08);
-    }
-    50% {
-      box-shadow:
-        inset -1.5px 1.5px 5px rgba(255, 200, 122, 0.2),
-        inset 2px -2px 6px rgba(70, 28, 8, 0.2),
-        0 0 30px rgba(255, 186, 102, 0.55),
-        0 0 60px rgba(255, 170, 60, 0.35),
-        0 0 90px rgba(255, 170, 60, 0.15);
-    }
+  .btn-roll:disabled::before {
+    box-shadow: inset 0 0 0 1px rgba(40, 25, 8, .35);
   }
 
-  @keyframes border-rotate {
-    to { --glow-angle: 360deg; }
+  .btn-roll:disabled .roll-word {
+    color: #3a2a12;
+    text-shadow: none;
   }
 
-  @media (max-width: 480px) {
-    .zone-matched { inline-size: calc(2 * 50px + 14px); }
-  }
+  .btn-roll:disabled .roll-mark { opacity: 0.55; }
 
+  /* Short viewports: tighten the runway and step the dice down. */
   @media (max-height: 700px) {
-    .round-status { margin: 0.85rem auto 0.7rem; }
-
-    .roll-area {
-      padding-block-start: 0.5rem;
-      padding-block-end: calc(0.75rem + env(safe-area-inset-bottom));
-    }
+    .round-status { margin-block-start: -12px; }
+    .roll-area { padding-block-end: calc(14px + env(safe-area-inset-bottom)); }
   }
 
   @media (max-height: 600px) {
-    .round-status { margin: 0.5rem auto; padding: 0.55rem 0.85rem 0.7rem; }
-    .zone-matched { inline-size: calc(2 * 46px + 14px); }
+    .game-screen { --die-size: 46px; }
     .round-target-die { --sz: 46px; }
+    .dice-zones { padding-block-start: 8px; }
   }
 }

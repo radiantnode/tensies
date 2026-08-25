@@ -1,12 +1,14 @@
-/* Players bar: the scrollable row of <player-card> minis under the game
-   title row. */
+/* Players bar: the row of <player-card> minis in the board's top bar.
+   Name on its own line; a brass channel carries progress; the score and the
+   embossed N WON tag share the line beneath. Deeper text shadows ride with
+   the bar's thin masked ground (topbar.json). */
 
 @layer components {
   .players-bar {
     display: flex;
     flex-direction: row;
-    gap: 0.45rem;
-    padding: 0.6rem 0.75rem;
+    gap: 13px;
+    padding: 0 12px 10px;
     overflow-x: auto;
     scrollbar-width: none;
   }
@@ -14,94 +16,140 @@
   .players-bar::-webkit-scrollbar { display: none; }
 
   .player-mini {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 4px;
     flex: 1;
-    min-inline-size: 48px;
-    max-inline-size: 96px;
+    min-inline-size: 64px;
+    max-inline-size: 140px;
+  }
+
+  /* A hairline between cards, scored into the bar like a divider on a brass
+     sign — so one player's tag can't be misread as the next player's. */
+  .player-mini + .player-mini::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: -7px;
+    inset-block: 1px;
+    inline-size: 1px;
+    background: linear-gradient(180deg, transparent,
+      rgba(214, 166, 96, .28) 22%, rgba(214, 166, 96, .28) 78%, transparent);
   }
 
   .player-mini-top {
     display: flex;
     align-items: baseline;
-    gap: 0.25rem;
+    gap: 5px;
   }
 
   .player-mini-name {
     flex: 1;
+    min-inline-size: 0;
     overflow: hidden;
-    font-size: 0.72rem;
+    font-size: 0.74rem;
     font-weight: 700;
+    letter-spacing: 0;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: rgba(230, 200, 160, 0.88);
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    color: #ecd9b6;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .95), 0 0 10px rgba(0, 0, 0, .7);
   }
 
+  .player-mini.is-me .player-mini-name { color: #fdf0d4; }
+
+  /* YOU reads as a quiet engraved tag, not an alert. */
   .player-mini-you {
     flex-shrink: 0;
-    font-size: 0.55rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
+    font-size: 0.48rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
     text-transform: uppercase;
-    color: rgba(230, 130, 110, 0.85);
+    font-stretch: 118%;
+    color: #b9925c;
   }
 
-  .player-mini-wins {
-    flex-shrink: 0;
-    padding: 0.1rem 0.3rem;
-    background: rgba(150, 95, 35, 0.22);
-    border-radius: 6px;
-    font-size: 0.58rem;
-    font-weight: 700;
-    white-space: nowrap;
-    color: rgba(230, 200, 160, 0.85);
-  }
-
+  /* The bar itself: a channel machined into the dark, filled with brass. */
   .player-mini-progress {
-    block-size: 6px;
+    position: relative;
+    block-size: 7px;
+    margin-block-start: 5px;
+    border-radius: 4px;
     overflow: hidden;
-    background: rgba(40, 22, 10, 0.55);
-    border-radius: 3px;
+    background: linear-gradient(180deg, #0b0603, #170d06);
+    box-shadow:
+      inset 0 2px 3px rgba(0, 0, 0, .95),
+      inset 0 -1px 0 rgba(226, 183, 110, .16);
   }
 
   .player-mini-fill {
     block-size: 100%;
-    background: linear-gradient(90deg,
-      rgba(150, 95, 35, 0.85) 0%,
-      rgba(190, 130, 60, 0.95) 70%,
-      rgba(230, 175, 100, 1) 100%);
-    border-radius: 3px;
-    box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.18);
+    border-radius: 4px;
+    background: var(--brush), var(--brass);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 247, 220, .85),
+      inset 0 -1px 0 rgba(96, 60, 16, .7);
     transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
-  .player-mini-fill.me {
-    background: linear-gradient(90deg,
-      rgba(180, 130, 55, 0.85) 0%,
-      rgba(225, 180, 100, 0.95) 70%,
-      rgba(250, 220, 155, 1) 100%);
+  /* Nearly there: the fill brightens to polished gold — never pink. */
+  .player-mini-fill.hot {
+    background: var(--brush), var(--brass-hot);
   }
 
-  .player-mini-fill.hot {
-    background: linear-gradient(90deg,
-      rgba(180, 40, 70, 0.85) 0%,
-      var(--color-accent) 70%,
-      rgba(255, 130, 155, 1) 100%);
+  .player-mini-foot {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-block-start: 4px;
   }
 
   .player-mini-count {
     font-size: 0.58rem;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
-    color: rgba(200, 170, 130, 0.65);
+    letter-spacing: 0.04em;
+    color: #c0a274;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .95);
   }
 
-  .player-mini-count.hot {
-    font-weight: 700;
-    color: var(--color-accent);
+  .player-mini-count.hot { color: #f4dfae; }
+
+  /* Rounds won: ONE embossed state for every count — a quiet tag pressed
+     into the dark bar. A numeral, not pips: Tensies has no finish line. */
+  .player-mini-won {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    flex-shrink: 0;
+    margin-inline-start: auto;
+    padding: 1px 5px 2px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, rgba(56, 35, 16, .5), rgba(28, 17, 8, .5));
+    box-shadow:
+      inset 0 1px 0 rgba(232, 196, 130, .2),
+      inset 0 -1px 0 rgba(0, 0, 0, .55),
+      0 1px 1px rgba(0, 0, 0, .45);
+    color: var(--color-tag);
+    text-shadow: 0 1px 0 rgba(0, 0, 0, .8);
+  }
+
+  .player-mini-won .v {
+    font-size: 0.62rem;
+    font-weight: 800;
+    line-height: 1;
+    font-stretch: 112%;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .player-mini-won .l {
+    font-size: 0.42rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-stretch: 118%;
+    opacity: 0.72;
   }
 
   /* Dimmed card for a disconnected player */
-  .player-mini.disconnected { opacity: 0.35; }
+  .player-mini.disconnected { opacity: 0.4; }
 }
