@@ -14,6 +14,19 @@ let profileCache = null;
 let profileFor = null;
 /** @type {Promise<void> | null} */
 let profileFetch = null;
+/** @type {number} epoch ms before which a failed lookup will not be retried */
+let profileRetryAfter = 0;
+
+// A lookup that came back empty has to be REMEMBERED, not just not-cached.
+// syncUsernamePill/syncAccountMark call loadProfile() on every header render
+// whenever there is no cache, and on failure there is never a cache — so
+// without this the pair re-request on every render. Measured on a
+// TELEMETRY_ENABLED=0 deploy (where /api/profile is a deliberate 503): ~200
+// identical requests in a few seconds.
+//
+// Time-boxed rather than permanent: a transient failure must not cost the
+// account photo for the rest of the page's life.
+const PROFILE_RETRY_MS = 60_000;
 
 /**
  * The cached profile for the signed-in account (photo + stats), if loaded.
@@ -26,15 +39,18 @@ export function cachedProfile(username) {
 /**
  * Fetch (once) the signed-in account's public profile; resolves when the
  * cache is filled. Degrades silently when profiles are unavailable
- * (TELEMETRY_ENABLED=0 deployments return 503).
+ * (TELEMETRY_ENABLED=0 deployments return 503) — and, having failed, backs
+ * off for PROFILE_RETRY_MS instead of re-requesting on every render.
  * @param {string} username
  */
 export function loadProfile(username) {
-  if (profileFor === username && (profileCache || profileFetch)) {
-    return profileFetch ?? Promise.resolve();
+  if (profileFor === username) {
+    if (profileCache || profileFetch) return profileFetch ?? Promise.resolve();
+    if (Date.now() < profileRetryAfter) return Promise.resolve();
   }
   profileFor = username;
   profileCache = null;
+  profileRetryAfter = 0;
   profileFetch = fetch(`/api/profile/${encodeURIComponent(username)}`)
     .then((res) => (res.ok ? res.json() : null))
     .then((data) => {
@@ -54,7 +70,13 @@ export function loadProfile(username) {
       }
     })
     .catch(() => {})
-    .finally(() => { profileFetch = null; });
+    .finally(() => {
+      // Guard on the username: a superseded lookup settling late must not
+      // clear the newer one's in-flight promise, nor stamp its back-off.
+      if (profileFor !== username) return;
+      profileFetch = null;
+      if (!profileCache) profileRetryAfter = Date.now() + PROFILE_RETRY_MS;
+    });
   return profileFetch;
 }
 
