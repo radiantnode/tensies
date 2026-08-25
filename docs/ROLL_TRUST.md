@@ -65,7 +65,7 @@ Same inputs, same dice. Different players, different roll counts, and different 
 When the beacon arrives, the server checks it before trusting it:
 
 1. SHA-256 consistency: `randomness == SHA256(signature)`. Always checked.
-2. BLS signature: pairing check against the chain's public key, confirming the beacon was actually produced by the League of Entropy. Checked when [blspy](https://github.com/Chia-Network/bls-signatures) is available, skipped gracefully if not.
+2. BLS signature: pairing check against the chain's public key, confirming the beacon was actually produced by the League of Entropy. Checked when [pyblst](https://pypi.org/project/pyblst/) (bindings to [blst](https://github.com/supranational/blst)) is available, skipped gracefully if not.
 
 If either check fails, the beacon is discarded and the roll falls back to local RNG. That roll won't be verifiable after the fact, but the game doesn't stall.
 
