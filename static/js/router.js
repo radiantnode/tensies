@@ -4,7 +4,7 @@ import {
   RESUME_CLOSE_DELAY_MS, hidePaused, hideWinner, pausedText, showPaused, waitingText,
 } from './overlays.js';
 import { saveGameCode, hasSession } from './session.js';
-import { state } from './state.js';
+import { dispatch, state } from './state.js';
 import { showScreen, showLoading, leaveLoading } from './transitions.js';
 import { playIntro } from './video-intro.js';
 
@@ -277,6 +277,11 @@ function gameScreen() {
  * @param {GameSnapshot} snap
  */
 export function showFor(snap) {
+  // Routing a frame ends any celebration on screen — every branch below either
+  // calls hideWinner() or leaves the game entirely. Dispatching here keeps the
+  // phase and the overlay from disagreeing, which is what let a roll tapped
+  // through the overlay reach the server in the first place.
+  if (state.phase.kind === 'celebrating') dispatch({ t: 'ROUND_ADVANCE' });
   state.currentState = snap;
   state.pendingOrigin = null;
   if (snap.code) {

@@ -5,6 +5,7 @@ import { makeDie, myDiceKey, placeGrid } from './dice.js';
 import { loadDicePositions, saveDicePositions } from './dice-positions.js';
 import { byId } from './dom.js';
 import { rollMarkSVG } from './roll-mark.js';
+import { settled } from './roll-phase.js';
 import { state } from './state.js';
 
 /** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
@@ -271,7 +272,7 @@ export function syncPaused(snap) {
   if (snap.paused) {
     btn.disabled = true;
     if (word) word.textContent = 'Paused';
-  } else if (!state.rolling && !state.awaitingAck) {
+  } else if (settled(state.phase)) {
     btn.disabled = false;
     if (word) word.textContent = 'Roll';
   }
@@ -287,7 +288,9 @@ export function renderGame(snap) {
   const key = myDiceKey(snap);
   if (key !== state.lastMyDiceKey) {
     state.lastMyDiceKey = key;
-    state.rolling = false;
+    // NB: this used to also clear `state.rolling`, i.e. a render ended a roll
+    // as a side effect while its reveal timers were still queued. The machine
+    // ends a roll at REVEAL_DONE and nowhere else; renders no longer write.
     renderPlayersBar(snap);
     renderMyArea(snap);
   } else {
