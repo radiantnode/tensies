@@ -33,7 +33,7 @@ COPY --from=assets /build/dist/static /srv/dist/static
 # Pinned to a specific patch tag (intentionally NOT a digest) so local dev
 # builds still pick up base-image patch updates. The prod *service* images are
 # digest-pinned in docker-compose.prod.yml instead.
-FROM python:3.12.8-slim-bookworm AS web
+FROM python:3.14.6-slim-bookworm AS web
 
 # Don't write .pyc, unbuffered logs, no pip version chatter.
 ENV PYTHONDONTWRITEBYTECODE=1 \
