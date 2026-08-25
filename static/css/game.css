@@ -8,7 +8,7 @@
     max-block-size: 100%;
     /* One die size for the whole board — table and mat (owner-pinned). */
     --die-size: 52px;
-    --mat-gap: 6px;
+    --mat-gap: 16px;
   }
 
   /* ── round status: lettered straight onto the wood. No container, no plate;
@@ -77,9 +77,10 @@
   /* Dice zones: the open table on the left, the mat in the original
      right-hand slot. */
   .dice-zones {
+    position: relative;
     display: flex;
+    justify-content: flex-end;
     align-items: flex-start;
-    gap: 10px;
     flex: 1;
     min-block-size: 0;
     padding: 14px 12px 0;
@@ -87,11 +88,15 @@
     -webkit-user-select: none;
   }
 
+  /* The open table is a layer over the WHOLE board — edge to edge, and down
+     through the roll strip to the bottom of the viewport (minus the
+     safe-area inset). The mat and the ROLL coin sit on top of it; placeGrid
+     (dice.js) reads their boxes and keeps the scatter clear of them, the
+     same way it keeps clear of the glass in the background still. So the
+     strip under the mat and beside the coin is scatter area too. */
   .zone-unmatched {
-    position: relative;
-    flex: 1;
-    align-self: stretch;
-    margin-block-end: 3rem;
+    position: absolute;
+    inset: 0 0 calc(-1 * (88px + 20px)) 0;
   }
 
   .die-wrapper {
@@ -106,8 +111,15 @@
 
   /* ── the mat: oxblood leather, stitched, recessed. Dice set aside are the
      same dice — same size and pips — only their contact shadow tightens
-     (dice.css). 2×5, filling top-down, no label. ── */
+     (dice.css). The mat itself is shoved past the right edge and set down at
+     a slight angle, so the open table gets the room. The shove (-52px) and
+     the angle (-6° about the bottom-right corner) are tuned so every locked
+     die's face stays inside a 390px viewport; pushing further clips the
+     right column. 2×5, filling top-down, no label. ── */
   .zone-matched {
+    margin-inline-end: -52px;
+    transform: rotate(-6deg);
+    transform-origin: right bottom;
     display: flex;
     flex-wrap: wrap;
     align-content: flex-start;
@@ -147,16 +159,16 @@
   }
 
   /* Set-down jitter so the mat reads as dice put down by hand, not a grid. */
-  .zone-matched .die-scene:nth-child(10n+1) { transform: translate(1px, -1px) rotate(-5deg); }
-  .zone-matched .die-scene:nth-child(10n+2) { transform: translate(-1px, 1px) rotate(4deg); }
-  .zone-matched .die-scene:nth-child(10n+3) { transform: translate(0, -1px) rotate(-2deg); }
-  .zone-matched .die-scene:nth-child(10n+4) { transform: translate(1px, 0) rotate(6deg); }
-  .zone-matched .die-scene:nth-child(10n+5) { transform: translate(-1px, 1px) rotate(-4deg); }
-  .zone-matched .die-scene:nth-child(10n+6) { transform: translate(0, 1px) rotate(3deg); }
-  .zone-matched .die-scene:nth-child(10n+7) { transform: translate(1px, -1px) rotate(-6deg); }
-  .zone-matched .die-scene:nth-child(10n+8) { transform: translate(-1px, 0) rotate(2deg); }
-  .zone-matched .die-scene:nth-child(10n+9) { transform: translate(1px, 1px) rotate(5deg); }
-  .zone-matched .die-scene:nth-child(10n) { transform: translate(0, -1px) rotate(-3deg); }
+  .zone-matched .die-scene:nth-child(10n+1) { transform: translate(1px, -1px) rotate(-2.5deg); }
+  .zone-matched .die-scene:nth-child(10n+2) { transform: translate(-1px, 1px) rotate(2deg); }
+  .zone-matched .die-scene:nth-child(10n+3) { transform: translate(0, -1px) rotate(-1deg); }
+  .zone-matched .die-scene:nth-child(10n+4) { transform: translate(1px, 0) rotate(3deg); }
+  .zone-matched .die-scene:nth-child(10n+5) { transform: translate(-1px, 1px) rotate(-2deg); }
+  .zone-matched .die-scene:nth-child(10n+6) { transform: translate(0, 1px) rotate(1.5deg); }
+  .zone-matched .die-scene:nth-child(10n+7) { transform: translate(1px, -1px) rotate(-3deg); }
+  .zone-matched .die-scene:nth-child(10n+8) { transform: translate(-1px, 0) rotate(1deg); }
+  .zone-matched .die-scene:nth-child(10n+9) { transform: translate(1px, 1px) rotate(2.5deg); }
+  .zone-matched .die-scene:nth-child(10n) { transform: translate(0, -1px) rotate(-1.5deg); }
 
   /* ── THE ROLL COIN: one solid piece of keeper brass at 88px, everything
      struck into it. One 20px inset on BOTH edges; the safe-area allowance is
