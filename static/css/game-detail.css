@@ -25,7 +25,7 @@
 
   .game-detail-screen .screen-body {
     justify-content: flex-start;
-    padding: 18px 20px calc(18px + env(safe-area-inset-bottom));
+    padding: 18px 20px calc(18px + var(--inset-bottom));
     overflow-y: auto;
     scrollbar-width: none;
   }

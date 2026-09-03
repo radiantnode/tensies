@@ -17,7 +17,7 @@
     position: relative;
     flex-shrink: 0;
     z-index: var(--z-chrome);
-    padding-block-start: env(safe-area-inset-top);
+    padding-block-start: var(--inset-top);
   }
 
   /* Pre-game header + menu bars: the amber rule is the only boundary. */
@@ -63,7 +63,7 @@
   .menu-topbar {
     position: relative;
     flex-shrink: 0;
-    padding-block-start: env(safe-area-inset-top);
+    padding-block-start: var(--inset-top);
   }
 
   .topbar-title-row {
@@ -304,7 +304,7 @@
     min-block-size: 0;
     position: relative;
     z-index: var(--z-content);
-    padding: 2rem 1.5rem calc(2rem + env(safe-area-inset-bottom));
+    padding: 2rem 1.5rem calc(2rem + var(--inset-bottom));
     overflow: hidden;
     text-align: center;
   }

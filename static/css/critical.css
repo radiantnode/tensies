@@ -106,6 +106,18 @@
 
 @layer tokens {
   :root {
+    /* ── the safe areas, as two properties rather than env() read in place.
+       On a phone they are the device's: the status bar and Dynamic Island
+       above, the home indicator below. On Hubble's wall — a frame the
+       exact proportions of an iPhone 17 Pro Max, told it is one — env() is
+       zero, so the header sat on the top edge and the title landed over
+       brick where the phone puts it over the sign; html[data-hubble="wall"]
+       below gives the frame that phone's insets so the wall lays out like
+       the device. Every inset read in the stylesheets goes through these,
+       so that rule is the only place the wall differs. ── */
+    --inset-top: env(safe-area-inset-top, 0px);
+    --inset-bottom: env(safe-area-inset-bottom, 0px);
+
     /* ── neon: legitimate ONLY where something is literally neon — the logo
        mark and the sign in the landing video. Nowhere else. ── */
     --color-accent: #ff4d6d;
@@ -216,11 +228,22 @@
     --z-dissolve: 60;         /* the outgoing screen during a staged reveal */
     --z-guard: 1000;          /* the rotate lockout (cannot beat the top layer) */
   }
+
+  /* Hubble's wall is an iPhone 17 Pro Max in proportion and in pixels, with
+     no status bar and no home indicator of its own. The phone's actual
+     insets (62 and 34) were tried first and put the header a status bar's
+     height down a frame that has no status bar — empty space, read from
+     the room as the logo sitting too low. This is breathing room instead:
+     enough that the header and the primary do not touch the brass. */
+  html[data-hubble="wall"] {
+    --inset-top: 12px;
+    --inset-bottom: 10px;
+  }
 }
 
 @layer elements {
   html {
-    block-size: calc(100% + env(safe-area-inset-top) + env(safe-area-inset-bottom));
+    block-size: calc(100% + var(--inset-top) + var(--inset-bottom));
     overflow: hidden;
     overscroll-behavior: none;
     background: var(--color-bg);
@@ -310,7 +333,7 @@
   body {
     position: fixed;
     inset: 0;
-    bottom: calc(0px - env(safe-area-inset-bottom));
+    bottom: calc(0px - var(--inset-bottom));
     overflow: hidden;
     font-family: var(--font-family-base);
     color: var(--color-cream);
@@ -375,7 +398,7 @@
     justify-content: center;
     gap: 26px;
     block-size: 100%;
-    padding-block: calc(2rem + env(safe-area-inset-top)) calc(2rem + env(safe-area-inset-bottom));
+    padding-block: calc(2rem + var(--inset-top)) calc(2rem + var(--inset-bottom));
     padding-inline: 2rem;
     overflow: hidden;
     text-align: center;
@@ -443,8 +466,8 @@
     align-items: center;
     justify-content: center;
     gap: 14px;
-    padding: calc(1.25rem + env(safe-area-inset-top)) calc(1.5rem + env(safe-area-inset-right))
-             calc(1.25rem + env(safe-area-inset-bottom)) calc(1.5rem + env(safe-area-inset-left));
+    padding: calc(1.25rem + var(--inset-top)) calc(1.5rem + env(safe-area-inset-right))
+             calc(1.25rem + var(--inset-bottom)) calc(1.5rem + env(safe-area-inset-left));
     text-align: center;
     background: #100804;
   }
@@ -590,7 +613,7 @@
      liquid-glass pill (fixed layers clip there). The extra ground keeps
      page pixels, not bare canvas, under the glass at the bottom stop. */
   html.doc-scroll :is(.profile-screen, .game-detail-screen) .screen-body {
-    padding-block-end: calc(64px + env(safe-area-inset-bottom));
+    padding-block-end: calc(64px + var(--inset-bottom));
   }
 
   /* Headers hold the top while the document scrolls (owner-directed,
@@ -608,7 +631,7 @@
     position: sticky;
     inset-block-start: 0;
     z-index: var(--z-chrome);
-    padding-block-start: env(safe-area-inset-top, 0px);
+    padding-block-start: var(--inset-top);
   }
 
   /* Only the TOPBAR sticks in the changelog — it carries the close X. The
@@ -685,8 +708,8 @@
      the intro-video's hidden-playback arrangement and the scrim stack.
      .bg-video stays FIXED; the overscroll question is handled elsewhere.) */
   html.doc-scroll .bg-video {
-    inset-block-start: calc(0px - env(safe-area-inset-top));
-    block-size: calc(100lvh + var(--chrome-gap, 0px) + env(safe-area-inset-top) + env(safe-area-inset-bottom));
+    inset-block-start: calc(0px - var(--inset-top));
+    block-size: calc(100lvh + var(--chrome-gap, 0px) + var(--inset-top) + var(--inset-bottom));
   }
 
   /* Screen scrims are part of the SCROLLED SURFACE, never viewport-fixed —
