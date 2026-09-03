@@ -177,7 +177,7 @@
     flex-shrink: 0;
     display: flex;
     justify-content: flex-end;
-    padding: 0 20px calc(20px + env(safe-area-inset-bottom));
+    padding: 0 20px calc(20px + var(--inset-bottom));
   }
 
   .btn-roll {
@@ -265,7 +265,7 @@
   /* Short viewports: tighten the runway and step the dice down. */
   @media (max-height: 700px) {
     .round-status { margin-block-start: -12px; }
-    .roll-area { padding-block-end: calc(14px + env(safe-area-inset-bottom)); }
+    .roll-area { padding-block-end: calc(14px + var(--inset-bottom)); }
   }
 
   @media (max-height: 600px) {

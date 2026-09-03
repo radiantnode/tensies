@@ -15,7 +15,7 @@
     z-index: var(--z-banner);
     display: flex;
     align-items: stretch;
-    padding-block-start: env(safe-area-inset-top);
+    padding-block-start: var(--inset-top);
     background: linear-gradient(100deg, rgba(40, 24, 12, .97), rgba(24, 13, 6, .97));
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -139,7 +139,7 @@
   .a2hs-close {
     position: absolute;
     inset-inline-end: 14px;
-    inset-block-start: calc(14px + env(safe-area-inset-top));
+    inset-block-start: calc(14px + var(--inset-top));
     z-index: var(--z-chip);
     inline-size: 36px;
     block-size: 36px;
@@ -166,7 +166,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: calc(40px + env(safe-area-inset-top)) 26px calc(30px + env(safe-area-inset-bottom));
+    padding: calc(40px + var(--inset-top)) 26px calc(30px + var(--inset-bottom));
     text-align: center;
     overflow: hidden;
   }

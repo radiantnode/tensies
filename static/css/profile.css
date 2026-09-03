@@ -39,7 +39,7 @@
   /* The back chip anchors against the screen, above the card. */
   .profile-screen .screen-body {
     justify-content: flex-start;
-    padding: 16px 20px calc(20px + env(safe-area-inset-bottom));
+    padding: 16px 20px calc(20px + var(--inset-bottom));
     overflow-y: auto;
     scrollbar-width: none;
   }

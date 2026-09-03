@@ -37,7 +37,7 @@
 
   .lobby-body {
     justify-content: flex-start;
-    padding: 16px 20px calc(18px + env(safe-area-inset-bottom));
+    padding: 16px 20px calc(18px + var(--inset-bottom));
   }
 
   .lobby-title {

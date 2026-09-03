@@ -225,7 +225,7 @@
     display: flex;
     flex-direction: column;
     gap: 9px;
-    padding: 16px 24px calc(20px + env(safe-area-inset-bottom));
+    padding: 16px 24px calc(20px + var(--inset-bottom));
     background: linear-gradient(180deg, transparent, rgba(9, 5, 2, .86) 40%);
   }
 
@@ -328,7 +328,7 @@
   .menu-changelog-body {
     /* In flow on the page — the document is the scroller. The extra bottom
        padding is the iOS scroll runway (in-flow pixels under the glass). */
-    padding: 20px 24px calc(64px + env(safe-area-inset-bottom));
+    padding: 20px 24px calc(64px + var(--inset-bottom));
     font-size: 0.9rem;
     line-height: 1.6;
     color: var(--color-body);
@@ -656,7 +656,7 @@
     z-index: var(--z-content);
     flex-shrink: 0;
     margin-block-start: auto;
-    padding: 0 20px calc(24px + env(safe-area-inset-bottom));
+    padding: 0 20px calc(24px + var(--inset-bottom));
     text-align: center;
   }
 

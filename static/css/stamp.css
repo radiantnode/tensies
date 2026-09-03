@@ -353,7 +353,7 @@
   .stamp-zoom .close-hint {
     position: fixed;
     inset-inline: 0;
-    inset-block-end: calc(30px + env(safe-area-inset-bottom));
+    inset-block-end: calc(30px + var(--inset-bottom));
     max-inline-size: 22rem;
     margin-inline: auto;
     padding-inline: 1.5rem;

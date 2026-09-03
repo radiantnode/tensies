@@ -41,7 +41,7 @@
     justify-content: flex-end;
     align-items: stretch;
     text-align: start;
-    padding: 0 24px calc(26px + env(safe-area-inset-bottom));
+    padding: 0 24px calc(26px + var(--inset-bottom));
   }
 
   .landing-greeting {
