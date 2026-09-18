@@ -295,6 +295,17 @@ export class LandingScreen extends HTMLElement {
   }
 
   /**
+   * Called by showScreen() on the outgoing screen. The Join sheet is a MODAL
+   * dialog: left open while this screen is hidden it keeps every other screen
+   * inert — the board's roll button took taps and did nothing until a refresh
+   * (Dog Haus, 2026-09-17). Close it instantly; the screen is going away, so
+   * there is nothing to animate. A failed join reopens it with the error.
+   */
+  leave() {
+    this.#joinSheet?.closeNow();
+  }
+
+  /**
    * "Listen" — pick up a game code chirped by a host's "Play" button. One tap
    * starts listening (mic permission on first use); tapping again cancels. On
    * success the code input is filled and focused — the user still taps Join.

@@ -74,6 +74,26 @@ export class SheetController {
     setTimeout(finish, 300);
   }
 
+  /**
+   * Close immediately, with no slide-out — for a host screen that is leaving.
+   *
+   * This exists because a modal <dialog> keeps the WHOLE document inert until
+   * it is closed, and hiding its screen does not close it: the landing's Join
+   * sheet used to stay open (invisible, `display: none` with its screen) all
+   * the way onto the game board, where every tap on the roll button landed on
+   * nothing until a refresh. A screen going `display: none` also cancels any
+   * running slide-out, so the animated close() cannot be relied on here.
+   */
+  closeNow() {
+    const d = this.#dialog;
+    if (!d.open) return;
+    this.#stopKeyboard();
+    d.classList.remove('is-closing');
+    d.close();
+    this.#clearKeyboardStyles();
+    this.#onClosed?.();
+  }
+
   /** Stop tracking without animating — for a host component disconnecting. */
   destroy() {
     this.#stopKeyboard();
