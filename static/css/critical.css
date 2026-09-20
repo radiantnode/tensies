@@ -804,6 +804,23 @@
     animation: none !important;
   }
   html[data-probe~="nosticky"] :is(app-header, .menu-topbar) { position: relative !important; }
+  /* Second set (after the first measurements, 2026-09-20): the doc-scroll
+     strip stayed in flat fill under all four above. noosb: the overscroll
+     lock off. nooverhang: the header ground's box kept to the header (no
+     -300vh reach). nominh: no viewport-sized floor on the screen root or the
+     open menu. norings: no 100vh ink-ring shadows. nomenu: the closed nav
+     menu (a hidden, viewport-sized fixed box) gone. hdrbg: a solid
+     background-color on the header element itself, the thing iOS 26's tint
+     sampler reads. */
+  html[data-probe~="noosb"].doc-scroll { overscroll-behavior-y: auto !important; }
+  html[data-probe~="nooverhang"] app-header::before,
+  html[data-probe~="nooverhang"] .menu-topbar::before { inset: 0 !important; }
+  html[data-probe~="nominh"].doc-scroll .screen.active,
+  html[data-probe~="nominh"].doc-scroll .nav-menu.open { min-block-size: 0 !important; }
+  html[data-probe~="norings"] .screen.active::after,
+  html[data-probe~="norings"] .nav-menu::after { box-shadow: none !important; }
+  html[data-probe~="nomenu"] nav-menu:not(.open) { display: none !important; }
+  html[data-probe~="hdrbg"] app-header { background-color: #080401 !important; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {

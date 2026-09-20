@@ -10,6 +10,7 @@ import { EQ_ICON_HTML } from '../eq-icon.js';
 import { GeoError, GEO_ERROR_COPY, getPosition } from '../geo.js';
 import { checkIn, leaveGame, startGame, stopBroadcast } from '../net.js';
 import { followScrollFades, updateScrollFades } from '../scroll-fades.js';
+import { hasProbe } from '../probe.js';
 import { SheetController } from '../sheet.js';
 import { state } from '../state.js';
 
@@ -64,6 +65,9 @@ export class LobbyScreen extends HTMLElement {
 
   /** @type {boolean} whether the local player hosts (drives the solo-hint). */
   #isHost = false;
+
+  /** The probe token `start` fires once per lobby visit. */
+  #probeStarted = false;
 
   /** @type {boolean} last-applied emptiness, so the section only fades on change. */
   #sectionEmpty = true;
@@ -328,6 +332,12 @@ export class LobbyScreen extends HTMLElement {
     }
     const isHost = snap.host === state.myId;
     this.#isHost = isHost;
+    // Probe token start: the host starts the game as soon as the lobby renders,
+    // so a touchless simulator can reach the board on its own.
+    if (isHost && !snap.started && hasProbe('start') && !this.#probeStarted) {
+      this.#probeStarted = true;
+      setTimeout(() => startGame(), 600);
+    }
     // Hide the section / show the solo hint based on the live DOM, so a row still
     // collapsing out keeps the section visible until its exit animation ends.
     this.#syncEmptyState();

@@ -662,6 +662,10 @@ def _probe_shell(variant: str) -> HTMLResponse:
         raise HTTPException(status_code=404)
     tokens = variant.replace("-", " ")
     html = _render_index().replace('<html lang="en">', f'<html lang="en" data-probe="{tokens}">', 1)
+    # Token floor: theme-color is the status bar's fallback when iOS cannot
+    # sample the page top; try the page's own floor instead of the brown.
+    if "floor" in tokens.split():
+        html = html.replace("#1a0e08", "#080401", 1)
     return _shell(html)
 
 

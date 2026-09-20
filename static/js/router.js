@@ -7,6 +7,7 @@ import { saveGameCode, hasSession } from './session.js';
 import { dispatch, state } from './state.js';
 import { showScreen, showLoading, leaveLoading } from './transitions.js';
 import { playIntro } from './video-intro.js';
+import { hasProbe } from './probe.js';
 
 /** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
 
@@ -91,7 +92,12 @@ function enterNearbyAfter(transition) {
  */
 function openJoinOnLanding(opts = {}) {
   const transition = showScreen('landing');
-  transition.updateCallbackDone.then(() => landing().openJoinSheet(opts));
+  transition.updateCallbackDone.then(() => {
+    landing().openJoinSheet(opts);
+    // Probe token autojoin: a /p/<tokens>/<CODE> deep link submits the join
+    // itself, so a touchless simulator can land in a lobby as a guest.
+    if (opts.code && hasProbe('autojoin')) setTimeout(() => /** @type {HTMLFormElement} */ (byId('join-form')).requestSubmit(), 400);
+  });
   return transition;
 }
 
@@ -287,7 +293,12 @@ export function bootstrap({ resumeSession }) {
     if (!pathCode) history.replaceState({ id: 'landing' }, '', withPrefix(`/${joinCode.toUpperCase()}`));
     leaveLoading(() => openJoinOnLanding({ code: joinCode }));
   } else {
-    leaveLoading(() => showScreen('landing'));
+    leaveLoading(() => {
+      const transition = showScreen('landing');
+      // Probe token create: submit Create Game once the landing is up, so a
+      // touchless simulator can reach the lobby (and, with start, the board).
+      if (hasProbe('create')) transition.updateCallbackDone.then(() => setTimeout(() => /** @type {HTMLFormElement} */ (byId('landing-form')).requestSubmit(), 400));
+    });
   }
 }
 

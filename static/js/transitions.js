@@ -1,5 +1,6 @@
 // @ts-check
 import { byId } from './dom.js';
+import { hasProbe, probeScrollY } from './probe.js';
 
 /**
  * Screen swaps via the View Transitions API, plus the loading-screen
@@ -79,6 +80,10 @@ function setDocScroll(id) {
   // Entering: start at the top. Leaving: shed any scroll offset before the
   // fixed shell (overflow: hidden) comes back and would trap it.
   window.scrollTo(0, 0);
+  // Probe token y<px>: land mid-page once the screen has settled, so the strip
+  // behind the toolbar can be read against content rather than the top.
+  const y = on ? probeScrollY() : 0;
+  if (y) setTimeout(() => window.scrollTo(0, y), 900);
 }
 
 /**
@@ -230,7 +235,7 @@ export function showLoading(text = 'Loading…') {
 export function leaveLoading(action) {
   // Probe token `hold` (iOS Safari Gotchas §3): keep the loading splash up so
   // its glass can be measured on a device. /p/hold/ only; inert elsewhere.
-  if ((document.documentElement.dataset.probe ?? '').split(' ').includes('hold')) return;
+  if (hasProbe('hold')) return;
   const remaining = Math.max(0, MIN_LOADING_MS - (Date.now() - loadingShownAt));
   if (remaining === 0) requestAnimationFrame(action);
   else setTimeout(action, remaining);
