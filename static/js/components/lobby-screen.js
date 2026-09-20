@@ -9,7 +9,7 @@ import { byId } from '../dom.js';
 import { EQ_ICON_HTML } from '../eq-icon.js';
 import { GeoError, GEO_ERROR_COPY, getPosition } from '../geo.js';
 import { checkIn, leaveGame, startGame, stopBroadcast } from '../net.js';
-import { updateScrollFades } from '../scroll-fades.js';
+import { followScrollFades, updateScrollFades } from '../scroll-fades.js';
 import { SheetController } from '../sheet.js';
 import { state } from '../state.js';
 
@@ -102,6 +102,12 @@ export class LobbyScreen extends HTMLElement {
 
   #onResize = () => this.#updateFades();
 
+  /** Disposers for the rAF scroll followers (scroll-fades.js). */
+  /** @type {(() => void) | null} */
+  #unfollowList = null;
+  /** @type {(() => void) | null} */
+  #unfollowPlaces = null;
+
   /** Shared bottom-sheet controller for the places picker (keyboard-aware). */
   /** @type {import('../sheet.js').SheetController | null} */
   #sheet = null;
@@ -178,7 +184,8 @@ export class LobbyScreen extends HTMLElement {
       </div>`;
 
     this.#list = byId('lobby-players');
-    this.#list.addEventListener('scroll', () => this.#updateFades(), { passive: true });
+    // Fades follow the scroll from a rAF loop while moving (scroll-fades.js).
+    this.#unfollowList = followScrollFades(this.#list);
     window.addEventListener('resize', this.#onResize);
 
     byId('lobby-back-btn').addEventListener('click', () => leaveGame());
@@ -188,8 +195,7 @@ export class LobbyScreen extends HTMLElement {
     byId('start-btn').addEventListener('click', () => startGame());
     byId('checkin-btn').addEventListener('click', () => this.#onCheckinButton());
     byId('places-search').addEventListener('input', () => this.#onSearchInput());
-    byId('places-list').addEventListener('scroll',
-      () => updateScrollFades(byId('places-list')), { passive: true });
+    this.#unfollowPlaces = followScrollFades(byId('places-list'));
     byId('places-close').addEventListener('click', () => this.#closePlaces());
     // Shared bottom-sheet behaviour (open/close/Escape/backdrop + keyboard
     // docking, with a pinned height so the results list fills the space).
@@ -235,6 +241,8 @@ export class LobbyScreen extends HTMLElement {
 
   disconnectedCallback() {
     window.removeEventListener('resize', this.#onResize);
+    this.#unfollowList?.();
+    this.#unfollowPlaces?.();
     this.#sheet?.destroy();
     this.#photoObserver?.disconnect();
   }
@@ -360,7 +368,7 @@ export class LobbyScreen extends HTMLElement {
   #resetPlacesScroll() {
     const el = byId('places-list');
     el.scrollTop = 0;
-    requestAnimationFrame(() => { el.scrollTop = 0; updateScrollFades(el); });
+    requestAnimationFrame(() => { el.scrollTop = 0; updateScrollFades(el, { instant: true }); });
   }
 
   /** Close the places picker sheet, sliding it back down before it goes. */
@@ -580,7 +588,7 @@ export class LobbyScreen extends HTMLElement {
     }
     // Seed the edge fades for the freshly-built list (bottom fade on if it
     // overflows); the scroll listener keeps them in sync thereafter.
-    updateScrollFades(listEl);
+    updateScrollFades(listEl, { instant: true });
   }
 
   /**
@@ -670,8 +678,9 @@ export class LobbyScreen extends HTMLElement {
     return badge;
   }
 
+  /** Render/resize-time sync: the geometry changed, so no release hold. */
   #updateFades() {
-    if (this.#list) updateScrollFades(this.#list);
+    if (this.#list) updateScrollFades(this.#list, { instant: true });
   }
 
   #copyJoinLink() {

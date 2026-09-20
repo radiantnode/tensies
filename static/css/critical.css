@@ -771,6 +771,16 @@
      ever suffers for it, measure first — do not reintroduce the flat
      fallbacks without numbers. */
 
+  /* ── the boot guard (iOS Safari Gotchas §7). transitions.js sets
+     [data-boot] on a screen while its opening state is applied, forces a
+     layout read, then removes it: WebKit would otherwise start a transition
+     for a state set before first paint and park it at its start, showing the
+     previous state for up to a second. scroll-fades.js does the same for a
+     scroller's first fades. Animations are untouched — only transitions. */
+  [data-boot], [data-boot] *, [data-boot] *::before, [data-boot] *::after {
+    transition: none !important;
+  }
+
   /* ── probe variants (iOS Safari Gotchas §3) — /p/<tokens>/<route> ──
      Served with html[data-probe] by routes.py when PROBE_PATHS is set. Each
      token is an ablation the simulator can measure; none matches a normal

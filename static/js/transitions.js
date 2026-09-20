@@ -141,6 +141,10 @@ export function showScreen(id, { force = false, staged = false, instant = false,
     return settledTransition();
   }
   if (staged || (DISSOLVE_NAV && !instant)) {
+    // Build under the boot guard (iOS Safari Gotchas §7): state set on the
+    // screen before its first paint must not start transitions — WebKit
+    // parks them at their start and shows the previous state for a second.
+    target.setAttribute('data-boot', '');
     target.classList.add('staging');
     onSwap?.();
     // Commit a frame later: the staged content is laid out (and the dice
@@ -151,6 +155,9 @@ export function showScreen(id, { force = false, staged = false, instant = false,
       // .active rather than removing screens, so disconnectedCallback never fires.
       if (previous && previous !== target) /** @type {any} */ (previous).leave?.();
       document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
+      // The staged layout is committed; re-enable transitions before the reveal.
+      void target.offsetHeight;
+      target.removeAttribute('data-boot');
       target.classList.remove('staging');
       target.classList.add('active');
       setDocScroll(id);
@@ -176,9 +183,14 @@ export function showScreen(id, { force = false, staged = false, instant = false,
     // Give the outgoing screen a chance to clean up (see the staged branch).
     if (previous && previous !== target) /** @type {any} */ (previous).leave?.();
     document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
+    // Boot guard (§7): settle the opening state with transitions off, force a
+    // layout read to commit it, then re-enable — nothing is left to animate.
+    target.setAttribute('data-boot', '');
     target.classList.add('active');
     setDocScroll(id);
     onSwap?.();
+    void target.offsetHeight;
+    target.removeAttribute('data-boot');
   };
   if (!instant && document.startViewTransition) {
     const transition = document.startViewTransition(() => {

@@ -5,6 +5,7 @@ import { accountCoin } from '../account-coin.js';
 import { cachedProfile, loadProfile } from '../account-sync.js';
 import { makeMenuToggle } from '../menu-toggle.js';
 import { navigate, showProfile, showSignin } from '../router.js';
+import { restScrollY } from '../scroll-fades.js';
 
 // Phone-with-plus glyph for the "Add to Home Screen" entry.
 const A2HS_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 7.5v5M9.5 10h5"/></svg>`;
@@ -155,7 +156,7 @@ export class NavMenu extends HTMLElement {
     } else {
       // The host already owns the document scroller — park its offset and
       // start the menu at its top.
-      this.#savedScrollY = window.scrollY;
+      this.#savedScrollY = restScrollY();
       window.scrollTo(0, 0);
     }
     this.classList.add('open');
