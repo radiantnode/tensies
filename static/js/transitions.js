@@ -216,6 +216,9 @@ export function showLoading(text = 'Loading…') {
  * @param {() => void} action
  */
 export function leaveLoading(action) {
+  // Probe token `hold` (iOS Safari Gotchas §3): keep the loading splash up so
+  // its glass can be measured on a device. /p/hold/ only; inert elsewhere.
+  if ((document.documentElement.dataset.probe ?? '').split(' ').includes('hold')) return;
   const remaining = Math.max(0, MIN_LOADING_MS - (Date.now() - loadingShownAt));
   if (remaining === 0) requestAnimationFrame(action);
   else setTimeout(action, remaining);

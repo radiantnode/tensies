@@ -771,6 +771,30 @@
      ever suffers for it, measure first — do not reintroduce the flat
      fallbacks without numbers. */
 
+  /* ── probe variants (iOS Safari Gotchas §3) — /p/<tokens>/<route> ──
+     Served with html[data-probe] by routes.py when PROBE_PATHS is set. Each
+     token is an ablation the simulator can measure; none matches a normal
+     URL. loud: a #ff00ff canvas with the media layers hidden, so the strip
+     behind Safari's toolbar reads magenta (overdraw) or a flat colour (flat
+     fill) — the only reliable tell. nostrip: no #chrome-tint-strip. noblur:
+     no backdrop-filter on anything touching the top edge. nosticky: the
+     doc-scroll headers positioned relative instead of sticky. hold: the
+     loading splash stays up (transitions.js). */
+  html[data-probe~="loud"] { background: #ff00ff !important; }
+  html[data-probe~="loud"] :is(.bg-video, .game-bg) { display: none !important; }
+  html[data-probe~="nostrip"] #chrome-tint-strip { display: none !important; }
+  html[data-probe~="noblur"] .screen::before,
+  html[data-probe~="noblur"] nav-menu::before,
+  html[data-probe~="noblur"] app-header::before,
+  html[data-probe~="noblur"] .menu-topbar::before,
+  html[data-probe~="noblur"] .game-topbar,
+  html[data-probe~="noblur"] .a2hs-banner {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    animation: none !important;
+  }
+  html[data-probe~="nosticky"] :is(app-header, .menu-topbar) { position: relative !important; }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.001ms !important;

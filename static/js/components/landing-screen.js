@@ -8,7 +8,7 @@ import { getAuthUser, isSignedIn } from '../auth.js';
 import { syncUsernamePill } from '../account-sync.js';
 import { shouldOfferInstall, dismissBanner, requestInstall } from '../a2hs.js';
 import { createGame, joinGame } from '../net.js';
-import { showNearby, showSignin } from '../router.js';
+import { routePath, showNearby, showSignin, withPrefix } from '../router.js';
 import { SheetController } from '../sheet.js';
 import { state } from '../state.js';
 
@@ -250,7 +250,7 @@ export class LandingScreen extends HTMLElement {
     this.#joinSheet = new SheetController(/** @type {HTMLDialogElement} */ (byId('join-sheet')), {
       onClosed: () => {
         this.#listenAbort?.abort();
-        if (location.pathname !== '/') history.replaceState({ id: 'landing' }, '', '/');
+        if (routePath() !== '/') history.replaceState({ id: 'landing' }, '', withPrefix('/'));
       },
     });
 

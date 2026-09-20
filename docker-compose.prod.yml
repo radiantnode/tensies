@@ -69,6 +69,8 @@ services:
       # policy wholesale (and so ignores the three extras), so anything set here
       # must restate them. Unset on a normal deploy.
       CONTENT_SECURITY_POLICY: "${CONTENT_SECURITY_POLICY:-}"
+      # iOS Safari probe paths (/p/<variant>/...). A measuring aid; off by default.
+      PROBE_PATHS: "${PROBE_PATHS:-0}"
       # Signs JWT auth tokens. Generate with: openssl rand -hex 32
       JWT_SECRET: "${JWT_SECRET:?set JWT_SECRET}"
       # WebAuthn relying party ID — the bare domain users register passkeys on

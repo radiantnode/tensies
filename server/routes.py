@@ -25,6 +25,7 @@ from .config import (
     PLACES_ENABLED,
     PLACES_RATE_MAX,
     PLACES_RATE_WINDOW,
+    PROBE_PATHS,
     STATS_TOKEN,
     TELEMETRY_ENABLED,
     log,
@@ -647,6 +648,32 @@ async def profile_vanity(username: str) -> HTMLResponse:
 # 5 letters (gamestore.make_code), so only that shape matches — anything else
 # 404s so this can't shadow favicons or other single-segment asset requests.
 # Declared last so the explicit routes above (/, /metrics, /stats/*) win.
+
+_PROBE_VARIANT_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+
+
+def _probe_shell(variant: str) -> HTMLResponse:
+    """The SPA shell stamped with html[data-probe="<tokens>"] from the first
+    byte — the attribute must be painted at load, not set by JS afterwards,
+    because iOS latches the colours it samples at first paint (iOS Safari
+    Gotchas §1–§3). Tokens are hyphen-joined in the path so each combination
+    is its own URL path (Safari caches its decisions per path)."""
+    if not PROBE_PATHS or not _PROBE_VARIANT_RE.fullmatch(variant):
+        raise HTTPException(status_code=404)
+    tokens = variant.replace("-", " ")
+    html = _render_index().replace('<html lang="en">', f'<html lang="en" data-probe="{tokens}">', 1)
+    return _shell(html)
+
+
+@router.get("/p/{variant}")
+async def probe_root(variant: str) -> HTMLResponse:
+    return _probe_shell(variant)
+
+
+@router.get("/p/{variant}/{rest:path}")
+async def probe_page(variant: str, rest: str) -> HTMLResponse:
+    return _probe_shell(variant)
+
 _GAME_CODE_RE = re.compile(r"[A-Za-z]{5}")
 
 
