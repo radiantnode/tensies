@@ -569,12 +569,12 @@
   html.doc-scroll {
     overflow: visible;
     block-size: auto;
-    /* Firm ends on scrolling screens (owner's call, 2026-08-20, reinstated
-       after the elastic experiments): the rubber-band region accepts no
-       page paint except viewport-glued layers, so the exposure is removed
-       by removing the bounce — the menu included (owner's call: the
-       exposure beats the elasticity). */
-    overscroll-behavior-y: none;
+    /* The rubber-band is ON (owner's call, 2026-09-21, reversing 08-20):
+       the bounce region paints the canvas only — the floor below — and the
+       fixed video no longer paints on these screens (see .bg-video below),
+       so there is nothing left to expose, and firm ends made iOS feel
+       choppy at every stop. */
+    overscroll-behavior: auto;
     /* The CANVAS is the only surface iOS paints into the chrome strips —
        device-measured 2026-08-19: the collapsed-bar strip sits BEYOND the
        layout viewport (innerH = 100lvh = 815 on an 852 screen, vvTop=0),
@@ -599,6 +599,7 @@
   html.doc-scroll body {
     position: static;
     overflow: visible;
+    overscroll-behavior: auto;
     /* NO background on body: it paints ABOVE negative-z positioned
        descendants (CSS painting order), so an opaque body hides the fixed
        .bg-video and the profile's glass goes flat (caught on device,
@@ -675,13 +676,11 @@
   html.doc-scroll .nav-menu .menu-topbar::before {
     content: '';
     position: absolute;
-    /* Extended 100vh UPWARD (owner's fix, 2026-08-20): the top-overscroll
-       region is covered by the header ground's own box — element geometry
-       always renders (WebKit clips ink-overflow shadows on blur layers),
-       a top overhang adds no scroll length, and the sticky header rides
-       the rubber-band. The gradient is pinned so the visible band keeps
-       its grade and the extension stays flat at the top stop. */
-    inset: -300vh 0 0 0;
+    /* The header's own box only. It used to reach 300vh upward to cover the
+       top bounce, but iOS paints nothing but the canvas in the overscroll
+       region (device-measured), so the reach veiled nothing and put a
+       three-viewport blur layer on every scroll. */
+    inset: 0;
     z-index: var(--z-scrim);
     background: linear-gradient(to bottom,
       rgba(8, 4, 1, .78) calc(100% - 60px), rgba(8, 4, 1, .64) 100%);
@@ -741,9 +740,15 @@
      was reverted on device evidence: pulling .bg-video into the flow broke
      the intro-video's hidden-playback arrangement and the scrim stack.
      .bg-video stays FIXED; the overscroll question is handled elsewhere.) */
+  /* The live video does not paint on scrolling screens (owner's call,
+     2026-09-21). It is viewport-glued, so wherever the document stops short
+     of the viewport — a bounce, Safari's chrome collapsing at the end of a
+     scroll — it showed through raw beneath the last screen. The canvas
+     carries the imagery here instead: the same room as a still at the top,
+     the floor below, and the glass blurs that. visibility, not display, so
+     playback is untouched for the landing it returns to. */
   html.doc-scroll .bg-video {
-    inset-block-start: calc(0px - var(--inset-top));
-    block-size: calc(100lvh + var(--chrome-gap, 0px) + var(--inset-top) + var(--inset-bottom));
+    visibility: hidden;
   }
 
   /* Screen scrims are part of the SCROLLED SURFACE, never viewport-fixed —
@@ -758,20 +763,9 @@
     block-size: auto;
   }
 
-  /* The overscroll veil: a zero-blur SPREAD shadow paints a 100vh solid ink
-     ring around the screen in every direction. Shadows are ink overflow —
-     they never add scroll length — and they ride the document through
-     rubber-bands. It lives on the UNFILTERED ::after: WebKit clips outset
-     shadows from backdrop-filter layers, which is why the same ring on the
-     blurred scrim never rendered on iOS (caught on device 2026-08-20). */
-  html.doc-scroll :is(.lobby-screen, .nearby-screen, .profile-screen, .game-detail-screen, .changelog-screen).active::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: var(--z-scrim);
-    pointer-events: none;
-    box-shadow: 0 0 0 100vh rgba(8, 4, 1, .8);
-  }
+  /* (The 100vh ink-ring shadows that stood here, meant to veil the bounce
+     region, were removed 2026-09-21: iOS paints only the canvas there, so
+     they never showed, and each was a viewport-sized ink layer to scroll.) */
 
   /* The MENU's glass is NOT viewport-fixed: iOS repositions fixed +
      backdrop-filter layers late during scrolls and rubber-bands, so a
@@ -786,12 +780,6 @@
     position: absolute;
     inset: 0;
     block-size: auto;
-  }
-
-  /* The menu's overscroll veil rides its GROUND (::after — it fades with
-     the menu's own choreography); same ink-ring trick as the screens. */
-  html.doc-scroll .nav-menu::after {
-    box-shadow: 0 0 0 100vh rgba(8, 4, 1, .7);
   }
 
   /* ── the Hubble wall runs the SAME glass as every other client ──

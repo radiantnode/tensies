@@ -61,22 +61,6 @@ function setDocScroll(id) {
   } else if (!on) {
     strip?.remove();
   }
-  // iOS Safari's LARGE viewport still excludes the collapsed-address-bar
-  // strip, and it reports safe-area insets of 0 in scrolling-tab mode
-  // (measured on device, 2026-08-19: sat=0 sab=0, 100lvh=815 on a taller
-  // screen) — so no CSS unit can reach the bottom band. JS can: the gap is
-  // screen.height − 100lvh, fed to the bleed rule as --chrome-gap. Guarded
-  // to phone-chrome-sized gaps so desktop windows and the wall (where
-  // screen.height has nothing to do with the viewport) never apply it.
-  if (on && !hasProbe('nogap')) {
-    const probe = document.createElement('div');
-    probe.style.cssText = 'position:fixed;top:0;left:-10px;width:1px;height:100lvh;visibility:hidden;pointer-events:none';
-    document.body.appendChild(probe);
-    const gap = screen.height - probe.offsetHeight;
-    probe.remove();
-    const apply = gap > 0 && gap <= 80 ? gap : 0;
-    document.documentElement.style.setProperty('--chrome-gap', apply + 'px');
-  }
   // Entering: start at the top. Leaving: shed any scroll offset before the
   // fixed shell (overflow: hidden) comes back and would trap it.
   window.scrollTo(0, 0);
