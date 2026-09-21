@@ -832,6 +832,24 @@
   html[data-probe~="noosb2"], html[data-probe~="noosb2"] body { overscroll-behavior: auto !important; }
   html[data-probe~="nota"], html[data-probe~="nota"] * { touch-action: auto !important; }
   html[data-probe~="noadjust"] { -webkit-text-size-adjust: auto !important; text-size-adjust: auto !important; }
+  /* Fourth set (2026-09-21): a landing that booted in flow still hands its
+     in-app navigations flat fill, so the fixed shell itself is the ratchet.
+     bodyfree: body stays static and <main> takes the shell's fixed box
+     instead (the skill's minimal pages: a fixed CHILD sized to the viewport
+     did not trigger the fill; body was never tried). htmlfree: html's
+     overflow left visible on the fixed shell. */
+  html[data-probe~="bodyfree"]:not(.doc-scroll) body {
+    position: static !important;
+    inset: auto !important;
+    overflow: visible !important;
+  }
+  html[data-probe~="bodyfree"]:not(.doc-scroll) main {
+    position: fixed;
+    inset: 0;
+    bottom: calc(0px - var(--inset-bottom));
+    overflow: hidden;
+  }
+  html[data-probe~="htmlfree"]:not(.doc-scroll) { overflow: visible !important; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
