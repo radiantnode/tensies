@@ -298,6 +298,11 @@ export function bootstrap({ resumeSession }) {
       // Probe token create: submit Create Game once the landing is up, so a
       // touchless simulator can reach the lobby (and, with start, the board).
       if (hasProbe('create')) transition.updateCallbackDone.then(() => setTimeout(() => /** @type {HTMLFormElement} */ (byId('landing-form')).requestSubmit(), 400));
+      // Probe tokens navnearby / navmenu: an in-app navigation off the landing
+      // with no reload, to read whether Safari's strip decision is per load
+      // or per shell state.
+      if (hasProbe('navnearby')) transition.updateCallbackDone.then(() => setTimeout(() => showNearby(), 600));
+      if (hasProbe('navmenu')) transition.updateCallbackDone.then(() => setTimeout(() => /** @type {any} */ (document.querySelector('nav-menu'))?.open?.(), 600));
     });
   }
 }
