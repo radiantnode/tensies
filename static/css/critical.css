@@ -820,7 +820,18 @@
   html[data-probe~="norings"] .screen.active::after,
   html[data-probe~="norings"] .nav-menu::after { box-shadow: none !important; }
   html[data-probe~="nomenu"] nav-menu:not(.open) { display: none !important; }
-  html[data-probe~="hdrbg"] app-header { background-color: #080401 !important; }
+  html[data-probe~="hdrbg"] app-header { background-color: #0000ff !important; }
+  /* Third set (2026-09-21): the strip stayed flat under everything above, and
+     the only fixed/sticky boxes left were already ablated, so these reach the
+     root. noosb2: overscroll-behavior auto on BOTH axes of html and body (the
+     first noosb touched html's y axis only; the base rules set the shorthand
+     on both elements). nota: no touch-action anywhere. noadjust: no
+     text-size-adjust. nogap: the --chrome-gap measuring element skipped
+     (transitions.js). The head-level ones (nowebapp, nocover, noscale) are
+     rewritten in routes.py. */
+  html[data-probe~="noosb2"], html[data-probe~="noosb2"] body { overscroll-behavior: auto !important; }
+  html[data-probe~="nota"], html[data-probe~="nota"] * { touch-action: auto !important; }
+  html[data-probe~="noadjust"] { -webkit-text-size-adjust: auto !important; text-size-adjust: auto !important; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {

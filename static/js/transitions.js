@@ -68,7 +68,7 @@ function setDocScroll(id) {
   // screen.height − 100lvh, fed to the bleed rule as --chrome-gap. Guarded
   // to phone-chrome-sized gaps so desktop windows and the wall (where
   // screen.height has nothing to do with the viewport) never apply it.
-  if (on) {
+  if (on && !hasProbe('nogap')) {
     const probe = document.createElement('div');
     probe.style.cssText = 'position:fixed;top:0;left:-10px;width:1px;height:100lvh;visibility:hidden;pointer-events:none';
     document.body.appendChild(probe);

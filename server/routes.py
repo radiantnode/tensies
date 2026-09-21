@@ -662,10 +662,21 @@ def _probe_shell(variant: str) -> HTMLResponse:
         raise HTTPException(status_code=404)
     tokens = variant.replace("-", " ")
     html = _render_index().replace('<html lang="en">', f'<html lang="en" data-probe="{tokens}">', 1)
-    # Token floor: theme-color is the status bar's fallback when iOS cannot
-    # sample the page top; try the page's own floor instead of the brown.
-    if "floor" in tokens.split():
-        html = html.replace("#1a0e08", "#080401", 1)
+    # Head-level ablations, done here because no stylesheet can reach them.
+    # floor: a loud theme-color, so a fallback to it is unmistakable. nowebapp:
+    # the manifest link and the apple-mobile-web-app-* metas gone. nocover:
+    # viewport-fit=cover off. noscale: maximum-scale off.
+    toks = tokens.split()
+    if "floor" in toks:
+        html = re.sub(r'(<meta name="?theme-color"? content="?)#[0-9a-fA-F]{6}',
+                      r"\g<1>#00ff00", html, count=1)
+    if "nowebapp" in toks:
+        html = re.sub(r'<link rel="?manifest"?[^>]*>', "", html, count=1)
+        html = re.sub(r'<meta name="?apple-mobile-web-app-[a-z-]+"?[^>]*>', "", html)
+    if "nocover" in toks:
+        html = html.replace(", viewport-fit=cover", "", 1).replace(",viewport-fit=cover", "", 1)
+    if "noscale" in toks:
+        html = html.replace(", maximum-scale=1.0", "", 1).replace(",maximum-scale=1.0", "", 1)
     return _shell(html)
 
 
