@@ -640,6 +640,18 @@
     overflow: visible;
   }
 
+  /* The landing is a one-viewport room that BOUNCES but never scrolls, so
+     it is sized to the SMALL viewport (the toolbar shown): Safari then has
+     no overflow to collapse its bar into. A dvh-sized page grows the moment
+     the bar starts to collapse and is scrollable by that much from then on
+     — on the phone (2026-09-21) the header scrolled away and a gap opened
+     above the toolbar. Portrait-only app, so svh's landscape shortfall
+     (iOS Safari Gotchas §4) does not apply. */
+  html.doc-scroll .landing-screen.active {
+    block-size: 100svh;
+    min-block-size: 100svh;
+  }
+
   /* Inner scrollers flow into the document — nothing is clipped. */
   html.doc-scroll .screen .screen-body,
   html.doc-scroll .screen .player-list {
