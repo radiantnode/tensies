@@ -25,16 +25,18 @@ let loadingShownAt = Date.now();
  */
 const DISSOLVE_NAV = true;
 
-const FIXED_SHELL_SCREENS = new Set(['game', 'loading', 'landing', 'lobby']);
+const FIXED_SHELL_SCREENS = new Set(['game', 'loading', 'lobby']);
 
 /**
  * Document-scroll mode (owner-directed, 2026-08-19): every screen reads as a
  * normal web page — the document itself scrolls, so content is never clipped
  * by an inner scroller and iOS Safari collapses its chrome on scroll. The
  * screens on the fixed shell are the GAME BOARD (the table is bolted down:
- * dice geometry, the mat, the roll coin), the LANDING and the LOBBY (both
- * composed one-viewport rooms — they must not move; owner-directed
- * 2026-08-20), and the transient loading splash. The nav menu force-enables
+ * dice geometry, the mat, the roll coin), the LOBBY (a composed one-viewport
+ * room — it must not move; owner-directed 2026-08-20) and the transient
+ * loading splash. The LANDING left the fixed shell on 2026-09-21 (owner's
+ * call): it flows as a page so it rubber-bands like every other screen, and
+ * it keeps its live video (critical.css). The nav menu force-enables
  * the mode while it is open so the menu and changelog flow as pages even
  * over fixed-shell hosts (nav-menu.js). Applied at screen COMMIT (never
  * earlier): flipping the shell to static mid-swap would collapse the

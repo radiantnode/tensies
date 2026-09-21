@@ -246,7 +246,10 @@
     block-size: calc(100% + var(--inset-top) + var(--inset-bottom));
     overflow: hidden;
     overscroll-behavior: none;
-    background: var(--color-bg);
+    /* The canvas is the FLOOR, never the old brown (--color-bg): on iOS it is
+       the one thing painted behind Safari's toolbar and in the bounce, on
+       every shell, and it read as a brown band under the landing. */
+    background: #080401;
     /* Stop iOS Safari inflating running text when rotated to landscape;
        keep the sizes we set at every orientation. */
     -webkit-text-size-adjust: 100%;
@@ -749,6 +752,15 @@
      playback is untouched for the landing it returns to. */
   html.doc-scroll .bg-video {
     visibility: hidden;
+  }
+
+  /* The landing flows as a page too (2026-09-21) and keeps its live video —
+     the room IS the landing, and its bounce shows more of it, which is
+     right. Not while the nav menu is open over it: the menu is taller than
+     the viewport and its bottom bounce would expose the raw video under the
+     glass, so the menu sits on the still poster like everywhere else. */
+  html.doc-scroll body:has(.landing-screen.active):not(.nav-menu-open) .bg-video {
+    visibility: visible;
   }
 
   /* Screen scrims are part of the SCROLLED SURFACE, never viewport-fixed —
