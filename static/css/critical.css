@@ -330,19 +330,38 @@
     to   { opacity: 1; }
   }
 
+  /* body is STATIC. It used to be the fixed shell (position:fixed inset:0),
+     and that is the one construct iOS Safari punishes for the life of the
+     page: a fixed or sticky box sized to the dynamic viewport flips the
+     browser into "flat fill" behind its toolbar — the page cut off at a hard
+     edge above a band — and nothing after that first paint gets it back,
+     including every document-scroll screen the user navigates to next.
+     Measured in the iOS 27 simulator on minimal pages, 2026-09-21: body
+     fixed inset:0 ratchets, a fixed child at 100dvh ratchets, the same child
+     at 100lvh does not. The shell lives on <main> below, at 100lvh. iOS
+     Safari Gotchas §1. */
   body {
-    position: fixed;
-    inset: 0;
-    bottom: calc(0px - var(--inset-bottom));
-    overflow: hidden;
     font-family: var(--font-family-base);
     color: var(--color-cream);
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* The fixed shell, sized to the LARGE viewport on purpose (see body). The
+     extra height — what the toolbar covers — is padded off the bottom, so
+     the content box is exactly the old shell: one dynamic viewport plus the
+     bottom inset, and the screens (block-size: 100%), the pinned Start and
+     the ROLL coin lay out where they always did. Where lvh equals dvh (any
+     engine without dynamic chrome) the padding is 0 and this is the old
+     geometry byte for byte. */
   main {
-    block-size: 100%;
+    position: fixed;
+    inset: 0 auto auto 0;
+    inline-size: 100%;
+    box-sizing: border-box;
+    block-size: calc(100lvh + var(--inset-bottom));
+    padding-block-end: calc(100lvh - 100dvh);
+    overflow: hidden;
   }
 }
 
@@ -460,7 +479,9 @@
   .rotate-overlay {
     display: none;
     position: fixed;
-    inset: 0;
+    inset: 0 auto auto 0;
+    inline-size: 100%;
+    block-size: 100lvh; /* not the dynamic viewport — see body */
     z-index: var(--z-guard);
     flex-direction: column;
     align-items: center;
@@ -508,15 +529,23 @@
      incoming screen builds invisibly at its final geometry, then the outgoing
      screen dissolves over the live result — no view-transition raster, so
      the 3-D dice are never flattened (the Safari capture bug). */
-  .screen.staging {
+  /* Both are viewport-sized fixed boxes for a frame or two, which is enough
+     to ratchet Safari (see body) — so they take the shell's lvh shape. */
+  .screen.staging,
+  .screen.dissolving {
     position: fixed;
-    inset: 0;
+    inset: 0 auto auto 0;
+    inline-size: 100%;
+    box-sizing: border-box;
+    block-size: calc(100lvh + var(--inset-bottom));
+    padding-block-end: calc(100lvh - 100dvh);
+  }
+
+  .screen.staging {
     visibility: hidden;
   }
 
   .screen.dissolving {
-    position: fixed;
-    inset: 0;
     z-index: var(--z-dissolve);
     opacity: 0;
     pointer-events: none;
@@ -591,7 +620,12 @@
     z-index: var(--z-scrim);
   }
 
-  html.doc-scroll main { block-size: auto; }
+  html.doc-scroll main {
+    position: static;
+    block-size: auto;
+    padding: 0;
+    overflow: visible;
+  }
 
   /* Every screen grows with its content and still fills the glass when
      short; the document is the scroller. */
@@ -832,61 +866,9 @@
   html[data-probe~="noosb2"], html[data-probe~="noosb2"] body { overscroll-behavior: auto !important; }
   html[data-probe~="nota"], html[data-probe~="nota"] * { touch-action: auto !important; }
   html[data-probe~="noadjust"] { -webkit-text-size-adjust: auto !important; text-size-adjust: auto !important; }
-  /* Fourth set (2026-09-21): a landing that booted in flow still hands its
-     in-app navigations flat fill, so the fixed shell itself is the ratchet.
-     bodyfree: body stays static and <main> takes the shell's fixed box
-     instead (the skill's minimal pages: a fixed CHILD sized to the viewport
-     did not trigger the fill; body was never tried). htmlfree: html's
-     overflow left visible on the fixed shell. */
-  html[data-probe~="bodyfree"]:not(.doc-scroll) body {
-    position: static !important;
-    inset: auto !important;
-    overflow: visible !important;
-  }
-  html[data-probe~="bodyfree"]:not(.doc-scroll) main {
-    position: fixed;
-    inset: 0;
-    bottom: calc(0px - var(--inset-bottom));
-    overflow: hidden;
-  }
-  html[data-probe~="htmlfree"]:not(.doc-scroll) { overflow: visible !important; }
-  /* Fifth set (2026-09-21, from the minimal pages): a fixed or sticky box
-     sized to the DYNAMIC viewport (inset:0 / 100dvh) ratchets Safari into
-     flat fill for the page's life; the same box at 100lvh does not.
-     shelllvh: body static, <main> fixed at 100lvh with the extra height
-     padded off the bottom so the screens still lay out in one dynamic
-     viewport; the staged/dissolving screens and the modal overlays (and
-     their backdrops) take the same shape. On any engine where lvh equals
-     dvh the padding is 0 and nothing changes. */
-  html[data-probe~="shelllvh"]:not(.doc-scroll) body {
-    position: static !important;
-    inset: auto !important;
-    overflow: visible !important;
-  }
-  html[data-probe~="shelllvh"]:not(.doc-scroll) main {
-    position: fixed;
-    inset: 0 auto auto 0;
-    inline-size: 100%;
-    box-sizing: border-box;
-    block-size: 100lvh;
-    padding-block-end: calc(100lvh - 100dvh);
-    overflow: hidden;
-  }
-  html[data-probe~="shelllvh"] .screen.staging,
-  html[data-probe~="shelllvh"] .screen.dissolving,
-  html[data-probe~="shelllvh"] .overlay-dialog {
-    inset: 0 auto auto 0 !important;
-    inline-size: 100%;
-    box-sizing: border-box;
-    block-size: 100lvh !important;
-    max-block-size: none !important;
-    padding-block-end: calc(100lvh - 100dvh) !important;
-  }
-  html[data-probe~="shelllvh"] dialog::backdrop {
-    inset: 0 auto auto 0;
-    inline-size: 100%;
-    block-size: 100lvh;
-  }
+  /* bodyfree, htmlfree and shelllvh (the fourth and fifth sets) are what the
+     default shell became — see body and main in the elements layer — and are
+     accepted as no-ops. */
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
