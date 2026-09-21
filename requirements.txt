@@ -1,7 +1,7 @@
 # Top-level runtime dependencies. Exact transitive pins live in
 # requirements.lock (use that for reproducible/prod builds).
 fastapi==0.141.1
-uvicorn[standard]==0.52.4
+uvicorn[standard]==0.53.0
 asyncpg==0.31.0
 prometheus-client==0.26.0
 httpx==0.28.1
@@ -18,7 +18,7 @@ h11==0.16.0
 
 # WebAuthn passkey auth + JWT session tokens
 webauthn==3.0.0
-PyJWT==2.13.0
+PyJWT==2.14.0
 
 # BLS12-381 signature verification for drand beacon
 blspy==2.0.3
