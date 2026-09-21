@@ -667,6 +667,12 @@ def _probe_shell(variant: str) -> HTMLResponse:
     # the manifest link and the apple-mobile-web-app-* metas gone. nocover:
     # viewport-fit=cover off. noscale: maximum-scale off.
     toks = tokens.split()
+    # docfirst: html.doc-scroll from the first byte, so the loading splash
+    # paints in flow with body static rather than in the fixed shell — the
+    # state Safari is in when it latches the toolbar-strip mode.
+    if "docfirst" in toks:
+        html = html.replace('<html lang="en" data-probe=',
+                            '<html lang="en" class="doc-scroll" data-probe=', 1)
     if "floor" in toks:
         html = re.sub(r'(<meta name="?theme-color"? content="?)#[0-9a-fA-F]{6}',
                       r"\g<1>#00ff00", html, count=1)
