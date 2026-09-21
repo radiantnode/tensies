@@ -850,6 +850,43 @@
     overflow: hidden;
   }
   html[data-probe~="htmlfree"]:not(.doc-scroll) { overflow: visible !important; }
+  /* Fifth set (2026-09-21, from the minimal pages): a fixed or sticky box
+     sized to the DYNAMIC viewport (inset:0 / 100dvh) ratchets Safari into
+     flat fill for the page's life; the same box at 100lvh does not.
+     shelllvh: body static, <main> fixed at 100lvh with the extra height
+     padded off the bottom so the screens still lay out in one dynamic
+     viewport; the staged/dissolving screens and the modal overlays (and
+     their backdrops) take the same shape. On any engine where lvh equals
+     dvh the padding is 0 and nothing changes. */
+  html[data-probe~="shelllvh"]:not(.doc-scroll) body {
+    position: static !important;
+    inset: auto !important;
+    overflow: visible !important;
+  }
+  html[data-probe~="shelllvh"]:not(.doc-scroll) main {
+    position: fixed;
+    inset: 0 auto auto 0;
+    inline-size: 100%;
+    box-sizing: border-box;
+    block-size: 100lvh;
+    padding-block-end: calc(100lvh - 100dvh);
+    overflow: hidden;
+  }
+  html[data-probe~="shelllvh"] .screen.staging,
+  html[data-probe~="shelllvh"] .screen.dissolving,
+  html[data-probe~="shelllvh"] .overlay-dialog {
+    inset: 0 auto auto 0 !important;
+    inline-size: 100%;
+    box-sizing: border-box;
+    block-size: 100lvh !important;
+    max-block-size: none !important;
+    padding-block-end: calc(100lvh - 100dvh) !important;
+  }
+  html[data-probe~="shelllvh"] dialog::backdrop {
+    inset: 0 auto auto 0;
+    inline-size: 100%;
+    block-size: 100lvh;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {

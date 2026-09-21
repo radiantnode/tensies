@@ -301,7 +301,14 @@ export function bootstrap({ resumeSession }) {
       // Probe tokens navnearby / navmenu: an in-app navigation off the landing
       // with no reload, to read whether Safari's strip decision is per load
       // or per shell state.
-      if (hasProbe('navnearby')) transition.updateCallbackDone.then(() => setTimeout(() => showNearby(), 600));
+      // navjoin opens the Join sheet (a modal dialog, so a viewport-sized
+      // ::backdrop) and closes it again; navnearby then waits for it.
+      if (hasProbe('navjoin')) transition.updateCallbackDone.then(() => {
+        setTimeout(() => landing().openJoinSheet(), 600);
+        setTimeout(() => landing().closeJoinSheet(), 1800);
+      });
+      const navDelay = hasProbe('navjoin') ? 3000 : 600;
+      if (hasProbe('navnearby')) transition.updateCallbackDone.then(() => setTimeout(() => showNearby(), navDelay));
       if (hasProbe('navmenu')) transition.updateCallbackDone.then(() => setTimeout(() => /** @type {any} */ (document.querySelector('nav-menu'))?.open?.(), 600));
     });
   }
