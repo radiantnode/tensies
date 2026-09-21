@@ -683,6 +683,79 @@ def _probe_shell(variant: str) -> HTMLResponse:
     return _shell(html)
 
 
+# ── Minimal pages (iOS Safari Gotchas §1, "bisecting"): build the ratchet up
+# from nothing instead of inferring it through the app. Each page is a loud
+# ground with tall striped filler, applies ONE construct for two seconds,
+# removes it, then scrolls to 1500. The script and stylesheet are served as
+# same-origin files because the CSP allows no inline code.
+_MIN_CONSTRUCTS = ("none", "bodyfixed", "mainfixed", "mainfixedlvh", "screenfixed",
+                   "htmlhidden", "bodyfixed2", "sticky")
+_MIN_JS = r"""(() => {
+  const c = document.body.dataset.min;
+  const shell = document.getElementById('shell');
+  const log = (m) => { document.getElementById('log').textContent += m + '\n'; };
+  log('construct ' + c + ' applied at ' + Math.round(performance.now()) + 'ms');
+  if (c === 'bodyfixed' || c === 'bodyfixed2') document.body.classList.add('min-bodyfixed');
+  if (c === 'htmlhidden') document.documentElement.classList.add('min-htmlhidden');
+  const onShell = ['mainfixed', 'mainfixedlvh', 'screenfixed', 'sticky'];
+  if (onShell.includes(c)) shell.classList.add('min-' + c);
+  const hold = c === 'bodyfixed2' ? 8000 : 2000;
+  setTimeout(() => {
+    document.body.classList.remove('min-bodyfixed');
+    document.documentElement.classList.remove('min-htmlhidden');
+    shell.className = '';
+    log('removed at ' + Math.round(performance.now()) + 'ms');
+    setTimeout(() => { window.scrollTo(0, 1500); log('scrolled to ' + Math.round(scrollY)); }, 500);
+  }, hold);
+})();"""
+_MIN_CSS = """html { background: #ff00ff; margin: 0; }
+body { margin: 0; font: 16px/1.4 system-ui; color: #fff; }
+#filler { height: 4000px; background: repeating-linear-gradient(#222 0 200px, #666 200px 400px); }
+#log { position: absolute; top: 8px; left: 8px; white-space: pre; z-index: 5;
+       font: 12px monospace; color: #0f0; }
+#shell { background: #080401; color: #fff; padding: 12px; }
+body.min-bodyfixed { position: fixed; inset: 0; overflow: hidden; }
+html.min-htmlhidden { overflow: hidden; }
+#shell.min-mainfixed { position: fixed; inset: 0; height: 100dvh; }
+#shell.min-mainfixedlvh { position: fixed; inset: 0; height: 100lvh; }
+#shell.min-screenfixed { position: fixed; inset: 0; height: calc(100lvh + 120px); }
+#shell.min-sticky { position: sticky; top: 0; height: 100dvh; }
+"""
+
+
+def _min_page(name: str) -> str:
+    return (
+        '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">'
+        f'<title>min {name}</title><link rel="stylesheet" href="/p/min-assets/probe.css">'
+        '<script src="/p/min-assets/probe.js" defer></script></head>'
+        f'<body data-min="{name}"><pre id="log"></pre><div id="shell">shell: {name}</div>'
+        '<div id="filler"></div></body></html>'
+    )
+
+
+@router.get("/p/min-assets/probe.js")
+async def min_js() -> Response:
+    if not PROBE_PATHS:
+        raise HTTPException(status_code=404)
+    return Response(_MIN_JS, media_type="application/javascript",
+                    headers={"Cache-Control": "no-cache"})
+
+
+@router.get("/p/min-assets/probe.css")
+async def min_css() -> Response:
+    if not PROBE_PATHS:
+        raise HTTPException(status_code=404)
+    return Response(_MIN_CSS, media_type="text/css", headers={"Cache-Control": "no-cache"})
+
+
+@router.get("/p/min/{name}")
+async def min_page(name: str) -> HTMLResponse:
+    if not PROBE_PATHS or name not in _MIN_CONSTRUCTS:
+        raise HTTPException(status_code=404)
+    return _shell(_min_page(name))
+
+
 @router.get("/p/{variant}")
 async def probe_root(variant: str) -> HTMLResponse:
     return _probe_shell(variant)
