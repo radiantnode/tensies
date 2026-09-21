@@ -661,18 +661,15 @@ def _probe_shell(variant: str) -> HTMLResponse:
     if not PROBE_PATHS or not _PROBE_VARIANT_RE.fullmatch(variant):
         raise HTTPException(status_code=404)
     tokens = variant.replace("-", " ")
-    html = _render_index().replace('<html lang="en">', f'<html lang="en" data-probe="{tokens}">', 1)
+    html = _render_index().replace('<html lang="en" class="doc-scroll">',
+                                   f'<html lang="en" class="doc-scroll" data-probe="{tokens}">', 1)
     # Head-level ablations, done here because no stylesheet can reach them.
     # floor: a loud theme-color, so a fallback to it is unmistakable. nowebapp:
     # the manifest link and the apple-mobile-web-app-* metas gone. nocover:
     # viewport-fit=cover off. noscale: maximum-scale off.
     toks = tokens.split()
-    # docfirst: html.doc-scroll from the first byte, so the loading splash
-    # paints in flow with body static rather than in the fixed shell — the
-    # state Safari is in when it latches the toolbar-strip mode.
-    if "docfirst" in toks:
-        html = html.replace('<html lang="en" data-probe=',
-                            '<html lang="en" class="doc-scroll" data-probe=', 1)
+    # docfirst is the default now (index.html boots every route in
+    # html.doc-scroll); the token stays accepted so its paths keep working.
     if "floor" in toks:
         html = re.sub(r'(<meta name="?theme-color"? content="?)#[0-9a-fA-F]{6}',
                       r"\g<1>#00ff00", html, count=1)

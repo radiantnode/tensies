@@ -1,5 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- The document boots in document-scroll mode (html.doc-scroll) on EVERY
+     route: iOS Safari decides once, at first paint, whether the page keeps
+     painting behind its bottom toolbar (overdraw) or cuts it off with a flat
+     band, and it takes the flat band when that first paint is the fixed shell
+     (body position:fixed leaves nothing under the viewport). The decision
+     outlives every later change, so the loading splash paints in flow here
+     and transitions.js takes the class down at commit for the screens that
+     live on the fixed shell (landing, lobby, board, loading). Measured in the
+     iOS 27 simulator, 2026-09-21: seven doc-scroll routes flat, all seven
+     overdraw with this. iOS Safari Gotchas §1. -->
+<html lang="en" class="doc-scroll">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
