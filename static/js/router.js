@@ -1,9 +1,10 @@
 // @ts-check
+import { isSignedIn } from './auth.js';
 import { byId } from './dom.js';
 import {
   RESUME_CLOSE_DELAY_MS, hidePaused, hideWinner, pausedText, showPaused, waitingText,
 } from './overlays.js';
-import { saveGameCode, hasSession } from './session.js';
+import { saveGameCode, hasSession, readSession } from './session.js';
 import { dispatch, state } from './state.js';
 import { showScreen, showLoading, leaveLoading } from './transitions.js';
 import { playIntro } from './video-intro.js';
@@ -250,7 +251,17 @@ export function bootstrap({ resumeSession }) {
       openJoinOnLanding({ code: backCode });
       return;
     }
-    const transition = activateNamed(ROUTES[routePath()] ?? 'landing');
+    const popNamedRoute = ROUTES[routePath()] ?? 'landing';
+    // Same guard as bootstrap()'s: a guest can still land back on /welcome via
+    // Back/Forward (a bfcache restore, or — before the replaceState below
+    // existed — the history entry bootstrap()'s redirect pushed on top of).
+    // replace, not push: this popstate's entry is the one showing /welcome
+    // right now, so it's the one to overwrite.
+    if (popNamedRoute === 'onboarding' && !isSignedIn()) {
+      navigate('/', { replace: true });
+      return;
+    }
+    const transition = activateNamed(popNamedRoute);
     // Landing on any other screen dismisses a Join sheet left open on the landing.
     transition.updateCallbackDone.then(() => landing().closeJoinSheet());
   });
@@ -271,6 +282,22 @@ export function bootstrap({ resumeSession }) {
   // stale reconnect attempt.
   const namedRoute = ROUTES[routePath()];
   if (namedRoute && namedRoute !== 'landing') {
+    // /welcome is the post-signup confirmation card (confirmed username,
+    // vanity URL, any migrated stats). A guest who lands there directly —
+    // bookmark, shared link, a stale tab reopened after sessionStorage was
+    // cleared — has no signup in flight and no account, so
+    // onboarding-screen.js's own #restore() has neither a fresh stash nor a
+    // signed-in user to fall back to and leaves the card blank (an empty
+    // username/vanity-URL well under "You're all set."). Bounce home
+    // instead of showing that dead end.
+    if (namedRoute === 'onboarding' && !isSignedIn()) {
+      // replace: true, not the push a bare navigate('/') would do — a push
+      // left the real /welcome load one entry away, so a swipe-back/Back tap
+      // landed right back on the blank card (found 2026-09-22). Overwrite
+      // that entry instead; there's nothing valid to go back to here.
+      leaveLoading(() => navigate('/', { replace: true }));
+      return;
+    }
     leaveLoading(() => activateNamed(namedRoute));
     return;
   }
@@ -281,11 +308,17 @@ export function bootstrap({ resumeSession }) {
     leaveLoading(() => openJoinOnLanding());
     return;
   }
-  if (hasSession()) {
-    resumeSession();
-    return;
-  }
   const pathCode = routePath().match(/^\/([A-Z]{5})$/i)?.[1];
+  if (hasSession()) {
+    // A /<CODE> link for a game other than the saved session (e.g. a fresh
+    // invite opened while an old session is still held) means join that game
+    // instead of reconnecting to the stale one below.
+    const { gameCode: savedCode } = readSession();
+    if (!pathCode || pathCode.toUpperCase() === savedCode) {
+      resumeSession();
+      return;
+    }
+  }
   const joinCode = pathCode ?? new URLSearchParams(location.search).get('join');
   if (joinCode) {
     // Keep a /<CODE> path in the address bar so a refresh re-opens the sheet;

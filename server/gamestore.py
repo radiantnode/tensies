@@ -38,6 +38,7 @@ _r: aioredis.Redis | None = None
 
 # Lua scripts, registered on init().
 _create = _join = _finish = _drop = _restamp = _end_paused = None
+_claim_conn = _mark_disc_if_current = None
 
 
 def client() -> aioredis.Redis:
@@ -156,12 +157,15 @@ return {1, new_host}
 
 def _register_scripts() -> None:
     global _create, _join, _finish, _drop, _restamp, _end_paused
+    global _claim_conn, _mark_disc_if_current
     _create = _r.register_script(_CREATE_LUA)
     _join = _r.register_script(_JOIN_LUA)
     _finish = _r.register_script(_FINISH_LUA)
     _drop = _r.register_script(_DROP_LUA)
     _restamp = _r.register_script(_RESTAMP_LUA)
     _end_paused = _r.register_script(_END_PAUSED_LUA)
+    _claim_conn = _r.register_script(_CLAIM_CONN_LUA)
+    _mark_disc_if_current = _r.register_script(_MARK_DISC_IF_CURRENT_LUA)
 
 
 # ─── Code generation (audit L1: secrets, not random) ───────────────────────
@@ -415,6 +419,67 @@ async def mark_disconnected(code: str, pid: str) -> None:
     })
 
 
+# A closing socket's own disconnect cleanup can race a reconnect that already
+# replaced it (the new socket beats the old one's close — same instance or a
+# different one, since this is Redis-shared state). conn_seq is a per-player
+# generation counter: reconnect_player bumps it and hands the new value to the
+# reconnecting Session; mark_disconnected_if_current only acts if that value is
+# still current, so a stale close can no longer mark the new connection
+# disconnected, schedule a grace drop, or (via that drop) move host / broadcast
+# a departure for a player who's actually still here.
+_CLAIM_CONN_LUA = """
+-- KEYS[1]=game key ; ARGV: pid
+local p = 'p:' .. ARGV[1] .. ':'
+local seq = redis.call('HINCRBY', KEYS[1], p .. 'conn_seq', 1)
+redis.call('HSET', KEYS[1], p .. 'disconnected', 0)
+redis.call('HDEL', KEYS[1], p .. 'disconnected_at_ms')
+return seq
+"""
+
+_MARK_DISC_IF_CURRENT_LUA = """
+-- KEYS[1]=game key ; ARGV: pid, conn_seq, now_ms
+local p = 'p:' .. ARGV[1] .. ':'
+if redis.call('HEXISTS', KEYS[1], p .. 'name') == 0 then return 0 end
+-- Already disconnected: preserves the old mark_disconnected() idempotency —
+-- e.g. handle_leave marks disconnected then do_drop(grace_ms=0) drops
+-- immediately EXCEPT while paused (do_drop returns early on paused, leaving
+-- the hash in place). Without this check, the leaving socket's own later
+-- close would re-stamp disconnected_at_ms and re-fire player_left / a second
+-- grace-drop task, since conn_seq hasn't moved (nothing reconnected).
+if redis.call('HGET', KEYS[1], p .. 'disconnected') == '1' then return 0 end
+local cur = redis.call('HGET', KEYS[1], p .. 'conn_seq')
+if cur == false then cur = '0' end
+if cur ~= ARGV[2] then return 0 end
+redis.call('HSET', KEYS[1], p .. 'disconnected', 1, p .. 'disconnected_at_ms', ARGV[3])
+return 1
+"""
+
+
+async def reconnect_player(code: str, pid: str) -> int:
+    """Claim a new connection generation for `pid` and mark them connected.
+
+    Returns the new conn_seq — the caller (handle_reconnect) stamps it on the
+    Session so its eventual disconnect can prove, via
+    mark_disconnected_if_current, that it still owns the slot before touching
+    anything.
+    """
+    return int(await _claim_conn(keys=[_gkey(code)], args=[pid]))
+
+
+async def mark_disconnected_if_current(code: str, pid: str, conn_seq: int) -> bool:
+    """Mark `pid` disconnected — but only if they aren't already, `conn_seq`
+    still matches their current connection generation, and the player hasn't
+    already been removed. False means either: a newer reconnect (this
+    instance or another) already claimed the slot (stale close, must no-op),
+    or they were already marked disconnected by something else (e.g.
+    handle_leave) and this would just re-stamp disconnected_at_ms and cause a
+    duplicate player_left / grace-drop."""
+    res = await _mark_disc_if_current(
+        keys=[_gkey(code)], args=[pid, str(conn_seq), str(now_ms())],
+    )
+    return bool(int(res))
+
+
 _RESTAMP_LUA = """
 local p = 'p:' .. ARGV[1] .. ':'
 if redis.call('HGET', KEYS[1], p .. 'disconnected') == '1' then
@@ -454,14 +519,6 @@ async def restamp_disconnect(code: str, pid: str) -> bool:
     """
     res = await _restamp(keys=[_gkey(code)], args=[pid, now_ms()])
     return bool(res)
-
-
-async def mark_connected(code: str, pid: str) -> None:
-    p = f"p:{pid}:"
-    pipe = _r.pipeline()
-    pipe.hset(_gkey(code), p + "disconnected", 0)
-    pipe.hdel(_gkey(code), p + "disconnected_at_ms")
-    await pipe.execute()
 
 
 async def transfer_host(code: str, new_host: str) -> None:
