@@ -708,6 +708,23 @@
     block-size: 100lvh;
   }
 
+  /* 100lvh ends short of the physical screen bottom (see --chrome-bleed), so
+     the intro and the table stopped in a hard edge behind the toolbar pill,
+     and higher still on taller phones. Neither can simply grow: the cover
+     crop would move, the intro's last frame would jump against the table,
+     and the pint glass would shift. So both fade out into the floor instead
+     (2026-09-23, owner's call), from just above the toolbar line
+     (100svh - 24px) to the box's bottom: nearly all of it behind the glass.
+     The same fade on both keeps the intro → board handoff seamless. Touch
+     only, and not the Hubble wall: lvh equals the screen there. */
+  @media (pointer: coarse) {
+    html.doc-scroll:not([data-hubble]) .intro-video,
+    html.doc-scroll:not([data-hubble]) body.in-game #game-bg {
+      mask-image: linear-gradient(to bottom, #000 calc(100svh - 24px), transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, #000 calc(100svh - 24px), transparent 100%);
+    }
+  }
+
   html.doc-scroll body {
     position: static;
     overflow: visible;
