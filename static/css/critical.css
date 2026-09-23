@@ -665,10 +665,12 @@
      layer never gets that treatment regardless of its own box size. The
      board bounced on an inner 1px scroller for a day (7e93bdc); taken back
      out on the owner's call. The loading splash is held the same way: it
-     never scrolls, and its box reaches behind the toolbar (below). The
-     lobby is NOT included here — it keeps the ordinary root bounce above,
-     unchanged. */
-  html.doc-scroll:has(.game-screen.active, .loading-screen.active) {
+     never scrolls, and its box reaches behind the toolbar (below). So is
+     the game-start intro while it plays: it starts over the lobby, and its
+     in-flow 100lvh box (below) would otherwise make that page scrollable
+     for the first beat. The lobby is NOT otherwise included here — it keeps
+     the ordinary root bounce above, unchanged. */
+  html.doc-scroll:has(.game-screen.active, .loading-screen.active, .intro-video.playing) {
     overflow: hidden;
   }
 
@@ -688,6 +690,18 @@
      invisible anyway (opacity: 0, visibility: hidden) but permanently in
      the DOM — keeps the plain fixed layer, untouched. */
   html.doc-scroll body.in-game #game-bg {
+    position: absolute;
+    inset: 0 auto auto 0;
+    inline-size: 100%;
+    block-size: 100lvh;
+  }
+
+  /* The game-start intro, the same way (2026-09-23): as a fixed layer it was
+     cut off at the toolbar line for the whole clip. In flow on the same
+     100lvh box and cover crop as #game-bg, it paints behind the toolbar, and
+     its last frame still lands on the table without a jump. It's only
+     displayed while .playing (above), and html is locked for that time. */
+  html.doc-scroll .intro-video {
     position: absolute;
     inset: 0 auto auto 0;
     inline-size: 100%;
