@@ -37,14 +37,12 @@ const FIXED_SHELL_SCREENS = new Set(['loading']);
  * BOARD followed on 2026-09-22 (owner's call, docs/IOS_SAFARI.md). The
  * lobby is sized to 100svh under doc-scroll (critical.css) so it bounces
  * like the landing but never scrolls, `overflow: clip` on the screen root
- * standing in for the fixed shell's own clipping. The board bounces a
- * different way as of 2026-09-23 (docs/IOS_SAFARI.md): <html> itself goes
- * overflow: hidden while it's active — the precondition for #game-bg's
- * in-flow art to paint behind Safari's toolbar, which a root that bounces
- * can't do — and .game-screen becomes its own 1px scroll container
- * instead, which iOS does rubber-band. Both are still doc-scroll (this
- * function doesn't distinguish them); the split lives entirely in
- * critical.css. The nav menu force-enables the mode while it is open
+ * standing in for the fixed shell's own clipping. The board takes the same
+ * room but doesn't move at all (2026-09-23, docs/IOS_SAFARI.md): <html>
+ * goes overflow: hidden while it's active, so it neither scrolls nor
+ * bounces, and that frozen root is what lets #game-bg's in-flow art paint
+ * behind Safari's toolbar. Both are still doc-scroll (this function
+ * doesn't distinguish them); the split lives entirely in critical.css. The nav menu force-enables the mode while it is open
  * so the menu and changelog flow as pages even over the one remaining
  * fixed-shell host (nav-menu.js) — the same branch now also runs, harmlessly,
  * whenever the menu opens over a host that was already doc-scroll (landing,

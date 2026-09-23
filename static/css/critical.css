@@ -599,11 +599,10 @@
      scroll offset. Only the transient loading splash still keeps the fixed
      shell (2026-09-22 — landing, lobby and the game board have all left it;
      see setDocScroll in transitions.js). The lobby and landing bounce this
-     root the way the PROFILE's own scroll does; the board bounces a
-     different way as of 2026-09-23 — see the .game-screen.active rule and
-     the html:has(.game-screen.active) rule below, and docs/IOS_SAFARI.md
-     for why. Lives in the utilities layer so the mode outranks the
-     per-screen components rules.
+     root the way the PROFILE's own scroll does; the board doesn't move at
+     all (2026-09-23) — see the html:has(.game-screen.active) rule below,
+     and docs/IOS_SAFARI.md for why. Lives in the utilities layer so the
+     mode outranks the per-screen components rules.
      ── DELETE THIS BLOCK (and setDocScroll in transitions.js) TO REVERT. ── */
   html.doc-scroll {
     overflow: visible;
@@ -649,18 +648,15 @@
   }
 
   /* The board keeps <html> non-scrollable — not just clipped, off entirely
-     — the whole time it's active (2026-09-23, docs/IOS_SAFARI.md): a
-     device pass found #game-bg's in-flow art only paints behind Safari's
-     collapsed toolbar when the ROOT never overscrolls at all (a FIXED
-     layer never gets that treatment regardless of its own box size, and
-     overflow-clip-margin isn't supported on iOS 27 for either syntax —
-     both ruled out first). That leaves the root unable to bounce, so the
-     bounce moves one level down: .game-screen.active becomes its own real
-     (1px) vertical scroll container below, which iOS does rubber-band.
-     The lobby is NOT included here — it keeps the ordinary root bounce
-     above, unchanged. overscroll-behavior stays "auto" on both html and
-     body regardless (moot once overflow is hidden, but nothing here needs
-     to turn it off). */
+     — the whole time it's active (2026-09-23, owner's call,
+     docs/IOS_SAFARI.md). The table is bolted down: iOS will neither scroll
+     nor rubber-band a root whose overflow is hidden (device-verified), and
+     a root that never overscrolls is also exactly what lets #game-bg's
+     in-flow art (below) paint behind Safari's collapsed toolbar — a FIXED
+     layer never gets that treatment regardless of its own box size. The
+     board bounced on an inner 1px scroller for a day (7e93bdc); taken back
+     out on the owner's call. The lobby is NOT included here — it keeps the
+     ordinary root bounce above, unchanged. */
   html.doc-scroll:has(.game-screen.active) {
     overflow: hidden;
   }
@@ -676,11 +672,7 @@
      with no positioned ancestor under doc-scroll (main, body and html are
      all position: static there), so "in the document" here still means
      pinned to the top-left corner precisely because the document itself
-     never scrolls (html, above) — it does NOT move with .game-screen's
-     own inner bounce below, since it isn't a descendant of it. That is
-     the point: the table stays still and the board's own content (dice,
-     mat, ROLL, the in-game menu) slides over it, the same relationship as
-     always, just reached a different way. Scoped to body.in-game (set by
+     never scrolls (html, above). Scoped to body.in-game (set by
      transitions.js showScreen) so every other screen — where #game-bg is
      invisible anyway (opacity: 0, visibility: hidden) but permanently in
      the DOM — keeps the plain fixed layer, untouched. */
@@ -754,87 +746,20 @@
     min-block-size: 100svh;
   }
 
-  /* The lobby leaves the fixed shell too (2026-09-22, docs/IOS_SAFARI.md):
-     same reasoning as the landing above, so it gets the same 100svh room.
-     overflow: clip, not hidden — clipped, but never a scroll container of
-     its own — standing in for what the fixed shell used to clip for free.
-     Nothing here ever relied on that space being reachable, only on it
-     being invisible. (The board took this same shape too, briefly, on
-     2026-09-22 — see the rule below for why it doesn't any more.) */
-  html.doc-scroll .lobby-screen.active {
+  /* The lobby and the board leave the fixed shell too (2026-09-22,
+     docs/IOS_SAFARI.md): same reasoning as the landing above, so they get
+     the same 100svh room. overflow: clip, not hidden — clipped, but never a
+     scroll container of their own — standing in for what the fixed shell
+     used to clip for free (the mat's -52px shove, the open table's reach
+     past the roll strip, dice overshooting the board mid-roll). Nothing here
+     ever relied on that space being reachable, only on it being invisible.
+     The lobby bounces with the root like the landing; the board doesn't
+     move at all, since html is overflow: hidden while it's up (above). */
+  html.doc-scroll .lobby-screen.active,
+  html.doc-scroll .game-screen.active {
     block-size: 100svh;
     min-block-size: 100svh;
     overflow: clip;
-  }
-
-  /* The board's own bounce (2026-09-23, docs/IOS_SAFARI.md) — not the root
-     bounce above; see html:has(.game-screen.active) for why. block-size is
-     100lvh, not 100svh like the lobby, but padding-block-end holds the
-     CONTENT box at exactly 100svh (border-box is the reset layer's global
-     default, so padding is subtracted from, not added to, block-size) —
-     every child (the round target, mat, dice zones, ROLL coin, Start)
-     lays out against the same 100svh box as before and is pixel-identical
-     at rest. What changes is the SCROLLER's own box, and so its clip/paint
-     boundary: it now reaches as far as #game-bg does, instead of stopping
-     dead at the toolbar line and cutting the ROLL coin and the bottom row
-     of dice off mid-pull instead of letting them slide under the glass
-     like the table itself does. overflow-x stays clip: the mat's -52px
-     shove (game.css .zone-matched) is horizontal and was never meant to be
-     reachable, scroll or bounce. Scrollbar hidden — overflow-y: scroll
-     draws a classic one on desktop Chrome and possibly the Hubble wall
-     (html[data-hubble]) — the same way this codebase's other inner
-     scrollers already do it (lobby.css .player-list, .places-list);
-     cosmetic only, doesn't change whether the element scrolls. */
-  html.doc-scroll .game-screen.active {
-    block-size: 100lvh;
-    padding-block-end: calc(100lvh - 100svh);
-    overflow-x: clip;
-    overflow-y: scroll;
-    overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  html.doc-scroll .game-screen.active::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Exactly 1px of scrollable overflow, so iOS treats .game-screen as a
-     real scroller and rubber-bands it, but it can never actually scroll —
-     an absolutely positioned spacer, not a resized flex child. #my-area
-     and .dice-zones both use min-block-size: 0 (game.css) specifically so
-     they CAN shrink to fit their column, so a flex-item spacer (or a
-     min-block-size bump on a flex child) would just get absorbed by that
-     same shrink instead of forcing real overflow. An absolutely positioned
-     ::after skips flex sizing entirely but still counts toward
-     .game-screen's own scrollable overflow region (its containing block,
-     since .game-screen is position: relative, game.css) — exactly 1px
-     past the padding edge, nothing more.
-     Checked whether anything else in the board's own layout would ALSO
-     add scrollable height now that .game-screen is a real scroll
-     container, since the fixed shell used to clip all of this for free:
-     .zone-matched's -52px shove (game.css) is horizontal, already caught
-     by overflow-x above. .zone-unmatched's own reach — down through the
-     roll strip, past .dice-zones' own box — measures flush with
-     #my-area's bottom edge at rest (844.0 of 844.0 at 390×844, confirmed
-     headlessly), not past it: the "88px + 20px" in its inset calc is
-     exactly .roll-area's own height, so it was always calibrated to stop
-     exactly at #my-area's edge, never designed to be clipped by one. No
-     extra rule needed there — and #my-area must stay overflow: visible
-     (its own comment, game.css): .round-status's -6px lift into the
-     header's fade runway renders 6px above #my-area's OWN top edge, so
-     clipping there would have cut that off. game-screen.js corrects the
-     1px back to 0 once things are genuinely at rest (never mid-bounce,
-     never mid-touch) so it can't leave a drift that would shift dice.js's
-     getBoundingClientRect() reads of the board. */
-  html.doc-scroll .game-screen.active::after {
-    content: '';
-    position: absolute;
-    inset-block-start: 100%;
-    inset-inline-start: 0;
-    inline-size: 1px;
-    block-size: 1px;
-    visibility: hidden;
-    pointer-events: none;
   }
 
   /* Inner scrollers flow into the document — nothing is clipped. Not the
@@ -1062,40 +987,7 @@
      bounce could expose here is a seam of the plain floor canvas
      (html.doc-scroll:has(...) background above), not raw video. Left
      alone. (The board doesn't reach this menu in play at all — its own
-     hamburger opens #game-menu, below, which has no such content and gets
-     the fix.) */
-
-  /* The in-game menu (#game-menu, menu.css) is the real path on the board
-     and had no doc-scroll treatment at all until this fix (2026-09-22) —
-     the same shape as the lobby veil bug above: its blur (::before) and
-     scrim (::after) are absolute inside .game-screen, so a bottom pull-up
-     rides them up with the board's own content while #game-bg holds
-     still, opening a gap of raw, unblurred table and dice under the
-     glass. Fixed, same geometry as the lobby fix. Written when the board
-     still bounced its ROOT the same way the lobby does; the board moved
-     to its own inner-scroller bounce on 2026-09-23 (#game-bg went from
-     fixed to absolute at the same time), but the fix still holds exactly
-     as written — #game-menu is a child of .game-screen either way, so a
-     bottom pull-up still rides its normal (non-fixed) content up with
-     whichever element is doing the bouncing now, and this still needs to
-     stay put against #game-bg, which still holds still either way (fixed
-     before, effectively static now since <html> never scrolls while the
-     board is active). Device-confirmed still correct post-move: no bounce
-     reaches the menu's own content when it's open, which is fine.
-     `.game-screen` scopes this to the IN-GAME menu only — <nav-menu> lives
-     outside <main> entirely (index.html), so it never matches here and
-     keeps the narrower rule above. Stacking is unaffected: .game-menu is
-     already its own stacking context (position + z-index: var(--z-menu),
-     menu.css), so ::before/::after still stack by z-index WITHIN it
-     regardless of position — the same reasoning as the lobby veil, just
-     one level deeper. */
-  html.doc-scroll .game-screen .game-menu::before,
-  html.doc-scroll .game-screen .game-menu::after {
-    position: fixed;
-    inset: 0 auto auto 0;
-    inline-size: 100%;
-    block-size: calc(100lvh + var(--edge-bleed));
-  }
+     hamburger opens #game-menu, and the board never moves.) */
 
   /* ── the Hubble wall runs the SAME glass as every other client ──
      The build shipped flat `backdrop-filter: none` fallbacks under

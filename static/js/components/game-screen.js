@@ -40,80 +40,6 @@ export class GameScreen extends HTMLElement {
     }
   };
 
-  /**
-   * The board's own bounce (owner-directed, 2026-09-23, docs/IOS_SAFARI.md):
-   * <html> stays overflow: hidden the whole time the board is active — the
-   * precondition for #game-bg's in-flow art to paint behind Safari's
-   * collapsed toolbar, which a root that bounces can't do (a FIXED layer
-   * never gets that treatment regardless of its own box size; a plain
-   * overflow-clip-margin ::after copy was tried too and ruled out first —
-   * unsupported on iOS 27 for either syntax). *This* element becomes the
-   * thing that bounces instead: a real vertical scroll container with
-   * exactly 1px of scrollable overflow (critical.css .game-screen.active,
-   * ::after), which iOS does rubber-band even though the root won't.
-   *
-   * That 1px is corrected back to 0 once things are genuinely at rest, so
-   * it can't leave a drift that would shift dice.js's
-   * getBoundingClientRect() reads of the board. Two guards, both required,
-   * checked together in #correctScrollDrift — skip either and this fights
-   * the very bounce it exists to leave alone (found on-device: an early
-   * version reset unconditionally and cancelled a rubber-band a frame
-   * after it started):
-   *   1. No touch is currently down on this element. A settle signal
-   *      (scrollend, or the scroll+timeout fallback below) can land while
-   *      the finger is still on the glass, and correcting then is itself
-   *      a way to fight the gesture, even at an otherwise legal value.
-   *   2. The value is a genuine resting drift: 0 < scrollTop <=
-   *      scrollTopMax. Never negative or beyond max — that's iOS's own
-   *      bounce still in flight, and it returns itself to a legal value on
-   *      its own clock, not this one.
-   * scrollend is the primary settle signal; the scroll+timeout fallback
-   * exists because not every engine fires it reliably — the same
-   * asymmetric-release shape this codebase already uses for exactly this
-   * reason (scroll-fades.js, RELEASE_MS), just resetting to a fixed value
-   * instead of a class.
-   */
-  #touchDown = false;
-
-  /** @type {ReturnType<typeof setTimeout> | undefined} */
-  #scrollSettleFallback;
-
-  #onTouchStart = () => {
-    this.#touchDown = true;
-  };
-
-  #onTouchLift = () => {
-    this.#touchDown = false;
-    // The scroll may already have settled while the finger was still
-    // down (scrollend/the fallback both no-op while #touchDown) — check
-    // now that it's safe to.
-    this.#correctScrollDrift();
-  };
-
-  #onScroll = () => {
-    clearTimeout(this.#scrollSettleFallback);
-    this.#scrollSettleFallback = setTimeout(() => this.#correctScrollDrift(), 150);
-  };
-
-  #onScrollEnd = () => {
-    clearTimeout(this.#scrollSettleFallback);
-    this.#correctScrollDrift();
-  };
-
-  /** Snap the 1px scroller back to rest. Never while a touch is down, and
-   *  never for a value outside (0, scrollTopMax] — see the class comment
-   *  above for why both guards have to hold. */
-  #correctScrollDrift() {
-    if (this.#touchDown) return;
-    // Read/write through an explicitly-typed local: checkJs otherwise infers
-    // an implicit `scrollTop` class field from the assignment below (rather
-    // than resolving the real, inherited HTMLElement one) and then flags the
-    // reads in the condition above it as used-before-assigned.
-    const el = /** @type {HTMLElement} */ (this);
-    const max = el.scrollHeight - el.clientHeight;
-    if (el.scrollTop > 0 && el.scrollTop <= max) el.scrollTop = 0;
-  }
-
   connectedCallback() {
     if (this.dataset.rendered) return;
     this.dataset.rendered = 'true';
@@ -209,24 +135,10 @@ export class GameScreen extends HTMLElement {
     });
 
     document.addEventListener('keydown', this.#onKeydown);
-
-    // The board's own bounce (see the class comment above): this element
-    // IS the scroll container (critical.css .game-screen.active), so the
-    // listeners go directly on it — no delegation needed.
-    this.addEventListener('scroll', this.#onScroll, { passive: true });
-    this.addEventListener('scrollend', this.#onScrollEnd);
-    this.addEventListener('touchstart', this.#onTouchStart, { passive: true });
-    this.addEventListener('touchend', this.#onTouchLift, { passive: true });
-    this.addEventListener('touchcancel', this.#onTouchLift, { passive: true });
   }
 
   disconnectedCallback() {
     document.removeEventListener('keydown', this.#onKeydown);
-    this.removeEventListener('scroll', this.#onScroll);
-    this.removeEventListener('scrollend', this.#onScrollEnd);
-    this.removeEventListener('touchstart', this.#onTouchStart);
-    this.removeEventListener('touchend', this.#onTouchLift);
-    this.removeEventListener('touchcancel', this.#onTouchLift);
   }
 
   /** Whether the in-game menu is open. */
