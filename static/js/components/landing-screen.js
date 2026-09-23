@@ -183,7 +183,7 @@ export class LandingScreen extends HTMLElement {
         <h1 class="screen-title landing-greeting"></h1>
         <form id="landing-form" class="form-stack" autocomplete="off" novalidate>
           <p class="field-hint">Play with any name, or <a id="signup-link" class="field-hint-link" href="/signin">sign up</a> to keep your stats.</p>
-          <input id="name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20" autocomplete="off">
+          <input id="name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20" autocomplete="off" autocorrect="off">
           <button type="submit" class="btn btn-primary">Create Game</button>
           <div class="or-divider" aria-hidden="true"><span>or</span></div>
           <div class="lobby-actions landing-actions">
@@ -209,8 +209,8 @@ export class LandingScreen extends HTMLElement {
           <button id="join-close" type="button" class="sheet-close" aria-label="Close" autofocus>${CLOSE_SVG}</button>
         </div>
         <form id="join-form" class="form-stack" autocomplete="off" novalidate>
-          <input id="join-name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20" autocomplete="off">
-          <input id="code-input" name="code" class="code-input" type="text" aria-label="Game code" inputmode="latin" placeholder="ABCDE" maxlength="5" autocapitalize="characters" autocomplete="off">
+          <input id="join-name-input" name="name" type="text" aria-label="Your name" placeholder="Your name" maxlength="20" autocomplete="off" autocorrect="off">
+          <input id="code-input" name="code" class="code-input" type="text" aria-label="Game code" inputmode="latin" placeholder="ABCDE" maxlength="5" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false">
           <button id="listen-btn" type="button" class="btn btn-secondary btn-listen btn-audio">${EQ_ICON_HTML}<span>Listen for a code</span></button>
           <button type="submit" class="btn btn-primary">Join Game</button>
           <p class="error-msg" id="join-error" role="alert" aria-live="polite"></p>

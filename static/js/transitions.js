@@ -121,8 +121,16 @@ export function showScreen(id, { force = false, staged = false, instant = false,
   // enter/exit path — staged, view-transition, or plain — stays in sync.
   const inGame = id === 'game';
   document.body.classList.toggle('in-game', inGame);
-  // playIntro pauses the landing video on game start; resume it whenever we
-  // leave the game so the background isn't frozen back on landing/lobby.
+  // playIntro pauses the landing video on game start, but only on the
+  // fromLobby path (router.js) — a reconnect/reload straight into a running
+  // game never calls it, so #bg-video was left decoding+looping the whole
+  // time, invisible behind #game-bg's opaque poster (found 2026-09-22 via
+  // the fixed-element census). Pause it here too, on every path into the
+  // game; resume it below whenever we leave, same as before.
+  if (inGame) {
+    const bg = /** @type {HTMLVideoElement | null} */ (document.getElementById('bg-video'));
+    bg?.pause();
+  }
   if (!inGame) {
     const bg = /** @type {HTMLVideoElement | null} */ (document.getElementById('bg-video'));
     if (bg?.paused) bg.play().catch(() => {});

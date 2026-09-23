@@ -290,7 +290,9 @@ export class NearbyScreen extends HTMLElement {
       this.#setLocating(false);
       const reason = err instanceof GeoError ? err.reason : 'unavailable';
       this.showError(GEO_ERROR_COPY[reason] ?? GEO_ERROR_COPY.unavailable);
-      byId('nearby-retry').hidden = false;
+      // Retrying can't fix a denied/unsupported permission — only the
+      // genuinely transient reasons get the button.
+      byId('nearby-retry').hidden = reason !== 'timeout' && reason !== 'unavailable';
       // The scope is UNPOWERED, not broken: no rings, no sweep, no centre.
       byId('radar').classList.add('is-denied');
       return;

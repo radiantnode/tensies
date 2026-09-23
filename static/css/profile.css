@@ -229,6 +229,14 @@
      loss — one tag, two temperatures. */
   .recent-score {
     flex-shrink: 0;
+    /* Fixed width, not just padding hugging the digits: "3/8" and "13/42"
+       otherwise render at different widths and push everything after them
+       (the avatar stack, the name column) a ragged amount to the right, row
+       by row (/@Mich, 2026-09-22). Sized for the widest realistic score,
+       two digits over two digits; centered so shorter scores stay balanced
+       inside it instead of hugging the left edge. */
+    min-inline-size: 46px;
+    text-align: center;
     padding: 3px 7px 4px;
     border-radius: 3px;
     font-size: 0.68rem;

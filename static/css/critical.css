@@ -118,6 +118,16 @@
     --inset-top: env(safe-area-inset-top, 0px);
     --inset-bottom: env(safe-area-inset-bottom, 0px);
 
+    /* ── extra reach past the large viewport, for the landing scrim only
+       (landing.css, .landing-screen::before) — bug-3's board/lobby/menu
+       investigation used this for several other layers too, but none of
+       that survived: the toolbar-bleed hunt found iOS clips painted content
+       (background-image, gradients, blur) to the layout viewport regardless
+       of box size on the fixed-shell screens, so growing those boxes bought
+       nothing and only .bg-video's own mask fade below actually mattered.
+       See docs/IOS_SAFARI.md. ── */
+    --edge-bleed: 24px;
+
     /* ── neon: legitimate ONLY where something is literally neon — the logo
        mark and the sign in the landing video. Nowhere else. ── */
     --color-accent: #ff4d6d;
@@ -264,6 +274,26 @@
     block-size: 100%;
     object-fit: cover;
     object-position: center;
+  }
+
+  /* Fade the last 40px of #bg-video's OWN box to transparent, revealing the
+     ground colour underneath instead of a hard edge wherever Safari's paint
+     of it actually ends. This is what keeps the lobby's video from showing
+     raw under the toolbar (bug 3, 2026-09-22) — a <video> is one of the two
+     things (a solid colour is the other) that still paints past the layout
+     viewport there when nothing else does, so this fade stands in for the
+     veil, not just polishing an edge. Scoped three ways so it never touches
+     what the landing-video work kept byte-identical elsewhere:
+     :not(.intro-video) (the board's intro clip shares this class but has
+     nothing to do with the toolbar-bleed fix), (pointer: coarse) (desktop
+     has no Safari toolbar to bleed behind), and :not([data-hubble]) (the
+     wall's lvh equals dvh — no gap to fade into, so this would only visibly
+     soften the video's last 40px there for nothing). */
+  @media (pointer: coarse) {
+    html:not([data-hubble]) .bg-video:not(.intro-video) {
+      mask-image: linear-gradient(to bottom, black calc(100% - 40px), transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 40px), transparent 100%);
+    }
   }
 
   .intro-video {

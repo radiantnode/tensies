@@ -47,6 +47,12 @@
 
   .lobby-body .or-divider {
     inline-size: 100%;
+    /* Same breathing room as the landing's OR divider (landing.css: 1.05rem
+       below the element before it). lobby-stamp is owner-pinned/untouchable
+       (stamp.css) and carries no bottom margin of its own, so its last line
+       of helper text sat directly on the rule below it — added here, on the
+       divider's own side, instead. */
+    margin-block-start: 1.05rem;
     margin-block-end: 13px;
   }
 

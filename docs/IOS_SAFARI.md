@@ -180,3 +180,64 @@ the simulator has no touch and no scroll, hence the flow tokens; a freshly erase
 loads slowly and blocks on per-site location prompts; and read the strip with a loud
 ground under the fold, because the app's own floor is the same colour as the fallback fill
 and the two modes look identical without it.
+
+
+## Addendum, 2026-09-22: the board's own ratchet, and its limit
+
+*iOS 27 simulator (iPhone 17), same rig as above. A second pass, on the game board
+specifically, using a live fixed-element census plus a from-page-load sticky log — any
+fixed/sticky box whose height lands at the dynamic viewport gets a permanent line — built
+because the trigger was gone by the time anyone could look at it.*
+
+**Found the trigger.** `.game-screen`'s own `max-block-size: 100%` — unrelated to any of
+the above, there for a normal layout reason — resolves against the SMALL/dynamic viewport
+for a `position: fixed` box. While `.game-screen` is `.staging`/`.dissolving` (the staged
+reveal, §7's own construct, already sized to a safe `100lvh`) it's also fixed, and the cap
+silently clamped it back to exactly `100dvh` for the few frames every "Start Game" takes —
+a fixed box at the dynamic viewport's height, live long enough to flip Safari into
+flat-fill for the rest of the page's life. Fixed with `max-block-size: none` on those two
+states only. `nav-menu` had the identical latent shape (`position: fixed`, inheriting a
+bare `inset: 0` with no height override) — harmless only because `visibility: hidden` kept
+it out of layout while closed; hardened the same way before its first open could trip it.
+
+**The board's own strip stays flat — by design, not oversight.** On the fixed-shell
+screens, once past the layout viewport (page 714 here), *painted* content — a
+`background-image`, an `<img>`, a gradient, `backdrop-filter` blur, even a playing or
+paused `<video>` — does not paint, regardless of the element's own box size. Ruled out,
+each measured on-device before moving to the next: `html`'s own `overflow: hidden` vs
+`visible`; `html` sized taller than the viewport (894px, overflow still hidden); `#game-bg`'s
+own box height; the art as an `<img>` instead of a background-image; the art on a
+`::before` instead of `#game-bg` itself; a frozen intro `<video>` standing in for the still.
+A plain *solid* colour is the one thing confirmed to reach the full box every time. Don't
+re-attempt a CSS-only fix here without new evidence — the board's table art ending at 714
+with flat ground below is prod's existing behaviour.
+
+**The landing and lobby fixes hold.** The landing scrim is `position: fixed` on the same
+box as `.bg-video` (never bare `inset: 0`), so overscroll no longer exposes raw video past
+either one's edge. `.bg-video` itself gets a bottom mask-image fade (its last 40px to
+transparent) — the lobby's veil is `position: absolute` and stops at the dvh line same as
+everything else painted there, so the mask is what keeps the video from showing raw under
+the toolbar, not the veil's own reach.
+
+
+**Open lead, not shipped (2026-09-22).** The one variable the ratchet hunt hadn't tried:
+fixed vs in-flow. Every art layer tried on the board had been `position: fixed`; the
+doc-scroll screens (root-scroller, in-flow content) overdraw behind the toolbar fine. A
+probe making `#game-bg` and `.bg-video` `position: absolute` instead — same box (`100lvh`,
+cover math untouched, so `dice.js`'s glass rect still holds), `html` floored to at least
+`100lvh + 60px` with `overflow: hidden` unchanged — DOES paint the table behind the toolbar,
+verified on device, on a load that goes straight into a running game (a reconnect/reload):
+no scroll or bounce under a held drag (0.00% pixel change over 20 frames). But a fresh
+`landing → lobby → Start` in the *same page load* still flat-fills at the layout viewport
+with the identical probe active — the fixed-element census logs nothing in that sequence,
+and View Transitions are ruled out (`DISSOLVE_NAV` in `transitions.js` is hardcoded `true`,
+which makes `document.startViewTransition` unreachable for every navigation in this app
+today, confirmed by reading the code). Something else in the Create/Start sequence still
+ratchets the page, and it isn't in the fixed-element census's view. Not shipped: it only
+helps the reconnect path, the fresh-start path stays broken, and moving real art layers
+into the root scroller carries its own scroll-offset risk (`window.scrollTo` on entering
+the fixed shell is not yet a settled guard against every path in). Next step for whoever
+picks this up: find the fresh-path trigger by bisecting the Start sequence (skip the intro
+video, skip the dissolve, isolate `setDocScroll`'s own `doc-scroll` class removal) before
+trying the in-flow art again, and pair it with an explicit `scrollTo(0, 0)` on entering the
+fixed shell if in-flow art is reattempted.
