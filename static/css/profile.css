@@ -290,7 +290,22 @@
     object-fit: cover;
   }
 
+  /* Lets the name line actually shrink instead of just sitting narrower:
+     without this, .recent-game-body's own min-inline-size: 0 has nothing
+     to hand down to, since a bare block div's width already tracks its
+     parent regardless. */
+  .recent-row {
+    min-inline-size: 0;
+  }
+
   .recent-vs {
+    /* overflow/text-overflow have no effect on a plain inline element, so
+       a long "vs A, B, C" line was never actually being clipped — it just
+       painted straight past its box. Harmless while the badge column was
+       narrow enough to leave slack; once the fixed-width score badge
+       (above) pushed this column ~15pt right, the uncropped text ran
+       straight into .recent-time next to it (/@Mich, 2026-09-22). */
+    display: block;
     font-size: 0.82rem;
     color: #e6d1ac;
     overflow: hidden;
@@ -306,6 +321,10 @@
 
   .recent-time {
     flex-shrink: 0;
+    /* Belt-and-suspenders alongside the ellipsis fix above: guarantees a
+       gap even if a name's truncated width and the time's width round
+       against each other. */
+    margin-inline-start: 8px;
     font-size: 0.7rem;
     font-variant-numeric: tabular-nums;
     color: var(--color-muted);
