@@ -113,7 +113,25 @@ export function placeGrid(zoneRect, count, sz) {
      window's — and all are rendered before the scatter is placed. */
   const bgLayer = document.querySelector('.game-bg')?.getBoundingClientRect()
     ?? { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
-  const keepClear = [glassRect(bgLayer)];
+  const glass = glassRect(bgLayer);
+  /* #game-bg sits outside .game-screen (critical.css) and never moves with
+     its bounce, but zoneRect and the .zone-matched/#roll-btn rects below
+     are read live off elements INSIDE the scroller, so if a roll lands
+     mid-bounce they already reflect whatever overscroll is live and the
+     glass box no longer shares their frame. Shift the glass box by the
+     scroller's current overscroll instead of correcting the others —
+     iOS Safari Gotchas §6 (2026-09-23). At rest (including the deliberate
+     1px drift the scroller can sit at) b is 0, so this is a no-op and
+     placement is unchanged. */
+  const scroller = document.getElementById('game');
+  if (scroller) {
+    const max = scroller.scrollHeight - scroller.clientHeight;
+    const b = scroller.scrollTop < 0 ? scroller.scrollTop
+      : (scroller.scrollTop > max ? scroller.scrollTop - max : 0);
+    glass.top -= b;
+    glass.bottom -= b;
+  }
+  const keepClear = [glass];
   /** @type {Array<[string, number]>} */
   const fixtures = [['.zone-matched', 6], ['#roll-btn', 10]];
   for (const [sel, pad] of fixtures) {

@@ -25,22 +25,34 @@ let loadingShownAt = Date.now();
  */
 const DISSOLVE_NAV = true;
 
-const FIXED_SHELL_SCREENS = new Set(['game', 'loading', 'lobby']);
+const FIXED_SHELL_SCREENS = new Set(['loading']);
 
 /**
  * Document-scroll mode (owner-directed, 2026-08-19): every screen reads as a
  * normal web page — the document itself scrolls, so content is never clipped
  * by an inner scroller and iOS Safari collapses its chrome on scroll. The
- * screens on the fixed shell are the GAME BOARD (the table is bolted down:
- * dice geometry, the mat, the roll coin), the LOBBY (a composed one-viewport
- * room — it must not move; owner-directed 2026-08-20) and the transient
- * loading splash. The LANDING left the fixed shell on 2026-09-21 (owner's
- * call): it flows as a page so it rubber-bands like every other screen, and
- * it keeps its live video (critical.css). The nav menu force-enables
- * the mode while it is open so the menu and changelog flow as pages even
- * over fixed-shell hosts (nav-menu.js). Applied at screen COMMIT (never
- * earlier): flipping the shell to static mid-swap would collapse the
- * outgoing screen's 100% height for a frame. The CSS half lives in
+ * only screen left on the fixed shell now is the transient loading splash —
+ * it is never the room a player rests in, so nothing there needs to bounce.
+ * The LANDING left the fixed shell on 2026-09-21, and the LOBBY and GAME
+ * BOARD followed on 2026-09-22 (owner's call, docs/IOS_SAFARI.md). The
+ * lobby is sized to 100svh under doc-scroll (critical.css) so it bounces
+ * like the landing but never scrolls, `overflow: clip` on the screen root
+ * standing in for the fixed shell's own clipping. The board bounces a
+ * different way as of 2026-09-23 (docs/IOS_SAFARI.md): <html> itself goes
+ * overflow: hidden while it's active — the precondition for #game-bg's
+ * in-flow art to paint behind Safari's toolbar, which a root that bounces
+ * can't do — and .game-screen becomes its own 1px scroll container
+ * instead, which iOS does rubber-band. Both are still doc-scroll (this
+ * function doesn't distinguish them); the split lives entirely in
+ * critical.css. The nav menu force-enables the mode while it is open
+ * so the menu and changelog flow as pages even over the one remaining
+ * fixed-shell host (nav-menu.js) — the same branch now also runs, harmlessly,
+ * whenever the menu opens over a host that was already doc-scroll (landing,
+ * lobby, game): it takes the "host already owns the scroller" path instead
+ * of forcing the class on, and hands the offset back the same way on close.
+ * Applied at screen COMMIT (never earlier): flipping the shell to static
+ * mid-swap would collapse the outgoing screen's 100% height for a frame.
+ * The CSS half lives in
  * critical.css under `html.doc-scroll`.
  * @param {string} id the screen being committed
  */

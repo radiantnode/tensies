@@ -220,24 +220,43 @@ everything else painted there, so the mask is what keeps the video from showing 
 the toolbar, not the veil's own reach.
 
 
-**Open lead, not shipped (2026-09-22).** The one variable the ratchet hunt hadn't tried:
-fixed vs in-flow. Every art layer tried on the board had been `position: fixed`; the
-doc-scroll screens (root-scroller, in-flow content) overdraw behind the toolbar fine. A
-probe making `#game-bg` and `.bg-video` `position: absolute` instead — same box (`100lvh`,
-cover math untouched, so `dice.js`'s glass rect still holds), `html` floored to at least
-`100lvh + 60px` with `overflow: hidden` unchanged — DOES paint the table behind the toolbar,
-verified on device, on a load that goes straight into a running game (a reconnect/reload):
-no scroll or bounce under a held drag (0.00% pixel change over 20 frames). But a fresh
-`landing → lobby → Start` in the *same page load* still flat-fills at the layout viewport
-with the identical probe active — the fixed-element census logs nothing in that sequence,
-and View Transitions are ruled out (`DISSOLVE_NAV` in `transitions.js` is hardcoded `true`,
-which makes `document.startViewTransition` unreachable for every navigation in this app
-today, confirmed by reading the code). Something else in the Create/Start sequence still
-ratchets the page, and it isn't in the fixed-element census's view. Not shipped: it only
-helps the reconnect path, the fresh-start path stays broken, and moving real art layers
-into the root scroller carries its own scroll-offset risk (`window.scrollTo` on entering
-the fixed shell is not yet a settled guard against every path in). Next step for whoever
-picks this up: find the fresh-path trigger by bisecting the Start sequence (skip the intro
-video, skip the dissolve, isolate `setDocScroll`'s own `doc-scroll` class removal) before
-trying the in-flow art again, and pair it with an explicit `scrollTo(0, 0)` on entering the
-fixed shell if in-flow art is reattempted.
+**Shipped (2026-09-23): the board bounces on an inner scroller, root stays hidden.** The
+2026-09-22 lead above (`#game-bg` in-flow, `position: absolute`) turned out to be the right
+half of the answer, not a dead end — the piece missing then was that the board had left the
+fixed shell entirely by the time this landed (see "The lobby and board leave the fixed
+shell" above), which resolved the fresh-path ratchet the old probe never could: with
+nothing on the page `position: fixed` at exactly the dynamic viewport any more, a fresh
+`landing → lobby → Start` overdraws behind the toolbar the same as a reconnect does. That
+raised the real question this addendum's title used to pose as still-open: `#game-bg`
+in-flow paints behind the toolbar, confirmed on-device — but only while `<html>` never
+overscrolls at all. iOS will not rubber-band a root whose overflow is hidden, so bounce and
+art-behind-the-toolbar were mutually exclusive **via the root** — every attempt to give the
+root both at once (verified on-device: pull-down held with no movement, no pull-to-refresh
+spinner, the art static) failed the same way.
+
+A second idea — leave the root scrollable-but-exactly-`svh` (so it still bounces) and let
+`::before` art painted on `.game-screen.active` reach past the clip edge via
+`overflow-clip-margin`, avoiding the root question altogether — was checked before writing
+any of it: `CSS.supports('overflow-clip-margin', '10px')` and the `content-box <length>`
+form both report `false` on iOS 27 (confirmed against Safari/605.1.15 in Playwright's
+WebKit, then against the property directly on-device). Not shipped; nothing to fall back to
+there but the property arriving in a future release.
+
+**What shipped instead moves the bounce, not the art.** `<html>` stays `overflow: hidden`
+the whole time the board is active (critical.css, `html.doc-scroll:has(.game-screen.active)`)
+— the precondition for `#game-bg`'s in-flow art to paint behind the toolbar, confirmed
+holding at rest with the change in place. `.game-screen` itself becomes the thing that
+bounces: a real vertical scroll container with exactly 1px of scrollable overflow (an
+absolutely positioned `::after` spacer, not a resized flex child — flex children in this
+column use `min-block-size: 0` specifically so they can shrink to absorb exactly this kind
+of forced spacer, which is why it isn't one), block-size `100lvh` with `padding-block-end`
+holding the content box at the same `100svh` every child was already laid out against, so
+nothing moved at rest. iOS does rubber-band this inner scroller even with the root frozen
+— device-verified in both directions (a held pull-down sits at a steady positive offset,
+revealing the table, not a gap; a held pull-up sits at a steady negative offset the same
+way; both spring back on release) — which was the open question this addendum used to end
+on. `game-screen.js` corrects the deliberate 1px drift back to 0 once things are actually
+at rest — never mid-touch, never for a value outside the legal scroll range, both checked
+together, because an earlier version that skipped either guard cancelled the bounce itself
+a frame after it started. The lobby and landing were not touched: they keep the ordinary
+root bounce this file describes above.
