@@ -957,8 +957,12 @@
      scroll — it showed through raw beneath the last screen. The canvas
      carries the imagery here instead: the same room as a still at the top,
      the floor below, and the glass blurs that. visibility, not display, so
-     playback is untouched for the landing it returns to. */
-  html.doc-scroll .bg-video {
+     playback is untouched for the landing it returns to. Not the game-start
+     intro (.intro-video shares the class): its own display toggle
+     (.intro-video / .playing above) already decides when it shows, and once
+     the lobby and board moved to doc-scroll (2026-09-23) this rule hid it for
+     the whole intro, leaving the empty table on screen for the clip's length. */
+  html.doc-scroll .bg-video:not(.intro-video) {
     visibility: hidden;
   }
 
