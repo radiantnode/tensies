@@ -128,6 +128,15 @@
        See docs/IOS_SAFARI.md. ── */
     --edge-bleed: 24px;
 
+    /* ── how far past 100lvh an IN-FLOW box must reach to cover the whole
+       strip behind Safari's toolbar. 100lvh stops short of the physical
+       screen bottom (58pt on an iPhone 17-class phone, iOS 27: lvh 754 in
+       page coordinates, the screen bottom at 812), and no unit names that
+       edge. Generous on purpose: only boxes on a root that can't scroll
+       (html overflow: hidden) use it, so the extra is never reachable.
+       Measured 2026-09-23 with a magenta scrim. ── */
+    --chrome-bleed: 120px;
+
     /* ── neon: legitimate ONLY where something is literally neon — the logo
        mark and the sign in the landing video. Nowhere else. ── */
     --color-accent: #ff4d6d;
@@ -596,12 +605,12 @@
      flows in the document, so nothing is clipped by an inner scroller and
      iOS Safari collapses its chrome on scroll. The scrim rides fixed at
      100lvh so the veil covers the glass — including behind the bar — at any
-     scroll offset. Only the transient loading splash still keeps the fixed
-     shell (2026-09-22 — landing, lobby and the game board have all left it;
-     see setDocScroll in transitions.js). The lobby and landing bounce this
-     root the way the PROFILE's own scroll does; the board doesn't move at
-     all (2026-09-23) — see the html:has(.game-screen.active) rule below,
-     and docs/IOS_SAFARI.md for why. Lives in the utilities layer so the
+     scroll offset. No screen keeps the fixed shell any more (the loading
+     splash was the last, 2026-09-23; see setDocScroll in transitions.js).
+     The lobby and landing bounce this root the way the PROFILE's own scroll
+     does; the board and the loading splash don't move at all (2026-09-23)
+     — see the html:has(...) overflow rule below, and docs/IOS_SAFARI.md
+     for why. Lives in the utilities layer so the
      mode outranks the per-screen components rules.
      ── DELETE THIS BLOCK (and setDocScroll in transitions.js) TO REVERT. ── */
   html.doc-scroll {
@@ -655,9 +664,11 @@
      in-flow art (below) paint behind Safari's collapsed toolbar — a FIXED
      layer never gets that treatment regardless of its own box size. The
      board bounced on an inner 1px scroller for a day (7e93bdc); taken back
-     out on the owner's call. The lobby is NOT included here — it keeps the
-     ordinary root bounce above, unchanged. */
-  html.doc-scroll:has(.game-screen.active) {
+     out on the owner's call. The loading splash is held the same way: it
+     never scrolls, and its box reaches behind the toolbar (below). The
+     lobby is NOT included here — it keeps the ordinary root bounce above,
+     unchanged. */
+  html.doc-scroll:has(.game-screen.active, .loading-screen.active) {
     overflow: hidden;
   }
 
@@ -713,8 +724,9 @@
      art — right up to their own bottom edge (the action row, the ROLL
      coin), where a flat floor-black line would read as a seam across it.
      Neither screen scrolls or ever shows the collapsed-bar strip itself,
-     so there's nothing here for the strip to do; drop it (2026-09-22). */
-  html.doc-scroll body:has(.lobby-screen.active, .game-screen.active) #chrome-tint-strip {
+     so there's nothing here for the strip to do; drop it (2026-09-22). The
+     loading splash likewise (2026-09-23): its scrim runs to the bottom. */
+  html.doc-scroll body:has(.lobby-screen.active, .game-screen.active, .loading-screen.active) #chrome-tint-strip {
     display: none;
   }
 
@@ -765,18 +777,29 @@
   /* The board's box reaches behind Safari's toolbar (2026-09-23): the
      in-game menu's blur and scrim (menu.css .game-menu::before/::after) are
      absolute inside it, and in-flow pixels are what iOS paints behind the
-     toolbar, so the clip edge moves down to 100lvh. The extra is padded off
-     the bottom (border-box, so padding comes out of block-size): every child
-     still lays out in the same 100svh content box. The menu takes the same
-     padding, so its content (the foot included) stays put while its
-     ::before/::after fill the whole box. html is overflow: hidden while the
-     board is up, so the taller box can't be scrolled to. */
+     toolbar, so the clip edge moves down past the physical screen bottom
+     (100lvh plus --chrome-bleed). The extra is padded off the bottom
+     (border-box, so padding comes out of block-size): every child still lays
+     out in the same 100svh content box. The menu takes the same padding, so
+     its content (the foot included) stays put while its ::before/::after
+     fill the whole box. html is overflow: hidden while the board is up, so
+     the taller box can't be scrolled to. */
   html.doc-scroll .game-screen.active {
-    block-size: 100lvh;
-    padding-block-end: calc(100lvh - 100svh);
+    block-size: calc(100lvh + var(--chrome-bleed));
+    padding-block-end: calc(100lvh - 100svh + var(--chrome-bleed));
   }
   html.doc-scroll .game-screen.active .game-menu {
-    padding-block-end: calc(100lvh - 100svh);
+    padding-block-end: calc(100lvh - 100svh + var(--chrome-bleed));
+  }
+
+  /* The loading splash, the same way (2026-09-23): its scrim is ::before at
+     inset: 0, so a box that tall carries it behind the toolbar. The extra is
+     added to its own bottom padding, so the logo, line and thread centre in
+     the same box as before. On the fixed shell the scrim stopped at the
+     toolbar line on every reconnect. */
+  html.doc-scroll .loading-screen.active {
+    block-size: calc(100lvh + var(--chrome-bleed));
+    padding-block-end: calc(2rem + var(--inset-bottom) + 100lvh - 100svh + var(--chrome-bleed));
   }
 
   /* Inner scrollers flow into the document — nothing is clipped. Not the

@@ -244,3 +244,14 @@ Tried on the way, for whoever comes next:
   the toolbar. It shipped as `7e93bdc`, with a touch-aware reset for the 1px drift and a
   §6 overscroll correction in dice.js, and came back out the same day on the owner's call:
   the board should not move. If the bounce is ever wanted back, that commit is the recipe.
+
+**Scrims that must reach the bottom (2026-09-23).** `100lvh` is not the bottom of the
+screen: on an iPhone 17-class phone it ends 58pt short (page 754 against a physical bottom
+at 812), halfway down the collapsed toolbar pill, and no CSS unit names that edge. So a
+scrim that should cover the whole strip behind the toolbar lives on an in-flow box of
+`100lvh + var(--chrome-bleed)` (120px, generous on purpose) on a root that can't scroll,
+with the extra added to the box's bottom padding so its content doesn't move. Two use it:
+the in-game menu (via `.game-screen`) and the loading splash, which also left the fixed
+shell for this. It was the last screen on it, and on every reconnect its scrim stopped at
+the toolbar line. Measured by painting each scrim `#ff00ff` and reading the column down to
+the last device row.
