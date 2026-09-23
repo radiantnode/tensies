@@ -762,6 +762,23 @@
     overflow: clip;
   }
 
+  /* The board's box reaches behind Safari's toolbar (2026-09-23): the
+     in-game menu's blur and scrim (menu.css .game-menu::before/::after) are
+     absolute inside it, and in-flow pixels are what iOS paints behind the
+     toolbar, so the clip edge moves down to 100lvh. The extra is padded off
+     the bottom (border-box, so padding comes out of block-size): every child
+     still lays out in the same 100svh content box. The menu takes the same
+     padding, so its content (the foot included) stays put while its
+     ::before/::after fill the whole box. html is overflow: hidden while the
+     board is up, so the taller box can't be scrolled to. */
+  html.doc-scroll .game-screen.active {
+    block-size: 100lvh;
+    padding-block-end: calc(100lvh - 100svh);
+  }
+  html.doc-scroll .game-screen.active .game-menu {
+    padding-block-end: calc(100lvh - 100svh);
+  }
+
   /* Inner scrollers flow into the document — nothing is clipped. Not the
      lobby: its roster (#lobby-players, .player-list) is a real internal
      scroller sized to whatever room is left under the invite rings and
