@@ -218,6 +218,22 @@
     color: var(--color-body-em);
   }
 
+  /* Terms · Privacy policy: the last line of the about copy, an aside in the
+     faint rung, the links in the learn-link ink. Open a new tab. */
+  .menu-legal {
+    margin-block-start: 1.1rem;
+    font-size: 0.74rem;
+    line-height: 1.45;
+    color: var(--color-faint);
+  }
+
+  .menu-legal a {
+    color: #dcb87e;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
   /* The foot: two controls on a gradient landing. */
   .menu-foot {
     position: relative;

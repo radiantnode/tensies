@@ -37,6 +37,7 @@ export class SigninScreen extends HTMLElement {
                  maxlength="30" autocapitalize="none" autocomplete="username webauthn"
                  spellcheck="false">
           <button id="auth-submit-btn" type="submit" class="btn btn-primary">Sign In / Sign Up</button>
+          <p class="signin-consent">By creating an account you agree to the <a href="https://simmonstx.com/terms/" target="_blank" rel="noopener noreferrer">Terms</a> and <a href="https://simmonstx.com/privacy/" target="_blank" rel="noopener noreferrer">Privacy policy</a>.</p>
           <p class="error-msg" id="signin-error" role="alert" aria-live="polite"></p>
         </form>
         ` : `

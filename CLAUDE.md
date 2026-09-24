@@ -125,6 +125,9 @@ server/
                          security headers, asset-serving mode, telemetry) + logging
   security.py            SecurityHeadersMiddleware — stamps a strict CSP (+ HSTS
                          on HTTPS) onto every HTTP response (pure-ASGI, no buffering)
+  access_log.py          uvicorn.access filter dropping /api/nearby + /api/places/*
+                         (they carry the caller's coordinates); nginx does the
+                         same in ops/nginx.conf. Installed at import in main.py
   state.py               process-local connections + sessions + ack/timer registries
   gamestore.py           Redis-backed game state: pool, Lua (create/join/finish/
                          drop), snapshot rebuild, abuse limiters, make_code

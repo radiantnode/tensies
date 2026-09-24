@@ -83,6 +83,25 @@
     align-self: center;
   }
 
+  /* The consent line, directly under the one button: small print in the
+     muted rung, the two links in the learn-link ink and underlined like the
+     landing's field-hint link. They open a new tab and never touch the form. */
+  .signin-consent {
+    font-size: 0.74rem;
+    line-height: 1.45;
+    text-align: center;
+    color: var(--color-muted);
+    text-shadow: var(--shadow-text);
+  }
+
+  .signin-consent a {
+    color: #dcb87e;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    white-space: nowrap;   /* "Privacy policy" stays one tap target */
+  }
+
   .btn-loading {
     opacity: 0.6;
     pointer-events: none;
