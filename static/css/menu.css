@@ -218,23 +218,7 @@
     color: var(--color-body-em);
   }
 
-  /* Terms · Privacy policy: the last line of the about copy, an aside in the
-     faint rung, the links in the learn-link ink. Open a new tab. */
-  .menu-legal {
-    margin-block-start: 1.1rem;
-    font-size: 0.74rem;
-    line-height: 1.45;
-    color: var(--color-faint);
-  }
-
-  .menu-legal a {
-    color: #dcb87e;
-    font-weight: 700;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
-  /* The foot: two controls on a gradient landing. */
+  /* The foot: two controls on a gradient landing, signed off below. */
   .menu-foot {
     position: relative;
     flex-shrink: 0;
@@ -274,6 +258,55 @@
     font-weight: 600;
     color: var(--color-faint);
     cursor: pointer;
+  }
+
+  /* The sign-off: the maker's mark, the credit, the copyright and the
+     Terms | Privacy line — fine print, the quietest thing in the foot. One
+     faint ink for all of it, the mark included; links underlined in that same
+     ink (never gold, never bold) and a rung brighter under the finger. The
+     foot does not scroll, so every pixel here comes out of the about copy:
+     a clear gap above the buttons, tight lines below. */
+  .menu-signoff {
+    margin-block-start: 7px;
+    text-align: center;
+    font-size: 0.72rem;
+    line-height: 1.3;
+    color: var(--color-faint);
+  }
+
+  .menu-signoff-line { margin: 0; }
+
+  .menu-signoff a {
+    color: inherit;
+    font-weight: inherit;
+    text-decoration: underline;
+    text-decoration-color: currentColor;
+    text-underline-offset: 2px;
+  }
+
+  .menu-signoff a:hover { color: var(--color-muted); }
+
+  /* The mark and the credit are one link; only the words carry the underline. */
+  .menu-signoff-maker {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    margin-block-end: 1px;
+    text-decoration: none;
+  }
+
+  .menu-signoff-maker span {
+    text-decoration: underline;
+    text-decoration-color: currentColor;
+    text-underline-offset: 2px;
+  }
+
+  .menu-signoff-mark {
+    display: block;
+    inline-size: 52px;
+    block-size: 24px;
+    color: inherit;
   }
 
   /* ── the changelog PAGE (/changelog — its own routed screen since
