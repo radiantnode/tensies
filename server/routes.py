@@ -1,6 +1,7 @@
 import asyncio
 import math
 import re
+from html import escape
 from pathlib import Path
 from urllib.parse import quote
 
@@ -676,13 +677,18 @@ def _probe_shell(variant: str) -> HTMLResponse:
     if not PROBE_PATHS or not _PROBE_VARIANT_RE.fullmatch(variant):
         raise HTTPException(status_code=404)
     tokens = variant.replace("-", " ")
-    html = _render_index().replace('<html lang="en" class="doc-scroll">',
-                                   f'<html lang="en" class="doc-scroll" data-probe="{tokens}">', 1)
+    toks = tokens.split()
     # Head-level ablations, done here because no stylesheet can reach them.
     # floor: a loud theme-color, so a fallback to it is unmistakable. nowebapp:
     # the manifest link and the apple-mobile-web-app-* metas gone. nocover:
     # viewport-fit=cover off. noscale: maximum-scale off.
-    toks = tokens.split()
+    #
+    # Ablated FIRST, on the pristine shell, and stamped LAST: the regexes below
+    # then never scan a byte of user text. The validator above already admits
+    # nothing that could feed them (no '<', no quotes, no '--'), but that made
+    # the safety a property of one regex two screens up; this makes it a
+    # property of the order (CodeQL py/polynomial-redos, PR #105).
+    html = _render_index()
     # docfirst is the default now (index.html boots every route in
     # html.doc-scroll); the token stays accepted so its paths keep working.
     if "floor" in toks:
@@ -695,6 +701,10 @@ def _probe_shell(variant: str) -> HTMLResponse:
         html = html.replace(", viewport-fit=cover", "", 1).replace(",viewport-fit=cover", "", 1)
     if "noscale" in toks:
         html = html.replace(", maximum-scale=1.0", "", 1).replace(",maximum-scale=1.0", "", 1)
+    # The stamp. Escaped even though the validator leaves nothing to escape —
+    # belt and braces, and the sanitizer CodeQL's py/reflective-xss knows.
+    html = html.replace('<html lang="en" class="doc-scroll">',
+                        f'<html lang="en" class="doc-scroll" data-probe="{escape(tokens)}">', 1)
     return _shell(html)
 
 
