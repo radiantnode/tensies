@@ -776,9 +776,12 @@ async def min_css() -> Response:
 
 @router.get("/p/min/{name}")
 async def min_page(name: str) -> HTMLResponse:
+    # The page is built from the allowlist's own entry, never from the request
+    # string that matched it — the same page either way, and no user text in
+    # the markup (CodeQL py/reflective-xss, PR #105).
     if not PROBE_PATHS or name not in _MIN_CONSTRUCTS:
         raise HTTPException(status_code=404)
-    return _shell(_min_page(name))
+    return _shell(_min_page(_MIN_CONSTRUCTS[_MIN_CONSTRUCTS.index(name)]))
 
 
 @router.get("/p/{variant}")
