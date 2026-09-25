@@ -360,6 +360,21 @@ async def api_places_photo(request: Request, place: str, w: int = 200) -> Respon
 _QR_CODE_RE = re.compile(r"[A-Z]{5}")
 
 
+@router.get("/api/qr/app.svg")
+async def api_qr_app() -> Response:
+    """QR of the app's own front door, for the bezel's "better on a phone"
+    aside (static/css/bezel.css) — scanned off a desktop or an iPad to open
+    Tensies on the phone in hand. Always the public address, tagged
+    ?ref=desktopqr so a scan is tellable from a typed visit (Michael,
+    2026-09-25); the dev origin is deliberately not used, since the phone
+    scanning it is not on this machine. Declared before the {code} route so
+    "app" is never read as a game code. Same ink, same caching as the join
+    QR."""
+    return Response(content=qr.qr_svg("https://tensies.app/?ref=desktopqr"),
+                    media_type="image/svg+xml",
+                    headers={"Cache-Control": "public, max-age=604800, immutable"})
+
+
 @router.get("/api/qr/{code}.svg")
 async def api_qr(request: Request, code: str) -> Response:
     """QR of a game's join link — a fallback for the inline (WS-embedded) QR (see

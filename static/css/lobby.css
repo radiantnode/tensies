@@ -361,7 +361,7 @@
 
   /* ── Confirm dialog (check-out) — smoked glass, quiet. ── */
   .confirm-dialog {
-    inline-size: min(88vw, 340px);
+    inline-size: min(calc(var(--vp-w) * 0.88), 340px);
     max-inline-size: none;
     /* The @layer reset zeroes margins, which kills the UA's margin:auto that
        centres a modal <dialog>; restore it. */

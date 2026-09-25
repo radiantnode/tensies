@@ -81,6 +81,7 @@
   <link rel="stylesheet" href="/static/css/profile.css">
   <link rel="stylesheet" href="/static/css/game-detail.css">
   <link rel="stylesheet" href="/static/css/a2hs.css">
+  <link rel="stylesheet" href="/static/css/bezel.css">
 
   <!-- Preload the whole module graph so it fetches in parallel instead of
        waterfalling app -> router/net -> components. -->
@@ -97,6 +98,7 @@
   <link rel="modulepreload" href="/static/js/touch.js">
   <link rel="modulepreload" href="/static/js/back-button.js">
   <link rel="modulepreload" href="/static/js/scroll-fades.js">
+  <link rel="modulepreload" href="/static/js/viewport.js">
   <link rel="modulepreload" href="/static/js/title-row.js">
   <link rel="modulepreload" href="/static/js/account-coin.js">
   <link rel="modulepreload" href="/static/js/account-sync.js">
@@ -210,6 +212,18 @@
   <p class="rotate-legend">Tensies is played upright</p>
   <p class="rotate-msg">Turn your phone back to portrait —<br>the table doesn't fit sideways.</p>
 </div>
+
+<!-- Off a phone only (css/bezel.css): a line and a QR in the page's bottom-right
+     corner, beside the framed app. A manual popover, because the top layer is the
+     only place outside <body> — which, under the bezel, is the clipped phone-sized
+     box — that markup can be drawn. viewport.js opens it; on a phone it is
+     display: none and never paints. -->
+<aside id="bezel-aside" class="bezel-aside" popover="manual">
+  <p class="bezel-aside-line">Tensies is better on a phone, with friends.</p>
+  <div class="bezel-aside-chit">
+    <img class="bezel-aside-qr" src="/api/qr/app.svg" alt="QR code: open tensies.app on your phone" width="128" height="128">
+  </div>
+</aside>
 
 </body>
 </html>

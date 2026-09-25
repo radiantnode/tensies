@@ -102,8 +102,8 @@
     inset: 0 auto auto 0;
     inline-size: 100%;
     box-sizing: border-box;
-    block-size: calc(100lvh + var(--inset-bottom));
-    padding-block-end: calc(100lvh - 100dvh);
+    block-size: calc(var(--vp-l) + var(--inset-bottom));
+    padding-block-end: calc(var(--vp-l) - var(--vp-d));
   }
 
   /* The menu sits over the PHOTOGRAPH, not over the host screen's own form —

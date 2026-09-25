@@ -1,6 +1,7 @@
 // @ts-check
 import { byId } from './dom.js';
 import { hasProbe, probeScrollY } from './probe.js';
+import { appScrollTo } from './viewport.js';
 
 /**
  * Screen swaps via the View Transitions API, plus the loading-screen
@@ -75,11 +76,11 @@ function setDocScroll(id) {
   }
   // Entering: start at the top. Leaving: shed any scroll offset before the
   // fixed shell (overflow: hidden) comes back and would trap it.
-  window.scrollTo(0, 0);
+  appScrollTo(0);
   // Probe token y<px>: land mid-page once the screen has settled, so the strip
   // behind the toolbar can be read against content rather than the top.
   const y = on ? probeScrollY() : 0;
-  if (y) setTimeout(() => window.scrollTo(0, y), 900);
+  if (y) setTimeout(() => appScrollTo(y), 900);
 }
 
 /**

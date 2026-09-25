@@ -27,6 +27,7 @@ import { useWallMedia } from './hubble-media.js';
 import { maybeReconnect } from './net.js';
 import { bootstrap } from './router.js';
 import { installTouchGuard } from './touch.js';
+import { showBezelAside } from './viewport.js';
 
 // Before the router, so the 4K clips start fetching as early as they can — the
 // browser has already begun pulling the small ones during parse.
@@ -34,5 +35,6 @@ if (isHubble()) useWallMedia();
 
 installTouchGuard();
 setupInstall();
+showBezelAside();
 
 bootstrap({ resumeSession: maybeReconnect });

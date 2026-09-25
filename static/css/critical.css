@@ -17,7 +17,7 @@
    glows — brass is lit by its edges. */
 
 /* Cascade order for the whole app, fixed before any other sheet is parsed. */
-@layer reset, tokens, elements, components, utilities;
+@layer reset, tokens, elements, components, utilities, bezel;
 
 /* Display face: Besley — a Clarendon revival out of the whiskey-label
    tradition. Display roles ONLY, always at letter-spacing 0. */
@@ -117,6 +117,20 @@
        so that rule is the only place the wall differs. ── */
     --inset-top: env(safe-area-inset-top, 0px);
     --inset-bottom: env(safe-area-inset-bottom, 0px);
+
+    /* ── the app's viewport, as four properties rather than viewport units
+       read in place. On a phone they ARE the viewport units — lvh, dvh and
+       svh are three different heights on iOS Safari, and every rule below
+       that names one of them means exactly that one. Off a phone (bezel.css:
+       a desktop window, an iPad) the app is drawn in a phone-sized box in
+       the middle of the page, and these four become that box's size, so the
+       shell lays out for the phone it is pretending to be instead of the
+       window it is in. Every viewport unit in the stylesheets goes through
+       these; stamp.css (owner-pinned) is the one exception. ── */
+    --vp-w: 100vw;
+    --vp-l: 100lvh;
+    --vp-d: 100dvh;
+    --vp-s: 100svh;
 
     /* ── extra reach past the large viewport, for the landing scrim only
        (landing.css, .landing-screen::before) — bug-3's board/lobby/menu
@@ -346,7 +360,7 @@
      ── DELETE THIS BLOCK TO REVERT. ── */
   .bg-video,
   .game-bg {
-    block-size: 100lvh;
+    block-size: var(--vp-l);
   }
 
   body.in-game .game-bg {
@@ -401,8 +415,8 @@
     inset: 0 auto auto 0;
     inline-size: 100%;
     box-sizing: border-box;
-    block-size: calc(100lvh + var(--inset-bottom));
-    padding-block-end: calc(100lvh - 100dvh);
+    block-size: calc(var(--vp-l) + var(--inset-bottom));
+    padding-block-end: calc(var(--vp-l) - var(--vp-d));
     overflow: hidden;
   }
 }
@@ -414,7 +428,7 @@
     display: block;
     position: relative;
     z-index: 2;
-    inline-size: clamp(100px, 30vw, 128px);
+    inline-size: clamp(100px, calc(var(--vp-w) * 0.3), 128px);
     block-size: auto;
     filter: drop-shadow(0 12px 26px rgba(0, 0, 0, 0.8));
   }
@@ -523,7 +537,7 @@
     position: fixed;
     inset: 0 auto auto 0;
     inline-size: 100%;
-    block-size: 100lvh; /* not the dynamic viewport — see body */
+    block-size: var(--vp-l); /* not the dynamic viewport — see body */
     z-index: var(--z-guard);
     flex-direction: column;
     align-items: center;
@@ -579,8 +593,8 @@
     inset: 0 auto auto 0;
     inline-size: 100%;
     box-sizing: border-box;
-    block-size: calc(100lvh + var(--inset-bottom));
-    padding-block-end: calc(100lvh - 100dvh);
+    block-size: calc(var(--vp-l) + var(--inset-bottom));
+    padding-block-end: calc(var(--vp-l) - var(--vp-d));
   }
 
   .screen.staging {
@@ -693,7 +707,7 @@
     position: absolute;
     inset: 0 auto auto 0;
     inline-size: 100%;
-    block-size: 100lvh;
+    block-size: var(--vp-l);
   }
 
   /* The game-start intro, the same way (2026-09-23): as a fixed layer it was
@@ -705,7 +719,7 @@
     position: absolute;
     inset: 0 auto auto 0;
     inline-size: 100%;
-    block-size: 100lvh;
+    block-size: var(--vp-l);
   }
 
   /* 100lvh ends short of the physical screen bottom (see --chrome-bleed), so
@@ -720,8 +734,8 @@
   @media (pointer: coarse) {
     html.doc-scroll:not([data-hubble]) .intro-video,
     html.doc-scroll:not([data-hubble]) body.in-game #game-bg {
-      mask-image: linear-gradient(to bottom, #000 calc(100svh - 24px), transparent 100%);
-      -webkit-mask-image: linear-gradient(to bottom, #000 calc(100svh - 24px), transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 calc(var(--vp-s) - 24px), transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, #000 calc(var(--vp-s) - 24px), transparent 100%);
     }
   }
 
@@ -773,7 +787,7 @@
   html.doc-scroll .screen.active {
     position: relative; /* the containing block for the full-height scrims */
     block-size: auto;
-    min-block-size: 100dvh;
+    min-block-size: var(--vp-d);
     overflow: visible;
   }
 
@@ -785,8 +799,8 @@
      above the toolbar. Portrait-only app, so svh's landscape shortfall
      (iOS Safari Gotchas §4) does not apply. */
   html.doc-scroll .landing-screen.active {
-    block-size: 100svh;
-    min-block-size: 100svh;
+    block-size: var(--vp-s);
+    min-block-size: var(--vp-s);
   }
 
   /* The lobby and the board leave the fixed shell too (2026-09-22,
@@ -800,8 +814,8 @@
      move at all, since html is overflow: hidden while it's up (above). */
   html.doc-scroll .lobby-screen.active,
   html.doc-scroll .game-screen.active {
-    block-size: 100svh;
-    min-block-size: 100svh;
+    block-size: var(--vp-s);
+    min-block-size: var(--vp-s);
     overflow: clip;
   }
 
@@ -816,11 +830,11 @@
      fill the whole box. html is overflow: hidden while the board is up, so
      the taller box can't be scrolled to. */
   html.doc-scroll .game-screen.active {
-    block-size: calc(100lvh + var(--chrome-bleed));
-    padding-block-end: calc(100lvh - 100svh + var(--chrome-bleed));
+    block-size: calc(var(--vp-l) + var(--chrome-bleed));
+    padding-block-end: calc(var(--vp-l) - var(--vp-s) + var(--chrome-bleed));
   }
   html.doc-scroll .game-screen.active .game-menu {
-    padding-block-end: calc(100lvh - 100svh + var(--chrome-bleed));
+    padding-block-end: calc(var(--vp-l) - var(--vp-s) + var(--chrome-bleed));
   }
 
   /* The loading splash, the same way (2026-09-23): its scrim is ::before at
@@ -829,8 +843,8 @@
      the same box as before. On the fixed shell the scrim stopped at the
      toolbar line on every reconnect. */
   html.doc-scroll .loading-screen.active {
-    block-size: calc(100lvh + var(--chrome-bleed));
-    padding-block-end: calc(2rem + var(--inset-bottom) + 100lvh - 100svh + var(--chrome-bleed));
+    block-size: calc(var(--vp-l) + var(--chrome-bleed));
+    padding-block-end: calc(2rem + var(--inset-bottom) + var(--vp-l) - var(--vp-s) + var(--chrome-bleed));
   }
 
   /* Inner scrollers flow into the document — nothing is clipped. Not the
@@ -910,7 +924,7 @@
     position: absolute;
     inset: 0 0 auto 0;
     block-size: auto;
-    min-block-size: 100dvh;
+    min-block-size: var(--vp-d);
   }
 
   /* While the menu owns the scroller, the (invisible, faded) host screen
@@ -923,7 +937,7 @@
      bounce is fine: the glass is viewport-fixed, so it stays under the
      bouncing copy.) */
   html.doc-scroll body.nav-menu-open .screen.active {
-    max-block-size: 100dvh;
+    max-block-size: var(--vp-d);
     overflow: hidden;
   }
 
@@ -1024,7 +1038,7 @@
     position: fixed;
     inset: 0 auto auto 0;
     inline-size: 100%;
-    block-size: calc(100lvh + var(--edge-bleed));
+    block-size: calc(var(--vp-l) + var(--edge-bleed));
   }
 
   /* The MENU's glass is NOT viewport-fixed: iOS repositions fixed +

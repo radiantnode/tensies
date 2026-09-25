@@ -5,6 +5,7 @@ import { renderMyArea, renderPlayersBar } from './game-render.js';
 import { hideWinner, showWinner } from './overlays.js';
 import { showFor } from './router.js';
 import { dispatch, state } from './state.js';
+import { appViewport } from './viewport.js';
 
 /** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
 
@@ -35,7 +36,7 @@ export function startShake() {
 
   const wrappers = /** @type {HTMLElement[]} */ ([...document.querySelectorAll('.zone-unmatched .die-wrapper')]);
   const zone = document.querySelector('.zone-unmatched');
-  const sz = window.innerWidth <= 480 ? 50 : 56;
+  const sz = appViewport().width <= 480 ? 50 : 56;
 
   if (zone && wrappers.length) {
     const rect = zone.getBoundingClientRect();
@@ -104,7 +105,7 @@ export function updateDiceInPlace(snap, matchedBefore, onComplete, winForMe = fa
   const newlyMatchedCount = Math.max(0, newMatched.length - matchedBefore);
 
   const zone = document.querySelector('.zone-unmatched');
-  const sz = window.innerWidth <= 480 ? 50 : 56;
+  const sz = appViewport().width <= 480 ? 50 : 56;
   const scatterMs = 320;
   /** @type {import('./dice.js').DiePosition[]} */
   const finalPositions = [];

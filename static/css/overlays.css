@@ -12,11 +12,11 @@
     inset: 0 auto auto 0;
     inline-size: 100%;
     box-sizing: border-box;
-    block-size: 100lvh;
+    block-size: var(--vp-l);
     max-inline-size: none;
     max-block-size: none;
     margin: 0;
-    padding: 0 0 calc(100lvh - 100dvh);
+    padding: 0 0 calc(var(--vp-l) - var(--vp-d));
     border: none;
     background: transparent;
     color: var(--color-cream);
@@ -180,7 +180,7 @@
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    padding: 0 28px calc(38px + var(--inset-bottom) + 100lvh - 100dvh);
+    padding: 0 28px calc(38px + var(--inset-bottom) + var(--vp-l) - var(--vp-d));
   }
 
   /* ── the non-host pause wait, over the live board. The brass thread is the
@@ -192,7 +192,7 @@
     align-items: center;
     justify-content: center;
     gap: 18px;
-    padding: 2rem 2rem calc(2rem + 100lvh - 100dvh);
+    padding: 2rem 2rem calc(2rem + var(--vp-l) - var(--vp-d));
     text-align: center;
     backdrop-filter: blur(9px) saturate(1.02);
     -webkit-backdrop-filter: blur(9px) saturate(1.02);

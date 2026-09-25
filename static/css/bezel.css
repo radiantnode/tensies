@@ -1,0 +1,311 @@
+/* The bezel — Tensies off a phone. ─────────────────────────────────────────
+
+   Tensies is a phone game and lays out for one. Handed a desktop window or
+   an iPad it laid out for THAT — a form stretched across 1400 pixels, a
+   landing sized to a viewport no phone has — and looked wrong everywhere
+   (Michael, 2026-09-25). The game's design is untouched here. What this file
+   does is stop giving it the window: on anything that is not a phone the
+   app is drawn in a phone-sized box in the middle of the page, framed in the
+   brass, with the app's own street behind it — the same arrangement Hubble
+   builds around Tensies on the wall (`hubble/apps/tensies/app.css`), done
+   here in the document itself rather than around an <iframe>.
+
+   The box is 390 x 844 CSS pixels: the pixel harness's viewport, the size
+   every screen was captured and verified at, drawn at 1:1 — nothing is
+   scaled, so text is crisp and every rect JS reads is the rect it lays out
+   with. On a window shorter than a phone the box gives up height, never
+   width; the app already handles short viewports (its max-height queries
+   read the real window, which is then the right size to within the air).
+
+   How the app is fooled, since there is no iframe to fool it with:
+
+   - Every viewport unit in the shell goes through --vp-w / --vp-l / --vp-d /
+     --vp-s (critical.css, tokens). Here those four become the box's size.
+   - <body> IS the box: fixed, centred, clipped, and — this is the
+     load-bearing part — `contain: layout paint`, which makes it the
+     containing block for every position: fixed descendant. The shell is
+     built on fixed layers (the videos, #game-bg, the screen scrims, the nav
+     menu, the staged reveals); inside a contained body they pin to the box
+     instead of the window, untouched.
+   - <main> becomes the scroller in place of the document (the document
+     never scrolls here), and body scrolls the nav menu, which sits beside
+     main rather than inside it.
+   - Modal <dialog>s render in the top layer, above and outside body, so
+     each is re-boxed to the same geometry by hand below.
+   - JS that reads the window (die size by width, the scroll offset the menu
+     parks) asks static/js/viewport.js instead, which reads --bezel-on.
+
+   Why a media query and not a UA sniff: what makes a phone a phone here is
+   that neither dimension of its viewport reaches 500 CSS pixels — the
+   largest phone is 440 wide, and sideways it is under 500 tall (and shows
+   the rotate lockout). Anything with both is a tablet or a window. The pixel
+   harness runs at 390 x 844, so nothing in this file can reach it.
+
+   Not on the Hubble wall: Hubble frames the app in its own brass at 440
+   wide, so this query never matches there; :not([data-hubble]) says so
+   explicitly on every rule regardless.
+
+   Its own cascade layer, last in the order (critical.css), so these rules
+   win over the shell's doc-scroll overrides in `utilities` without
+   specificity games. */
+
+@layer bezel {
+  /* The aside (index.html #bezel-aside) exists only off a phone. Unlayered UA
+     rules would show an open popover; this beats them on every phone. */
+  .bezel-aside { display: none; }
+}
+
+@media (min-width: 500px) and (min-height: 500px) {
+  @layer bezel {
+    html:not([data-hubble]) {
+      /* Read by static/js/viewport.js — the one place JS learns this is on. */
+      --bezel-on: 1;
+      --bezel-w: 390px;
+      --bezel-air: 24px;    /* least air between the brass and the window edge */
+      --bezel-lip: 4px;     /* the brass */
+      --bezel-r: 28px;      /* the glass's corner; the brass adds the lip */
+      /* A phone's height when there is room, the window's less the air and
+         the brass when there is not. svh: the height the window always has. */
+      --bezel-h: min(844px, calc(100svh - 2 * (var(--bezel-air) + var(--bezel-lip))));
+
+      /* The app's viewport is the box. */
+      --vp-w: var(--bezel-w);
+      --vp-l: var(--bezel-h);
+      --vp-d: var(--bezel-h);
+      --vp-s: var(--bezel-h);
+      /* No Safari toolbar to reach behind. */
+      --chrome-bleed: 0px;
+      --edge-bleed: 0px;
+      /* The wall's insets (critical.css, html[data-hubble="wall"]): env() is
+         0 in a box that is not a phone, and with 0 the header sat on the
+         glass's top edge. */
+      --inset-top: 12px;
+      --inset-bottom: 10px;
+
+      block-size: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #100804;
+    }
+
+    /* The street: the app's own night photograph, blurred a little so the
+       glass is the part in focus, under a scrim that falls off toward the
+       corners so the box stays the brightest thing on the page. Bled past
+       the window's edges so the blur has no transparent fringe. 52%: the
+       sign sits behind the box. */
+    html:not([data-hubble])::before {
+      content: '';
+      position: fixed;
+      inset: -16px;
+      z-index: -2;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 70% 80% at 50% 45%,
+          rgba(4, 2, 1, .3) 0%, rgba(4, 2, 1, .42) 55%, rgba(4, 2, 1, .62) 100%),
+        url('/static/images/street.webp') 52% 50% / cover no-repeat;
+      filter: blur(5px);
+    }
+
+    /* The brass: a plate behind the box, wider by the lip on every side.
+       The keeper gold itself (--brass) under a thin wash toward its unlit
+       state, the hairline grain without the pools, a light lip along the top
+       and a dark one along the bottom — a frame is found, not noticed. */
+    html:not([data-hubble])::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      margin: auto;
+      z-index: -1;
+      pointer-events: none;
+      inline-size: calc(var(--bezel-w) + 2 * var(--bezel-lip));
+      block-size: calc(var(--bezel-h) + 2 * var(--bezel-lip));
+      border-radius: calc(var(--bezel-r) + var(--bezel-lip));
+      background:
+        repeating-linear-gradient(0deg,
+          rgba(255, 250, 232, .06) 0 .5px, transparent .5px 2px),
+        linear-gradient(180deg, rgba(58, 38, 12, .18), rgba(58, 38, 12, .3)),
+        var(--brass);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 247, 220, .6),
+        inset 0 -1px 0 rgba(96, 60, 16, .6),
+        0 1.5px 0 rgba(44, 27, 9, .5),
+        0 8px 20px rgba(0, 0, 0, .5),
+        0 16px 64px rgba(0, 0, 0, .6);
+    }
+
+    /* The glass. contain: layout paint is what pins every fixed layer in the
+       shell to this box (see the head of the file); overflow: clip and the
+       radius cut the corners. The ground is the phone's canvas: the veiled
+       landing poster at the box's width, the floor beneath — what the nav
+       menu's glass blurs (critical.css, html.doc-scroll). Its box-shadow is
+       the cut edge where brass meets glass: the underside of the cut takes
+       the dark lip, the bottom faces the light. */
+    html:not([data-hubble]) body {
+      position: fixed;
+      inset: 0;
+      margin: auto;
+      inline-size: var(--bezel-w);
+      block-size: var(--bezel-h);
+      overflow: clip;
+      contain: layout paint;
+      border-radius: var(--bezel-r);
+      background:
+        linear-gradient(rgba(8, 4, 1, .72), rgba(8, 4, 1, .72)),
+        #080401 url('/static/video/poster-landing.webp') top center / 100% auto no-repeat;
+      box-shadow:
+        0 -1px 0 rgba(96, 60, 16, .6),
+        0 1px 0 rgba(255, 247, 220, .5);
+      overscroll-behavior: none;
+      scrollbar-width: none;
+    }
+    html:not([data-hubble]) body::-webkit-scrollbar { display: none; }
+
+    /* The lobby and the board sit on the plain floor, as on the phone. */
+    html:not([data-hubble]) body:has(.lobby-screen.active, .game-screen.active) {
+      background: #080401;
+    }
+
+    /* A little shade inside the glass, so the app sits in the frame rather
+       than on it; over everything in the box and under the pointer. It
+       doubles as the scrim for the bottom sheets and the confirm dialog: a
+       top-layer ::backdrop covers the whole window, street and all, so those
+       go transparent below and the box dims itself instead. */
+    html:not([data-hubble]) body::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 2000;
+      pointer-events: none;
+      border-radius: inherit;
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, .55);
+      transition: background-color .24s cubic-bezier(0.2, 0.7, 0.2, 1);
+    }
+    html:not([data-hubble]) body:has(:is(.sheet, .confirm-dialog)[open])::after {
+      background-color: rgba(4, 2, 1, .66);
+    }
+
+    /* main scrolls the screens, in place of the document. Hidden scrollbar:
+       a phone draws none. Bolted down for the board, the loading splash and
+       the game-start intro, exactly as the root is on the phone
+       (critical.css, html.doc-scroll:has(...)). */
+    html:not([data-hubble]) main {
+      position: absolute;
+      inset: 0;
+      block-size: auto;
+      padding: 0;
+      overflow: hidden auto;
+      overscroll-behavior: contain;
+      scrollbar-width: none;
+    }
+    html:not([data-hubble]) main::-webkit-scrollbar { display: none; }
+    html:not([data-hubble]) body:has(.game-screen.active, .loading-screen.active, .intro-video.playing) main {
+      overflow: hidden;
+    }
+
+    /* The nav menu grows to its copy beside main (not inside it) and body
+       scrolls it — the phone's document scroll, one level down. */
+    html:not([data-hubble]) body.nav-menu-open {
+      overflow: hidden auto;
+    }
+
+    /* The iOS tint-sampling strip: nothing to sample. */
+    html:not([data-hubble]) #chrome-tint-strip { display: none; }
+
+    /* The toolbar fades on the media layers are for a toolbar this box does
+       not have; an iPad matches (pointer: coarse) and would show them as a
+       band at the glass's bottom edge. */
+    html:not([data-hubble]) .bg-video,
+    html:not([data-hubble]) body.in-game #game-bg {
+      mask-image: none;
+      -webkit-mask-image: none;
+    }
+
+    /* ── the top layer, re-boxed ──────────────────────────────────────────
+       Modal dialogs escape body and lay out against the window; each takes
+       the box's geometry by hand. Centring by the same inset: 0 / margin:
+       auto as body puts a full-box dialog exactly over the glass. */
+    html:not([data-hubble]) .overlay-dialog {
+      inset: 0;
+      margin: auto;
+      inline-size: var(--bezel-w);
+      block-size: var(--bezel-h);
+      border-radius: var(--bezel-r);
+    }
+
+    /* The bottom sheets dock to the box's bottom edge, which sits
+       (window − box) / 2 up from the window's, and take the glass's corners. */
+    html:not([data-hubble]) .sheet {
+      inset: auto 0 calc((100vh - var(--bezel-h)) / 2) 0;
+      inline-size: var(--bezel-w);
+      margin-inline: auto;
+      border-end-start-radius: var(--bezel-r);
+      border-end-end-radius: var(--bezel-r);
+    }
+    /* An iPad's soft keyboard still lifts a sheet (sheet.js); never below the
+       box's own bottom. */
+    html:not([data-hubble]) .sheet.is-kb-docked {
+      bottom: max(calc((100vh - var(--bezel-h)) / 2), calc(var(--kb-lift, 0px) - var(--inset-top)));
+    }
+
+    /* ── the aside: a line and a QR, bottom right ──────────────────────────
+       "Tensies is better on a phone, with friends." — with the app's own front
+       door as a QR to scan it onto the phone in hand (Michael, 2026-09-25).
+       In the top layer as a manual popover (see index.html), so it sits beside
+       the box on the street rather than inside the clipped body. The QR keeps
+       the stamp's vermilion ink and gets the stamp's cream paper under it —
+       dark on light, the way every scanner reads best; a cream QR on the
+       street would look the part and scan worse. Beside the phone: its left
+       edge a gutter off the brass's right edge (the box is centred, so that
+       edge is half the window plus half the box), its bottom on the box's
+       bottom; the line reads away from the phone, the QR under it. */
+    html:not([data-hubble]) .bezel-aside {
+      display: grid;
+      justify-items: start;
+      gap: 12px;
+      position: fixed;
+      inset: auto auto
+        calc((100vh - var(--bezel-h)) / 2)
+        calc(50vw + var(--bezel-w) / 2 + var(--bezel-lip) + 28px);
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      overflow: visible;
+      color: var(--color-title);
+      text-align: start;
+      pointer-events: none;
+    }
+    html:not([data-hubble]) .bezel-aside-line {
+      margin: 0;
+      max-inline-size: 15rem;
+      font-family: var(--font-family-heading);
+      font-size: 1.05rem;
+      font-weight: 600;
+      line-height: 1.35;
+      letter-spacing: 0;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, .9);
+    }
+    html:not([data-hubble]) .bezel-aside-chit {
+      display: block;
+      padding: 8px;
+      border-radius: 10px;
+      background: #f3e6ce; /* the stamp's paper (stamp.css --paper) */
+      box-shadow:
+        inset 0 0 0 1px rgba(184, 68, 42, .35),
+        0 8px 24px rgba(0, 0, 0, .55);
+    }
+    html:not([data-hubble]) .bezel-aside-qr {
+      display: block;
+      inline-size: 128px;
+      block-size: 128px;
+    }
+
+    /* Their window-wide scrims go; body::after above dims the box instead.
+       (The enlarged lobby stamp keeps its scrim: it is a lightbox over the
+       whole page by design, and stamp.css is owner-pinned.) */
+    html:not([data-hubble]) .sheet::backdrop,
+    html:not([data-hubble]) .confirm-dialog::backdrop {
+      background: transparent;
+    }
+  }
+}
