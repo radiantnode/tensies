@@ -1,6 +1,7 @@
 import asyncio
 import math
 import re
+from html import escape
 from pathlib import Path
 from urllib.parse import quote
 
@@ -25,6 +26,7 @@ from .config import (
     PLACES_ENABLED,
     PLACES_RATE_MAX,
     PLACES_RATE_WINDOW,
+    PROBE_PATHS,
     STATS_TOKEN,
     TELEMETRY_ENABLED,
     log,
@@ -359,6 +361,21 @@ async def api_places_photo(request: Request, place: str, w: int = 200) -> Respon
 _QR_CODE_RE = re.compile(r"[A-Z]{5}")
 
 
+@router.get("/api/qr/app.svg")
+async def api_qr_app() -> Response:
+    """QR of the app's own front door, for the bezel's "better on a phone"
+    aside (static/css/bezel.css) — scanned off a desktop or an iPad to open
+    Tensies on the phone in hand. Always the public address, tagged
+    ?ref=desktopqr so a scan is tellable from a typed visit (Michael,
+    2026-09-25); the dev origin is deliberately not used, since the phone
+    scanning it is not on this machine. Declared before the {code} route so
+    "app" is never read as a game code. Same ink, same caching as the join
+    QR."""
+    return Response(content=qr.qr_svg("https://tensies.app/?ref=desktopqr"),
+                    media_type="image/svg+xml",
+                    headers={"Cache-Control": "public, max-age=604800, immutable"})
+
+
 @router.get("/api/qr/{code}.svg")
 async def api_qr(request: Request, code: str) -> Response:
     """QR of a game's join link — a fallback for the inline (WS-embedded) QR (see
@@ -647,6 +664,135 @@ async def profile_vanity(username: str) -> HTMLResponse:
 # 5 letters (gamestore.make_code), so only that shape matches — anything else
 # 404s so this can't shadow favicons or other single-segment asset requests.
 # Declared last so the explicit routes above (/, /metrics, /stats/*) win.
+
+_PROBE_VARIANT_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+
+
+def _probe_shell(variant: str) -> HTMLResponse:
+    """The SPA shell stamped with html[data-probe="<tokens>"] from the first
+    byte — the attribute must be painted at load, not set by JS afterwards,
+    because iOS latches the colours it samples at first paint (iOS Safari
+    Gotchas §1–§3). Tokens are hyphen-joined in the path so each combination
+    is its own URL path (Safari caches its decisions per path)."""
+    if not PROBE_PATHS or not _PROBE_VARIANT_RE.fullmatch(variant):
+        raise HTTPException(status_code=404)
+    tokens = variant.replace("-", " ")
+    toks = tokens.split()
+    # Head-level ablations, done here because no stylesheet can reach them.
+    # floor: a loud theme-color, so a fallback to it is unmistakable. nowebapp:
+    # the manifest link and the apple-mobile-web-app-* metas gone. nocover:
+    # viewport-fit=cover off. noscale: maximum-scale off.
+    #
+    # Ablated FIRST, on the pristine shell, and stamped LAST: the regexes below
+    # then never scan a byte of user text. The validator above already admits
+    # nothing that could feed them (no '<', no quotes, no '--'), but that made
+    # the safety a property of one regex two screens up; this makes it a
+    # property of the order (CodeQL py/polynomial-redos, PR #105).
+    html = _render_index()
+    # docfirst is the default now (index.html boots every route in
+    # html.doc-scroll); the token stays accepted so its paths keep working.
+    if "floor" in toks:
+        html = re.sub(r'(<meta name="?theme-color"? content="?)#[0-9a-fA-F]{6}',
+                      r"\g<1>#00ff00", html, count=1)
+    if "nowebapp" in toks:
+        html = re.sub(r'<link rel="?manifest"?[^>]*>', "", html, count=1)
+        html = re.sub(r'<meta name="?apple-mobile-web-app-[a-z-]+"?[^>]*>', "", html)
+    if "nocover" in toks:
+        html = html.replace(", viewport-fit=cover", "", 1).replace(",viewport-fit=cover", "", 1)
+    if "noscale" in toks:
+        html = html.replace(", maximum-scale=1.0", "", 1).replace(",maximum-scale=1.0", "", 1)
+    # The stamp. Escaped even though the validator leaves nothing to escape —
+    # belt and braces, and the sanitizer CodeQL's py/reflective-xss knows.
+    html = html.replace('<html lang="en" class="doc-scroll">',
+                        f'<html lang="en" class="doc-scroll" data-probe="{escape(tokens)}">', 1)
+    return _shell(html)
+
+
+# ── Minimal pages (iOS Safari Gotchas §1, "bisecting"): build the ratchet up
+# from nothing instead of inferring it through the app. Each page is a loud
+# ground with tall striped filler, applies ONE construct for two seconds,
+# removes it, then scrolls to 1500. The script and stylesheet are served as
+# same-origin files because the CSP allows no inline code.
+_MIN_CONSTRUCTS = ("none", "bodyfixed", "mainfixed", "mainfixedlvh", "screenfixed",
+                   "htmlhidden", "bodyfixed2", "sticky")
+_MIN_JS = r"""(() => {
+  const c = document.body.dataset.min;
+  const shell = document.getElementById('shell');
+  const log = (m) => { document.getElementById('log').textContent += m + '\n'; };
+  log('construct ' + c + ' applied at ' + Math.round(performance.now()) + 'ms');
+  if (c === 'bodyfixed' || c === 'bodyfixed2') document.body.classList.add('min-bodyfixed');
+  if (c === 'htmlhidden') document.documentElement.classList.add('min-htmlhidden');
+  const onShell = ['mainfixed', 'mainfixedlvh', 'screenfixed', 'sticky'];
+  if (onShell.includes(c)) shell.classList.add('min-' + c);
+  const hold = c === 'bodyfixed2' ? 8000 : 2000;
+  setTimeout(() => {
+    document.body.classList.remove('min-bodyfixed');
+    document.documentElement.classList.remove('min-htmlhidden');
+    shell.className = '';
+    log('removed at ' + Math.round(performance.now()) + 'ms');
+    setTimeout(() => { window.scrollTo(0, 1500); log('scrolled to ' + Math.round(scrollY)); }, 500);
+  }, hold);
+})();"""
+_MIN_CSS = """html { background: #ff00ff; margin: 0; }
+body { margin: 0; font: 16px/1.4 system-ui; color: #fff; }
+#filler { height: 4000px; background: repeating-linear-gradient(#222 0 200px, #666 200px 400px); }
+#log { position: absolute; top: 8px; left: 8px; white-space: pre; z-index: 5;
+       font: 12px monospace; color: #0f0; }
+#shell { background: #080401; color: #fff; padding: 12px; }
+body.min-bodyfixed { position: fixed; inset: 0; overflow: hidden; }
+html.min-htmlhidden { overflow: hidden; }
+#shell.min-mainfixed { position: fixed; inset: 0; height: 100dvh; }
+#shell.min-mainfixedlvh { position: fixed; inset: 0; height: 100lvh; }
+#shell.min-screenfixed { position: fixed; inset: 0; height: calc(100lvh + 120px); }
+#shell.min-sticky { position: sticky; top: 0; height: 100dvh; }
+"""
+
+
+def _min_page(name: str) -> str:
+    return (
+        '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">'
+        f'<title>min {name}</title><link rel="stylesheet" href="/p/min-assets/probe.css">'
+        '<script src="/p/min-assets/probe.js" defer></script></head>'
+        f'<body data-min="{name}"><pre id="log"></pre><div id="shell">shell: {name}</div>'
+        '<div id="filler"></div></body></html>'
+    )
+
+
+@router.get("/p/min-assets/probe.js")
+async def min_js() -> Response:
+    if not PROBE_PATHS:
+        raise HTTPException(status_code=404)
+    return Response(_MIN_JS, media_type="application/javascript",
+                    headers={"Cache-Control": "no-cache"})
+
+
+@router.get("/p/min-assets/probe.css")
+async def min_css() -> Response:
+    if not PROBE_PATHS:
+        raise HTTPException(status_code=404)
+    return Response(_MIN_CSS, media_type="text/css", headers={"Cache-Control": "no-cache"})
+
+
+@router.get("/p/min/{name}")
+async def min_page(name: str) -> HTMLResponse:
+    # The page is built from the allowlist's own entry, never from the request
+    # string that matched it — the same page either way, and no user text in
+    # the markup (CodeQL py/reflective-xss, PR #105).
+    if not PROBE_PATHS or name not in _MIN_CONSTRUCTS:
+        raise HTTPException(status_code=404)
+    return _shell(_min_page(_MIN_CONSTRUCTS[_MIN_CONSTRUCTS.index(name)]))
+
+
+@router.get("/p/{variant}")
+async def probe_root(variant: str) -> HTMLResponse:
+    return _probe_shell(variant)
+
+
+@router.get("/p/{variant}/{rest:path}")
+async def probe_page(variant: str, rest: str) -> HTMLResponse:
+    return _probe_shell(variant)
+
 _GAME_CODE_RE = re.compile(r"[A-Za-z]{5}")
 
 

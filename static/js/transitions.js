@@ -1,5 +1,7 @@
 // @ts-check
 import { byId } from './dom.js';
+import { hasProbe, probeScrollY } from './probe.js';
+import { appScrollTo } from './viewport.js';
 
 /**
  * Screen swaps via the View Transitions API, plus the loading-screen
@@ -24,20 +26,32 @@ let loadingShownAt = Date.now();
  */
 const DISSOLVE_NAV = true;
 
-const FIXED_SHELL_SCREENS = new Set(['game', 'loading', 'landing', 'lobby']);
+/** @type {Set<string>} */
+const FIXED_SHELL_SCREENS = new Set();
 
 /**
  * Document-scroll mode (owner-directed, 2026-08-19): every screen reads as a
  * normal web page — the document itself scrolls, so content is never clipped
- * by an inner scroller and iOS Safari collapses its chrome on scroll. The
- * screens on the fixed shell are the GAME BOARD (the table is bolted down:
- * dice geometry, the mat, the roll coin), the LANDING and the LOBBY (both
- * composed one-viewport rooms — they must not move; owner-directed
- * 2026-08-20), and the transient loading splash. The nav menu force-enables
- * the mode while it is open so the menu and changelog flow as pages even
- * over fixed-shell hosts (nav-menu.js). Applied at screen COMMIT (never
- * earlier): flipping the shell to static mid-swap would collapse the
- * outgoing screen's 100% height for a frame. The CSS half lives in
+ * by an inner scroller and iOS Safari collapses its chrome on scroll. No
+ * screen uses the fixed shell any more; the set above stays so one could
+ * again. The LANDING left it on 2026-09-21, the LOBBY and GAME BOARD on
+ * 2026-09-22, and the LOADING splash on 2026-09-23: its scrim stopped at the
+ * toolbar line on a reconnect, since a fixed layer never paints behind
+ * Safari's toolbar. It is held still like the board (critical.css). The
+ * lobby is sized to 100svh under doc-scroll (critical.css) so it bounces
+ * like the landing but never scrolls, `overflow: clip` on the screen root
+ * standing in for the fixed shell's own clipping. The board takes the same
+ * room but doesn't move at all (2026-09-23, docs/IOS_SAFARI.md): <html>
+ * goes overflow: hidden while it's active, so it neither scrolls nor
+ * bounces, and that frozen root is what lets #game-bg's in-flow art paint
+ * behind Safari's toolbar. Both are still doc-scroll (this function
+ * doesn't distinguish them); the split lives entirely in critical.css. The
+ * nav menu force-enables the mode while it is open over a fixed-shell host
+ * (nav-menu.js); with none left it always takes the "host already owns the
+ * scroller" path, and hands the offset back the same way on close.
+ * Applied at screen COMMIT (never earlier): flipping the shell to static
+ * mid-swap would collapse the outgoing screen's 100% height for a frame.
+ * The CSS half lives in
  * critical.css under `html.doc-scroll`.
  * @param {string} id the screen being committed
  */
@@ -60,25 +74,13 @@ function setDocScroll(id) {
   } else if (!on) {
     strip?.remove();
   }
-  // iOS Safari's LARGE viewport still excludes the collapsed-address-bar
-  // strip, and it reports safe-area insets of 0 in scrolling-tab mode
-  // (measured on device, 2026-08-19: sat=0 sab=0, 100lvh=815 on a taller
-  // screen) — so no CSS unit can reach the bottom band. JS can: the gap is
-  // screen.height − 100lvh, fed to the bleed rule as --chrome-gap. Guarded
-  // to phone-chrome-sized gaps so desktop windows and the wall (where
-  // screen.height has nothing to do with the viewport) never apply it.
-  if (on) {
-    const probe = document.createElement('div');
-    probe.style.cssText = 'position:fixed;top:0;left:-10px;width:1px;height:100lvh;visibility:hidden;pointer-events:none';
-    document.body.appendChild(probe);
-    const gap = screen.height - probe.offsetHeight;
-    probe.remove();
-    const apply = gap > 0 && gap <= 80 ? gap : 0;
-    document.documentElement.style.setProperty('--chrome-gap', apply + 'px');
-  }
   // Entering: start at the top. Leaving: shed any scroll offset before the
   // fixed shell (overflow: hidden) comes back and would trap it.
-  window.scrollTo(0, 0);
+  appScrollTo(0);
+  // Probe token y<px>: land mid-page once the screen has settled, so the strip
+  // behind the toolbar can be read against content rather than the top.
+  const y = on ? probeScrollY() : 0;
+  if (y) setTimeout(() => appScrollTo(y), 900);
 }
 
 /**
@@ -130,8 +132,16 @@ export function showScreen(id, { force = false, staged = false, instant = false,
   // enter/exit path — staged, view-transition, or plain — stays in sync.
   const inGame = id === 'game';
   document.body.classList.toggle('in-game', inGame);
-  // playIntro pauses the landing video on game start; resume it whenever we
-  // leave the game so the background isn't frozen back on landing/lobby.
+  // playIntro pauses the landing video on game start, but only on the
+  // fromLobby path (router.js) — a reconnect/reload straight into a running
+  // game never calls it, so #bg-video was left decoding+looping the whole
+  // time, invisible behind #game-bg's opaque poster (found 2026-09-22 via
+  // the fixed-element census). Pause it here too, on every path into the
+  // game; resume it below whenever we leave, same as before.
+  if (inGame) {
+    const bg = /** @type {HTMLVideoElement | null} */ (document.getElementById('bg-video'));
+    bg?.pause();
+  }
   if (!inGame) {
     const bg = /** @type {HTMLVideoElement | null} */ (document.getElementById('bg-video'));
     if (bg?.paused) bg.play().catch(() => {});
@@ -141,6 +151,10 @@ export function showScreen(id, { force = false, staged = false, instant = false,
     return settledTransition();
   }
   if (staged || (DISSOLVE_NAV && !instant)) {
+    // Build under the boot guard (iOS Safari Gotchas §7): state set on the
+    // screen before its first paint must not start transitions — WebKit
+    // parks them at their start and shows the previous state for a second.
+    target.setAttribute('data-boot', '');
     target.classList.add('staging');
     onSwap?.();
     // Commit a frame later: the staged content is laid out (and the dice
@@ -151,6 +165,9 @@ export function showScreen(id, { force = false, staged = false, instant = false,
       // .active rather than removing screens, so disconnectedCallback never fires.
       if (previous && previous !== target) /** @type {any} */ (previous).leave?.();
       document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
+      // The staged layout is committed; re-enable transitions before the reveal.
+      void target.offsetHeight;
+      target.removeAttribute('data-boot');
       target.classList.remove('staging');
       target.classList.add('active');
       setDocScroll(id);
@@ -176,9 +193,14 @@ export function showScreen(id, { force = false, staged = false, instant = false,
     // Give the outgoing screen a chance to clean up (see the staged branch).
     if (previous && previous !== target) /** @type {any} */ (previous).leave?.();
     document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
+    // Boot guard (§7): settle the opening state with transitions off, force a
+    // layout read to commit it, then re-enable — nothing is left to animate.
+    target.setAttribute('data-boot', '');
     target.classList.add('active');
     setDocScroll(id);
     onSwap?.();
+    void target.offsetHeight;
+    target.removeAttribute('data-boot');
   };
   if (!instant && document.startViewTransition) {
     const transition = document.startViewTransition(() => {
@@ -216,6 +238,9 @@ export function showLoading(text = 'Loading…') {
  * @param {() => void} action
  */
 export function leaveLoading(action) {
+  // Probe token `hold` (iOS Safari Gotchas §3): keep the loading splash up so
+  // its glass can be measured on a device. /p/hold/ only; inert elsewhere.
+  if (hasProbe('hold')) return;
   const remaining = Math.max(0, MIN_LOADING_MS - (Date.now() - loadingShownAt));
   if (remaining === 0) requestAnimationFrame(action);
   else setTimeout(action, remaining);

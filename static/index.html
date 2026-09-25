@@ -1,9 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- The document boots in document-scroll mode (html.doc-scroll) on EVERY
+     route: iOS Safari decides once, at first paint, whether the page keeps
+     painting behind its bottom toolbar (overdraw) or cuts it off with a flat
+     band, and it takes the flat band when that first paint is the fixed shell
+     (body position:fixed leaves nothing under the viewport). The decision
+     outlives every later change, so the loading splash paints in flow here.
+     No screen uses the fixed shell any more: landing left 2026-09-21, lobby
+     and the game board 2026-09-22, the loading splash 2026-09-23, so the
+     class stays on for the life of the page. Measured in the iOS 27
+     simulator, 2026-09-21: seven doc-scroll routes flat, all seven overdraw
+     with this. iOS Safari Gotchas §1. -->
+<html lang="en" class="doc-scroll">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#1a0e08">
+  <meta name="theme-color" content="#080401">
   <title>$page_title</title>
 
   <link rel="icon" type="image/png" sizes="32x32" href="/static/images/icon-32.png">
@@ -70,6 +81,7 @@
   <link rel="stylesheet" href="/static/css/profile.css">
   <link rel="stylesheet" href="/static/css/game-detail.css">
   <link rel="stylesheet" href="/static/css/a2hs.css">
+  <link rel="stylesheet" href="/static/css/bezel.css">
 
   <!-- Preload the whole module graph so it fetches in parallel instead of
        waterfalling app -> router/net -> components. -->
@@ -86,6 +98,7 @@
   <link rel="modulepreload" href="/static/js/touch.js">
   <link rel="modulepreload" href="/static/js/back-button.js">
   <link rel="modulepreload" href="/static/js/scroll-fades.js">
+  <link rel="modulepreload" href="/static/js/viewport.js">
   <link rel="modulepreload" href="/static/js/title-row.js">
   <link rel="modulepreload" href="/static/js/account-coin.js">
   <link rel="modulepreload" href="/static/js/account-sync.js">
@@ -199,6 +212,18 @@
   <p class="rotate-legend">Tensies is played upright</p>
   <p class="rotate-msg">Turn your phone back to portrait —<br>the table doesn't fit sideways.</p>
 </div>
+
+<!-- Off a phone only (css/bezel.css): a line and a QR in the page's bottom-right
+     corner, beside the framed app. A manual popover, because the top layer is the
+     only place outside <body> — which, under the bezel, is the clipped phone-sized
+     box — that markup can be drawn. viewport.js opens it; on a phone it is
+     display: none and never paints. -->
+<aside id="bezel-aside" class="bezel-aside" popover="manual">
+  <p class="bezel-aside-line">Tensies is better on a phone, with friends.</p>
+  <div class="bezel-aside-chit">
+    <img class="bezel-aside-qr" src="/api/qr/app.svg" alt="QR code: open tensies.app on your phone" width="128" height="128">
+  </div>
+</aside>
 
 </body>
 </html>

@@ -84,8 +84,26 @@
 
   .game-menu.open > * { opacity: 1; }
 
+  /* .nav-menu inherits inset: 0 from the shared .game-menu rule above, which
+     combined with position:fixed here and no height override is the exact
+     ratchet shape — a fixed box at the dynamic viewport (docs/IOS_SAFARI.md
+     §1) — live the whole time the menu is open on the fixed shell (game,
+     lobby, loading; doc-scroll screens use the .open override below instead,
+     position:absolute, never at risk). Closed, only visibility:hidden kept
+     it harmless (confirmed via the fixed-element census: hidden, it never
+     entered the danger band) — but the FIRST open on the board or lobby
+     would have ratcheted the page right there. Explicit inset (never bare 0)
+     plus a safe 100lvh-based block-size, same shape as main/the staged
+     screens, with the extra padded off the bottom so the CONTENT box (the
+     tab line, the menu panel, the foot) is unchanged — only the box around
+     it moved outside the danger band. */
   .nav-menu {
     position: fixed;
+    inset: 0 auto auto 0;
+    inline-size: 100%;
+    box-sizing: border-box;
+    block-size: calc(var(--vp-l) + var(--inset-bottom));
+    padding-block-end: calc(var(--vp-l) - var(--vp-d));
   }
 
   /* The menu sits over the PHOTOGRAPH, not over the host screen's own form —

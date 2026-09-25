@@ -107,9 +107,9 @@ sessions, ack_events, drop_tasks, pause_tasks # live asyncio objects, owned by t
 
 Games are destroyed when the last player disconnects. Distinct players write distinct hash fields (atomic `HSET`/`HINCRBY`, no contention), so simultaneous rolling stays parallel; the one contended write — crowning the round winner — is an atomic Lua compare-and-set (`try_finish_round`). A periodic **reaper** (`server/reaper.py`) is the cross-instance backstop for grace-drops / pause-caps whose owning instance died, and publishes the global active-games gauge (aggregate it with `max()` across instances, not `sum()`).
 
-**Accounts / auth.** Passkey (WebAuthn) sign-up/sign-in lives in `server/auth.py` — a `/auth/*` router (register/login `options`+`verify`, `/auth/me`) backed by a Postgres `users`/`webauthn_credentials` schema via `server/db.py`. Sessions are JWTs (HS256); the client authenticates its WebSocket with the `auth` action, which rebinds `session.pid` to the account UUID. `main.py` calls `db.init()` before serving because auth needs Postgres even when telemetry is off — gameplay itself still degrades gracefully when the DB is absent (`db.available()`). Public read APIs hang off `server/routes.py`: `/api/profile/{username}`, `/api/game/{code}`, `/api/game/{code}/verify`, `/api/verify/{code}/{pid}/{roll_count}`, plus SPA shells for `/@{username}`, `/games/{code}`, `/signin`, and `/welcome`.
+**Accounts / auth.** Passkey (WebAuthn) sign-up/sign-in lives in `server/auth.py` — a `/auth/*` router (register/login `options`+`verify`, `/auth/me`) backed by a Postgres `users`/`webauthn_credentials` schema via `server/db.py`. Sessions are JWTs (HS256); the client authenticates its WebSocket with the `auth` action, which rebinds `session.pid` to the account UUID. `main.py` calls `db.init()` before serving because auth needs Postgres even when telemetry is off — gameplay itself still degrades gracefully when the DB is absent (`db.available()`). Public read APIs hang off `server/routes.py`: `/api/qr/app.svg` (the app's front door as a QR, for the off-phone bezel aside), `/api/profile/{username}`, `/api/game/{code}`, `/api/game/{code}/verify`, `/api/verify/{code}/{pid}/{roll_count}`, plus SPA shells for `/@{username}`, `/games/{code}`, `/signin`, and `/welcome`.
 
-Key env vars (`server/config.py`): `REDIS_URL`, `TELEMETRY_ENABLED`, `ALLOWED_ORIGINS` (WS origin allowlist), `METRICS_TOKEN`/`STATS_TOKEN` (bearer-gate `/metrics`+`/stats`), `WIDGET_TOKEN` (`?key=` gate for the `/api/widget` home-screen card; unset → 503), `MAX_GAMES`, `MAX_PLAYERS_PER_GAME`, `MAX_CONNECTIONS_PER_IP`, `CREATE_RATE_*`/`JOIN_RATE_*`, `MAX_WS_MESSAGE_BYTES`. Accounts add `JWT_SECRET`, `JWT_EXPIRY_DAYS`, `WEBAUTHN_RP_ID`, `WEBAUTHN_RP_NAME`, `WEBAUTHN_ORIGIN`; provably-fair rolling adds `ENABLE_DRAND_ROLLING`, `DRAND_BASE_URL`, `DRAND_CHAIN_HASH`, `DRAND_POLL_INTERVAL` (`server/drand.py`); the optional Discord notifier adds `DISCORD_ENABLED`, `DISCORD_BOT_TOKEN`, `DISCORD_CHANNEL_ID`, `DISCORD_PUBLIC_KEY`, `DISCORD_APPLICATION_ID`, `DISCORD_GUILD_ID` (`server/discord.py`); the nearby-games radar + place check-in add `DISCOVERY_ENABLED` (+ `DISCOVERY_RADIUS_M`/`DISCOVERY_DISTANCE_BUCKET_M`/`DISCOVERY_MAX_RESULTS`, `NEARBY_RATE_*`/`CHECKIN_RATE_*`) and, for the Google-backed picker, `PLACES_ENABLED`, `GOOGLE_MAPS_API_KEY`, `GOOGLE_APPLICATION_CREDENTIALS`, `GOOGLE_CLOUD_PROJECT` (+ `PLACES_RADIUS_M`/`PLACES_*_CACHE_TTL`, `PLACES_RATE_*`) — a game is discoverable only while checked in to a place (`server/places.py`, `server/routes.py`; see `.env.prod.example`); `APP_URL` sets the absolute og:image origin. Behind a trusted proxy, set `TRUST_PROXY_HEADERS`/`TRUSTED_PROXY_HOPS` so the per-IP caps read the real client from `X-Forwarded-For`. Security response headers are governed by `SECURITY_HEADERS` (CSP, on by default), `CSP_OVERRIDE`/`CSP_EXTRA_SCRIPT_SRC`/`CSP_EXTRA_CONNECT_SRC`/`CSP_EXTRA_IMG_SRC`, and the `HSTS_*` group (off in dev, on for HTTPS deploys) — see `server/security.py`. Asset serving is split on `FRONTEND_DIST` (see Cache-busting).
+Key env vars (`server/config.py`): `REDIS_URL`, `TELEMETRY_ENABLED`, `ALLOWED_ORIGINS` (WS origin allowlist), `METRICS_TOKEN`/`STATS_TOKEN` (bearer-gate `/metrics`+`/stats`), `WIDGET_TOKEN` (`?key=` gate for the `/api/widget` home-screen card; unset → 503), `MAX_GAMES`, `MAX_PLAYERS_PER_GAME`, `MAX_CONNECTIONS_PER_IP`, `CREATE_RATE_*`/`JOIN_RATE_*`, `MAX_WS_MESSAGE_BYTES`. Accounts add `JWT_SECRET`, `JWT_EXPIRY_DAYS`, `WEBAUTHN_RP_ID`, `WEBAUTHN_RP_NAME`, `WEBAUTHN_ORIGIN`; provably-fair rolling adds `ENABLE_DRAND_ROLLING`, `DRAND_BASE_URL`, `DRAND_CHAIN_HASH`, `DRAND_POLL_INTERVAL` (`server/drand.py`); the optional Discord notifier adds `DISCORD_ENABLED`, `DISCORD_BOT_TOKEN`, `DISCORD_CHANNEL_ID`, `DISCORD_PUBLIC_KEY`, `DISCORD_APPLICATION_ID`, `DISCORD_GUILD_ID` (`server/discord.py`); the nearby-games radar + place check-in add `DISCOVERY_ENABLED` (+ `DISCOVERY_RADIUS_M`/`DISCOVERY_DISTANCE_BUCKET_M`/`DISCOVERY_MAX_RESULTS`, `NEARBY_RATE_*`/`CHECKIN_RATE_*`) and, for the Google-backed picker, `PLACES_ENABLED`, `GOOGLE_MAPS_API_KEY`, `GOOGLE_APPLICATION_CREDENTIALS`, `GOOGLE_CLOUD_PROJECT` (+ `PLACES_RADIUS_M`/`PLACES_*_CACHE_TTL`, `PLACES_RATE_*`) — a game is discoverable only while checked in to a place (`server/places.py`, `server/routes.py`; see `.env.prod.example`); `APP_URL` sets the absolute og:image origin. Behind a trusted proxy, set `TRUST_PROXY_HEADERS`/`TRUSTED_PROXY_HOPS` so the per-IP caps read the real client from `X-Forwarded-For`. Security response headers are governed by `SECURITY_HEADERS` (CSP, on by default), `CSP_OVERRIDE`/`CSP_EXTRA_SCRIPT_SRC`/`CSP_EXTRA_CONNECT_SRC`/`CSP_EXTRA_IMG_SRC`, and the `HSTS_*` group (off in dev, on for HTTPS deploys) — see `server/security.py`. Asset serving is split on `FRONTEND_DIST` (see Cache-busting). `PROBE_PATHS` (off by default) enables the `/p/<tokens>/…` and `/p/min/…` measuring routes for iOS Safari work — see [`docs/IOS_SAFARI.md`](docs/IOS_SAFARI.md), which also records why the fixed shell lives on `main` at `100lvh` and why every route boots in `html.doc-scroll`. Do not move the shell back onto `body`, and never size a fixed or sticky box to the dynamic viewport (`inset: 0` / `100dvh`): iOS Safari flat-fills behind its toolbar for the life of the page.
 
 ### Code layout
 
@@ -219,6 +219,15 @@ static/
     a2hs.css             Add-to-Home-Screen landing banner + the animated
                          install-walkthrough <dialog>; JS-gated (mobile UA
                          only) so it matches nothing on the desktop harness
+    bezel.css            off a phone (desktop, iPad — both viewport sides
+                         >= 500px): the app drawn 1:1 in a 390x844 box in
+                         the middle of the page, brass-framed, over the
+                         street. body IS the box (contain: layout paint pins
+                         every fixed layer to it); main scrolls the screens;
+                         the four --vp-* tokens (critical.css) become the
+                         box's size; top-layer dialogs are re-boxed by hand.
+                         Own @layer bezel, last in the order. Never matches
+                         the 390x844 harness or the Hubble wall's frame
   js/                    every module is strict-checked JS (// @ts-check +
                          jsconfig.json at the repo root); named exports, JSDoc
                          on the public API
@@ -265,6 +274,15 @@ static/
     back-button.js       shared back-chip markup (join screen + changelog)
     scroll-fades.js      can-scroll-up/down edge-fade toggler (lobby list +
                          changelog body)
+    viewport.js          appViewport() / appScrollY() / appScrollTo() — the
+                         app's viewport and scroller: the window on a phone,
+                         the bezel's box + <main> off one (reads --bezel-on).
+                         The only JS that may ask how big "the screen" is
+    probe.js             probe tokens (iOS Safari Gotchas §3): html[data-probe]
+                         on /p/<tokens>/<route> paths only, gated on PROBE_PATHS;
+                         flow tokens (create/start/autojoin/nav*/y<px>/hold) so a
+                         touchless simulator can reach every screen. Inert on
+                         every normal URL. See docs/IOS_SAFARI.md
     touch.js             installTouchGuard() — capture-phase touchstart guard:
                          blocks iOS double-tap zoom; rapid taps on a ready roll
                          button still register

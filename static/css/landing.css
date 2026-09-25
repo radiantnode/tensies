@@ -9,12 +9,24 @@
   }
 
   /* Landing scrim: the sign stays legible up top, the form gets a ground.
-     On ::before at z-index -1 so the screen root never becomes a stacking
-     context (LAYERING.md). */
+     Pinned to the viewport on the SAME geometry as .bg-video (fixed; inset
+     0/auto/auto/0 plus an explicit block-size — never bare inset:0, which
+     sizes to the dynamic viewport and ratchets Safari into flat-fill, iOS
+     Safari Gotchas §1) instead of living inside the scrolled .landing-screen
+     box. The landing now flows as a page (doc-scroll, 100svh) that bounces at
+     its bottom; a scrim laid out in that flow travelled with the drag while
+     the fixed video underneath held still, so a rubber-band pulled the scrim
+     off the video and bared raw, un-scrimmed footage for the whole overscroll
+     distance. Fixed + the video's own box keeps the two glued together at
+     every scroll and bounce offset. On ::before at z-index -1 so the screen
+     root never becomes a stacking context (LAYERING.md); it still paints over
+     .bg-video because <main> follows it in the DOM. */
   .landing-screen::before {
     content: '';
-    position: absolute;
-    inset: 0;
+    position: fixed;
+    inset: 0 auto auto 0;
+    inline-size: 100%;
+    block-size: calc(var(--vp-l) + var(--edge-bleed));
     z-index: var(--z-scrim);
     background: linear-gradient(to top,
       rgba(6, 3, 1, .97) 0%,
@@ -36,12 +48,15 @@
 
   .landing-screen .game-title { visibility: hidden; }
 
-  /* The form column: bottom-anchored, left-set like a letterhead. */
+  /* The form column: bottom-anchored, left-set like a letterhead. The bottom
+     padding is nearly nil (owner's call, 2026-09-23): the empty error line
+     under the actions already reserves its own ~36px, which keeps the form
+     clear of Safari's toolbar. */
   .landing-screen .screen-body {
     justify-content: flex-end;
     align-items: stretch;
     text-align: start;
-    padding: 0 24px calc(26px + var(--inset-bottom));
+    padding: 0 24px calc(2px + var(--inset-bottom));
   }
 
   .landing-greeting {

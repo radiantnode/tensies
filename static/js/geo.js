@@ -26,7 +26,7 @@ export class GeoError extends Error {
 
 /** User-facing copy per failure reason — reused by the nearby screen + lobby. */
 export const GEO_ERROR_COPY = {
-  permission: 'Location access needed — allow it in your browser settings.',
+  permission: 'Location’s off for this site — Safari’s aA menu → Website Settings, or Settings → Safari → Location.',
   unavailable: 'Couldn’t get your location. Try again in a moment.',
   timeout: 'Locating timed out. Give it another go.',
   unsupported: 'Location isn’t available on this device.',
@@ -45,9 +45,20 @@ export function getPosition() {
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      (err) => {
-        // GeolocationPositionError: 1 PERMISSION_DENIED, 2 POSITION_UNAVAILABLE, 3 TIMEOUT
-        const reason = err.code === 1 ? 'permission'
+      async (err) => {
+        // GeolocationPositionError: 1 PERMISSION_DENIED, 2 POSITION_UNAVAILABLE, 3 TIMEOUT.
+        // iOS Safari doesn't reliably use code 1 for a fresh "Don't Allow" —
+        // measured 2026-09-22, an explicit denial surfaced as
+        // POSITION_UNAVAILABLE — so the Permissions API is the authoritative
+        // read where it exists; err.code is only the fallback.
+        let denied = err.code === 1;
+        try {
+          const status = await navigator.permissions?.query({ name: 'geolocation' });
+          if (status) denied = status.state === 'denied';
+        } catch {
+          // Permissions API unsupported (or the query itself failed) — keep the code-based read.
+        }
+        const reason = denied ? 'permission'
           : err.code === 3 ? 'timeout'
           : 'unavailable';
         reject(new GeoError(reason, err.message || 'geolocation failed'));

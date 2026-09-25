@@ -48,6 +48,12 @@ class Session:
         "ws", "pid", "code", "name", "ip",
         # Authenticated account (set by handle_auth if the client sends a JWT).
         "user_id", "username", "photo",
+        # This connection's generation for `pid` in the game (see
+        # gamestore.reconnect_player / mark_disconnected_if_current). Lets this
+        # socket's own eventual disconnect prove it still owns the slot before
+        # marking disconnected, starting a grace drop, or broadcasting a leave —
+        # so a reconnect that already replaced it can't be undone by its close.
+        "conn_seq",
         # Telemetry meta — populated on connect, used by send() and the
         # disconnect finally block to attribute counters and emit lifecycle
         # events. Cheap (one allocation per WS), no global maps required.
@@ -65,6 +71,7 @@ class Session:
         self.code: str | None = None
         self.name: str = "?"
         self.ip: str = client_ip(ws)
+        self.conn_seq: int = 0
         self.session_id = str(uuid.uuid4())
         self.peer = f"{ws.client.host}:{ws.client.port}" if ws.client else None
         self.user_agent = ws.headers.get("user-agent", "")
@@ -83,8 +90,14 @@ class Session:
         self.pinger: Pinger | None = None
 
 
-async def _error(ws: WebSocket, msg: str) -> None:
-    await send(ws, {"type": "error", "msg": msg})
+async def _error(ws: WebSocket, msg: str, *, fatal: bool = False) -> None:
+    frame = {"type": "error", "msg": msg}
+    if fatal:
+        # Same terminal-error convention as the pause-cap frame (see
+        # broadcast.end_if_paused_over): the client clears its saved session
+        # instead of retrying, because there is nothing left to reconnect to.
+        frame["fatal"] = True
+    await send(ws, frame)
 
 
 def _ensure_session_started(session: Session) -> None:
@@ -309,21 +322,25 @@ async def handle_reconnect(session: Session, msg: dict) -> None:
     player = await gamestore.get_player(join_code, old_pid)
     # A leaked snapshot reveals every pid + the host pid, so pid alone can't
     # be the credential. Require the private reconnect token (constant-time
-    # compared) and that the slot is actually awaiting reconnect.
-    if (player is None
-            or not player.get("disconnected")
-            or not verify_token(player.get("token_hash"), token)):
-        await _error(session.ws, "Game not found")
+    # compared). The slot need NOT already be marked disconnected: the new
+    # socket can beat the old one's close, and that's fine — reconnect_player
+    # below claims a fresh connection generation regardless, and that's what
+    # makes the old socket's later close a no-op (see the disconnect handler).
+    if player is None or not verify_token(player.get("token_hash"), token):
+        # Unknown game/player or a bad token — there's nothing to retry, so the
+        # client should give up rather than keep hammering this reconnect.
+        await _error(session.ws, "Game not found", fatal=True)
         return
     # Cancel a local grace task if this instance owns it. If the task lives on
-    # another instance, mark_connected below makes its drop a no-op anyway.
+    # another instance, the conn_seq bump below makes its drop a no-op anyway
+    # (do_drop re-reads `disconnected` from Redis before touching anything).
     t = state.drop_tasks.pop((join_code, old_pid), None)
     if t:
         t.cancel()
     session.pid = old_pid
     session.code = join_code
     session.name = player["name"]
-    await gamestore.mark_connected(join_code, old_pid)
+    session.conn_seq = await gamestore.reconnect_player(join_code, old_pid)
     connections.setdefault(join_code, {})[old_pid] = session.ws
     _ensure_session_started(session)
     metrics.reconnects_total.inc()
@@ -692,11 +709,20 @@ async def websocket_endpoint(ws: WebSocket) -> None:
         code = session.code
         if code:
             local = connections.get(code)
-            if local:
+            # Only remove this socket's own entry — if a reconnect already
+            # replaced it (same instance), that entry belongs to the new
+            # connection and must not be clobbered by this stale close.
+            if local and local.get(session.pid) is ws:
                 local.pop(session.pid, None)
-            player = await gamestore.get_player(code, session.pid)
-            if player is not None and not player.get("disconnected"):
-                await gamestore.mark_disconnected(code, session.pid)
+            # mark_disconnected_if_current no-ops when a newer connection (this
+            # instance or another) already bumped conn_seq past what this
+            # socket registered at connect/reconnect time — so a stale close
+            # can never mark the new connection disconnected, start a grace
+            # drop, move host, or broadcast that the player left. It also
+            # no-ops when the player is already marked disconnected (e.g.
+            # handle_leave got here first), so a leave immediately followed by
+            # the socket closing doesn't double the player_left/grace-drop.
+            if await gamestore.mark_disconnected_if_current(code, session.pid, session.conn_seq):
                 emit("player_left", game_code=code, user_id=session.pid,
                      name=session.name, reason="disconnect",
                      player_count=None)

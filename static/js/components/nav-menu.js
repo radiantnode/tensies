@@ -5,6 +5,7 @@ import { accountCoin } from '../account-coin.js';
 import { cachedProfile, loadProfile } from '../account-sync.js';
 import { makeMenuToggle } from '../menu-toggle.js';
 import { navigate, showProfile, showSignin } from '../router.js';
+import { appScrollTo, appScrollY } from '../viewport.js';
 
 // Phone-with-plus glyph for the "Add to Home Screen" entry.
 const A2HS_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 7.5v5M9.5 10h5"/></svg>`;
@@ -151,12 +152,12 @@ export class NavMenu extends HTMLElement {
     if (this.#forcedDocScroll) {
       document.documentElement.classList.add('doc-scroll');
       this.#savedScrollY = 0;
-      window.scrollTo(0, 0);
+      appScrollTo(0);
     } else {
       // The host already owns the document scroller — park its offset and
       // start the menu at its top.
-      this.#savedScrollY = window.scrollY;
-      window.scrollTo(0, 0);
+      this.#savedScrollY = appScrollY();
+      appScrollTo(0);
     }
     this.classList.add('open');
     this.setAttribute('aria-hidden', 'false');
@@ -174,11 +175,11 @@ export class NavMenu extends HTMLElement {
     // Hand the document scroller back to the host screen where it was —
     // or take doc-scroll back down if the host is on the fixed shell.
     if (this.#forcedDocScroll) {
-      window.scrollTo(0, 0);
+      appScrollTo(0);
       document.documentElement.classList.remove('doc-scroll');
       this.#forcedDocScroll = false;
     } else if (document.documentElement.classList.contains('doc-scroll')) {
-      window.scrollTo(0, this.#savedScrollY);
+      appScrollTo(this.#savedScrollY);
     }
   }
 
