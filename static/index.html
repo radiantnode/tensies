@@ -225,5 +225,29 @@
   </div>
 </aside>
 
+<!-- Off a phone only (css/bezel.css): the sign-off under the phone — Mikey from
+     simmonstx.com and the same two lines its end card carries, played in with
+     the same choreography (viewport.js). A manual popover for the same reason
+     as the aside above. Mikey is the site's animated variant: two discs under
+     a mask that cuts the bore, then the eyes, all currentColor. -->
+<footer id="bezel-foot" class="bezel-foot" popover="manual">
+  <svg class="bezel-foot-mark" viewBox="30 30 340 340" aria-hidden="true" focusable="false">
+    <mask id="mikey-bore" maskUnits="userSpaceOnUse" x="-200" y="-200" width="800" height="800">
+      <rect x="-200" y="-200" width="800" height="800" fill="#fff"/>
+      <circle class="mikey__bore" cx="250" cy="250" r="84" fill="#000"/>
+    </mask>
+    <g mask="url(#mikey-bore)" fill="currentColor">
+      <circle class="mikey__disc" cx="150" cy="150" r="120"/>
+      <circle class="mikey__disc" cx="250" cy="250" r="120"/>
+    </g>
+    <circle class="mikey__eye" fill="currentColor" cx="264.2" cy="210.4" r="17"/>
+    <circle class="mikey__eye" fill="currentColor" cx="210.4" cy="264.2" r="17"/>
+  </svg>
+  <a class="bezel-foot-link" href="https://simmonstx.com/" rel="author"
+     ><p class="bezel-foot-place">Made with love in</p
+     ><p class="bezel-foot-place">McKinney, Texas</p></a>
+  <p class="bezel-foot-legal">© Michael Simmons</p>
+</footer>
+
 </body>
 </html>
