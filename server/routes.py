@@ -7,7 +7,7 @@ from urllib.parse import quote
 
 import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from . import gamestore, places, qr
@@ -387,6 +387,37 @@ async def api_qr(request: Request, code: str) -> Response:
     base = APP_URL or str(request.base_url).rstrip("/")
     return Response(content=qr.qr_svg(f"{base}/{code}"), media_type="image/svg+xml",
                     headers={"Cache-Control": "public, max-age=604800, immutable"})
+
+
+@router.get("/api/leaderboard")
+async def api_leaderboard(limit: int = 10) -> Response:
+    """Public standings: display name and round wins, most wins first.
+
+    Carries no user ids or other stats (those stay behind /stats). Read by
+    other origins' pages, so CORS is open; the response carries no cookies or
+    credentials. Cached for a minute at the edge and in browsers."""
+    if not TELEMETRY_ENABLED:
+        raise HTTPException(status_code=503, detail="leaderboard unavailable")
+    from server.telemetry import store
+    limit = max(1, min(limit, 25))
+    async with store.pool().acquire() as con:
+        rows = await con.fetch(
+            """
+            SELECT name_last AS name, total_wins AS wins
+              FROM player_stats
+             WHERE total_wins > 0 AND NULLIF(btrim(name_last), '') IS NOT NULL
+             ORDER BY total_wins DESC, fastest_win_ms ASC NULLS LAST
+             LIMIT $1
+            """,
+            limit,
+        )
+    return JSONResponse(
+        {"leaderboard": [{"name": r["name"].strip(), "wins": r["wins"]} for r in rows]},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "public, max-age=60",
+        },
+    )
 
 
 @router.get("/api/profile/{username}")
