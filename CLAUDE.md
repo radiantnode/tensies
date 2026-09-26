@@ -227,7 +227,14 @@ static/
                          the four --vp-* tokens (critical.css) become the
                          box's size; top-layer dialogs are re-boxed by hand.
                          Own @layer bezel, last in the order. Never matches
-                         the 390x844 harness or the Hubble wall's frame
+                         the 390x844 harness or the Hubble wall's frame. Two
+                         manual popovers (top layer, outside the clipped body)
+                         sit in the page's corners: bottom-left the sign-off
+                         (Mikey from simmonstx.com + "Made with love in /
+                         McKinney, Texas" linking there, © line), played in
+                         with the site's end-card choreography by viewport.js;
+                         bottom-right "better on a phone" + a QR of
+                         tensies.app/?ref=desktopqr (/api/qr/app.svg)
   js/                    every module is strict-checked JS (// @ts-check +
                          jsconfig.json at the repo root); named exports, JSDoc
                          on the public API
