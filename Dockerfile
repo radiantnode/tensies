@@ -7,7 +7,7 @@
 # ── Stage 1: build the static frontend bundle (dist/) ─────────────────────────
 # Tag-pinned (not a digest), matching the python base policy below, so local
 # builds still pick up base-image security patches.
-FROM node:26-bookworm-slim AS assets
+FROM node:26-trixie-slim AS assets
 WORKDIR /build
 # Install the exact, locked build toolchain (esbuild) first for layer caching.
 COPY package.json package-lock.json ./
@@ -33,7 +33,7 @@ COPY --from=assets /build/dist/static /srv/dist/static
 # Pinned to a specific patch tag (intentionally NOT a digest) so local dev
 # builds still pick up base-image patch updates. The prod *service* images are
 # digest-pinned in docker-compose.prod.yml instead.
-FROM python:3.14.6-slim-bookworm AS web
+FROM python:3.14.7-slim-trixie AS web
 
 # Don't write .pyc, unbuffered logs, no pip version chatter.
 ENV PYTHONDONTWRITEBYTECODE=1 \
