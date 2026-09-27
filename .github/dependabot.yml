@@ -48,3 +48,13 @@ updates:
     schedule:
       interval: weekly
     labels: [dependencies, docker]
+
+  # ── Service images in the compose files (redis / postgres / prometheus / …) ──
+  # docker-compose.prod.yml pins these by tag@digest; without this entry nothing
+  # watched them and they drifted a full major behind. Majors come as their own
+  # PRs: Postgres majors need a dump/restore, not just a tag bump.
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [dependencies, docker]
