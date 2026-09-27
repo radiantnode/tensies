@@ -11,6 +11,25 @@
     --mat-gap: 16px;
   }
 
+  /* THE RATCHET TRIGGER (found 2026-09-22 via the fixed-element census,
+     docs/IOS_SAFARI.md): while .game-screen is .staging or .dissolving it's
+     also position:fixed (critical.css, .screen.staging/.dissolving), sized
+     there to a safe 100lvh-based block-size — but max-block-size: 100% above
+     resolves against the SMALL/dynamic viewport for a fixed box, clamping it
+     straight back down to exactly 100dvh regardless. That's a fixed box at
+     the dynamic viewport's exact height, live for the couple of frames the
+     staged reveal takes on every "Start Game" — enough to flip Safari into
+     flat-fill for the rest of the page's life (confirmed on-device: lobby
+     overdraws before this moment, nothing does after, and a fresh reconnect
+     straight into a running game — no staged reveal at all — never trips
+     it). Lift the cap for exactly these two states; nothing here was ever
+     relying on 100% clamping a FIXED box, since normal (.active) play is
+     never fixed in the first place. */
+  .game-screen.staging,
+  .game-screen.dissolving {
+    max-block-size: none;
+  }
+
   /* ── round status: lettered straight onto the wood. No container, no plate;
      the label is a legend and the die is the only object. The -6px lift
      reclaims the top bar's 22px fade runway so the play area is unmoved. ── */

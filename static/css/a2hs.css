@@ -154,6 +154,14 @@
     cursor: pointer;
   }
 
+  /* Keyboard focus only (a2hs-guide.js parks the dialog's auto-focus
+     elsewhere on open, so a tap never lands here) — the brand gold in place
+     of the UA's default blue ring. */
+  .a2hs-close:focus-visible {
+    outline: 2px solid #f0cd8e;
+    outline-offset: 2px;
+  }
+
   .a2hs-close svg {
     inline-size: 16px;
     block-size: 16px;
@@ -237,7 +245,8 @@
   .a2hs-phone[data-step="1"] [data-scene="1"],
   .a2hs-phone[data-step="2"] [data-scene="2"],
   .a2hs-phone[data-step="3"] [data-scene="3"],
-  .a2hs-phone[data-step="4"] [data-scene="4"] { opacity: 1; }
+  .a2hs-phone[data-step="4"] [data-scene="4"],
+  .a2hs-phone[data-step="5"] [data-scene="5"] { opacity: 1; }
 
   /* ── inside the glass: the status bar ── */
   .a2hs-statusbar {
@@ -345,49 +354,94 @@
     50% { transform: scale(1.18); opacity: .75; }
   }
 
-  /* ── iOS Safari: the floating bar ── */
+  /* ── iOS 26+/27 Safari: the floating bar ── one row — a back chevron, the
+     compact address pill (≡ page-options · site name · reload), and a
+     tab-count square. Share is no longer a direct icon here; ≡ opens the
+     page-options menu (.a2hs-ios-pagemenu below), where Share… lives now. */
   .a2hs-ios-bar {
     position: absolute;
     inset-inline: 8px;
     inset-block-end: 8px;
     z-index: 5;
-    padding: 6px 8px 5px;
-    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 9px;
+    border-radius: 20px;
     background: rgba(40, 40, 44, .86);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    color: #ebebf0;
   }
 
+  .a2hs-ios-back {
+    display: flex;
+    flex-shrink: 0;
+    color: rgba(130, 130, 138, .7);
+  }
+
+  .a2hs-ios-back .a2hs-glyph { inline-size: 15px; block-size: 15px; }
+
   .a2hs-ios-url {
+    flex: 1;
     display: flex;
     align-items: center;
     gap: 5px;
     justify-content: center;
-    padding: 4px 8px;
-    border-radius: 9px;
+    padding: 5px 8px;
+    border-radius: 12px;
     background: rgba(72, 72, 78, .9);
     font-size: 9.5px;
-    color: #ebebf0;
   }
+
+  .a2hs-ios-url-menu { position: relative; display: flex; }
 
   .a2hs-ios-url .a2hs-glyph { inline-size: 11px; block-size: 11px; }
 
-  .a2hs-ios-tools {
+  .a2hs-ios-tabs {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    inline-size: 19px;
+    block-size: 19px;
+    border-radius: 6px;
+    border: 1.4px solid rgba(235, 235, 240, .85);
+    font-size: 8px;
+    font-weight: 700;
+  }
+
+  /* ── iOS 26+/27: the ≡ page-options menu, floating just above the bar.
+     Share… is the target — the extra tap the new toolbar adds before the
+     familiar share sheet (.a2hs-ios-sheet below, unchanged). ── */
+  .a2hs-ios-pagemenu {
+    position: absolute;
+    inset-inline-end: 10px;
+    inset-block-end: 54px;
+    z-index: 6;
+    inline-size: 150px;
+    border-radius: 13px;
+    overflow: hidden;
+    background: rgba(50, 50, 54, .92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .4);
+  }
+
+  .a2hs-ios-pagemenu-row {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 8px 0;
+    padding: 8px 12px;
+    font-size: 10px;
     color: #ebebf0;
+    border-block-end: .5px solid rgba(255, 255, 255, .14);
   }
 
-  .a2hs-ios-tool {
-    position: relative;
-    display: flex;
-  }
+  .a2hs-ios-pagemenu-row:last-child { border-block-end: none; }
 
-  .a2hs-ios-tools .a2hs-glyph { inline-size: 15px; block-size: 15px; }
-
-  .a2hs-ios-tool-dim { color: rgba(130, 130, 138, .7); }
+  .a2hs-ios-pagemenu-row .a2hs-glyph { inline-size: 13px; block-size: 13px; }
 
   /* ── iOS share sheet ── */
   .a2hs-ios-sheet {
@@ -937,6 +991,16 @@
     inline-size: 0.42em;
     block-size: 1.16em;
     vertical-align: -0.2em;
+  }
+
+  /* The ≡ page-options glyph (iOS "Tap ≡" caption) is wide-and-short
+     (viewBox 20×14) — the opposite shape from .a2hs-morein's tall dots
+     above, which squished it to a speck when it shared that rule. Sized to
+     the caption's own cap height instead, centred on the text. */
+  .a2hs-pagemenu-inline {
+    inline-size: 1.2em;
+    block-size: 0.85em;
+    vertical-align: middle;
   }
 
   .a2hs-install {

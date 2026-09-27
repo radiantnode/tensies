@@ -1,12 +1,14 @@
 // @ts-check
+import { isSignedIn } from './auth.js';
 import { byId } from './dom.js';
 import {
   RESUME_CLOSE_DELAY_MS, hidePaused, hideWinner, pausedText, showPaused, waitingText,
 } from './overlays.js';
-import { saveGameCode, hasSession } from './session.js';
+import { saveGameCode, hasSession, readSession } from './session.js';
 import { dispatch, state } from './state.js';
 import { showScreen, showLoading, leaveLoading } from './transitions.js';
 import { playIntro } from './video-intro.js';
+import { hasProbe } from './probe.js';
 
 /** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
 
@@ -19,6 +21,32 @@ import { playIntro } from './video-intro.js';
  * here); the one net dependency — resuming a saved session at boot — is
  * injected into bootstrap() by the entry point instead.
  */
+
+/**
+ * Probe prefix (iOS Safari Gotchas §3). /p/<variant>/<route> is the same app
+ * under a distinct URL path with html[data-probe] stamped by the server; the
+ * router strips the prefix to route and re-adds it to every URL it writes, so
+ * in-app navigation stays on the probe path (Safari caches its toolbar-strip
+ * and status-bar decisions per path). Empty on every normal URL.
+ */
+const PROBE_PREFIX = location.pathname.match(/^\/p\/[a-z0-9-]+(?=\/|$)/)?.[0] ?? '';
+if (PROBE_PREFIX && !document.documentElement.dataset.probe) {
+  document.documentElement.dataset.probe = PROBE_PREFIX.slice(3).replace(/-/g, ' ');
+}
+
+/** The app-level path: location.pathname with the probe prefix removed. */
+export function routePath() {
+  const p = location.pathname.slice(PROBE_PREFIX.length);
+  return p === '' ? '/' : p;
+}
+
+/**
+ * An app-level path made into the URL to write (probe prefix re-applied).
+ * @param {string} path
+ */
+export function withPrefix(path) {
+  return PROBE_PREFIX ? PROBE_PREFIX + path : path;
+}
 
 /** @type {Record<string, string>} */
 const ROUTES = { '/': 'landing', '/nearby': 'nearby', '/signin': 'signin', '/welcome': 'onboarding', '/profile': 'profile', '/games': 'game-detail', '/changelog': 'changelog' };
@@ -36,7 +64,7 @@ let navToken = 0;
  */
 export function navigate(path, { replace = false, instant = false } = {}) {
   const id = ROUTES[path] ?? 'landing';
-  history[replace ? 'replaceState' : 'pushState']({ id }, '', path);
+  history[replace ? 'replaceState' : 'pushState']({ id }, '', withPrefix(path));
   return showScreen(id, { instant });
 }
 
@@ -65,7 +93,12 @@ function enterNearbyAfter(transition) {
  */
 function openJoinOnLanding(opts = {}) {
   const transition = showScreen('landing');
-  transition.updateCallbackDone.then(() => landing().openJoinSheet(opts));
+  transition.updateCallbackDone.then(() => {
+    landing().openJoinSheet(opts);
+    // Probe token autojoin: a /p/<tokens>/<CODE> deep link submits the join
+    // itself, so a touchless simulator can land in a lobby as a guest.
+    if (opts.code && hasProbe('autojoin')) setTimeout(() => /** @type {HTMLFormElement} */ (byId('join-form')).requestSubmit(), 400);
+  });
   return transition;
 }
 
@@ -102,8 +135,8 @@ export function showProfile(username) {
   const path = `/@${username}`;
   // Already here (a double-tap, or a tap that fires twice) — ignore so we don't
   // stack a duplicate history entry that a single Back can't escape.
-  if (location.pathname === path) return;
-  history.pushState({ id: 'profile', username }, '', path);
+  if (routePath() === path) return;
+  history.pushState({ id: 'profile', username }, '', withPrefix(path));
   enterFetched('profile', username);
 }
 
@@ -113,8 +146,8 @@ export function showProfile(username) {
  */
 export function showGameDetail(code) {
   const path = `/games/${code}`;
-  if (location.pathname === path) return;
-  history.pushState({ id: 'game-detail', code }, '', path);
+  if (routePath() === path) return;
+  history.pushState({ id: 'game-detail', code }, '', withPrefix(path));
   enterFetched('game-detail', code);
 }
 
@@ -199,37 +232,47 @@ export function bootstrap({ resumeSession }) {
     // bump again, but the direct showScreen('landing') branch relies on this so
     // a stale fetch can't swap back over it.
     navToken++;
-    const gameMatch = location.pathname.match(/^\/games\/(.+)$/);
+    const gameMatch = routePath().match(/^\/games\/(.+)$/);
     if (gameMatch) {
       enterFetched('game-detail', decodeURIComponent(gameMatch[1]));
       return;
     }
-    const profileMatch = location.pathname.match(/^\/@(.+)$/);
+    const profileMatch = routePath().match(/^\/@(.+)$/);
     if (profileMatch) {
       enterFetched('profile', decodeURIComponent(profileMatch[1]));
       return;
     }
-    if (location.pathname === '/join') {
+    if (routePath() === '/join') {
       openJoinOnLanding();
       return;
     }
-    const backCode = location.pathname.match(/^\/([A-Z]{5})$/i)?.[1];
+    const backCode = routePath().match(/^\/([A-Z]{5})$/i)?.[1];
     if (backCode) {
       openJoinOnLanding({ code: backCode });
       return;
     }
-    const transition = activateNamed(ROUTES[location.pathname] ?? 'landing');
+    const popNamedRoute = ROUTES[routePath()] ?? 'landing';
+    // Same guard as bootstrap()'s: a guest can still land back on /welcome via
+    // Back/Forward (a bfcache restore, or — before the replaceState below
+    // existed — the history entry bootstrap()'s redirect pushed on top of).
+    // replace, not push: this popstate's entry is the one showing /welcome
+    // right now, so it's the one to overwrite.
+    if (popNamedRoute === 'onboarding' && !isSignedIn()) {
+      navigate('/', { replace: true });
+      return;
+    }
+    const transition = activateNamed(popNamedRoute);
     // Landing on any other screen dismisses a Join sheet left open on the landing.
     transition.updateCallbackDone.then(() => landing().closeJoinSheet());
   });
   // Game detail URLs: /games/<code> → game-detail screen.
-  const gameMatch = location.pathname.match(/^\/games\/(.+)$/);
+  const gameMatch = routePath().match(/^\/games\/(.+)$/);
   if (gameMatch) {
     enterFetched('game-detail', decodeURIComponent(gameMatch[1]));
     return;
   }
   // Vanity profile URLs: /@username → profile screen.
-  const profileMatch = location.pathname.match(/^\/@(.+)$/);
+  const profileMatch = routePath().match(/^\/@(.+)$/);
   if (profileMatch) {
     enterFetched('profile', decodeURIComponent(profileMatch[1]));
     return;
@@ -237,31 +280,70 @@ export function bootstrap({ resumeSession }) {
   // Named routes (signin, welcome) get their own screen directly — before
   // the saved-session check, so a direct /signin URL isn't hijacked by a
   // stale reconnect attempt.
-  const namedRoute = ROUTES[location.pathname];
+  const namedRoute = ROUTES[routePath()];
   if (namedRoute && namedRoute !== 'landing') {
+    // /welcome is the post-signup confirmation card (confirmed username,
+    // vanity URL, any migrated stats). A guest who lands there directly —
+    // bookmark, shared link, a stale tab reopened after sessionStorage was
+    // cleared — has no signup in flight and no account, so
+    // onboarding-screen.js's own #restore() has neither a fresh stash nor a
+    // signed-in user to fall back to and leaves the card blank (an empty
+    // username/vanity-URL well under "You're all set."). Bounce home
+    // instead of showing that dead end.
+    if (namedRoute === 'onboarding' && !isSignedIn()) {
+      // replace: true, not the push a bare navigate('/') would do — a push
+      // left the real /welcome load one entry away, so a swipe-back/Back tap
+      // landed right back on the blank card (found 2026-09-22). Overwrite
+      // that entry instead; there's nothing valid to go back to here.
+      leaveLoading(() => navigate('/', { replace: true }));
+      return;
+    }
     leaveLoading(() => activateNamed(namedRoute));
     return;
   }
   // /join → landing with the Join sheet open. Before the saved-session check so
   // a direct /join isn't hijacked by a stale reconnect (matched the old named
   // route's precedence).
-  if (location.pathname === '/join') {
+  if (routePath() === '/join') {
     leaveLoading(() => openJoinOnLanding());
     return;
   }
+  const pathCode = routePath().match(/^\/([A-Z]{5})$/i)?.[1];
   if (hasSession()) {
-    resumeSession();
-    return;
+    // A /<CODE> link for a game other than the saved session (e.g. a fresh
+    // invite opened while an old session is still held) means join that game
+    // instead of reconnecting to the stale one below.
+    const { gameCode: savedCode } = readSession();
+    if (!pathCode || pathCode.toUpperCase() === savedCode) {
+      resumeSession();
+      return;
+    }
   }
-  const pathCode = location.pathname.match(/^\/([A-Z]{5})$/i)?.[1];
   const joinCode = pathCode ?? new URLSearchParams(location.search).get('join');
   if (joinCode) {
     // Keep a /<CODE> path in the address bar so a refresh re-opens the sheet;
     // canonicalise the legacy ?join= form to /<CODE>.
-    if (!pathCode) history.replaceState({ id: 'landing' }, '', `/${joinCode.toUpperCase()}`);
+    if (!pathCode) history.replaceState({ id: 'landing' }, '', withPrefix(`/${joinCode.toUpperCase()}`));
     leaveLoading(() => openJoinOnLanding({ code: joinCode }));
   } else {
-    leaveLoading(() => showScreen('landing'));
+    leaveLoading(() => {
+      const transition = showScreen('landing');
+      // Probe token create: submit Create Game once the landing is up, so a
+      // touchless simulator can reach the lobby (and, with start, the board).
+      if (hasProbe('create')) transition.updateCallbackDone.then(() => setTimeout(() => /** @type {HTMLFormElement} */ (byId('landing-form')).requestSubmit(), 400));
+      // Probe tokens navnearby / navmenu: an in-app navigation off the landing
+      // with no reload, to read whether Safari's strip decision is per load
+      // or per shell state.
+      // navjoin opens the Join sheet (a modal dialog, so a viewport-sized
+      // ::backdrop) and closes it again; navnearby then waits for it.
+      if (hasProbe('navjoin')) transition.updateCallbackDone.then(() => {
+        setTimeout(() => landing().openJoinSheet(), 600);
+        setTimeout(() => landing().closeJoinSheet(), 1800);
+      });
+      const navDelay = hasProbe('navjoin') ? 3000 : 600;
+      if (hasProbe('navnearby')) transition.updateCallbackDone.then(() => setTimeout(() => showNearby(), navDelay));
+      if (hasProbe('navmenu')) transition.updateCallbackDone.then(() => setTimeout(() => /** @type {any} */ (document.querySelector('nav-menu'))?.open?.(), 600));
+    });
   }
 }
 
@@ -294,7 +376,7 @@ export function showFor(snap) {
   // makes a refresh re-show the join screen — bootstrap() resolves named
   // routes before the saved-session check, so resumeSession() never runs.
   // '/' is not a hijacking route; it falls through to the resume path.
-  if (location.pathname !== '/') history.replaceState({ id: 'landing' }, '', '/');
+  if (routePath() !== '/') history.replaceState({ id: 'landing' }, '', withPrefix('/'));
 
   // Screen-specific DOM work rides showScreen's onSwap so it runs with the
   // target screen displayed — the dice scatter needs the zone's pixel rect,

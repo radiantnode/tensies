@@ -46,6 +46,12 @@ def _list(name: str) -> list[str]:
     return [item for item in raw.replace(",", " ").split() if item]
 
 
+# ─── Probe paths (iOS Safari Gotchas §3) ─────────────────────────────────
+# /p/<variant>/<route> serves the SPA shell with html[data-probe="<tokens>"] so
+# per-URL-path Safari decisions (the toolbar strip, the status-bar colour) can
+# be measured per variant. Off unless set — a measuring aid, not a feature.
+PROBE_PATHS = _flag("PROBE_PATHS", False)
+
 # ─── Gameplay ────────────────────────────────────────────────────────────
 # Min seconds between a player's rolls. Bounded by the honest client's fastest
 # legitimate cycle — 500ms minimum shake + 320ms scatter + an instant re-tap

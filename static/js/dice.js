@@ -1,6 +1,7 @@
 // @ts-check
 import { PIP_POSITIONS } from './pips.js';
 import { state } from './state.js';
+import { appViewport } from './viewport.js';
 
 /** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
 
@@ -112,7 +113,7 @@ export function placeGrid(zoneRect, count, sz) {
      DOM — the background layer for the glass, since its box is not the
      window's — and all are rendered before the scatter is placed. */
   const bgLayer = document.querySelector('.game-bg')?.getBoundingClientRect()
-    ?? { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+    ?? appViewport();
   const keepClear = [glassRect(bgLayer)];
   /** @type {Array<[string, number]>} */
   const fixtures = [['.zone-matched', 6], ['#roll-btn', 10]];

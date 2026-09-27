@@ -13,7 +13,7 @@
     inset: auto 0 calc(var(--inset-bottom) * -1) 0;
     inline-size: 100%;
     max-inline-size: none;
-    max-block-size: 78dvh;
+    max-block-size: calc(var(--vp-d) * 0.78);
     margin: 0;
     padding: 28px 22px calc(24px + var(--inset-bottom));
     background: linear-gradient(180deg, rgba(30, 18, 8, .62), rgba(12, 7, 3, .72));

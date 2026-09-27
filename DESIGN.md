@@ -573,6 +573,19 @@ background media swaps to the 4K tier. (The build's flat-blur fallbacks were
 overturned by the owner on 2026-08-19 after they read as broken on the wall;
 reintroduce them only with measured frame-rate numbers.)
 
+**Off a phone, the phone is drawn.** A desktop window or an iPad (both
+viewport sides ≥ 500px) never gets the layout above at its own size: bezel.css
+draws the app 1:1 in a 390×844 box — the harness viewport — centred on the
+page, in the brass (the keeper gold under a thin wash toward its unlit state,
+4px, 28px glass corners) over the app's own blurred street photograph under a
+radial scrim, the same arrangement Hubble builds around the wall's frame. The
+game inside is byte-identical to the phone: every viewport unit in the shell
+resolves through `--vp-w/-l/-d/-s` (critical.css) to the box, `<body>` is the
+box and pins every fixed layer to it, `<main>` scrolls the screens, and the
+top-layer dialogs are re-boxed to the same geometry (the enlarged lobby stamp
+excepted — a lightbox over the whole page, and stamp.css is pinned). Nothing is
+scaled. On a window shorter than a phone the box loses height, never width.
+
 **The Named Z Rule.** Every stacking layer has one named token on the `--z-*`
 scale in critical.css (scrim −1 → content 1 → chip 6 → chrome 10 → banner 12 →
 menu 20 → chrome-over-menu 22 → dissolve 60 → guard 1000); ad-hoc z numbers are

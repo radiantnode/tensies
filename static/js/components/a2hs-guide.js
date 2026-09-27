@@ -5,9 +5,12 @@ import { triggerNativeInstall, hasNativePrompt, dismissBanner } from '../a2hs.js
  * <a2hs-guide> — the "Add to Home Screen" walkthrough.
  *
  * A body-level <dialog> (like the winner/pause overlays) holding a CSS/SVG
- * phone mockup that cross-fades through three synced steps. The iOS scenes
- * reproduce the real Safari chrome (floating bar → Share sheet → Add-to-Home-
- * Screen confirmation); Android gets the ⋮-menu route plus a native Install CTA.
+ * phone mockup that cross-fades through synced steps (5 for iOS, 3 for
+ * Android). The iOS scenes reproduce the real Safari chrome — the floating
+ * bar's ≡ page-options menu → Share… → the share sheet → Add-to-Home-Screen
+ * confirmation (iOS 26+/27: Share is no longer a direct icon on the bar
+ * itself, so reaching it now takes the extra ≡ tap); Android gets the
+ * ⋮-menu route plus a native Install CTA.
  * Opened via the document-level `a2hs-open` event (see a2hs.js::openGuide).
  *
  * Light DOM, host is laid out as `display: contents` so a closed guide adds no
@@ -33,18 +36,20 @@ const RELOAD_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden
 const CHEV_L = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>`;
 const CHEV_R = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>`;
 const BOOK_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><path d="M12 6.5C10.5 5.3 8.5 4.5 6 4.5c-1 0-1.8.1-2.5.3v13c.7-.2 1.5-.3 2.5-.3 2.5 0 4.5.8 6 2 1.5-1.2 3.5-2 6-2 1 0 1.8.1 2.5.3v-13c-.7-.2-1.5-.3-2.5-.3-2.5 0-4.5.8-6 2z"/><path d="M12 6.5v13"/></svg>`;
-const TABS_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5"/><rect x="4" y="4" width="12" height="12" rx="2.5"/></svg>`;
 // Share-sheet action-circle glyphs.
 const COPY_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><rect x="8" y="8" width="11" height="13" rx="2"/><path d="M5 16V5a2 2 0 0 1 2-2h9"/></svg>`;
 const BMARK_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z"/></svg>`;
 const GLASSES_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><circle cx="6.5" cy="14" r="3.3"/><circle cx="17.5" cy="14" r="3.3"/><path d="M9.8 14c0-1 .9-1.6 2.2-1.6s2.2.6 2.2 1.6M3.2 13l1.7-4M20.8 13l-1.7-4"/></svg>`;
 const CHEV_D = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
 const STAR_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><path d="M12 4l2.3 4.7 5.2.8-3.7 3.6.9 5.1L12 15.8 7.3 18.2l.9-5.1L4.5 9.5l5.2-.8z"/></svg>`;
+// iOS 26+ page-options menu glyph — three lines, the ≡ in the address pill.
+const PAGEMENU_SVG = `<svg class="a2hs-glyph" viewBox="0 0 24 24" ${S} aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>`;
 
-// The ⋮ drawn INTO the instruction (not the character): at small sizes the
-// glyph's dots are a hair of ink; drawn, it takes the brass with the word so
-// the target reads as ONE mark (a2hs.json).
+// The ⋮ / ≡ drawn INTO the instruction (not the character): at small sizes
+// the glyph is a hair of ink; drawn, it takes the brass with the word so the
+// target reads as ONE mark (a2hs.json).
 const MORE_INLINE = `<svg class="a2hs-morein" viewBox="8.6 2.4 6.8 19.2" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2.1"/><circle cx="12" cy="12" r="2.1"/><circle cx="12" cy="19" r="2.1"/></svg>`;
+const PAGEMENU_INLINE = `<svg class="a2hs-pagemenu-inline" viewBox="2 5 20 14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>`;
 
 const STEP_MS = 1900;
 
@@ -118,28 +123,47 @@ function homeScene(scene, platform, tap = false) {
 }
 
 // ── iOS scenes (reproduce the real Safari chrome) ──
+// iOS 26+/27's floating bottom bar: a back chevron, the compact address pill
+// (page-options ≡ · site name · reload), and a tab-count square — Share is no
+// longer a direct icon on the bar itself. Reaching it is now two taps: ≡
+// opens a page-options menu, and Share… is a row in that menu (scene 2)
+// before the familiar share sheet (scene 3, unchanged) takes over.
 
 const IOS_SCENE_1 = `
   <div class="a2hs-scene" data-scene="1">
     <div class="a2hs-ios-page"></div>
     <div class="a2hs-ios-bar">
+      <span class="a2hs-ios-back">${CHEV_L}</span>
       <div class="a2hs-ios-url">
-        <span class="a2hs-ios-url-ext">${EXT_SVG}</span>
+        <span class="a2hs-ios-url-menu a2hs-ios-target">${PAGEMENU_SVG}<span class="a2hs-tap"></span></span>
         <span class="a2hs-ios-url-text">tensies.app</span>
         <span class="a2hs-ios-url-reload">${RELOAD_SVG}</span>
       </div>
-      <div class="a2hs-ios-tools">
-        <span class="a2hs-ios-tool a2hs-ios-tool-dim">${CHEV_L}</span>
-        <span class="a2hs-ios-tool a2hs-ios-tool-dim">${CHEV_R}</span>
-        <span class="a2hs-ios-tool a2hs-ios-target">${SHARE_SVG}<span class="a2hs-tap"></span></span>
-        <span class="a2hs-ios-tool">${BOOK_SVG}</span>
-        <span class="a2hs-ios-tool">${TABS_SVG}</span>
-      </div>
+      <span class="a2hs-ios-tabs">1</span>
     </div>
   </div>`;
 
 const IOS_SCENE_2 = `
   <div class="a2hs-scene" data-scene="2">
+    <div class="a2hs-ios-page"></div>
+    <div class="a2hs-ios-bar">
+      <span class="a2hs-ios-back">${CHEV_L}</span>
+      <div class="a2hs-ios-url">
+        <span class="a2hs-ios-url-menu">${PAGEMENU_SVG}</span>
+        <span class="a2hs-ios-url-text">tensies.app</span>
+        <span class="a2hs-ios-url-reload">${RELOAD_SVG}</span>
+      </div>
+      <span class="a2hs-ios-tabs">1</span>
+    </div>
+    <div class="a2hs-ios-pagemenu">
+      <div class="a2hs-ios-pagemenu-row"><span>Find on Page</span>${GLASSES_SVG}</div>
+      <div class="a2hs-ios-pagemenu-row"><span>Reader</span>${BOOK_SVG}</div>
+      <div class="a2hs-ios-pagemenu-row a2hs-ios-target"><span>Share…</span>${SHARE_SVG}<span class="a2hs-tap"></span></div>
+    </div>
+  </div>`;
+
+const IOS_SCENE_3 = `
+  <div class="a2hs-scene" data-scene="3">
     <div class="a2hs-sheet-dim"></div>
     <div class="a2hs-ios-sheet">
       <span class="a2hs-sheet-grabber"></span>
@@ -160,8 +184,8 @@ const IOS_SCENE_2 = `
     </div>
   </div>`;
 
-const IOS_SCENE_3 = `
-  <div class="a2hs-scene" data-scene="3">
+const IOS_SCENE_4 = `
+  <div class="a2hs-scene" data-scene="4">
     <div class="a2hs-sheet-dim"></div>
     <div class="a2hs-ios-confirm">
       <div class="a2hs-confirm-head">
@@ -200,7 +224,7 @@ function guideBody(platform) {
     <span class="a2hs-amore">${MORE_SVG}${tap ? '<span class="a2hs-tap a2hs-tap-toolbar"></span>' : ''}</span></div>`;
 
   const scenes = ios
-    ? `${IOS_SCENE_1}${IOS_SCENE_2}${IOS_SCENE_3}${homeScene(4, 'ios', true)}`
+    ? `${IOS_SCENE_1}${IOS_SCENE_2}${IOS_SCENE_3}${IOS_SCENE_4}${homeScene(5, 'ios', true)}`
     : `<div class="a2hs-scene" data-scene="1">
          <div class="a2hs-ios-page a2hs-page-under"></div>
          ${ANDROID_CHROME}${atool(true)}
@@ -259,8 +283,9 @@ function guideBody(platform) {
 function stepTexts(platform) {
   return platform === 'ios'
     ? [
+        { html: `Tap <strong>${PAGEMENU_INLINE}</strong>` },
         { html: `Tap <strong>Share</strong>` },
-        { html: `Choose <strong>Add to Home&nbsp;Screen</strong>`, hint: `Swipe up if you don't see it` },
+        { html: `Tap <strong>Add to Home&nbsp;Screen</strong>`, hint: `Swipe up if you don't see it` },
         { html: `Tap <strong>Add</strong>`, hint: `Make sure Open as Web App is checked` },
         { html: `Open <strong>Tensies</strong> from your Home Screen` },
       ]
@@ -352,6 +377,14 @@ export class A2hsGuide extends HTMLElement {
     }
 
     dialog.showModal();
+    // showModal() auto-focuses the dialog's first focusable descendant — the
+    // close button — even when the guide was opened by a tap. That's a
+    // script-driven focus, which most engines' :focus-visible heuristic
+    // treats as keyboard-worthy regardless of the touch that triggered it,
+    // so iOS Safari drew the close button's ring on every open. Park focus on
+    // the dialog itself instead; a real Tab press still lands on the button
+    // (and still rings — see a2hs.css) normally.
+    dialog.focus();
     this.#startCycle();
   }
 
