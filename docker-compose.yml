@@ -50,7 +50,7 @@ services:
         condition: service_healthy
 
   redis:
-    image: redis:7.4-alpine
+    image: redis:8.0-alpine
     # Password-protected and NOT published to the host even in dev, so the
     # pattern matches prod. Ephemeral: no persistence (game state is disposable).
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-devpassword}",
