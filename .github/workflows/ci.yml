@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.14"
       - run: pip install ruff==0.14.3
       - run: ruff check .
 
@@ -45,7 +45,7 @@ jobs:
           cache: npm
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.14"
       - run: npm ci
       # Strict type-check of the // @ts-check'd frontend. The modules advertise
       # strictness (jsconfig strict:true); without this gate the annotations
@@ -94,7 +94,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.14"
           cache: pip
       - name: Install dependencies
         # The lock carries websockets (the test's only third-party import).
