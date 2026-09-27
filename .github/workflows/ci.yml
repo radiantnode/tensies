@@ -73,7 +73,7 @@ jobs:
           --health-timeout 3s
           --health-retries 10
       postgres:
-        image: postgres:16-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_USER: tensies
           POSTGRES_PASSWORD: tensies
