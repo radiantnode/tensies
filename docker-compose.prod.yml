@@ -132,7 +132,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:7.4.11-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
+    image: redis:8.10.2-alpine@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD}",
               "--save", "", "--appendonly", "no"]
     healthcheck:
@@ -160,7 +160,7 @@ services:
     restart: unless-stopped
 
   prometheus:
-    image: prom/prometheus:v2.55.1@sha256:2659f4c2ebb718e7695cb9b25ffa7d6be64db013daba13e05c875451cf51b0d3
+    image: prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
     volumes:
       - ./ops/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
       - ./ops/secrets/metrics_token:/etc/prometheus/metrics_token:ro
