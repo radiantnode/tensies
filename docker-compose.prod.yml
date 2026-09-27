@@ -132,7 +132,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:7.4.1-alpine@sha256:c1e88455c85225310bbea54816e9c3f4b5295815e6dbf80c34d40afc6df28275
+    image: redis:7.4.11-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD}",
               "--save", "", "--appendonly", "no"]
     healthcheck:
@@ -144,7 +144,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:16.4-alpine@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c
+    image: postgres:16.15-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     environment:
       POSTGRES_USER: tensies
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}"
@@ -160,7 +160,7 @@ services:
     restart: unless-stopped
 
   prometheus:
-    image: prom/prometheus:v2.54.1@sha256:f6639335d34a77d9d9db382b92eeb7fc00934be8eae81dbc03b31cfe90411a94
+    image: prom/prometheus:v2.55.1@sha256:2659f4c2ebb718e7695cb9b25ffa7d6be64db013daba13e05c875451cf51b0d3
     volumes:
       - ./ops/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
       - ./ops/secrets/metrics_token:/etc/prometheus/metrics_token:ro
@@ -173,7 +173,7 @@ services:
     restart: unless-stopped
 
   postgres_exporter:
-    image: prometheuscommunity/postgres-exporter:v0.15.0@sha256:386b12d19eab2a37d7cd8ca8b4c7491cc7a830d9581f49af6c98a393da9605e6
+    image: prometheuscommunity/postgres-exporter:v0.20.1@sha256:ac5ec343104fae0e2d84a27bb8d69b38430a11910c5382cad85d478d2bab713e
     environment:
       DATA_SOURCE_NAME: "postgresql://tensies:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/tensies?sslmode=disable"
     depends_on:
@@ -183,7 +183,7 @@ services:
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:11.2.0@sha256:408afb9726de5122b00a2576763a8a57a3c86d5b0eff5305bc994ceb3eb96c3f
+    image: grafana/grafana:11.6.16@sha256:d67af92050b8d93b393dc741864752a69c9da1ffa39c1bb9af49ad5d9e47d2c3
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}"
