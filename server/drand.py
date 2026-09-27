@@ -78,8 +78,10 @@ def _verify_bls(sig_bytes: bytes, round_num: int) -> bool:
         h = BlstP1Element.hash_to_group(msg, _DST)
         return bool(final_verify(miller_loop(sig, g2), miller_loop(h, pk)))
     except Exception:
-        log.exception("BLS verification error — skipping")
-        return True
+        # Fail closed: a signature that can't be checked is not a verified one.
+        # The caller discards the beacon, same as a clean mismatch.
+        log.exception("BLS verification error — rejecting beacon")
+        return False
 
 
 # ── Lifecycle (matches reaper/fanout start/stop pattern) ───────────────
