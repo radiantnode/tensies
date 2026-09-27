@@ -1,5 +1,5 @@
 # Fully-pinned dependency closure for reproducible builds.
-# Regenerate on the image's Python (python:3.14-slim-bookworm) with:
+# Regenerate in the Dockerfile's `web` base image (same Python as prod) with:
 #   pip install -r requirements.txt && pip freeze
 # For maximum supply-chain safety, generate a hashed lock with pip-tools/uv
 # and install with `pip install --require-hashes -r <lock>`.
