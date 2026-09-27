@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
-from server import db, discord, drand, fanout, gamestore, reaper, telemetry
+from server import access_log, db, discord, drand, fanout, gamestore, reaper, telemetry
 from server.auth import router as auth_router
 from server.config import FRONTEND_DIST
 from server.discord_interactions import router as discord_router
@@ -41,6 +41,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+# Keep /api/nearby and /api/places/* (they carry the caller's coordinates)
+# out of uvicorn's access log. Every other path is logged as before.
+access_log.install()
 
 # Stamp CSP + HSTS onto every HTTP response (index page, /static, /metrics, …).
 app.add_middleware(SecurityHeadersMiddleware)
