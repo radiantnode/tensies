@@ -9,6 +9,7 @@
 | [PWA Install](PWA_INSTALL.md) | Installable PWA — the standalone/full-screen plumbing (manifest, meta tags, safe-area layout) and the "Add to Home Screen" install UX (banner, animated walkthrough, native prompt) |
 | [Telemetry](TELEMETRY.md) | Telemetry architecture — event flow, Postgres schema, Prometheus metrics, Grafana Live channels, and how to extend them |
 | [Roll Trust](ROLL_TRUST.md) | Verifiable randomness — drand beacon integration, roll verification |
+| [iOS Safari](IOS_SAFARI.md) | The toolbar-strip ratchet, the status bar, and the shell — the measured rule, what changed, the ledger, and the probe tooling |
 | [Discord](DISCORD.md) | Discord bot integration — live-updating game cards, coalesced edits |
 | [Audio Sharing](audio-sharing/README.md) | Share a game code over audio — FSK encoding, frequency map, FFT decoder |
 | [CI Plan](CI_PLAN.md) | GitHub Actions CI design — test surfaces, job layout, runner requirements |

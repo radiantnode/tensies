@@ -32,7 +32,7 @@
 
   .signin-screen .screen-body {
     justify-content: flex-end;
-    padding: 0 24px calc(30px + env(safe-area-inset-bottom));
+    padding: 0 24px calc(30px + var(--inset-bottom));
   }
 
   /* The account coin at 96px: your token at this bar. */

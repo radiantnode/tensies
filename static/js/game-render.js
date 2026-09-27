@@ -7,6 +7,7 @@ import { byId } from './dom.js';
 import { rollMarkSVG } from './roll-mark.js';
 import { settled } from './roll-phase.js';
 import { state } from './state.js';
+import { appViewport } from './viewport.js';
 
 /** @typedef {import('./types.js').GameSnapshot} GameSnapshot */
 /** @typedef {import('./components/player-card.js').PlayerCard} PlayerCard */
@@ -134,7 +135,7 @@ export function renderMyArea(snap) {
       requestAnimationFrame(place);
       return;
     }
-    const sz = window.innerWidth <= 480 ? 52 : 56;
+    const sz = appViewport().width <= 480 ? 52 : 56;
     const stored = loadDicePositions(snap.code, snap.round_num);
     const positions = stored && stored.length === diceToPlace.length
       ? stored

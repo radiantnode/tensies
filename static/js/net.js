@@ -30,6 +30,14 @@ const RECONNECT_WINDOW_MS = 60_000;
 const PAUSED_RECONNECT_WINDOW_MS = 61 * 60 * 1000;
 const RETRY_DELAY_MS = 2000;
 
+/**
+ * The server's reason from the most recent non-fatal reconnect error, if any.
+ * Shown when the reconnect window finally elapses instead of a generic
+ * message. Reset at the start of each maybeReconnect() run.
+ * @type {string | null}
+ */
+let lastReconnectError = null;
+
 function wsUrl() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   return `${proto}://${location.host}/ws`;
@@ -44,14 +52,20 @@ function send(action, extra = {}) {
   state.ws?.send(JSON.stringify({ action, ...extra }));
 }
 
-/** The saved session is unusable — forget it and land on landing with the reason. */
-function expireSession() {
+/**
+ * The saved session is unusable — forget it and land on landing with the
+ * reason. Defaults to a generic message for the no-response case (the
+ * deadline elapsed without ever hearing back); an explicit reconnect refusal
+ * passes the server's own wording instead.
+ * @param {string} [message]
+ */
+function expireSession(message = 'Connection failed') {
   state.reconnecting = false;
   clearSession();
   state.currentState = null;
   leaveLoading(() => {
     showScreen('landing');
-    landing().showError('Connection failed');
+    landing().showError(message);
   });
 }
 
@@ -71,6 +85,7 @@ export function maybeReconnect() {
   if (!playerId || !gameCode) return;
   state.myId = playerId;
   state.reconnecting = true;
+  lastReconnectError = null;
   showLoading('Reconnecting…');
   const windowMs = state.currentState?.paused ? PAUSED_RECONNECT_WINDOW_MS : RECONNECT_WINDOW_MS;
   attemptReconnect(playerId, gameCode, Date.now() + windowMs);
@@ -84,7 +99,7 @@ export function maybeReconnect() {
  */
 function attemptReconnect(playerId, gameCode, deadline) {
   if (Date.now() > deadline) {
-    expireSession();
+    expireSession(lastReconnectError ?? undefined);
     return;
   }
   const { token } = readSession();
@@ -98,8 +113,17 @@ function attemptReconnect(playerId, gameCode, deadline) {
     const msg = /** @type {ServerMessage} */ (JSON.parse(event.data));
     if (msg.type === 'welcome') return;
     if (msg.type === 'error') {
+      // The server marks an error fatal (see server/ws.py handle_reconnect)
+      // only when the slot or credential is genuinely gone — unknown game/
+      // player, or a bad token. Anything else (e.g. the old socket's close
+      // racing this reconnect) is worth retrying within the existing backoff
+      // rather than giving up and clearing a session that's still good.
       ws.close();
-      expireSession();
+      if (msg.fatal) {
+        expireSession(msg.msg);
+      } else {
+        lastReconnectError = msg.msg;
+      }
       return;
     }
     // First real frame: the session is live again — hand over to normal dispatch.

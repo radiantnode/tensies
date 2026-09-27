@@ -107,12 +107,23 @@ a roll is complete only when `roll_count` has advanced **and** both
            document.getElementById('game').classList.contains('active') &&
            !_state.rolling && !_state.awaitingAck && !_state.currentState?.paused;
   };
+  // A real finger has to be able to REACH the button. `.click()` below fires on an
+  // inert element just fine, which is how a modal <dialog> left open on a hidden
+  // screen (the Join sheet, 2026-09-17) made every real tap on Roll do nothing
+  // while this driver kept passing. elementFromPoint honours inertness.
+  const tappable = () => {
+    const btn = document.getElementById('roll-btn');
+    const r = btn.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+    return !!hit && (hit === btn || btn.contains(hit));
+  };
 
   const step = () => {
     if (done())                            return resolve({ rolls, matched: matched(), won: true,  reason: 'target-met' });
     if (rolls >= maxRolls)                 return resolve({ rolls, matched: matched(), won: false, reason: 'max-rolls' });
     if (_state.currentState?.round_over)   return resolve({ rolls, matched: matched(), won: false, reason: 'round-over' });
     if (!clickable()) { setTimeout(step, 80); return; }
+    if (!tappable())                       return resolve({ rolls, matched: matched(), won: false, reason: 'not-tappable' });
 
     const before = me()?.roll_count ?? -1;
     document.getElementById('roll-btn').click();
@@ -135,7 +146,9 @@ a roll is complete only when `roll_count` has advanced **and** both
 
 A `reason` other than `target-met` is a red flag worth reporting: `roll-timeout`
 means a roll never settled (the roll-ack hang), `max-rolls` means 60 rolls didn't
-complete the round (suspicious unless the RNG was cruel).
+complete the round (suspicious unless the RNG was cruel), and `not-tappable` means
+the button is enabled and idle but a finger could not reach it — something is
+covering the board or a modal dialog is still open somewhere (the Join-sheet bug).
 
 **Scope caveat — this exercises game logic, not the touch path.** `rollUntil`
 calls the button's `.click()` from inside the page, a synthetic DOM click. It

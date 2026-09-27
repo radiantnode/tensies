@@ -19,6 +19,7 @@ services:
       REDIS_URL: redis://:devpassword@redis:6379/0
       POSTGRES_DSN: postgresql://tensies:tensies@postgres:5432/tensies
       TELEMETRY_ENABLED: "0"
+      PROBE_PATHS: "1"   # iOS Safari probe paths, always on for the design stack
       METRICS_TOKEN: devmetrics
       STATS_TOKEN: devstats
       WIDGET_TOKEN: devwidget

@@ -5,20 +5,36 @@
  *
  * ## Why this is worth doing
  *
- * Hubble frames Tensies at a third of the panel's pixels and draws it three
- * times over (`zoom`, default 3). So a 720 CSS-pixel-wide frame lands on 2160
- * device pixels, and the shipped `landing-h264.mp4` is 640 wide — it arrives on
- * the wall at roughly a third of the resolution it is being displayed at, which
- * is exactly the case a phone-first asset is not built for. The 4K pair is 1918
- * wide, so it lands about 1:1.
+ * Hubble frames Tensies as a phone — an iPhone 17 Pro Max's proportions,
+ * 942 panel pixels wide on its 4K wall — and the shipped `landing-h264.mp4`
+ * is 640 wide, so it arrives at two thirds of the resolution it is displayed
+ * at, which is exactly the case a phone-first asset is not built for. The
+ * wall pair is 960 wide, so it lands about 1:1.
+ *
+ * ## 60p, interpolated — and sized to the frame, not the panel
+ *
+ * The wall clips are 60 frames a second. The phone clips are 24, and 24 on
+ * a 60Hz panel means every frame is held for two refreshes, then three, then
+ * two — a 3:2 cadence that reads as a stutter on anything that moves, and
+ * was reported from the room as lag. These were made from the 24p masters
+ * by motion-compensated interpolation (ffmpeg's `minterpolate`, mci with
+ * bidirectional estimation and overlapped block compensation), which
+ * synthesises the in-between frames rather than repeating them; the
+ * in-betweens were inspected around the neon, where that kind of thing
+ * tears, and are clean. They are also 960 x 1922 rather than 1918 x 3840:
+ * the frame draws 942 pixels across, so a 4K clip decoded four times the
+ * pixels the wall could show, at a bitrate written for a whole panel, and
+ * that decode was most of what the wall's browser was doing with Tensies
+ * up. Files are `static/video/{landing,game-start}-4k.mp4`, names kept
+ * for the fingerprinting; the 24p 4K originals are outside the repository.
  *
  * ## The costs, stated plainly
  *
- * These are big: 157 MB for the landing loop and 78 MB for the intro, against
- * 2.6 MB and 1.7 MB. That is fine for the wall — it is one LAN hop to nginx on
- * elite01 — and it is deliberately not fine anywhere else, which is why this is
- * behind the Hubble check rather than a viewport query. A phone on cellular
- * must never reach this path.
+ * These are still big for a phone: 41 MB and 14 MB, against 2.6 MB and
+ * 1.7 MB. That is fine for the wall — it is one LAN hop to nginx on
+ * elite01 — and it is deliberately not fine anywhere else, which is why this
+ * is behind the Hubble check rather than a viewport query. A phone on
+ * cellular must never reach this path.
  *
  * There is also a small wasted fetch: `preload="auto"` in `index.html` means the
  * browser starts pulling the 640-wide clips while parsing, and this runs after
