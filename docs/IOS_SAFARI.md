@@ -127,28 +127,6 @@ So the shell was the ratchet, but not because of `body` specifically.
 `(204,0,204)` 294px, both magenta under the toolbar for the first time; with the join
 sheet's backdrop up first, `(111,2,107)`. The shell became the default.
 
-## Final pass on plain paths
-
-*Pending: the reviewer runs every screen on an erased device once the Mac has the memory
-for the simulator. Fill in below.*
-
-| path | status bar | strip | verdict |
-|------|-----------|-------|---------|
-| `/` | | | |
-| `/changelog` | | | |
-| `/@Mich` | | | |
-| `/games/VLAWL` | | | |
-| `/signin` | | | |
-| `/welcome` | | | |
-| `/nearby` | | | |
-| landing → menu | | | |
-| lobby | | | |
-| board | | | |
-
-Michael's own check on a phone, since the erased simulator cannot open a WebSocket:
-https://tensies.app/p/x-create/ (lobby, Start pinned at the bottom) and
-https://tensies.app/p/x-create-start/ (board, ROLL at the bottom, no rubber-band).
-
 ## Decisions left to Michael
 
 - **`PROBE_PATHS`.** On in prod for the pass; off afterwards. The route stays in the code
@@ -255,3 +233,94 @@ the in-game menu (via `.game-screen`) and the loading splash, which also left th
 shell for this. It was the last screen on it, and on every reconnect its scrim stopped at
 the toolbar line. Measured by painting each scrim `#ff00ff` and reading the column down to
 the last device row.
+
+
+## Addendum, 2026-10-01: what the status-bar sampler actually reads
+
+*iOS 27 simulator, iPhone 17 Pro, iPhone 17 and iPhone 18 Pro — all 402x874pt at 3x, page
+top 62pt, Compact tab layout unless stated. Measured against the **Doorway redesign on the
+design stack** (branch `doorway-redesign`, unmerged at the time), so the colours below are
+that branch's, not `main`'s. Five builds, one change at a time, each verified against the
+`/p/min/none` and `/p/min/sticky` controls on every device before anything was read.*
+
+"The status bar" above says a solid, full-width element at the top wins the sample. That is
+necessary but not sufficient, and the gap cost four build rounds to close.
+
+**The ladder.** Every row is the topmost painted element at the sample point, confirmed by
+reading the pixel there:
+
+| top element at the sample point                                   | position | net flow height | result     |
+|-------------------------------------------------------------------|----------|-----------------|------------|
+| film / poster (media)                                             | fixed    | —               | fallback   |
+| grain overlay, full width from page y=0, `opacity: .04`–`.055`     | fixed    | 0               | fallback   |
+| 6px lip, solid `--floor`, full width                               | fixed    | 0               | fallback   |
+| 12px lip, solid `--floor`, full width                              | sticky   | 0 (negative margin cancels it) | fallback |
+| dialog scrim, opaque, full width, uniform past page 22px           | fixed    | —               | fallback   |
+| masthead, solid `var(--bg)`, ground on an `inset: 0` absolute `::before` | sticky | real       | **sample** |
+| room header, same structure, 12px ground                           | sticky   | real            | **sample** |
+
+So an element can be solid, full width, touching the top edge **and topmost in paint**, and
+still never be read. The two that win are real elements that occupy layout.
+
+**Which property is decisive is unisolated.** The working build changed three things at
+once: a real element instead of `body::before`, real flow height instead of a
+`margin-block-end` that cancelled it, and the ground on an `inset: 0` absolute `::before`
+instead of the box's own `background-color`. A `hdrbg`-style probe would not separate them
+as the CSS stands — `app-header` has `z-index: 10` and so opens a stacking context, which
+paints a `z-index: -1` child *above* the element's own background, hiding it.
+
+Three numbers that pin the mechanism down:
+
+- **The fallback has a fingerprint.** While the grain was the topmost element, the status
+  bar read exactly one level off the strip at the foot, on every screen and both schemes:
+  `#f5f1e8` against `#f5f0e8` light, `#14110d` against `#14100d` dark. The strip is pure
+  `body`; the status bar is `body` under ~5% grain. Seeing that one-level offset is enough
+  to know the sample failed.
+- **The sample row sits above page 8 CSS px.** With the grain inset 8px, the sampled
+  masthead value was `#f5f0e8` — the un-tinted band above 8px — not the `#f0ebe3` below it.
+- **`loud` settles sample vs fallback in one shot.** Body is `#ff00ff` there, so a status
+  bar reading anything else is a sample. This is the only cheap test; in plain colours the
+  masthead and `body` differ by 5–6 levels and the two outcomes look identical.
+
+**Final state, both schemes, Compact.** Every screen now samples, or falls back to a colour
+that already matches:
+
+| screen                    | dark      | light     | how        |
+|---------------------------|-----------|-----------|------------|
+| landing, lobby            | `#0d0a08` | `#0d0a08` | sample (room header ground) |
+| changelog, sign-in, nearby| `#14100d` | `#f5f0e8` | sample (masthead) |
+| board                     | `#0d0a08` | `#0d0a08` | fallback, `body` already matches |
+| nav menu over a room      | `#14110d` | `#f5f1e8` | fallback, within 5–6 levels of the menu ground |
+
+Before the fix, light mode put a cream `#f5f1e8` band across the top of the dark film on the
+landing and the lobby, with a hard edge at page y=0. After it, a transition map down the
+light landing from screen y=150 to y=260 — across the status bar, the page edge and into the
+film — prints no transition at all. The 12px ground is invisible against the film: 3–6 levels.
+
+Worth keeping: making the sample *succeed* also retires §2's black-race risk on a real phone.
+Only a failed sample raced to black with "Allow Website Tinting" on.
+
+**The strip, unchanged.** Nothing in the redesign ratchets. Landing, changelog at y600,
+sign-in, nearby, nav menu, lobby and board all overdraw — magenta to the last row under
+`loud`, both schemes, in Compact and in the Bottom tab layout. The film-grain `body::after`
+at `lvh` does not fire §1, nor does a 6px or 12px lip, nor the QR zoom, nor the pause menu
+(open one and close it and the strip comes back magenta; a real flat fill would be kept for
+the life of the document).
+
+**A dialog scrim belongs on `::backdrop`.** Moved onto the dialog element at `100lvh` it was
+clipped at the layout viewport (page 714 here) and the whole 98pt strip under the toolbar
+reverted to `body` — a bright cream band at the foot in light mode. Back on `::backdrop` it
+covers to the last row again (`#211e1c`). The status bar stays the fallback either way,
+since the dialog is fixed.
+
+**Hazards that cost time in this pass**, for whoever measures next:
+
+- **Nearby re-fires the per-origin geolocation prompt on every load**, and the system alert
+  dims the whole screen about 48%. It silently corrupted a first round of readings — a
+  "flat fill" that was just the alert's scrim. `simctl privacy grant` does not suppress it;
+  it is a WebKit per-origin prompt and has to be tapped.
+- **`/` resumes into the running game.** Once a game exists, the landing and `/p/create/`
+  both render the board or the lobby, and the state survives a Safari relaunch. Two rounds
+  of "landing" numbers were actually the board before this was caught. The lobby's back
+  button clears it; otherwise use a device that has never created one.
+- **The strip column is x=20 *device* px**, not 20pt — at 20pt the Compact pill is in frame.
