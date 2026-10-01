@@ -127,28 +127,6 @@ So the shell was the ratchet, but not because of `body` specifically.
 `(204,0,204)` 294px, both magenta under the toolbar for the first time; with the join
 sheet's backdrop up first, `(111,2,107)`. The shell became the default.
 
-## Final pass on plain paths
-
-*Pending: the reviewer runs every screen on an erased device once the Mac has the memory
-for the simulator. Fill in below.*
-
-| path | status bar | strip | verdict |
-|------|-----------|-------|---------|
-| `/` | | | |
-| `/changelog` | | | |
-| `/@Mich` | | | |
-| `/games/VLAWL` | | | |
-| `/signin` | | | |
-| `/welcome` | | | |
-| `/nearby` | | | |
-| landing → menu | | | |
-| lobby | | | |
-| board | | | |
-
-Michael's own check on a phone, since the erased simulator cannot open a WebSocket:
-https://tensies.app/p/x-create/ (lobby, Start pinned at the bottom) and
-https://tensies.app/p/x-create-start/ (board, ROLL at the bottom, no rubber-band).
-
 ## Decisions left to Michael
 
 - **`PROBE_PATHS`.** On in prod for the pass; off afterwards. The route stays in the code
