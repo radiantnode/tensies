@@ -1,6 +1,6 @@
 # Top-level runtime dependencies. Exact transitive pins live in
 # requirements.lock (use that for reproducible/prod builds).
-fastapi==0.143.3
+fastapi==0.162.4
 uvicorn[standard]==0.54.0
 asyncpg==0.32.0
 prometheus-client==0.26.0
@@ -13,7 +13,7 @@ redis==8.1.0
 #                       via /static) and CVE-2026-48710 ("BadHost" Host-header
 #                       path poisoning). Fixed at 1.0.1.
 #   h11>=0.16.0       — CVE-2025-43859 (chunked request smuggling).
-starlette==1.8.0
+starlette==1.10.0
 h11==0.16.0
 
 # WebAuthn passkey auth + JWT session tokens
